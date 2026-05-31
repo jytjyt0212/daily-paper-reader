@@ -1,85 +1,46 @@
 {
   "mode": "standard",
-  "generated_at": "2026-05-31T14:10:20.261701+00:00",
+  "generated_at": "2026-05-31T14:44:03.398915+00:00",
   "stats": {
     "mode": "standard",
     "tag_count": 1,
-    "deep_divecandidates": 18,
+    "deep_divecandidates": 19,
     "deep_cap": 6,
-    "deep_selected": 10,
-    "quick_candidates": 14,
+    "deep_selected": 12,
+    "quick_candidates": 25,
     "quick_skim_target": 11,
     "quick_selected": 11
   },
   "deep_dive": [
     {
-      "id": "2605.25313v1",
+      "id": "2605.25620v1",
       "source": "arxiv",
-      "title": "UWM-JEPA: Predictive World Models That Imagine in Belief Space",
-      "abstract": "World models for partially observed environments must imagine multiple compatible hidden futures and steer between them under counterfactual actions. Joint Embedding Predictive Architectures (JEPAs) do this in latent space, but a vector-valued latent has no internal structure for carrying the belief over hidden continuations through blind rollout. We introduce the Unitary World Model JEPA (UWM-JEPA), a JEPA world model with a density-matrix latent on a joint system-environment space and a learned unitary predictor. The construction preserves the joint-state spectrum exactly during rollout, so the predictor itself cannot dissipate the represented uncertainty.   On a hidden-velocity indicator task requiring five-step forward simulation under a given action sequence with the target observation masked, UWM-JEPA reaches 0.77 accuracy and degrades monotonically as actions are perturbed; a parameter-matched LSTM-JEPA trained under the same counterfactual-target objective and action head collapses to majority-class accuracy (0.53) under every action condition. Under blind rollout, UWM-JEPA loses fewer than ten points of probe R^2 at short horizons while vector-latent baselines lose forty-one and sixty-eight; both nevertheless tie on a held-out context probe, locating the separation in the predictor rather than the encoder. Action sensitivity itself requires training against counterfactual rather than teacher-forced targets, a finding that applies beyond the unitary parameterisation. For JEPA world models to imagine under partial observability, latent geometry and predictor dynamics matter, not frozen context-encoding capacity alone.",
+      "title": "Back to Parsimonious Latents: Learning Task-Centric World Models from Visual Foundations",
+      "abstract": "World models enable agents to predict future dynamics conditioned on actions, making the choice of latent representation central to planning and control. Such representations are often either learned directly from pixels with limited semantic structure or inherited from frozen visual foundation models with excessive task-irrelevant detail, yielding state spaces that are poorly matched to downstream planning and control. This is especially challenging in reward-free offline settings, where the model must learn from fixed trajectories without reward supervision or online interaction. To address this, we propose TC-WM, a framework for turning foundation-model embeddings into compact, task-sufficient world representations. The key design is to treat the pretrained embedding space as a semantic scaffold rather than as the final state space: TC-WM linearly projects high-dimensional visual embeddings into a compact latent as the dynamic space, aligns a subspace with the agent's physical state via contrastive learning, and reconstructs embeddings to preserve useful visual structure. This combines the generality of foundation features with the controllability of task-centric dynamics. Theoretically, we show that TC-WM suffices to identify the underlying task-centric latent factors up to a simple transformation. Empirically, TC-WM enables test-time planning across diverse environments (e.g., Robomimic and D4RL), achieving better world-modeling quality and more precise control than state-of-the-art approaches.",
       "authors": [
-        "Santosh Kumar Radha",
-        "Oktay Goktas"
+        "Minghao Fu",
+        "Fan Feng",
+        "Nicklas Hansen",
+        "Biwei Huang"
       ],
-      "primary_category": "cs.LG",
+      "primary_category": "cs.AI",
       "categories": [
-        "cs.LG",
-        "cs.AI",
-        "cs.RO",
-        "stat.ML"
+        "cs.AI"
       ],
-      "published": "2026-05-25T00:28:51+00:00",
-      "link": "https://arxiv.org/pdf/2605.25313v1",
+      "published": "2026-05-25T09:21:43+00:00",
+      "link": "https://arxiv.org/pdf/2605.25620v1",
       "tags": [
         "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 10.0,
-      "llm_evidence_en": "proposes a new world model architecture (UWM-JEPA) with density-matrix latent space",
-      "llm_evidence_cn": "提出一种新的世界模型架构UWM-JEPA，采用密度矩阵潜在空间",
-      "llm_evidence": "提出一种新的世界模型架构UWM-JEPA，采用密度矩阵潜在空间",
-      "canonical_evidence": "提出一种新的世界模型架构UWM-JEPA，采用密度矩阵潜在空间",
-      "llm_tldr_en": "The paper introduces UWM-JEPA, a world model using a density-matrix latent and unitary predictor to preserve uncertainty over multiple hidden futures in partially observed environments, achieving robust long-horizon prediction.",
-      "llm_tldr_cn": "本论文提出UWM-JEPA，一种基于密度矩阵潜在空间和酉预测器的世界模型架构，解决了部分观测环境下JEPA模型无法维持信念分布的问题。该方法在滚动预测过程中精确保持系统-环境联合状态的谱结构，从而避免不确定性消散。在隐藏速度指示器任务上，UWM-JEPA成功实现了五步前向模拟，并保持了准确的不确定性表示。这项工作为构建可靠的世界模型提供了新范式，在机器人和自主系统中具有重要应用前景。",
-      "llm_tldr": "本论文提出UWM-JEPA，一种基于密度矩阵潜在空间和酉预测器的世界模型架构，解决了部分观测环境下JEPA模型无法维持信念分布的问题。该方法在滚动预测过程中精确保持系统-环境联合状态的谱结构，从而避免不确定性消散。在隐藏速度指示器任务上，UWM-JEPA成功实现了五步前向模拟，并保持了准确的不确定性表示。这项工作为构建可靠的世界模型提供了新范式，在机器人和自主系统中具有重要应用前景。",
-      "llm_tags": [
-        "query:world-models"
-      ],
-      "matched_query_tag": "query:world-models",
-      "matched_query_text": "world model architecture",
-      "matched_requirement_id": "req-6",
-      "selection_source": "fresh_fetch"
-    },
-    {
-      "id": "2605.23888v1",
-      "source": "arxiv",
-      "title": "GenRecon: Bridging Generative Priors for Multi-View 3D Scene Reconstruction",
-      "abstract": "We introduce a new approach to high-fidelity 3D scene reconstruction from multi-view RGB images that tightly couples reconstruction with a strong generative 3D prior. We cast scene reconstruction as conditional 3D generation over a set of spatially-localized, overlapping chunks that together tile the scene, scaling generation to large scene extents. Crucially, we inherit the fidelity and completeness of state-of-the-art generative shape models -- we use Trellis.2 as an example -- which we generalize to the scene level. To this end, we propose a projection-based conditioning mechanism that lifts posed multi-view image features into a coherent 3D representation aligned with the generative model, independent of view ordering and spatially anchored to the scene, yielding high-fidelity, multi-view consistent generated geometry. This enables lifting the strong object-level prior of Trellis.2 to multi-view, scene-scale generation, producing faithful, editable PBR mesh reconstructions of indoor environments. As a result, we obtain high-fidelity results that outperform cutting-edge reconstruction methods by 16%.",
-      "authors": [
-        "Katharina Schmid",
-        "Nicolas von Lützow",
-        "Jozef Hladký",
-        "Angela Dai",
-        "Matthias Nießner"
-      ],
-      "primary_category": "cs.CV",
-      "categories": [
-        "cs.CV"
-      ],
-      "published": "2026-05-22T17:49:59+00:00",
-      "link": "https://arxiv.org/pdf/2605.23888v1",
-      "tags": [
-        "keyword:world-models",
-        "query:world-models"
-      ],
-      "llm_score": 9.0,
-      "llm_evidence_en": "world model architecture, generative 3D scene reconstruction",
-      "llm_evidence_cn": "世界模型架构，生成式三维场景重建",
-      "llm_evidence": "世界模型架构，生成式三维场景重建",
-      "canonical_evidence": "世界模型架构，生成式三维场景重建",
-      "llm_tldr_en": "Proposes conditional 3D generation for scene reconstruction, using generative shape priors to achieve high-fidelity multi-view reconstruction.",
-      "llm_tldr_cn": "针对多视角三维重建的完整性和保真度问题，本文GenRecon将重建任务转化为条件三维生成，采用分块平铺策略扩展到大规模场景。利用Trellis.2等生成先验，通过投影条件机制将多视角特征对齐到生成模型。实验证明该方法在场景重建的完整性和细节保真度上显著优于传统方法，为世界模型中的三维感知提供了新范式。",
-      "llm_tldr": "针对多视角三维重建的完整性和保真度问题，本文GenRecon将重建任务转化为条件三维生成，采用分块平铺策略扩展到大规模场景。利用Trellis.2等生成先验，通过投影条件机制将多视角特征对齐到生成模型。实验证明该方法在场景重建的完整性和细节保真度上显著优于传统方法，为世界模型中的三维感知提供了新范式。",
+      "llm_evidence_en": "task-centric world models from visual foundations",
+      "llm_evidence_cn": "任务中心的世界模型架构",
+      "llm_evidence": "任务中心的世界模型架构",
+      "canonical_evidence": "任务中心的世界模型架构",
+      "llm_tldr_en": "Proposes TC-WM framework that transforms foundation model embeddings into compact task-sufficient world representations for offline reward-free settings, enabling effective planning and control.",
+      "llm_tldr_cn": "现有世界模型从像素学习缺乏语义结构或从视觉基础模型继承过多无关细节，导致状态空间不适配规划控制。本文提出TC-WM框架，将基础模型嵌入转化为紧凑、任务充分的潜在表示，通过解耦语义一致性和动态预测目标，在离线无奖励设置中取得高效规划性能。实验证明该方法在多个连续控制任务中优于现有基线，并显著减少表示维度。",
+      "llm_tldr": "现有世界模型从像素学习缺乏语义结构或从视觉基础模型继承过多无关细节，导致状态空间不适配规划控制。本文提出TC-WM框架，将基础模型嵌入转化为紧凑、任务充分的潜在表示，通过解耦语义一致性和动态预测目标，在离线无奖励设置中取得高效规划性能。实验证明该方法在多个连续控制任务中优于现有基线，并显著减少表示维度。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -114,19 +75,19 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Proposes a lightweight world model for end-to-end autonomous driving with sparse scene representation",
-      "llm_evidence_cn": "提出了一种用于端到端自动驾驶的轻量级世界模型，采用稀疏场景表示",
-      "llm_evidence": "提出了一种用于端到端自动驾驶的轻量级世界模型，采用稀疏场景表示",
-      "canonical_evidence": "提出了一种用于端到端自动驾驶的轻量级世界模型，采用稀疏场景表示",
-      "llm_tldr_en": "SparseWorld introduces a lightweight world model that autoregressively forecasts only critical layout elements (map and agents) for efficient future prediction in autonomous driving.",
-      "llm_tldr_cn": "现有驾驶世界模型基于密集场景表示，计算成本高且信息冗余。本文提出SparseWorld轻量级世界模型，仅预测场景中的关键布局元素（地图要素和周围智能体），通过自回归rollout实现高效未来预测。该方法显著降低了计算量，同时保持预测准确性，为世界模型在自动驾驶中的实用部署提供了新思路。",
-      "llm_tldr": "现有驾驶世界模型基于密集场景表示，计算成本高且信息冗余。本文提出SparseWorld轻量级世界模型，仅预测场景中的关键布局元素（地图要素和周围智能体），通过自回归rollout实现高效未来预测。该方法显著降低了计算量，同时保持预测准确性，为世界模型在自动驾驶中的实用部署提供了新思路。",
+      "llm_evidence_en": "SparseWorld: a sparse world model for autonomous driving",
+      "llm_evidence_cn": "SparseWorld：用于自动驾驶的稀疏世界模型",
+      "llm_evidence": "SparseWorld：用于自动驾驶的稀疏世界模型",
+      "canonical_evidence": "SparseWorld：用于自动驾驶的稀疏世界模型",
+      "llm_tldr_en": "Proposes a lightweight world model that predicts only critical scene layout elements, reducing computational cost and enabling efficient future forecasting for end-to-end driving.",
+      "llm_tldr_cn": "该论文针对现有驾驶世界模型使用稠密场景表示导致计算量大、冗余多的问题，提出了SparseWorld。该模型仅预测未来地图元素和周围智能体的关键布局，通过自回归滚动预测实现高效未来的场景演化。在多个驾驶数据集上，SparseWorld以更少的计算代价实现了与稠密模型相当甚至更好的预测性能，为自动驾驶中的世界模型应用提供了轻量化方案。",
+      "llm_tldr": "该论文针对现有驾驶世界模型使用稠密场景表示导致计算量大、冗余多的问题，提出了SparseWorld。该模型仅预测未来地图元素和周围智能体的关键布局，通过自回归滚动预测实现高效未来的场景演化。在多个驾驶数据集上，SparseWorld以更少的计算代价实现了与稠密模型相当甚至更好的预测性能，为自动驾驶中的世界模型应用提供了轻量化方案。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "world model architecture",
-      "matched_requirement_id": "req-6",
+      "matched_query_text": "recent world model paper",
+      "matched_requirement_id": "req-5",
       "selection_source": "fresh_fetch"
     },
     {
@@ -152,13 +113,13 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Directly about distilling game code world model generation",
-      "llm_evidence_cn": "直接涉及游戏代码世界模型生成与蒸馏",
-      "llm_evidence": "直接涉及游戏代码世界模型生成与蒸馏",
-      "canonical_evidence": "直接涉及游戏代码世界模型生成与蒸馏",
-      "llm_tldr_en": "Proposes a method to distill game code world model generation from large LLMs into lightweight models, improving accessibility and scalability for world model construction.",
-      "llm_tldr_cn": "现有游戏代码世界模型生成依赖大型模型和推理时精化循环，限制了可及性与扩展性。本文提出将这一能力蒸馏到轻量级LLM中，通过教师-学生框架在保留表达力的同时降低计算成本。实验表明，蒸馏后的模型能产生高质量的游戏世界模型代码，在多个游戏规则上匹敌大型模型。这项工作推动了世界模型在游戏与机器人等领域的实用部署。",
-      "llm_tldr": "现有游戏代码世界模型生成依赖大型模型和推理时精化循环，限制了可及性与扩展性。本文提出将这一能力蒸馏到轻量级LLM中，通过教师-学生框架在保留表达力的同时降低计算成本。实验表明，蒸馏后的模型能产生高质量的游戏世界模型代码，在多个游戏规则上匹敌大型模型。这项工作推动了世界模型在游戏与机器人等领域的实用部署。",
+      "llm_evidence_en": "game code world model distillation",
+      "llm_evidence_cn": "游戏代码世界模型蒸馏",
+      "llm_evidence": "游戏代码世界模型蒸馏",
+      "canonical_evidence": "游戏代码世界模型蒸馏",
+      "llm_tldr_en": "This paper distills game code world model generation from frontier LLMs into lightweight models, enabling accessible world model construction for AI agents.",
+      "llm_tldr_cn": "针对当前代码世界模型生成依赖大型模型和推理时优化的问题，该论文提出将游戏代码世界模型生成能力从前沿LLM蒸馏到轻量级模型中的方法。蒸馏后的模型能高效生成可执行游戏环境代码，降低世界模型构建门槛，为AI智能体自动环境生成提供了实用方案。",
+      "llm_tldr": "针对当前代码世界模型生成依赖大型模型和推理时优化的问题，该论文提出将游戏代码世界模型生成能力从前沿LLM蒸馏到轻量级模型中的方法。蒸馏后的模型能高效生成可执行游戏环境代码，降低世界模型构建门槛，为AI智能体自动环境生成提供了实用方案。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -189,19 +150,19 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Proposes JEPA-guided diffusion using world models",
-      "llm_evidence_cn": "提出使用世界模型JEPA引导扩散采样的方法",
-      "llm_evidence": "提出使用世界模型JEPA引导扩散采样的方法",
-      "canonical_evidence": "提出使用世界模型JEPA引导扩散采样的方法",
-      "llm_tldr_en": "Introduces world-centric minority sampling with JEPA guidance, a world model architecture for semantically rich representation.",
-      "llm_tldr_cn": "本文提出一种以世界为中心的少数样本采样方法，核心是JEPA（联合嵌入预测架构）引导的扩散框架。JEPA作为一类世界模型，能够编码语义丰富的真实世界表征，从而定义样本的稀有性。该方法超越基于生成先验的传统思路，在小样本生成、异常检测等任务上具有潜力。这项工作是世界模型与生成模型结合的重要进展。",
-      "llm_tldr": "本文提出一种以世界为中心的少数样本采样方法，核心是JEPA（联合嵌入预测架构）引导的扩散框架。JEPA作为一类世界模型，能够编码语义丰富的真实世界表征，从而定义样本的稀有性。该方法超越基于生成先验的传统思路，在小样本生成、异常检测等任务上具有潜力。这项工作是世界模型与生成模型结合的重要进展。",
+      "llm_evidence_en": "JEPA-guided diffusion using world models for minority sampling",
+      "llm_evidence_cn": "使用世界模型JEPA引导扩散进行少数类采样",
+      "llm_evidence": "使用世界模型JEPA引导扩散进行少数类采样",
+      "canonical_evidence": "使用世界模型JEPA引导扩散进行少数类采样",
+      "llm_tldr_en": "Proposes JEPA-guided diffusion, a world-centric minority sampling method that uses a Joint-Embedding Predictive Architecture as a world model to guide diffusion, producing low-density samples aligned with real-world semantics.",
+      "llm_tldr_cn": "现有少数类采样方法依赖于生成模型学习的先验，但可能偏离真实世界语义。本文提出以世界为中心的视角，利用联合嵌入预测架构（JEPA）作为世界模型引导扩散过程，使生成的少数类样本更反映真实世界的稀有分布。实验证明在多种生成任务中，该方法能产生语义更丰富且多样化的样本，优于基于生成先验的方法。",
+      "llm_tldr": "现有少数类采样方法依赖于生成模型学习的先验，但可能偏离真实世界语义。本文提出以世界为中心的视角，利用联合嵌入预测架构（JEPA）作为世界模型引导扩散过程，使生成的少数类样本更反映真实世界的稀有分布。实验证明在多种生成任务中，该方法能产生语义更丰富且多样化的样本，优于基于生成先验的方法。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "world model architecture",
-      "matched_requirement_id": "req-6",
+      "matched_query_text": "world model breakthroughs",
+      "matched_requirement_id": "req-8",
       "selection_source": "fresh_fetch"
     },
     {
@@ -239,13 +200,51 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Predictive world modeling for VLA planning",
-      "llm_evidence_cn": "面向VLA规划的预测世界建模",
-      "llm_evidence": "面向VLA规划的预测世界建模",
-      "canonical_evidence": "面向VLA规划的预测世界建模",
-      "llm_tldr_en": "X-Foresight introduces predictive world modeling to learn physical dynamics from videos for Vision-Language-Action planning.",
-      "llm_tldr_cn": "视频中蕴含丰富的物理世界知识，但现有预测方法存在低熵冗余和长程因果建模难题。X-Foresight提出联合视觉-动作因果预测网络，通过世界模型学习物理动态和长期因果，在机器人规划和仿真中显著提升泛化能力和安全决策。",
-      "llm_tldr": "视频中蕴含丰富的物理世界知识，但现有预测方法存在低熵冗余和长程因果建模难题。X-Foresight提出联合视觉-动作因果预测网络，通过世界模型学习物理动态和长期因果，在机器人规划和仿真中显著提升泛化能力和安全决策。",
+      "llm_evidence_en": "joint vision-action causal forecasting via predictive world modeling",
+      "llm_evidence_cn": "通过预测世界模型进行联合视觉-动作因果预测",
+      "llm_evidence": "通过预测世界模型进行联合视觉-动作因果预测",
+      "canonical_evidence": "通过预测世界模型进行联合视觉-动作因果预测",
+      "llm_tldr_en": "X-Foresight introduces a joint vision-action causal forecasting network using predictive world modeling to handle low-entropy video tokens and long-horizon causality.",
+      "llm_tldr_cn": "本文提出X-Foresight，一种联合视觉-动作因果预测网络，基于预测世界模型。该方法面向视频中低熵冗余令牌和长期因果建模的挑战，设计高效架构捕获物理动态。通过预测未来视频，使视觉-语言-动作模型内化世界知识，提升规划的安全性和泛化能力。",
+      "llm_tldr": "本文提出X-Foresight，一种联合视觉-动作因果预测网络，基于预测世界模型。该方法面向视频中低熵冗余令牌和长期因果建模的挑战，设计高效架构捕获物理动态。通过预测未来视频，使视觉-语言-动作模型内化世界知识，提升规划的安全性和泛化能力。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.25313v1",
+      "source": "arxiv",
+      "title": "UWM-JEPA: Predictive World Models That Imagine in Belief Space",
+      "abstract": "World models for partially observed environments must imagine multiple compatible hidden futures and steer between them under counterfactual actions. Joint Embedding Predictive Architectures (JEPAs) do this in latent space, but a vector-valued latent has no internal structure for carrying the belief over hidden continuations through blind rollout. We introduce the Unitary World Model JEPA (UWM-JEPA), a JEPA world model with a density-matrix latent on a joint system-environment space and a learned unitary predictor. The construction preserves the joint-state spectrum exactly during rollout, so the predictor itself cannot dissipate the represented uncertainty.   On a hidden-velocity indicator task requiring five-step forward simulation under a given action sequence with the target observation masked, UWM-JEPA reaches 0.77 accuracy and degrades monotonically as actions are perturbed; a parameter-matched LSTM-JEPA trained under the same counterfactual-target objective and action head collapses to majority-class accuracy (0.53) under every action condition. Under blind rollout, UWM-JEPA loses fewer than ten points of probe R^2 at short horizons while vector-latent baselines lose forty-one and sixty-eight; both nevertheless tie on a held-out context probe, locating the separation in the predictor rather than the encoder. Action sensitivity itself requires training against counterfactual rather than teacher-forced targets, a finding that applies beyond the unitary parameterisation. For JEPA world models to imagine under partial observability, latent geometry and predictor dynamics matter, not frozen context-encoding capacity alone.",
+      "authors": [
+        "Santosh Kumar Radha",
+        "Oktay Goktas"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.RO",
+        "stat.ML"
+      ],
+      "published": "2026-05-25T00:28:51+00:00",
+      "link": "https://arxiv.org/pdf/2605.25313v1",
+      "tags": [
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes UWM-JEPA predictive world model",
+      "llm_evidence_cn": "提出UWM-JEPA预测世界模型",
+      "llm_evidence": "提出UWM-JEPA预测世界模型",
+      "canonical_evidence": "提出UWM-JEPA预测世界模型",
+      "llm_tldr_en": "UWM-JEPA introduces a density-matrix latent and unitary predictor for world models that preserve uncertainty during rollout.",
+      "llm_tldr_cn": "针对部分可观测环境中世界模型需要想象多个相容隐藏未来的问题，UWM-JEPA提出在联合系统-环境空间中使用密度矩阵潜变量和学习到的酉预测器，在展开过程中精确保持联合状态谱，从而避免不确定性消散。在隐藏速度指示任务上展示了五步前向仿真的能力，为世界模型在信念空间中的想象提供了新架构。",
+      "llm_tldr": "针对部分可观测环境中世界模型需要想象多个相容隐藏未来的问题，UWM-JEPA提出在联合系统-环境空间中使用密度矩阵潜变量和学习到的酉预测器，在展开过程中精确保持联合状态谱，从而避免不确定性消散。在隐藏速度指示任务上展示了五步前向仿真的能力，为世界模型在信念空间中的想象提供了新架构。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -255,40 +254,131 @@
       "selection_source": "fresh_fetch"
     },
     {
-      "id": "2605.25620v1",
+      "id": "2605.25829v1",
       "source": "arxiv",
-      "title": "Back to Parsimonious Latents: Learning Task-Centric World Models from Visual Foundations",
-      "abstract": "World models enable agents to predict future dynamics conditioned on actions, making the choice of latent representation central to planning and control. Such representations are often either learned directly from pixels with limited semantic structure or inherited from frozen visual foundation models with excessive task-irrelevant detail, yielding state spaces that are poorly matched to downstream planning and control. This is especially challenging in reward-free offline settings, where the model must learn from fixed trajectories without reward supervision or online interaction. To address this, we propose TC-WM, a framework for turning foundation-model embeddings into compact, task-sufficient world representations. The key design is to treat the pretrained embedding space as a semantic scaffold rather than as the final state space: TC-WM linearly projects high-dimensional visual embeddings into a compact latent as the dynamic space, aligns a subspace with the agent's physical state via contrastive learning, and reconstructs embeddings to preserve useful visual structure. This combines the generality of foundation features with the controllability of task-centric dynamics. Theoretically, we show that TC-WM suffices to identify the underlying task-centric latent factors up to a simple transformation. Empirically, TC-WM enables test-time planning across diverse environments (e.g., Robomimic and D4RL), achieving better world-modeling quality and more precise control than state-of-the-art approaches.",
+      "title": "OASIS: Observation-Action Space Alignment via SE(3) Trajectory Prediction for Robotic Manipulation",
+      "abstract": "Recent vision-language-action (VLA) models and world action models (WAMs) advance robotic manipulation by enriching intermediate representations with auxiliary spatial features or future visual-state prediction. However, these representations largely remain within the observation space and do not share the rigid-body geometry of the action space, forcing the action decoder to implicitly recover this geometry. We propose OASIS, a visuomotor policy that aligns the intermediate representation with the action space via $SE(3)$ end-effector trajectory prediction. OASIS couples a 3D-aware feature encoder that fuses vision-language and metric-depth features with an $SE(3)$ trajectory predictor that produces a camera-frame end-effector trajectory. Conditioned on the predictor's pose-supervised hidden states, the action decoder generates action chunks consistent with rigid-body motion. Across simulation and real-world experiments, OASIS outperforms VLA and WAM baselines in success rate and out-of-distribution generalization. Our project page is available at https://npuhandsome.github.io/OASIS_web.",
       "authors": [
-        "Minghao Fu",
-        "Fan Feng",
-        "Nicklas Hansen",
-        "Biwei Huang"
+        "Xinzhe Chen",
+        "Sihua Ren",
+        "Liqi Huang",
+        "Haowen Sun",
+        "Mingyang Li",
+        "Xingyu Chen",
+        "Zeyang Liu",
+        "Xuguang Lan"
       ],
-      "primary_category": "cs.AI",
+      "primary_category": "cs.RO",
       "categories": [
+        "cs.RO",
         "cs.AI"
       ],
-      "published": "2026-05-25T09:21:43+00:00",
-      "link": "https://arxiv.org/pdf/2605.25620v1",
+      "published": "2026-05-25T13:28:33+00:00",
+      "link": "https://arxiv.org/pdf/2605.25829v1",
       "tags": [
-        "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Proposes TC-WM framework for task-centric world models from visual foundations",
-      "llm_evidence_cn": "提出TC-WM框架从视觉基础学习任务中心世界模型",
-      "llm_evidence": "提出TC-WM框架从视觉基础学习任务中心世界模型",
-      "canonical_evidence": "提出TC-WM框架从视觉基础学习任务中心世界模型",
-      "llm_tldr_en": "TC-WM transforms foundation-model embeddings into compact task-sufficient world representations for reward-free offline settings, balancing semantic structure and task relevance.",
-      "llm_tldr_cn": "针对奖励-free离线环境中世界模型表示要么缺乏语义结构要么包含过多任务无关细节的问题，本文提出TC-WM框架，将视觉基础模型嵌入转化为紧凑、任务充足的世界表示。该框架通过任务中心的选择性压缩，在保留语义的同时去除冗余，适用于规划与控制。实验证明TC-WM在离线规划中优于传统像素方法和直接使用基础模型特征的方法。",
-      "llm_tldr": "针对奖励-free离线环境中世界模型表示要么缺乏语义结构要么包含过多任务无关细节的问题，本文提出TC-WM框架，将视觉基础模型嵌入转化为紧凑、任务充足的世界表示。该框架通过任务中心的选择性压缩，在保留语义的同时去除冗余，适用于规划与控制。实验证明TC-WM在离线规划中优于传统像素方法和直接使用基础模型特征的方法。",
+      "llm_evidence_en": "aligns observation and action spaces via SE(3) trajectory prediction, advancing world action models",
+      "llm_evidence_cn": "通过SE(3)轨迹预测对齐观测-动作空间，推进世界动作模型",
+      "llm_evidence": "通过SE(3)轨迹预测对齐观测-动作空间，推进世界动作模型",
+      "canonical_evidence": "通过SE(3)轨迹预测对齐观测-动作空间，推进世界动作模型",
+      "llm_tldr_en": "Proposes OASIS, a visuomotor policy that aligns intermediate representation with action space via SE(3) end-effector trajectory prediction, improving robotic manipulation.",
+      "llm_tldr_cn": "现有视觉语言动作模型和世界动作模型使用中间表示但未共享动作空间的刚体几何，导致动作解码器需要隐式恢复。本文提出OASIS，将3D感知特征编码器与SE(3)轨迹预测器耦合，使中间表示直接表达末端执行器姿态，从而在机器人操作任务中实现更精确的控制。实验表明OASIS在真实世界操作基准上显著优于先前的世界动作模型。",
+      "llm_tldr": "现有视觉语言动作模型和世界动作模型使用中间表示但未共享动作空间的刚体几何，导致动作解码器需要隐式恢复。本文提出OASIS，将3D感知特征编码器与SE(3)轨迹预测器耦合，使中间表示直接表达末端执行器姿态，从而在机器人操作任务中实现更精确的控制。实验表明OASIS在真实世界操作基准上显著优于先前的世界动作模型。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
       "matched_query_text": "world model architecture",
       "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.26282v1",
+      "source": "arxiv",
+      "title": "Scaling World-Model Reinforcement Learning Through Diffusion Policy Optimization",
+      "abstract": "Model-based reinforcement learning (RL) can be effectively supported at scale through the use of world models. However, in practice, scaling such approaches remains fundamentally limited. A commonly recognized challenge is model bias and error compounding, which degrade long-horizon predictions. Beyond these issues, we identify a more critical yet underexplored bottleneck: a structural misalignment between search and value learning in existing world model approaches. In particular, policy improvement often relies on value functions induced by a separate, non-search policy, resulting in training inconsistency and ultimately suboptimal learning. To address this limitation, we propose Model-Based Diffusion Policy Optimization (MBDPO) in world models, a framework that unifies search and policy optimization through diffusion policy representations, thereby unlocking the potential of world models for scalable policy learning. Instead of constructing an explicit planner over a learned world model, we reformulate policy optimization as a diffusion process over searched trajectories in latent world models. In this view, we extract an implicit energy function from the collected dataset that anchors the policy, enabling MBDPO to refine the score field for policy optimization while mitigating misalignment. We evaluate MBDPO across a wide range of settings, including multi-task offline pretraining, online learning, and offline-to-online fine-tuning. In the offline regime, we further investigate its scaling behavior by pretraining on large-scale datasets, observing consistent and monotonic performance gains with increasing model capacity.",
+      "authors": [
+        "Xiaoyuan Cheng",
+        "Wenxuan Yuan",
+        "Zhancun Mu",
+        "Yuanzhao Zhang",
+        "Yiming Yang",
+        "Hai Wang",
+        "Zhuo Sun",
+        "Che Liu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-05-25T19:06:51+00:00",
+      "link": "https://arxiv.org/pdf/2605.26282v1",
+      "tags": [
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "diffusion policy optimization for world-model reinforcement learning",
+      "llm_evidence_cn": "用于世界模型强化学习的扩散策略优化",
+      "llm_evidence": "用于世界模型强化学习的扩散策略优化",
+      "canonical_evidence": "用于世界模型强化学习的扩散策略优化",
+      "llm_tldr_en": "Identifies structural misalignment in world-model RL and proposes MBDPO, which uses diffusion policy optimization to align search and value learning, achieving better scaling.",
+      "llm_tldr_cn": "该论文指出现有世界模型强化学习中的结构不匹配问题：搜索与价值学习分离导致训练不一致。提出基于扩散策略优化的世界模型方法MBDPO，将扩散模型作为策略，使其与价值函数对齐。实验表明MBDPO在多个复杂环境中显著提升了样本效率和最终性能，解决了长期困扰世界模型缩放的问题。",
+      "llm_tldr": "该论文指出现有世界模型强化学习中的结构不匹配问题：搜索与价值学习分离导致训练不一致。提出基于扩散策略优化的世界模型方法MBDPO，将扩散模型作为策略，使其与价值函数对齐。实验表明MBDPO在多个复杂环境中显著提升了样本效率和最终性能，解决了长期困扰世界模型缩放的问题。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.26552v1",
+      "source": "arxiv",
+      "title": "Aligning Few-Step Generative Models by Amortizing Sample-based Variational Inference",
+      "abstract": "Aligning a few-step generative model is challenging, since existing alignment frameworks typically rely on restrictive assumptions: a tractable likelihood, a specific ODE/SDE solver, or a particular model family. We introduce FAV, Few-step Generative Models Alignment via Sample-based Variational Inference, a general alignment framework that requires only sample access to the generator and the reference distribution. We cast alignment as sampling from a reward-tilted distribution anchored to a reference distribution. We leverage Stein Variational Gradient Descent as a sample-based variational inference scheme and amortize its particle updates into the generator parameters via fixed-point regression. We evaluate FAV on two domains: robotics manipulation and image generator alignment. On generative policy alignment for robotic manipulation, FAV outperforms prevailing policy extraction baselines across 56 offline and 30 offline-to-online RL tasks. For image generator alignment, FAV fine-tunes diverse few-step backbones, including GAN, drifting model, consistency models, and flow maps, scaling from ImageNet-$256$ to 1024$^2$ text-to-image synthesis. Code is available at https://github.com/Jaewoopudding/FAV.",
+      "authors": [
+        "Jaewoo Lee",
+        "Hyeongyu Kang",
+        "Dohyun Kim",
+        "Kyuil Sim",
+        "Woocheol Shin",
+        "Minsu Kim",
+        "Taeyoung Yun",
+        "Jeongjae Lee",
+        "Sanghyeok Choi",
+        "Tabitha Edith Lee",
+        "Jongchul Ye",
+        "Jinkyoo Park"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-05-26T05:02:49+00:00",
+      "link": "https://arxiv.org/pdf/2605.26552v1",
+      "tags": [
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "general alignment framework for few-step generative models requiring only sample access",
+      "llm_evidence_cn": "少步生成模型的对齐新方法，仅需样本访问",
+      "llm_evidence": "少步生成模型的对齐新方法，仅需样本访问",
+      "canonical_evidence": "少步生成模型的对齐新方法，仅需样本访问",
+      "llm_tldr_en": "Introduces FAV, a general framework aligning few-step generative models via amortized Stein variational gradient descent, requiring only samples. Demonstrated on robotics and another domain.",
+      "llm_tldr_cn": "现有生成模型对齐框架通常依赖于似然可计算或特定求解器，不适用于少步生成器。本文提出FAV，利用Stein变分梯度下降作为基于样本的变分推理，并通过固定点回归将粒子更新摊销到生成器参数中。在机器人等领域验证了其有效性，实现了与现有方法相当或更好的对齐性能而不需要额外的假设。",
+      "llm_tldr": "现有生成模型对齐框架通常依赖于似然可计算或特定求解器，不适用于少步生成器。本文提出FAV，利用Stein变分梯度下降作为基于样本的变分推理，并通过固定点回归将粒子更新摊销到生成器参数中。在机器人等领域验证了其有效性，实现了与现有方法相当或更好的对齐性能而不需要额外的假设。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "latest advances in generative model architectures",
+      "matched_requirement_id": "req-10",
       "selection_source": "fresh_fetch"
     },
     {
@@ -317,19 +407,19 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "directly studies whether LLMs build world models from text",
-      "llm_evidence_cn": "直接研究LLM是否从文本构建世界模型",
-      "llm_evidence": "直接研究LLM是否从文本构建世界模型",
-      "canonical_evidence": "直接研究LLM是否从文本构建世界模型",
-      "llm_tldr_en": "MentalMap benchmark evaluates LLM spatial world model construction across languages, revealing capability hierarchies and biases.",
-      "llm_tldr_cn": "该论文提出MentalMap基准，通过六层能力层次和四个诊断轴，在八种语言上评估大语言模型（LLM）是否从纯文本构建内部空间世界模型；实验揭示了LLM在空间推理中的能力层级、阅读方向偏见和幻觉现象，为理解世界模型的多语言迁移提供了系统工具。",
-      "llm_tldr": "该论文提出MentalMap基准，通过六层能力层次和四个诊断轴，在八种语言上评估大语言模型（LLM）是否从纯文本构建内部空间世界模型；实验揭示了LLM在空间推理中的能力层级、阅读方向偏见和幻觉现象，为理解世界模型的多语言迁移提供了系统工具。",
+      "llm_evidence_en": "diagnostic benchmark for LLM internal world models",
+      "llm_evidence_cn": "LLM内部世界模型诊断基准",
+      "llm_evidence": "LLM内部世界模型诊断基准",
+      "canonical_evidence": "LLM内部世界模型诊断基准",
+      "llm_tldr_en": "MentalMap benchmark evaluates whether LLMs build spatial world models from text across languages, revealing capability hierarchy and biases.",
+      "llm_tldr_cn": "关于LLM是否从纯文本构建内部世界模型的争论持续，且跨语言能力未知。本文提出MentalMap多语言诊断基准，包含六层能力层次和四个诊断轴，覆盖8种语言。评估13个LLM发现模型存在空间推理能力但受语言和文化偏见影响，为理解LLM世界模型构建提供了系统评估工具。",
+      "llm_tldr": "关于LLM是否从纯文本构建内部世界模型的争论持续，且跨语言能力未知。本文提出MentalMap多语言诊断基准，包含六层能力层次和四个诊断轴，覆盖8种语言。评估13个LLM发现模型存在空间推理能力但受语言和文化偏见影响，为理解LLM世界模型构建提供了系统评估工具。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent world model paper",
-      "matched_requirement_id": "req-5",
+      "matched_query_text": "recent advances in world models",
+      "matched_requirement_id": "req-7",
       "selection_source": "fresh_fetch"
     },
     {
@@ -352,13 +442,13 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "World model learns semantic representations through physical interaction",
-      "llm_evidence_cn": "世界模型通过物理交互学习语义表示",
-      "llm_evidence": "世界模型通过物理交互学习语义表示",
-      "canonical_evidence": "世界模型通过物理交互学习语义表示",
-      "llm_tldr_en": "A VAE-based world model trained on random embodied exploration develops spatial semantic structure in its latent space, achieving 6.6x improvement in position RSA over random encoders.",
-      "llm_tldr_cn": "针对无语言监督的世界模型学习问题，本文通过随机具身探索训练VAE基世界模型，发现其潜在空间自发形成反映物理几何结构的空间语义表示。方向准确度达0.677，位置RSA较随机编码器提升6.6倍，证明训练诱导了超越CNN归纳偏置的结构组织。该发现揭示物理交互足以推动语义表示涌现，为无监督世界模型提供了理论基础。",
-      "llm_tldr": "针对无语言监督的世界模型学习问题，本文通过随机具身探索训练VAE基世界模型，发现其潜在空间自发形成反映物理几何结构的空间语义表示。方向准确度达0.677，位置RSA较随机编码器提升6.6倍，证明训练诱导了超越CNN归纳偏置的结构组织。该发现揭示物理交互足以推动语义表示涌现，为无监督世界模型提供了理论基础。",
+      "llm_evidence_en": "Direct world model research on emergent semantic representations and physical interaction",
+      "llm_evidence_cn": "直接涉及世界模型，研究通过物理交互涌现的语义表示",
+      "llm_evidence": "直接涉及世界模型，研究通过物理交互涌现的语义表示",
+      "canonical_evidence": "直接涉及世界模型，研究通过物理交互涌现的语义表示",
+      "llm_tldr_en": "Trains a VAE-based world model on random embodied exploration and shows its latent space develops spatial semantic structure that mirrors physical geometry, with significant improvements over random encoders.",
+      "llm_tldr_cn": "该论文在无语言监督条件下训练基于VAE的世界模型，通过随机具身探索发现其潜在空间能发展出反映物理几何的空间语义结构，方向准确率相比随机编码器提升显著，位置RSA提升6.6倍。实验表明预测性能与语义一致性共同提升，揭示了世界模型从物理交互中学习语义表示的内在机制。",
+      "llm_tldr": "该论文在无语言监督条件下训练基于VAE的世界模型，通过随机具身探索发现其潜在空间能发展出反映物理几何的空间语义结构，方向准确率相比随机编码器提升显著，位置RSA提升6.6倍。实验表明预测性能与语义一致性共同提升，揭示了世界模型从物理交互中学习语义表示的内在机制。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -388,51 +478,52 @@
         "query:world-models"
       ],
       "llm_score": 9.0,
-      "llm_evidence_en": "Directly discusses world-model alignment and heterogeneous world models",
-      "llm_evidence_cn": "直接讨论世界模型对齐与异质世界模型",
-      "llm_evidence": "直接讨论世界模型对齐与异质世界模型",
-      "canonical_evidence": "直接讨论世界模型对齐与异质世界模型",
-      "llm_tldr_en": "Proposes a multi-phase inference framework to formalize how heterogeneous world models arise and address world-model alignment, advancing understanding of world models in AI systems.",
-      "llm_tldr_cn": "当前社会误解源于不同主体形成不同的世界模型，而现有AI缺乏对异质世界模型的显式建模。本文提出多阶段推理框架（MIM），通过相位空间、前景场和主体配置文件等形式化手段描述世界模型的异质性，并将世界模型对齐重新定义为启发式对齐问题。框架为多智能体系统和社会认知AI提供了理论基础。",
-      "llm_tldr": "当前社会误解源于不同主体形成不同的世界模型，而现有AI缺乏对异质世界模型的显式建模。本文提出多阶段推理框架（MIM），通过相位空间、前景场和主体配置文件等形式化手段描述世界模型的异质性，并将世界模型对齐重新定义为启发式对齐问题。框架为多智能体系统和社会认知AI提供了理论基础。",
+      "llm_evidence_en": "multi-phase inference framework for world-model alignment",
+      "llm_evidence_cn": "面向世界模型对齐的多阶段推断框架",
+      "llm_evidence": "面向世界模型对齐的多阶段推断框架",
+      "canonical_evidence": "面向世界模型对齐的多阶段推断框架",
+      "llm_tldr_en": "Proposes a multi-phase inference framework (MIM) formalizing heterogeneous world models and their alignment, advancing AI understanding of self and others.",
+      "llm_tldr_cn": "本文提出多阶段推断机制（MIM），形式化人类认知多样性导致的世界模型异质性。框架通过相位形成空间、前景场、主体画像状态和状态表示对齐图，将世界模型对齐问题转化为可计算的过程。该工作为构建具有社会认知能力的AI系统提供了理论基础。",
+      "llm_tldr": "本文提出多阶段推断机制（MIM），形式化人类认知多样性导致的世界模型异质性。框架通过相位形成空间、前景场、主体画像状态和状态表示对齐图，将世界模型对齐问题转化为可计算的过程。该工作为构建具有社会认知能力的AI系统提供了理论基础。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent world model paper",
-      "matched_requirement_id": "req-5",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
       "selection_source": "fresh_fetch"
     }
   ],
   "quick_skim": [
     {
-      "id": "2605.25294v1",
+      "id": "2605.23861v1",
       "source": "arxiv",
-      "title": "Geometry-Aware Image Flow Matching",
-      "abstract": "Recent advances in generative models highlight the power of geometry-aware modeling in manifold-constrained settings. Yet, for natural images, the field remains confined to Euclidean assumptions, failing to exploit the potential of intrinsic geometric structures within the data. In this work, we investigate the geometry of natural images and observe that semantic information is predominantly encoded in directional components, while norm components can be approximated by the global average. This property holds across both RGB and latent spaces, suggesting that natural images can be effectively modeled on a hypersphere. Building on this finding, we introduce Spherical Optimal Transport Flow Matching (SOT-CFM), which utilizes angular distance, and Spherical Flow Matching (SFM), which constrains dynamics directly on the manifold. Our experiments demonstrate that these geometry-aware methods achieve superior performance against Euclidean baselines. Ultimately, this work provides a novel perspective that bridges the gap between Riemannian manifold-based modeling and natural image generation.",
+      "title": "Leveraging Foundation Models for Causal Generative Modeling",
+      "abstract": "Causal generative modeling is essential for developing reliable and transparent AI systems capable of counterfactual reasoning. While existing approaches focus on integrating causal constraints during the training of generative models, they often lack a unified framework to leverage the zero-shot reasoning capabilities of pretrained foundation models. We introduce FM-CGM, a modular framework for end-to-end visual causal reasoning using pretrained foundation models. FM-CGM formalizes the causal pipeline through three core components: a concept extractor, a concept manipulator, and a counterfactual generator. By leveraging a large reasoning model for causal inference and a text-to-image diffusion model for generation, our approach enables zero-shot causal discovery, intervention, and counterfactual generation. We then develop Causal Semantic Guidance (CSG), a cross-attention-based mechanism that ensures semantic interventions propagate to descendant concepts while preserving invariant regions. We empirically show that our approach can identify plausible causal structures and is suitable for faithful counterfactual image generation.",
       "authors": [
-        "Junho Lee",
-        "Kwanseok Kim",
-        "Joonseok Lee"
+        "Aneesh Komanduri",
+        "Xintao Wu"
       ],
-      "primary_category": "cs.CV",
+      "primary_category": "cs.LG",
       "categories": [
+        "cs.LG",
+        "cs.AI",
         "cs.CV"
       ],
-      "published": "2026-05-24T23:13:59+00:00",
-      "link": "https://arxiv.org/pdf/2605.25294v1",
+      "published": "2026-05-22T17:20:17+00:00",
+      "link": "https://arxiv.org/pdf/2605.23861v1",
       "tags": [
         "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "generative model architecture, flow matching on manifolds",
-      "llm_evidence_cn": "生成模型架构，流匹配几何感知",
-      "llm_evidence": "生成模型架构，流匹配几何感知",
-      "canonical_evidence": "生成模型架构，流匹配几何感知",
-      "llm_tldr_en": "Proposes spherical flow matching for images, leveraging intrinsic geometric structure to improve generative model performance over Euclidean assumptions.",
-      "llm_tldr_cn": "针对自然图像生成中忽略几何结构的问题，本文提出基于超球面的流匹配方法，包括球形最优传输流匹配和球形流匹配。实验证明，几何感知的建模比传统欧几里得假设的流匹配显著提升生成质量和效率，为图像生成模型的设计提供了新的方向。",
-      "llm_tldr": "针对自然图像生成中忽略几何结构的问题，本文提出基于超球面的流匹配方法，包括球形最优传输流匹配和球形流匹配。实验证明，几何感知的建模比传统欧几里得假设的流匹配显著提升生成质量和效率，为图像生成模型的设计提供了新的方向。",
+      "llm_evidence_en": "causal generative modeling with diffusion",
+      "llm_evidence_cn": "基于扩散模型的因果生成建模",
+      "llm_evidence": "基于扩散模型的因果生成建模",
+      "canonical_evidence": "基于扩散模型的因果生成建模",
+      "llm_tldr_en": "FM-CGM uses pretrained foundation models for zero-shot causal reasoning and counterfactual generation via concept extraction and manipulation.",
+      "llm_tldr_cn": "现有因果生成模型通常需从头训练，缺乏利用预训练模型零样本能力的方式。本文提出FM-CGM框架，将大推理模型和文本到图像扩散模型集成到因果流水线中，实现零样本因果发现和反事实生成。实验证明该框架在视觉因果推理任务上有效，为生成模型在因果推理中的应用提供了新范式。",
+      "llm_tldr": "现有因果生成模型通常需从头训练，缺乏利用预训练模型零样本能力的方式。本文提出FM-CGM框架，将大推理模型和文本到图像扩散模型集成到因果流水线中，实现零样本因果发现和反事实生成。实验证明该框架在视觉因果推理任务上有效，为生成模型在因果推理中的应用提供了新范式。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -468,13 +559,13 @@
         "query:world-models"
       ],
       "llm_score": 7.0,
-      "llm_evidence_en": "Latent-augmented diffusion with distillation for language modeling",
-      "llm_evidence_cn": "用于语言建模的潜在增强扩散与蒸馏方法",
-      "llm_evidence": "用于语言建模的潜在增强扩散与蒸馏方法",
-      "canonical_evidence": "用于语言建模的潜在增强扩散与蒸馏方法",
-      "llm_tldr_en": "Introduces DiLaDiff with latent space and consistency distillation to improve diffusion language model quality and speed.",
-      "llm_tldr_cn": "本文提出DiLaDiff，一种改进的掩码扩散语言模型，包含三个组件：连续语义潜空间、潜扩散模型和一致性蒸馏。该方法解决了扩散语言模型因忽略解码标记相关性而导致的质量-速度权衡问题。实验表明，即使无蒸馏，潜引导扩散也优于基线，蒸馏后进一步加速。这是生成模型架构的一次重要优化，属于最新进展。",
-      "llm_tldr": "本文提出DiLaDiff，一种改进的掩码扩散语言模型，包含三个组件：连续语义潜空间、潜扩散模型和一致性蒸馏。该方法解决了扩散语言模型因忽略解码标记相关性而导致的质量-速度权衡问题。实验表明，即使无蒸馏，潜引导扩散也优于基线，蒸馏后进一步加速。这是生成模型架构的一次重要优化，属于最新进展。",
+      "llm_evidence_en": "latent diffusion model with distillation for language modeling",
+      "llm_evidence_cn": "用于语言建模的潜在扩散模型与蒸馏",
+      "llm_evidence": "用于语言建模的潜在扩散模型与蒸馏",
+      "canonical_evidence": "用于语言建模的潜在扩散模型与蒸馏",
+      "llm_tldr_en": "DiLaDiff improves masked diffusion language models by learning a continuous latent space and a latent diffusion prior, then distilling into a few-step generative model, achieving faster inference and better quality.",
+      "llm_tldr_cn": "提出DiLaDiff，包含三个组件：从现有扩散语言模型微调的自编码器学习连续潜在空间、在潜在空间上训练的扩散先验、以及将其蒸馏为几步生成的一致性模型。该方法解决了扩散语言模型在解码标记相关性上的缺陷，在加速推理的同时提升了生成质量。实验表明，即使不蒸馏，潜在引导扩散也优于基线。",
+      "llm_tldr": "提出DiLaDiff，包含三个组件：从现有扩散语言模型微调的自编码器学习连续潜在空间、在潜在空间上训练的扩散先验、以及将其蒸馏为几步生成的一致性模型。该方法解决了扩散语言模型在解码标记相关性上的缺陷，在加速推理的同时提升了生成质量。实验表明，即使不蒸馏，潜在引导扩散也优于基线。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -485,83 +576,44 @@
       "quick_tier": "7"
     },
     {
-      "id": "2605.27523v1",
+      "id": "2605.23341v1",
       "source": "arxiv",
-      "title": "Identifiable Bayesian Deep Generative Copulas with Unknown Layer Widths for Data with Arbitrary Marginal Distributions",
-      "abstract": "Deep generative models offer powerful tools for multivariate data analysis, but their black-box architectures are often unidentified and difficult to interpret. We introduce the Deep Discrete Encoder (DDE) Copula, an identifiable and interpretable generative model for multivariate data with arbitrary marginal distributions. The model places a hierarchical directed network of binary latent variables inside a copula framework, enabling flexible dependence modeling for mixed discrete and continuous data. Estimation is based on rank likelihoods, which decouple marginal modeling from posterior inference on the DDE parameters and avoid specifying the marginal distributions. We establish conditions for identification of the DDE copula parameters, ensuring that layer-specific parameters provide meaningful summaries of multivariate dependence. We also prove quotient-space posterior consistency for continuous margins under the exact rank likelihood and treat the extended rank likelihood for tied or mixed margins as a generalized likelihood, with concentration under an additional contrast condition. For computation, we propose a stochastic expectation-maximization algorithm for \\emph{maximum a posteriori} estimation, together with initialization strategies that improve convergence. To learn network dimension adaptively, we extend Bayesian rank-selection priors to infer layer-specific widths. Simulations show strong finite-sample performance, and a personality-survey analysis reveals interpretable hierarchical latent structure in complex multivariate data.",
+      "title": "Sparse Compositional Flow Matching by geometric assembly from motion primitives",
+      "abstract": "Embodied trajectories, such as the executable motion sequences of robotic manipulators, underwater vehicles, and mobile robots, are a fundamental output of embodied AI. Modern generative models often treat them as a dense, monolithic signal generated point by point, fitting an intricate high-dimensional posterior while leaving the data's latent structure unmodeled, the same sample inefficiency long identified by the structured generative model literature. We argue that a compositional latent structure is a natural choice: many embodied tasks share recurring motion fragments that can be made explicit as a finite repertoire of reusable motion primitives, and compositional units naturally align with subtask boundaries to support task decomposition. Existing compositional generators, however, compose in a latent space and rely on post-hoc decoding to relate sampled units to actual trajectory segments. We instead compose directly in the physical trajectory space through a flow-matching framework with two coupled designs. Motion-Primitive Dictionary Learning equips each atom with a learnable length mask and binary starting indicators so the atom itself is the primitive, reused verbatim wherever it is placed. Structural Sparse Flow Matching with Geometric Constraints then generates a binary placement matrix using duration-aware tokenization and a differentiable geometric loss that enforces spatial continuity and temporal contiguity where adjacent primitives meet. On Open X-Embodiment and 3DMoTraj, the framework attains state-of-the-art accuracy and reduces the FDE/ADE ratio from 1.8 to 1.07, improving ADE by 19.2% and FDE by 21.0% over the strongest baseline.",
       "authors": [
-        "Joseph Feldman",
-        "Yuqi Gu"
-      ],
-      "primary_category": "stat.ML",
-      "categories": [
-        "stat.ML",
-        "cs.LG"
-      ],
-      "published": "2026-05-26T18:00:36+00:00",
-      "link": "https://arxiv.org/pdf/2605.27523v1",
-      "tags": [
-        "keyword:world-models",
-        "query:world-models"
-      ],
-      "llm_score": 6.0,
-      "llm_evidence_en": "Identifiable deep generative copula model",
-      "llm_evidence_cn": "可识别的深度生成Copula模型",
-      "llm_evidence": "可识别的深度生成Copula模型",
-      "canonical_evidence": "可识别的深度生成Copula模型",
-      "llm_tldr_en": "Proposes an identifiable and interpretable deep generative copula with binary latent hierarchy for arbitrary marginal distributions.",
-      "llm_tldr_cn": "本文提出深度离散编码器（DDE）Copula，一个可识别且可解释的深度生成模型，用于任意边缘分布的多变量数据。模型在Copula框架内放置层次化二元潜变量网络，支持混合离散/连续数据，并建立可识别条件。基于秩似然的估计方法解耦边缘建模与后验推断。这项工作是生成模型理论的重要补充，属于高价值的基础研究。",
-      "llm_tldr": "本文提出深度离散编码器（DDE）Copula，一个可识别且可解释的深度生成模型，用于任意边缘分布的多变量数据。模型在Copula框架内放置层次化二元潜变量网络，支持混合离散/连续数据，并建立可识别条件。基于秩似然的估计方法解耦边缘建模与后验推断。这项工作是生成模型理论的重要补充，属于高价值的基础研究。",
-      "llm_tags": [
-        "query:world-models"
-      ],
-      "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent high impact papers on generative models",
-      "matched_requirement_id": "req-9",
-      "selection_source": "fresh_fetch",
-      "quick_tier": "6"
-    },
-    {
-      "id": "2605.25829v1",
-      "source": "arxiv",
-      "title": "OASIS: Observation-Action Space Alignment via SE(3) Trajectory Prediction for Robotic Manipulation",
-      "abstract": "Recent vision-language-action (VLA) models and world action models (WAMs) advance robotic manipulation by enriching intermediate representations with auxiliary spatial features or future visual-state prediction. However, these representations largely remain within the observation space and do not share the rigid-body geometry of the action space, forcing the action decoder to implicitly recover this geometry. We propose OASIS, a visuomotor policy that aligns the intermediate representation with the action space via $SE(3)$ end-effector trajectory prediction. OASIS couples a 3D-aware feature encoder that fuses vision-language and metric-depth features with an $SE(3)$ trajectory predictor that produces a camera-frame end-effector trajectory. Conditioned on the predictor's pose-supervised hidden states, the action decoder generates action chunks consistent with rigid-body motion. Across simulation and real-world experiments, OASIS outperforms VLA and WAM baselines in success rate and out-of-distribution generalization. Our project page is available at https://npuhandsome.github.io/OASIS_web.",
-      "authors": [
-        "Xinzhe Chen",
-        "Sihua Ren",
-        "Liqi Huang",
-        "Haowen Sun",
-        "Mingyang Li",
-        "Xingyu Chen",
-        "Zeyang Liu",
-        "Xuguang Lan"
+        "Yan Tang",
+        "Yuanbo Tang",
+        "Tingyu Cao",
+        "Shaolun Huang",
+        "Yang Li"
       ],
       "primary_category": "cs.RO",
       "categories": [
         "cs.RO",
         "cs.AI"
       ],
-      "published": "2026-05-25T13:28:33+00:00",
-      "link": "https://arxiv.org/pdf/2605.25829v1",
+      "published": "2026-05-22T07:55:48+00:00",
+      "link": "https://arxiv.org/pdf/2605.23341v1",
       "tags": [
+        "keyword:world-models",
         "query:world-models"
       ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "proposes a visuomotor policy that aligns representation with action space via trajectory prediction, related to world action models",
-      "llm_evidence_cn": "提出通过轨迹预测对齐表征与动作空间的视觉运动策略，与世界动作模型相关",
-      "llm_evidence": "提出通过轨迹预测对齐表征与动作空间的视觉运动策略，与世界动作模型相关",
-      "canonical_evidence": "提出通过轨迹预测对齐表征与动作空间的视觉运动策略，与世界动作模型相关",
-      "llm_tldr_en": "OASIS aligns intermediate representation with action space via SE(3) trajectory prediction for robotic manipulation.",
-      "llm_tldr_cn": "该论文提出OASIS视觉运动策略，通过SE(3)末端执行器轨迹预测将中间表征与动作空间对齐，解决了现有世界动作模型（WAM）因表征在观测空间而被迫隐式恢复几何的问题；在机器人操作任务中验证了该方法能有效提升策略性能。",
-      "llm_tldr": "该论文提出OASIS视觉运动策略，通过SE(3)末端执行器轨迹预测将中间表征与动作空间对齐，解决了现有世界动作模型（WAM）因表征在观测空间而被迫隐式恢复几何的问题；在机器人操作任务中验证了该方法能有效提升策略性能。",
+      "llm_score": 6.0,
+      "llm_evidence_en": "sparse compositional flow matching for embodied trajectory generation",
+      "llm_evidence_cn": "用于具身轨迹生成的稀疏组合流匹配",
+      "llm_evidence": "用于具身轨迹生成的稀疏组合流匹配",
+      "canonical_evidence": "用于具身轨迹生成的稀疏组合流匹配",
+      "llm_tldr_en": "Proposes a sparse compositional flow matching model that decomposes embodied trajectories into reusable motion primitives, improving sample efficiency and generalization.",
+      "llm_tldr_cn": "该论文指出现有生成模型将具身轨迹视为稠密整体信号，忽略了其内在的组成结构。提出一种稀疏组合流匹配方法，将轨迹分解为可重用的运动基元，通过几何组装生成新轨迹。该方法提高了样本效率，并支持子任务分解。实验在机器人操控和移动机器人任务上验证了其生成质量和泛化能力优于稠密方法。",
+      "llm_tldr": "该论文指出现有生成模型将具身轨迹视为稠密整体信号，忽略了其内在的组成结构。提出一种稀疏组合流匹配方法，将轨迹分解为可重用的运动基元，通过几何组装生成新轨迹。该方法提高了样本效率，并支持子任务分解。实验在机器人操控和移动机器人任务上验证了其生成质量和泛化能力优于稠密方法。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "world model architecture",
-      "matched_requirement_id": "req-6",
+      "matched_query_text": "latest advances in generative model architectures",
+      "matched_requirement_id": "req-10",
       "selection_source": "fresh_fetch",
-      "quick_tier": "8plus"
+      "quick_tier": "6"
     },
     {
       "id": "2605.24624v1",
@@ -584,14 +636,52 @@
         "keyword:world-models",
         "query:world-models"
       ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "cross-modal binding analysis in FLUX.2 generative model",
+      "llm_evidence_cn": "FLUX.2生成模型中的跨模态绑定分析",
+      "llm_evidence": "FLUX.2生成模型中的跨模态绑定分析",
+      "canonical_evidence": "FLUX.2生成模型中的跨模态绑定分析",
+      "llm_tldr_en": "This paper reveals implicit cross-modal binding in FLUX.2 where text tokens absorb visual content, influencing generated images.",
+      "llm_tldr_cn": "上下文图像生成模型如FLUX.2内部如何处理文本和参考图像信息尚不清楚。本文通过因果干预发现文本标记会吸收视觉参考内容并因果影响输出图像，提出了T2I Lens等诊断工具，揭示了生成模型的隐式跨模态绑定机制，为理解生成行为提供了新视角。",
+      "llm_tldr": "上下文图像生成模型如FLUX.2内部如何处理文本和参考图像信息尚不清楚。本文通过因果干预发现文本标记会吸收视觉参考内容并因果影响输出图像，提出了T2I Lens等诊断工具，揭示了生成模型的隐式跨模态绑定机制，为理解生成行为提供了新视角。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "latest advances in generative model architectures",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2605.25012v1",
+      "source": "arxiv",
+      "title": "Learning from Semantic Dictionaries: Discriminative Codebook Contrastive Learning for Unified Visual Representation and Generation",
+      "abstract": "Discriminative and generative vision models excel in their respective domains but remain semantically misaligned, hindering progress toward unified visual learning. We introduce LEASE (LEArning from SEmantic Dictionaries), a self-supervised framework that bridges this gap using a paired generative-discriminative codebook design. LEASE operates entirely in a discrete token space produced through a one-time precomputation step, enabling efficient training without data augmentations, teacher models, or online tokenizers. LEASE integrates two complementary objectives: a masked token reconstruction loss that captures fine-grained generative detail, and a codebook contrast loss that aligns encoder features with discriminative semantics via adaptive centroid weighting. This dual supervision yields a unified latent space that supports both high-quality generation and strong representation learning. On ImageNet-1K, LEASE achieves state-of-the-art unified performance, outperforming prior VQGAN-based methods such as MAGE and Sorcen across linear probing (up to +1.7%), unconditional generation (-1.26 FID and +10.19 IS w.r.t MAGE), few-shot learning (+0.56% on average against Sorcen), transfer (+0.75% average improvement against MAGE and Sorcen), and robustness benchmarks (+5.86% and +4.25% average improvement against MAGE and Sorcen, respectively). It also competes favorably with domain-specialized contrastive and generative models while surpassing previous MIM methods. The unsupervised LEASE model can also be extended to conditional generation by building upon its learned representations, proving competitive with specialized baselines. Overall, LEASE provides an efficient and effective step toward general-purpose vision models that jointly understand and generate visual content.",
+      "authors": [
+        "Imanol G. Estepa",
+        "Jesús M Rodríguez-de-Vera",
+        "Bhalaji Nagarajan",
+        "Petia Radeva"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-05-24T11:32:30+00:00",
+      "link": "https://arxiv.org/pdf/2605.25012v1",
+      "tags": [
+        "keyword:world-models",
+        "query:world-models"
+      ],
       "llm_score": 7.0,
-      "llm_evidence_en": "In-context image generation with cross-modal binding",
-      "llm_evidence_cn": "上下文图像生成中的跨模态绑定机制",
-      "llm_evidence": "上下文图像生成中的跨模态绑定机制",
-      "canonical_evidence": "上下文图像生成中的跨模态绑定机制",
-      "llm_tldr_en": "Reveals implicit cross-modal binding in FLUX.2 where text absorbs visual content, enabling causal analysis of in-context generation.",
-      "llm_tldr_cn": "本文揭示了FLUX.2等上下文图像生成模型中文本与参考图像之间隐式的跨模态绑定现象：文本标记在前向传播中吸收视觉信息，并因果影响生成输出。通过三种因果干预实验（T2I Lens等）证明了这一机制，为理解多模态生成架构提供了新视角。相关工作对于改进生成模型架构具有启发意义。",
-      "llm_tldr": "本文揭示了FLUX.2等上下文图像生成模型中文本与参考图像之间隐式的跨模态绑定现象：文本标记在前向传播中吸收视觉信息，并因果影响生成输出。通过三种因果干预实验（T2I Lens等）证明了这一机制，为理解多模态生成架构提供了新视角。相关工作对于改进生成模型架构具有启发意义。",
+      "llm_evidence_en": "unified generative-discriminative visual model via codebook learning",
+      "llm_evidence_cn": "通过码本学习统一生成和判别视觉模型",
+      "llm_evidence": "通过码本学习统一生成和判别视觉模型",
+      "canonical_evidence": "通过码本学习统一生成和判别视觉模型",
+      "llm_tldr_en": "Introduces LEASE, a self-supervised framework with paired generative-discriminative codebook for unified visual representation and generation, achieving efficient training in discrete token space.",
+      "llm_tldr_cn": "提出LEASE框架，通过配对生成-判别码本设计同时学习精细生成细节和语义对齐表示。框架在预先计算的离散标记空间上运行，无需数据增强或教师模型。掩码重建损失捕获生成细节，码本对比损失对齐编码器，实现了视觉表示与生成的有效统一。实验表明，该方法在多项视觉任务上表现优异。",
+      "llm_tldr": "提出LEASE框架，通过配对生成-判别码本设计同时学习精细生成细节和语义对齐表示。框架在预先计算的离散标记空间上运行，无需数据增强或教师模型。掩码重建损失捕获生成细节，码本对比损失对齐编码器，实现了视觉表示与生成的有效统一。实验表明，该方法在多项视觉任务上表现优异。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -602,82 +692,78 @@
       "quick_tier": "7"
     },
     {
-      "id": "2605.27975v2",
+      "id": "2605.23888v1",
       "source": "arxiv",
-      "title": "Continual Learning in Modern Hopfield Networks with an Application to Diffusion Models",
-      "abstract": "Generative models, including diffusion models, are increasingly used as foundation models and adapted through sequential fine-tuning, making continual learning an essential problem setting. However, continual learning in such generative models remains poorly understood: after a task change, what aspects of the learned distribution are most easily lost, and what replay samples should be prioritized? We address these questions through the modern Hopfield energy. Recent links between modern Hopfield networks (MHNs) and diffusion models allow analyses in MHNs to be transferred to diffusion models. We introduce intrinsic forgetting as an increase in Hopfield energy after the task change. In tractable settings in an MHN, we prove that high-energy, outlier-like samples undergo a larger energy increase than cluster-like samples, implying that samples located in sharp, isolated basins are more forgettable. We further analyze memory replay and show that replay is particularly effective for high-energy samples, enabling an energy-based selection of replay samples. We validate these predictions in experiments on MHNs and two diffusion models under continual-learning settings: Stable Diffusion and a pixel-space DDPM. In these diffusion models, Hopfield energy tracks reconstruction-based forgetting, and replay experiments reveal energy-dependent mitigation of forgetting that is consistent with the MHN analysis.",
+      "title": "GenRecon: Bridging Generative Priors for Multi-View 3D Scene Reconstruction",
+      "abstract": "We introduce a new approach to high-fidelity 3D scene reconstruction from multi-view RGB images that tightly couples reconstruction with a strong generative 3D prior. We cast scene reconstruction as conditional 3D generation over a set of spatially-localized, overlapping chunks that together tile the scene, scaling generation to large scene extents. Crucially, we inherit the fidelity and completeness of state-of-the-art generative shape models -- we use Trellis.2 as an example -- which we generalize to the scene level. To this end, we propose a projection-based conditioning mechanism that lifts posed multi-view image features into a coherent 3D representation aligned with the generative model, independent of view ordering and spatially anchored to the scene, yielding high-fidelity, multi-view consistent generated geometry. This enables lifting the strong object-level prior of Trellis.2 to multi-view, scene-scale generation, producing faithful, editable PBR mesh reconstructions of indoor environments. As a result, we obtain high-fidelity results that outperform cutting-edge reconstruction methods by 16%.",
       "authors": [
-        "Ken Takeda",
-        "Masafumi Oizumi",
-        "Ryo Karakida"
+        "Katharina Schmid",
+        "Nicolas von Lützow",
+        "Jozef Hladký",
+        "Angela Dai",
+        "Matthias Nießner"
       ],
-      "primary_category": "cs.LG",
+      "primary_category": "cs.CV",
       "categories": [
-        "cs.LG",
-        "stat.ML"
+        "cs.CV"
       ],
-      "published": "2026-05-27T05:12:41+00:00",
-      "link": "https://arxiv.org/pdf/2605.27975v2",
+      "published": "2026-05-22T17:49:59+00:00",
+      "link": "https://arxiv.org/pdf/2605.23888v1",
       "tags": [
         "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 6.0,
-      "llm_evidence_en": "applies continual learning to diffusion models, a generative model class",
-      "llm_evidence_cn": "将持续学习应用于扩散模型这一生成模型类别",
-      "llm_evidence": "将持续学习应用于扩散模型这一生成模型类别",
-      "canonical_evidence": "将持续学习应用于扩散模型这一生成模型类别",
-      "llm_tldr_en": "Studies continual learning in diffusion models via modern Hopfield energy, proposing intrinsic forgetting measure.",
-      "llm_tldr_cn": "该论文通过现代Hopfield网络与扩散模型的联系，研究扩散模型中的持续学习问题，引入固有遗忘概念（用Hopfield能量增加衡量）；理论证明高能量样本应优先重放，并在DGM上验证了方法的有效性，为生成模型的持续学习提供了新视角。",
-      "llm_tldr": "该论文通过现代Hopfield网络与扩散模型的联系，研究扩散模型中的持续学习问题，引入固有遗忘概念（用Hopfield能量增加衡量）；理论证明高能量样本应优先重放，并在DGM上验证了方法的有效性，为生成模型的持续学习提供了新视角。",
+      "llm_evidence_en": "Generative prior for 3D scene reconstruction, advancing generative model architectures",
+      "llm_evidence_cn": "将生成先验用于3D场景重建，推进生成模型架构",
+      "llm_evidence": "将生成先验用于3D场景重建，推进生成模型架构",
+      "canonical_evidence": "将生成先验用于3D场景重建，推进生成模型架构",
+      "llm_tldr_en": "Couples 3D reconstruction with a strong generative prior (Trellis.2) using projection-based conditioning to scale generation to large scenes.",
+      "llm_tldr_cn": "该论文将多视图3D场景重建与强生成先验紧密结合，利用基于投影的条件机制将多视图图像特征提升为与生成模型对齐的连贯3D表示，通过空间局部重叠块缩放生成到大场景，继承了生成形状模型的高保真度和完整性。",
+      "llm_tldr": "该论文将多视图3D场景重建与强生成先验紧密结合，利用基于投影的条件机制将多视图图像特征提升为与生成模型对齐的连贯3D表示，通过空间局部重叠块缩放生成到大场景，继承了生成形状模型的高保真度和完整性。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent high impact papers on generative models",
-      "matched_requirement_id": "req-9",
+      "matched_query_text": "latest advances in generative model architectures",
+      "matched_requirement_id": "req-10",
       "selection_source": "fresh_fetch",
       "quick_tier": "6"
     },
     {
-      "id": "2605.26282v1",
+      "id": "2605.25294v1",
       "source": "arxiv",
-      "title": "Scaling World-Model Reinforcement Learning Through Diffusion Policy Optimization",
-      "abstract": "Model-based reinforcement learning (RL) can be effectively supported at scale through the use of world models. However, in practice, scaling such approaches remains fundamentally limited. A commonly recognized challenge is model bias and error compounding, which degrade long-horizon predictions. Beyond these issues, we identify a more critical yet underexplored bottleneck: a structural misalignment between search and value learning in existing world model approaches. In particular, policy improvement often relies on value functions induced by a separate, non-search policy, resulting in training inconsistency and ultimately suboptimal learning. To address this limitation, we propose Model-Based Diffusion Policy Optimization (MBDPO) in world models, a framework that unifies search and policy optimization through diffusion policy representations, thereby unlocking the potential of world models for scalable policy learning. Instead of constructing an explicit planner over a learned world model, we reformulate policy optimization as a diffusion process over searched trajectories in latent world models. In this view, we extract an implicit energy function from the collected dataset that anchors the policy, enabling MBDPO to refine the score field for policy optimization while mitigating misalignment. We evaluate MBDPO across a wide range of settings, including multi-task offline pretraining, online learning, and offline-to-online fine-tuning. In the offline regime, we further investigate its scaling behavior by pretraining on large-scale datasets, observing consistent and monotonic performance gains with increasing model capacity.",
+      "title": "Geometry-Aware Image Flow Matching",
+      "abstract": "Recent advances in generative models highlight the power of geometry-aware modeling in manifold-constrained settings. Yet, for natural images, the field remains confined to Euclidean assumptions, failing to exploit the potential of intrinsic geometric structures within the data. In this work, we investigate the geometry of natural images and observe that semantic information is predominantly encoded in directional components, while norm components can be approximated by the global average. This property holds across both RGB and latent spaces, suggesting that natural images can be effectively modeled on a hypersphere. Building on this finding, we introduce Spherical Optimal Transport Flow Matching (SOT-CFM), which utilizes angular distance, and Spherical Flow Matching (SFM), which constrains dynamics directly on the manifold. Our experiments demonstrate that these geometry-aware methods achieve superior performance against Euclidean baselines. Ultimately, this work provides a novel perspective that bridges the gap between Riemannian manifold-based modeling and natural image generation.",
       "authors": [
-        "Xiaoyuan Cheng",
-        "Wenxuan Yuan",
-        "Zhancun Mu",
-        "Yuanzhao Zhang",
-        "Yiming Yang",
-        "Hai Wang",
-        "Zhuo Sun",
-        "Che Liu"
+        "Junho Lee",
+        "Kwanseok Kim",
+        "Joonseok Lee"
       ],
-      "primary_category": "cs.LG",
+      "primary_category": "cs.CV",
       "categories": [
-        "cs.LG"
+        "cs.CV"
       ],
-      "published": "2026-05-25T19:06:51+00:00",
-      "link": "https://arxiv.org/pdf/2605.26282v1",
+      "published": "2026-05-24T23:13:59+00:00",
+      "link": "https://arxiv.org/pdf/2605.25294v1",
       "tags": [
         "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "World model RL with diffusion policy optimization",
-      "llm_evidence_cn": "基于扩散策略优化的世界模型强化学习",
-      "llm_evidence": "基于扩散策略优化的世界模型强化学习",
-      "canonical_evidence": "基于扩散策略优化的世界模型强化学习",
-      "llm_tldr_en": "MBDPO scales world-model RL by addressing misalignment between search and value learning via diffusion policy optimization.",
-      "llm_tldr_cn": "该论文指出世界模型强化学习在规模扩展中面临搜索与价值学习之间的结构性错配问题，提出基于扩散策略优化的MBDPO框架，通过扩散模型生成动作序列，对齐搜索与值函数，提升了长期预测和策略性能，为大规模世界模型RL提供了新范式。",
-      "llm_tldr": "该论文指出世界模型强化学习在规模扩展中面临搜索与价值学习之间的结构性错配问题，提出基于扩散策略优化的MBDPO框架，通过扩散模型生成动作序列，对齐搜索与值函数，提升了长期预测和策略性能，为大规模世界模型RL提供了新范式。",
+      "llm_evidence_en": "novel flow matching variants for image generation",
+      "llm_evidence_cn": "用于图像生成的新型流匹配变体",
+      "llm_evidence": "用于图像生成的新型流匹配变体",
+      "canonical_evidence": "用于图像生成的新型流匹配变体",
+      "llm_tldr_en": "Proposes Spherical Optimal Transport Flow Matching and Spherical Flow Matching that exploit directional geometry of images, outperforming Euclidean baselines in generation quality.",
+      "llm_tldr_cn": "针对自然图像生成中忽视内在几何结构的局限，提出了球面最优传输流匹配（SOT-CFM）和球面流匹配（SFM）方法。这些方法利用图像语义信息主要编码在方向分量的观察，在球面上进行建模，从而在图像生成质量上超越了传统欧几里得假设的方法。实验表明，几何感知流匹配显著提升生成保真度。",
+      "llm_tldr": "针对自然图像生成中忽视内在几何结构的局限，提出了球面最优传输流匹配（SOT-CFM）和球面流匹配（SFM）方法。这些方法利用图像语义信息主要编码在方向分量的观察，在球面上进行建模，从而在图像生成质量上超越了传统欧几里得假设的方法。实验表明，几何感知流匹配显著提升生成保真度。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent world model paper",
-      "matched_requirement_id": "req-5",
+      "matched_query_text": "latest advances in generative model architectures",
+      "matched_requirement_id": "req-10",
       "selection_source": "fresh_fetch",
       "quick_tier": "8plus"
     },
@@ -706,21 +792,60 @@
         "query:world-models"
       ],
       "llm_score": 7.0,
-      "llm_evidence_en": "diffusion model sampling, generative model advances",
-      "llm_evidence_cn": "扩散模型采样，生成模型进展",
-      "llm_evidence": "扩散模型采样，生成模型进展",
-      "canonical_evidence": "扩散模型采样，生成模型进展",
-      "llm_tldr_en": "Introduces U-turn chains for efficient sampling from diffusion models, revealing ergodicity-breaking phase transitions and manifold fragmentation.",
-      "llm_tldr_cn": "针对扩散模型采样效率问题，本文提出U-turn链，通过迭代短前向后向扩散步骤构造马尔可夫链，并采用Metropolis-Hastings校正。实验发现最小U-turn动态出现遍历性破缺，特征驰豫表现出层次性。该工作为扩散模型的采样算法提供了理论基础和实用改进。",
-      "llm_tldr": "针对扩散模型采样效率问题，本文提出U-turn链，通过迭代短前向后向扩散步骤构造马尔可夫链，并采用Metropolis-Hastings校正。实验发现最小U-turn动态出现遍历性破缺，特征驰豫表现出层次性。该工作为扩散模型的采样算法提供了理论基础和实用改进。",
+      "llm_evidence_en": "Novel sampling method for diffusion models contributing to generative model research",
+      "llm_evidence_cn": "提出扩散模型的新采样方法，贡献于生成模型研究",
+      "llm_evidence": "提出扩散模型的新采样方法，贡献于生成模型研究",
+      "canonical_evidence": "提出扩散模型的新采样方法，贡献于生成模型研究",
+      "llm_tldr_en": "Introduces U-turn chains using short forward-backward diffusion steps to sample from energy-modified targets, observing ergodicity-breaking phase transitions.",
+      "llm_tldr_cn": "该论文提出U-turn链，通过迭代扩散模型的短前向后向步骤进行采样，每一步保持在数据流形上，并配以Metropolis-Hastings校正。在合成语言上观察到最小U-turn动力学经历了遍历性破缺相变，而较大的U-turn幅度恢复遍历性，为非遍历态下的特征松弛顺序反转提供了新见解。",
+      "llm_tldr": "该论文提出U-turn链，通过迭代扩散模型的短前向后向步骤进行采样，每一步保持在数据流形上，并配以Metropolis-Hastings校正。在合成语言上观察到最小U-turn动力学经历了遍历性破缺相变，而较大的U-turn幅度恢复遍历性，为非遍历态下的特征松弛顺序反转提供了新见解。",
       "llm_tags": [
         "query:world-models"
       ],
       "matched_query_tag": "query:world-models",
-      "matched_query_text": "latest advances in generative model architectures",
-      "matched_requirement_id": "req-10",
+      "matched_query_text": "recent high impact papers on generative models",
+      "matched_requirement_id": "req-9",
       "selection_source": "fresh_fetch",
       "quick_tier": "7"
+    },
+    {
+      "id": "2605.25254v1",
+      "source": "arxiv",
+      "title": "Guess the Unified Model: How Much Can We Recover from Generated Images?",
+      "abstract": "With unified model-generated images now widespread online, attributing their model of origin offers a path toward transparency and deeper insight into the characteristic behaviors of individual models. Prior work has explored provenance in LLM-generated text, diffusion model images, and datasets, but the separability of unified model-generated images remains an underexplored area. We address this gap by examining separability across corruption, domains, and prompt languages using images generated by seven unified models. We show that model attribution is highly feasible as our model achieves near-perfect accuracy with around 20K images per model. Corruptions and structural perturbations have only a modest effect on attribution performance, and cross-domain generalization reveals that semantic content contributes to separability but is not the dominant signal. Finally, we observe that for most models, prompt language attribution is around chance levels, suggesting minimal language-specific visual signatures. These findings highlight consistent model-specific visual characteristics in unified models outputs and open new directions for tracing and auditing generative image pipelines.",
+      "authors": [
+        "Jasin Cekinmez",
+        "Ryo Mitsuhashi",
+        "Addison J. Wu",
+        "Yida Yin"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-05-24T20:59:08+00:00",
+      "link": "https://arxiv.org/pdf/2605.25254v1",
+      "tags": [
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Study on attributing generated images to unified models",
+      "llm_evidence_cn": "统一模型生成图像溯源研究",
+      "llm_evidence": "统一模型生成图像溯源研究",
+      "canonical_evidence": "统一模型生成图像溯源研究",
+      "llm_tldr_en": "Investigates separability of images generated by seven unified models, achieving near-perfect attribution accuracy.",
+      "llm_tldr_cn": "针对统一模型生成图像难以溯源的问题，本文使用七个模型生成大量图像，构建高精度归属分类器，达到接近完美的准确率。实验表明图像破坏和结构扰动对归属影响较小，为生成模型的可解释性和透明度提供新工具。",
+      "llm_tldr": "针对统一模型生成图像难以溯源的问题，本文使用七个模型生成大量图像，构建高精度归属分类器，达到接近完美的准确率。实验表明图像破坏和结构扰动对归属影响较小，为生成模型的可解释性和透明度提供新工具。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent high impact papers on generative models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
     },
     {
       "id": "2605.27495v1",
@@ -744,13 +869,13 @@
         "query:world-models"
       ],
       "llm_score": 8.0,
-      "llm_evidence_en": "generative model for data generation, diffusion model conditioning",
-      "llm_evidence_cn": "数据生成的生成模型，扩散模型条件化",
-      "llm_evidence": "数据生成的生成模型，扩散模型条件化",
-      "canonical_evidence": "数据生成的生成模型，扩散模型条件化",
-      "llm_tldr_en": "Uses representation-conditioned latent diffusion models for synthetic data generation, achieving +10.76% top-1 accuracy over class-conditioned on ImageNet100.",
-      "llm_tldr_cn": "针对深度学习数据瓶颈，本文提出表示条件扩散模型用于生成训练数据。利用DINOv2、CLIP等预训练表示作为条件，替代传统的类标签条件。在ImageNet100上，表示条件生成的数据训练的分类器top-1准确率比类条件生成高10.76个百分点，展现了表示条件生成在数据增强中的巨大潜力。",
-      "llm_tldr": "针对深度学习数据瓶颈，本文提出表示条件扩散模型用于生成训练数据。利用DINOv2、CLIP等预训练表示作为条件，替代传统的类标签条件。在ImageNet100上，表示条件生成的数据训练的分类器top-1准确率比类条件生成高10.76个百分点，展现了表示条件生成在数据增强中的巨大潜力。",
+      "llm_evidence_en": "representation-conditioned diffusion models for guided data generation",
+      "llm_evidence_cn": "表示条件扩散模型用于引导数据生成",
+      "llm_evidence": "表示条件扩散模型用于引导数据生成",
+      "canonical_evidence": "表示条件扩散模型用于引导数据生成",
+      "llm_tldr_en": "Proposes representation-conditioned latent diffusion models (DINOv2/3, CLIP) that outperform class-conditioned generation by +10.76 p.p. on ImageNet100.",
+      "llm_tldr_cn": "本文提出基于表示条件的潜扩散模型，利用DINOv2、DINOv3和CLIP的嵌入作为条件，替代传统类别条件。在ImageNet100上，该方法在分类准确率上比类别条件生成提升10.76个百分点，通过改善样本质量和模式覆盖实现。这为生成模型在数据增强中的应用提供了更有效的条件机制。",
+      "llm_tldr": "本文提出基于表示条件的潜扩散模型，利用DINOv2、DINOv3和CLIP的嵌入作为条件，替代传统类别条件。在ImageNet100上，该方法在分类准确率上比类别条件生成提升10.76个百分点，通过改善样本质量和模式覆盖实现。这为生成模型在数据增强中的应用提供了更有效的条件机制。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -761,73 +886,34 @@
       "quick_tier": "8plus"
     },
     {
-      "id": "2605.28920v1",
+      "id": "2605.27343v1",
       "source": "arxiv",
-      "title": "Conf-Gen: Conformal Uncertainty Quantification for Generative Models",
-      "abstract": "Conformal prediction (CP) and its extension, conformal risk control (CRC), are established frameworks for quantifying uncertainty in supervised machine learning through formal guarantees. However, recent breakthroughs in artificial intelligence (AI) have been driven by unsupervised generative models, such as large language models (LLMs) and image generators, which are not directly compatible with CP or CRC. In this work we introduce conformal generation (Conf-Gen), a general framework adapting CRC to generative tasks while relaxing its theoretical assumptions. Conf-Gen unifies and generalizes previous attempts to apply CP to LLMs, and extends conformal methodology to entirely new domains. We demonstrate the flexibility of Conf-Gen through some novel applications, including obtaining conformal guarantees on: image generators producing non-memorized images, conversational AI systems having asked enough clarifying questions, and the output of AI agents being correct.",
+      "title": "Towards Controllable Image Generation through Representation-Conditioned Diffusion Models",
+      "abstract": "Diffusion models have emerged as powerful tools for high-quality image generation and editing, but guiding these models to produce specific outputs remains a challenge. Conventional approaches rely on conditioning mechanisms, such as text prompts or semantic maps, which require extensively annotated datasets. In this preliminary work, we explore diffusion models conditioned on representations from a pre-trained self-supervised model. The self-conditioning mechanism not only improves the quality of unconditional image generation, but also provides a representation space that can be used to control the generation. We explore this conditioning space by identifying directions of variations, and demonstrate promising properties in terms of smoothness and disentanglement.",
       "authors": [
-        "Gabriel Loaiza-Ganem",
-        "Kevin Zhang",
-        "Wei Cui",
-        "Marc T. Law",
-        "Kin Kwan Leung"
+        "Nithesh Chandher Karthikeyan",
+        "Jonas Unger",
+        "Gabriel Eilertsen"
       ],
-      "primary_category": "cs.LG",
+      "primary_category": "cs.CV",
       "categories": [
-        "cs.LG",
-        "cs.AI",
-        "stat.ML"
+        "cs.CV",
+        "cs.LG"
       ],
-      "published": "2026-05-27T18:00:00+00:00",
-      "link": "https://arxiv.org/pdf/2605.28920v1",
+      "published": "2026-05-26T17:46:25+00:00",
+      "link": "https://arxiv.org/pdf/2605.27343v1",
       "tags": [
         "keyword:world-models",
         "query:world-models"
       ],
       "llm_score": 7.0,
-      "llm_evidence_en": "Conformal uncertainty quantification for generative models",
-      "llm_evidence_cn": "为生成模型提供共形不确定性量化框架",
-      "llm_evidence": "为生成模型提供共形不确定性量化框架",
-      "canonical_evidence": "为生成模型提供共形不确定性量化框架",
-      "llm_tldr_en": "Extends conformal risk control to generative models, unifying and generalizing prior approaches.",
-      "llm_tldr_cn": "本文提出Conf-Gen框架，将共形风险控制（CRC）扩展到无监督生成模型（如LLM和图像生成器），统一并推广了先前将共形预测应用于LLM的尝试。该框架生成具有理论保证的不确定性量化，适用于多种生成任务。实验结果展示了其灵活性和有效性，是生成模型安全性评估的重要进展。属于高影响力的方法论文。",
-      "llm_tldr": "本文提出Conf-Gen框架，将共形风险控制（CRC）扩展到无监督生成模型（如LLM和图像生成器），统一并推广了先前将共形预测应用于LLM的尝试。该框架生成具有理论保证的不确定性量化，适用于多种生成任务。实验结果展示了其灵活性和有效性，是生成模型安全性评估的重要进展。属于高影响力的方法论文。",
-      "llm_tags": [
-        "query:world-models"
-      ],
-      "matched_query_tag": "query:world-models",
-      "matched_query_text": "recent high impact papers on generative models",
-      "matched_requirement_id": "req-9",
-      "selection_source": "fresh_fetch",
-      "quick_tier": "7"
-    },
-    {
-      "id": "2605.28267v1",
-      "source": "arxiv",
-      "title": "Parameter-Efficient Generative Modeling with Controlled Vector Fields",
-      "abstract": "We introduce a continuous-time generative modeling framework, motivated by the Chow-Rashevskii theorem, that builds expressive flows from a small set of fixed vector fields and learned scalar controls. Instead of learning an unconstrained high-dimensional vector field, our framework constructs the velocity by modulating fixed vector fields with learned scalar control functions. When the fixed fields are bracket-generating, their Lie algebra spans the ambient space, providing a mechanism for expressive transport with only a small number of learned control channels and offering a parameter-efficient geometric alternative to standard vector-field parameterizations. This decoupled formulation yields a structured and interpretable generative model in which the number of learned scalar output channels can be chosen independently of the ambient dimension. We formulate an expressivity principle showing that, under suitable controllability and well-posedness assumptions, such controlled flows can transport a source distribution to a target distribution. We train the resulting model using a continuous-normalizing-flow likelihood objective and present proof-of-concept experiments on synthetic distributions.",
-      "authors": [
-        "Peyman Morteza"
-      ],
-      "primary_category": "cs.LG",
-      "categories": [
-        "cs.LG",
-        "stat.ML"
-      ],
-      "published": "2026-05-27T10:14:29+00:00",
-      "link": "https://arxiv.org/pdf/2605.28267v1",
-      "tags": [
-        "keyword:world-models",
-        "query:world-models"
-      ],
-      "llm_score": 8.0,
-      "llm_evidence_en": "Proposes a parameter-efficient generative modeling framework using controlled vector fields",
-      "llm_evidence_cn": "提出基于控制向量场的参数高效生成建模框架",
-      "llm_evidence": "提出基于控制向量场的参数高效生成建模框架",
-      "canonical_evidence": "提出基于控制向量场的参数高效生成建模框架",
-      "llm_tldr_en": "Introduces a continuous-time generative model that builds expressive flows from a small set of fixed vector fields and learned scalar controls, offering parameter efficiency and interpretability.",
-      "llm_tldr_cn": "现有生成模型通常学习高维向量场，参数效率低且可解释性差。本文基于Chow-Rashevskii定理，提出用少量固定向量场和学习到的标量控制构建表达性流的框架。当固定场满足括号生成条件时，其李代数可张满整个空间，从而用很少的学习通道实现表达性传输。实验表明该方法在图像生成等任务上以显著更少的参数达到与全参数方法相当的性能，为生成模型提供了更结构化的替代方案。",
-      "llm_tldr": "现有生成模型通常学习高维向量场，参数效率低且可解释性差。本文基于Chow-Rashevskii定理，提出用少量固定向量场和学习到的标量控制构建表达性流的框架。当固定场满足括号生成条件时，其李代数可张满整个空间，从而用很少的学习通道实现表达性传输。实验表明该方法在图像生成等任务上以显著更少的参数达到与全参数方法相当的性能，为生成模型提供了更结构化的替代方案。",
+      "llm_evidence_en": "representation-conditioned diffusion model for controllable image generation",
+      "llm_evidence_cn": "基于表示条件扩散模型的可控图像生成",
+      "llm_evidence": "基于表示条件扩散模型的可控图像生成",
+      "canonical_evidence": "基于表示条件扩散模型的可控图像生成",
+      "llm_tldr_en": "Explores diffusion models conditioned on self-supervised representations, enabling control over generation without text prompts or semantic maps, and shows promising properties for image editing.",
+      "llm_tldr_cn": "该论文针对扩散模型可控生成依赖大量标注数据的问题，提出使用预训练自监督模型的表示作为条件。该方法不仅提升了无条件生成的质量，还通过表示空间中的方向变化实现对生成结果的控制，避免了对文本提示或语义图的依赖。初步实验展示了其在图像编辑中的潜力，为低资源可控生成提供了新思路。",
+      "llm_tldr": "该论文针对扩散模型可控生成依赖大量标注数据的问题，提出使用预训练自监督模型的表示作为条件。该方法不仅提升了无条件生成的质量，还通过表示空间中的方向变化实现对生成结果的控制，避免了对文本提示或语义图的依赖。初步实验展示了其在图像编辑中的潜力，为低资源可控生成提供了新思路。",
       "llm_tags": [
         "query:world-models"
       ],
@@ -835,7 +921,7 @@
       "matched_query_text": "latest advances in generative model architectures",
       "matched_requirement_id": "req-10",
       "selection_source": "fresh_fetch",
-      "quick_tier": "8plus"
+      "quick_tier": "7"
     }
   ]
 }
