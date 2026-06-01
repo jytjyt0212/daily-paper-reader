@@ -6,107 +6,157 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-23 ~ 2026-06-01
-- 运行时间：2026-06-01 06:44:14 UTC
+- 最新运行日期：2026-05-03 ~ 2026-06-01
+- 运行时间：2026-06-01 08:28:52 UTC
 - 运行状态：成功
-- 本次总论文数：29
-- 精读区：17
+- 本次总论文数：45
+- 精读区：33
 - 速读区：12
 
 ### 今日简报（AI）
-本周推荐精读聚焦自动驾驶推理模型脆弱性（ReasonBreak，10分）与视觉-语言-动作模型商空间理论（QuoVLA，9分），速读关注语言引导端到端驾驶（NudgeVAD）、行人合成数据集（ARCANE-PedSynth）及物理感知场景生成。建议优先阅读ReasonBreak了解推理增强VLA模型的潜在风险，并关注QuoVLA对多模态融合的理论贡献。
-- 详情：[/20260523-20260601/README](/20260523-20260601/README)
+1) 本期日报覆盖2026年5月3日至6月1日，共收录45篇论文，精读33篇，其中两篇满分10.0的世界动作交互模型和驾驶世界模型值得重点关注。
+2) 最值得看的方向：世界动作交互模型《The DAWN of World-Action Interactive Models》与综合未来推理驱动的驾驶世界模型《EponaV2》。
+3) 建议优先精读这两篇满分论文，了解如何将视觉感知与动作预测深度融合，为自动驾驶决策奠定基础。
+- 详情：[/20260503-20260601/README](/20260503-20260601/README)
 
 ### 精读区论文标签
-1. [ReasonBreak: Probing Vulnerabilities in Reasoning-Enabled Vision-Language-Action Models for Autonomous Driving](/20260523-20260601/2605.29114v1-reasonbreak-probing-vulnerabilities-in-reasoning-enabled-vision-language-action-models-for-autonomous-driving)  
+1. [The DAWN of World-Action Interactive Models](/20260503-20260601/2605.11550v1-the-dawn-of-world-action-interactive-models)  
+   标签：评分：10.0/10、query:world-models
+   evidence：最新世界模型论文：面向自动驾驶的世界-动作交互模型
+2. [EponaV2: Driving World Model with Comprehensive Future Reasoning](/20260503-20260601/2605.14696v1-eponav2-driving-world-model-with-comprehensive-future-reasoning)  
    标签：评分：10.0/10、query:self-driving
-   evidence：对自动驾驶中VLA模型系统性的脆弱性研究
-2. [QuoVLA: Quotient Space for Vision-Language-Action Models](/20260523-20260601/2605.24890v1-quovla-quotient-space-for-vision-language-action-models)  
+   evidence：具有全面未来推理的驾驶世界模型
+3. [Xiaomi EV World Model: A Joint World Model Integrating Reconstruction and Generation for Autonomous Driving](/20260503-20260601/2605.18137v1-xiaomi-ev-world-model-a-joint-world-model-integrating-reconstruction-and-generation-for-autonomous-driving)  
+   标签：评分：10.0/10、query:world-models
+   evidence：世界模型架构：联合重建与生成的世界模型
+4. [Xiaomi EV World Model: A Joint World Model Integrating Reconstruction and Generation for Autonomous Driving](/20260503-20260601/2605.18137v2-xiaomi-ev-world-model-a-joint-world-model-integrating-reconstruction-and-generation-for-autonomous-driving)  
+   标签：评分：10.0/10、query:self-driving
+   evidence：自动驾驶中的世界模型，整合重建与生成能力
+5. [World Machine: Towards Generative World Modeling for Time-Series](/20260503-20260601/2605.23025v1-world-machine-towards-generative-world-modeling-for-time-series)  
+   标签：评分：10.0/10、query:world-models
+   evidence：最新世界模型论文提出生成式架构
+6. [Driver-WM: A Driver-Centric Traffic-Conditioned Latent World Model for In-Cabin Dynamics Rollout](/20260503-20260601/2605.05092v1-driver-wm-a-driver-centric-traffic-conditioned-latent-world-model-for-in-cabin-dynamics-rollout)  
    标签：评分：9.0/10、query:self-driving
-   evidence：VLA模型的商空间理论，直接推动自动驾驶VLA发展
-3. [X-DiffVLA: X-Embodied Diffusion Action Heads for Vision-Language-Action Models](/20260523-20260601/2605.25044v1-x-diffvla-x-embodied-diffusion-action-heads-for-vision-language-action-models)  
+   evidence：以交通环境为条件的车内动态潜在世界模型
+7. [See Tomorrow, Act Today: Foresight-Driven Autonomous Driving](/20260503-20260601/2605.07195v1-see-tomorrow-act-today-foresight-driven-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：提出了X-DiffVLA，一种基于扩散的VLA模型，具有跨具身动作头，可应用于自动驾驶
-4. [Semantics-Guided Multimodal Masked Autoencoder Pretraining for 3D BEV Object Detection](/20260523-20260601/2605.25262v1-semantics-guided-multimodal-masked-autoencoder-pretraining-for-3d-bev-object-detection)  
+   evidence：面向自动驾驶的基础世界模型
+8. [VECTOR-Drive: Tightly Coupled Vision-Language and Trajectory Expert Routing for End-to-End Autonomous Driving](/20260503-20260601/2605.08830v1-vector-drive-tightly-coupled-vision-language-and-trajectory-expert-routing-for-end-to-end-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：自动驾驶感知的多模态预训练
-5. [AnyScene: Towards Highly Controllable Driving Scene Generation at Anywhere and Beyond](/20260523-20260601/2605.26113v1-anyscene-towards-highly-controllable-driving-scene-generation-at-anywhere-and-beyond)  
+   evidence：VLA模型用于端到端驾驶
+9. [DriveFuture: Future-Aware Latent World Models for Autonomous Driving](/20260503-20260601/2605.09701v1-drivefuture-future-aware-latent-world-models-for-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：基于占用率的驾驶场景生成框架
-6. [Adaptation-Free Heterogeneous Collaborative Perception with Unseen Agent Configurations](/20260523-20260601/2605.26642v1-adaptation-free-heterogeneous-collaborative-perception-with-unseen-agent-configurations)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：自动驾驶中应对未知配置的协同感知
-7. [TPS-Drive: Task-Guided Representation Purification for VLM-based Autonomous Driving](/20260523-20260601/2605.27038v1-tps-drive-task-guided-representation-purification-for-vlm-based-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：基于VLM的自动驾驶表示净化
-8. [FineVLA: Fine-Grained Instruction Alignment for Steerable Vision-Language-Action Policies](/20260523-20260601/2605.27284v1-finevla-fine-grained-instruction-alignment-for-steerable-vision-language-action-policies)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：用于自动驾驶的细粒度VLA模型
-9. [What-If World: A Causal Benchmark for General World Models in Embodied Scenarios](/20260523-20260601/2605.27589v1-what-if-world-a-causal-benchmark-for-general-world-models-in-embodied-scenarios)  
+   evidence：面向未来的潜在世界模型用于自动驾驶
+10. [How Mobile World Model Guides GUI Agents?](/20260503-20260601/2605.10347v1-how-mobile-world-model-guides-gui-agents)  
    标签：评分：9.0/10、query:world-models
-   evidence：具身场景中世界模型的因果基准
-10. [SANTS: A State-Adaptive Scheduler for World Action Models](/20260523-20260601/2605.27947v1-sants-a-state-adaptive-scheduler-for-world-action-models)  
+   evidence：移动世界模型用于GUI智能体
+11. [CoWorld-VLA: Thinking in a Multi-Expert World Model for Autonomous Driving](/20260503-20260601/2605.10426v1-coworld-vla-thinking-in-a-multi-expert-world-model-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：多专家世界推理用于VLA自动驾驶
+12. [CoWorld-VLA: Thinking in a Multi-Expert World Model for Autonomous Driving](/20260503-20260601/2605.10426v2-coworld-vla-thinking-in-a-multi-expert-world-model-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：融合多专家世界模型与视觉-语言-动作模型实现端到端自动驾驶
+13. [DeepSight: Long-Horizon World Modeling via Latent States Prediction for End-to-End Autonomous Driving](/20260503-20260601/2605.10564v1-deepsight-long-horizon-world-modeling-via-latent-states-prediction-for-end-to-end-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：基于BEV潜状态预测的驾驶世界模型
+14. [Action Emergence from Streaming Intent](/20260503-20260601/2605.12622v2-action-emergence-from-streaming-intent)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：端到端自动驾驶，通过流式意图实现动作预测
+15. [MindVLA-U1: VLA Beats VA with Unified Streaming Architecture for Autonomous Driving](/20260503-20260601/2605.12624v1-mindvla-u1-vla-beats-va-with-unified-streaming-architecture-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：全新的统一流式VLA架构，在自动驾驶规划中超越VA方法
+16. [MindVLA-U1: VLA Beats VA with Unified Streaming Architecture for Autonomous Driving](/20260503-20260601/2605.12624v2-mindvla-u1-vla-beats-va-with-unified-streaming-architecture-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：自动驾驶中最先进的VLA统一流式架构
+17. [Causality-Aware End-to-End Autonomous Driving via Ego-Centric Joint Scene Modeling](/20260503-20260601/2605.13646v2-causality-aware-end-to-end-autonomous-driving-via-ego-centric-joint-scene-modeling)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：因果感知的端到端自动驾驶框架
+18. [CLAP: Contrastive Latent-space Prompt Optimization for End-to-end Autonomous Driving](/20260503-20260601/2605.17284v1-clap-contrastive-latent-space-prompt-optimization-for-end-to-end-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：对比潜在空间提示优化用于VLA模型
+19. [GEM: Gaussian Evolution Model for Occupancy Forecasting and Motion Planning](/20260503-20260601/2605.17682v1-gem-gaussian-evolution-model-for-occupancy-forecasting-and-motion-planning)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：提出高斯演化模型作为自动驾驶中的占用世界模型
+20. [Xiaomi Auto World Model: A Joint World Model Integrating Reconstruction and Generation for Autonomous Driving](/20260503-20260601/2605.18137v3-xiaomi-auto-world-model-a-joint-world-model-integrating-reconstruction-and-generation-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：面向自动驾驶的联合世界模型，融合重建与生成
+21. [Actionable World Representation](/20260503-20260601/2605.18743v1-actionable-world-representation)  
    标签：评分：9.0/10、query:world-models
-   evidence：面向世界动作模型的状态自适应调度器
-11. [DriveWAM: Video Generative Priors Enable Scalable World-Action Modeling for Autonomous Driving](/20260523-20260601/2605.28544v1-drivewam-video-generative-priors-enable-scalable-world-action-modeling-for-autonomous-driving)  
+   evidence：可操作对象的世界模型表示
+22. [SafeAlign-VLA: A Negative-Enhanced Safe Alignment Framework for Risk-Aware Autonomous Driving](/20260503-20260601/2605.19524v1-safealign-vla-a-negative-enhanced-safe-alignment-framework-for-risk-aware-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：基于视频扩散Transformer的端到端自动驾驶世界-动作模型
-12. [GEM: Generative Supervision Helps Embodied Intelligence](/20260523-20260601/2605.28548v1-gem-generative-supervision-helps-embodied-intelligence)  
+   evidence：面向端到端自动驾驶的VLA模型与负样本对齐方法
+23. [HEAT: Heterogeneous End-to-End Autonomous Driving via Trajectory-Guided World Models](/20260503-20260601/2605.19631v1-heat-heterogeneous-end-to-end-autonomous-driving-via-trajectory-guided-world-models)  
    标签：评分：9.0/10、query:self-driving
-   evidence：生成监督增强具身VLM，提升自动驾驶VLA模型
-13. [ElegantVLA: Learning When to Think for Efficient Vision-Language-Action Models](/20260523-20260601/2605.29438v1-elegantvla-learning-when-to-think-for-efficient-vision-language-action-models)  
+   evidence：异构端到端自动驾驶，轨迹引导世界模型
+24. [Beyond Imitation: Learning Safe End-to-End Autonomous Driving from Hard Negatives](/20260503-20260601/2605.19771v1-beyond-imitation-learning-safe-end-to-end-autonomous-driving-from-hard-negatives)  
    标签：评分：9.0/10、query:self-driving
-   evidence：用于机器人控制的高效视觉-语言-动作模型
-14. [CityGen: Structure-Guided City-Style Synthesis for Cross-City Autonomous Driving](/20260523-20260601/2605.29935v1-citygen-structure-guided-city-style-synthesis-for-cross-city-autonomous-driving)  
+   evidence：从困难负样本中学习安全的端到端自动驾驶模型
+25. [VL-DPO: Vision-Language-Guided Finetuning for Preference-Aligned Autonomous Driving](/20260503-20260601/2605.20082v1-vl-dpo-vision-language-guided-finetuning-for-preference-aligned-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：跨城市自动驾驶风格合成
-15. [VisualThink-VLA: Visual Intermediate Reasoning for Effective and Low-Latency Vision-Language-Action Policies](/20260523-20260601/2605.30011v1-visualthink-vla-visual-intermediate-reasoning-for-effective-and-low-latency-vision-language-action-policies)  
+   evidence：视觉语言引导的偏好对齐自动驾驶运动预测微调
+26. [Distill to Think, Foresee to Act: Cognitive-Physical Reinforcement Learning for Autonomous Driving](/20260503-20260601/2605.21139v1-distill-to-think-foresee-to-act-cognitive-physical-reinforcement-learning-for-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：VLA策略的视觉中间推理，降低自动驾驶延迟
-16. [VLA-Trace: Diagnosing Vision-Language-Action Models through Representation and Behavior Tracing](/20260523-20260601/2605.30117v1-vla-trace-diagnosing-vision-language-action-models-through-representation-and-behavior-tracing)  
+   evidence：结合认知-物理强化学习的VLA端到端自动驾驶模型
+27. [LVDrive: Latent Visual Representation Enhanced Vision-Language-Action Autonomous Driving Model](/20260503-20260601/2605.22089v1-lvdrive-latent-visual-representation-enhanced-vision-language-action-autonomous-driving-model)  
    标签：评分：9.0/10、query:self-driving
-   evidence：VLA模型诊断框架，用于具身控制
-17. [minWM: A Full-Stack Open-Source Framework for Real-Time Interactive Video World Models](/20260523-20260601/2605.30263v1-minwm-a-full-stack-open-source-framework-for-real-time-interactive-video-world-models)  
+   evidence：增强潜在视觉表示的VLA与世界模型
+28. [Fast-dDrive: Efficient Block-Diffusion VLM for Autonomous Driving](/20260503-20260601/2605.23163v2-fast-ddrive-efficient-block-diffusion-vlm-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：端到端自动驾驶结合视觉语言动作模型，采用块扩散技术
+29. [Nano World Models: A Minimalist Implementation of Future Video Prediction](/20260503-20260601/2605.23993v1-nano-world-models-a-minimalist-implementation-of-future-video-prediction)  
    标签：评分：9.0/10、query:world-models
-   evidence：实时交互视频世界模型的全栈框架
+   evidence：未来视频预测世界模型的极简代码库
+30. [Reason--Imagine--Act: Closed-Loop LLM Decision Making with World Models for Autonomous Driving](/20260503-20260601/2605.24004v1-reason--imagine--act-closed-loop-llm-decision-making-with-world-models-for-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：用于自动驾驶安全决策的闭环LLM与世界模型
+31. [Does Visual Information Play a Decisive Role in Vision-Language-Action Model Driving Behavior?](/20260503-20260601/2605.31041v1-does-visual-information-play-a-decisive-role-in-vision-language-action-model-driving-behavior)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：VLA模型驾驶行为分析
+32. [DriveMA: Driving Vision-Language-Action Models with verifiable Meta-Actions](/20260503-20260601/2605.31271v1-drivema-driving-vision-language-action-models-with-verifiable-meta-actions)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：提出了可验证元动作的驾驶VLA框架，用于端到端规划
+33. [DecMem: Towards Minute-Long Consistent World Generation with Decoupled Memory](/20260503-20260601/2605.31336v1-decmem-towards-minute-long-consistent-world-generation-with-decoupled-memory)  
+   标签：评分：9.0/10、query:world-models
+   evidence：用于长时程一致世界生成的解耦记忆架构
 
 ### 速读区论文标签
-1. [NudgeVAD: Language-Nudged End-to-End Driving via FiLM Residuals](/20260523-20260601/2605.24531v1-nudgevad-language-nudged-end-to-end-driving-via-film-residuals)  
+1. [Unified Map Prior Encoder for Mapping and Planning](/20260503-20260601/2605.02762v1-unified-map-prior-encoder-for-mapping-and-planning)  
    标签：评分：8.0/10、query:self-driving
-   evidence：通过FiLM残差进行语言条件化的端到端驾驶
-2. [ARCANE-PedSynth: Synthetic Multi-Pedestrian Datasets with Behavioural Crossing Annotations](/20260523-20260601/2605.24950v1-arcane-pedsynth-synthetic-multi-pedestrian-datasets-with-behavioural-crossing-annotations)  
+   evidence：用于端到端规划的统一地图先验编码器
+2. [InterFuserDVS: Event-Enhanced Sensor Fusion for Safe RL-Based Decision Making](/20260503-20260601/2605.04355v1-interfuserdvs-event-enhanced-sensor-fusion-for-safe-rl-based-decision-making)  
    标签：评分：8.0/10、query:self-driving
-   evidence：自动驾驶中的合成多行人数据集
-3. [Physics-Aware 3D Gaussian Editing for Driving Scene Generation](/20260523-20260601/2605.25373v1-physics-aware-3d-gaussian-editing-for-driving-scene-generation)  
+   evidence：融合事件相机的多模态传感器融合自动驾驶
+3. [ReflectDrive-2: Reinforcement-Learning-Aligned Self-Editing for Discrete Diffusion Driving](/20260503-20260601/2605.04647v1-reflectdrive-2-reinforcement-learning-aligned-self-editing-for-discrete-diffusion-driving)  
    标签：评分：8.0/10、query:self-driving
-   evidence：基于物理感知的3D高斯编辑用于驾驶场景生成
-4. [A Pedestrian-Vehicle Interaction Benchmark and Annotation Framework for Unstructured Scenes via Uncalibrated Cameras](/20260523-20260601/2605.25947v1-a-pedestrian-vehicle-interaction-benchmark-and-annotation-framework-for-unstructured-scenes-via-uncalibrated-cameras)  
+   evidence：用于自动驾驶的离散扩散规划器与动作预测
+4. [ReflectDrive-2: Reinforcement-Learning-Aligned Self-Editing for Discrete Diffusion Driving](/20260503-20260601/2605.04647v2-reflectdrive-2-reinforcement-learning-aligned-self-editing-for-discrete-diffusion-driving)  
    标签：评分：8.0/10、query:self-driving
-   evidence：用于自动驾驶的行人-车辆交互数据集
-5. [When Does Adaptive Guidance Help? Belief-Aware Privileged Distillation for Autonomous Driving Under Partial Observability](/20260523-20260601/2605.26155v1-when-does-adaptive-guidance-help-belief-aware-privileged-distillation-for-autonomous-driving-under-partial-observability)  
-   标签：评分：8.0/10、query:self-driving
-   evidence：基于信念感知的特权蒸馏用于端到端自动驾驶动作预测
-6. [PEDESTRIANQA: A Benchmark for Vision-Language Models on Pedestrian Intention and Trajectory Prediction](/20260523-20260601/2605.24562v1-pedestrianqa-a-benchmark-for-vision-language-models-on-pedestrian-intention-and-trajectory-prediction)  
+   evidence：基于离散扩散的自动驾驶轨迹规划器，支持动作令牌自编辑
+5. [Information Coordination as a Bridge: A Neuro-Symbolic Architecture for Reliable Autonomous Driving Scene Understanding](/20260503-20260601/2605.04475v1-information-coordination-as-a-bridge-a-neuro-symbolic-architecture-for-reliable-autonomous-driving-scene-understanding)  
    标签：评分：7.0/10、query:self-driving
-   evidence：基于VLM的行人预测基准，用于自动驾驶
-7. [ParkingWorld: End-to-End Autonomous Parking Reinforcement Learning from Corrective Experience in 3DGS Simulation](/20260523-20260601/2605.25029v1-parkingworld-end-to-end-autonomous-parking-reinforcement-learning-from-corrective-experience-in-3dgs-simulation)  
+   evidence：自动驾驶中多模态融合的神经符号架构
+6. [HiDrive: A Closed-Loop Benchmark for High-Level Autonomous Driving](/20260503-20260601/2605.09972v1-hidrive-a-closed-loop-benchmark-for-high-level-autonomous-driving)  
    标签：评分：7.0/10、query:self-driving
-   evidence：基于强化学习的端到端自主泊车仿真，与端到端自动驾驶模型相关
-8. [ParkingWorld: End-to-End Autonomous Parking Reinforcement Learning from Corrective Experience in 3DGS Simulation](/20260523-20260601/2605.25029v2-parkingworld-end-to-end-autonomous-parking-reinforcement-learning-from-corrective-experience-in-3dgs-simulation)  
+   evidence：用于端到端自动驾驶的闭环基准
+7. [Think as Needed: Geometry-Driven Adaptive Perception for Autonomous Driving](/20260503-20260601/2605.10117v1-think-as-needed-geometry-driven-adaptive-perception-for-autonomous-driving)  
    标签：评分：7.0/10、query:self-driving
-   evidence：端到端自动泊车强化学习，自动驾驶近期进展
-9. [RECTOR: Priority-Aware Rule-Based Reranking for Compliance-Aware Autonomous Driving Trajectory Selection](/20260523-20260601/2605.25095v1-rector-priority-aware-rule-based-reranking-for-compliance-aware-autonomous-driving-trajectory-selection)  
+   evidence：自动驾驶的自适应感知
+8. [MDrive: Benchmarking Closed-Loop Cooperative Driving for End-to-End Multi-agent Systems](/20260503-20260601/2605.10904v1-mdrive-benchmarking-closed-loop-cooperative-driving-for-end-to-end-multi-agent-systems)  
    标签：评分：7.0/10、query:self-driving
-   evidence：自动驾驶轨迹选择规则重排序，近期进展
-10. [FusionCore: A 23-State Unscented Kalman Filter for IMU, Wheel Encoder, GPS, and Visual SLAM Fusion in ROS 2](/20260523-20260601/2605.25239v1-fusioncore-a-23-state-unscented-kalman-filter-for-imu-wheel-encoder-gps-and-visual-slam-fusion-in-ros-2)  
+   evidence：端到端多智能体系统的闭环协作驾驶基准
+9. [Beyond Fixed Thresholds and Domain-Specific Benchmarks for Explainable Multi-Task Classification in Autonomous Vehicles](/20260503-20260601/2605.04299v1-beyond-fixed-thresholds-and-domain-specific-benchmarks-for-explainable-multi-task-classification-in-autonomous-vehicles)  
    标签：评分：6.0/10、query:self-driving
-   evidence：传感器融合用于自主感知，与自动驾驶感知进展相关
-11. [SARAD: LLM-Based Safety-Aware Hybrid Reinforcement Learning with Collision Prediction for Autonomous Driving](/20260523-20260601/2605.28583v1-sarad-llm-based-safety-aware-hybrid-reinforcement-learning-with-collision-prediction-for-autonomous-driving)  
+   evidence：面向自动驾驶感知的可解释多任务分类
+10. [MORPH-U: Multi-Objective Resilient Motion Planning for V2X-Enabled Autonomous Driving in High-Uncertainty Environments via Simulation](/20260503-20260601/2605.07370v1-morph-u-multi-objective-resilient-motion-planning-for-v2x-enabled-autonomous-driving-in-high-uncertainty-environments-via-simulation)  
    标签：评分：6.0/10、query:self-driving
-   evidence：利用LLM和强化学习进行自动驾驶决策
-12. [Gaze2Act: Gaze-Conditioned Vision-Language-Action Policies for Interactive Robot Manipulation](/20260523-20260601/2605.30282v1-gaze2act-gaze-conditioned-vision-language-action-policies-for-interactive-robot-manipulation)  
+   evidence：V2X不确定性下的鲁棒运动规划
+11. [123D: Unifying Multi-Modal Autonomous Driving Data at Scale](/20260503-20260601/2605.08084v1-123d-unifying-multi-modal-autonomous-driving-data-at-scale)  
    标签：评分：6.0/10、query:self-driving
-   evidence：使用注视条件的VLA模型用于机器人操作
+   evidence：统一多模态驾驶数据框架，提供一致API和同步机制
+12. [Beyond Self-Play and Scale: A Behavior Benchmark for Generalization in Autonomous Driving](/20260503-20260601/2605.10034v1-beyond-self-play-and-scale-a-behavior-benchmark-for-generalization-in-autonomous-driving)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：自动驾驶泛化性能基准
 
 
 <div class="dpr-home-promo-card">
