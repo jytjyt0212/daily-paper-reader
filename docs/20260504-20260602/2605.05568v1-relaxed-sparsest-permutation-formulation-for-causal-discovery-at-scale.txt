@@ -1,0 +1,1188 @@
+Title: Relaxed Sparsest-Permutation Formulation for Causal Discovery at Scale
+
+URL Source: https://arxiv.org/pdf/2605.05568v1
+
+Published Time: Fri, 08 May 2026 00:28:12 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Relaxed Sparsest-Permutation Formulation for Causal Discovery at Scale 
+
+Sunmin Oh 1 Sang-Yun Oh *,4,5 Gunwoong Park *,1,2,3 1Department of Statistics, Seoul National University, South Korea 
+
+> 2
+
+Interdisciplinary Program in Artificial Intelligence, Seoul National University, South Korea 
+
+> 3
+
+Institute for Data Innovation in Science, Seoul National University, South Korea 
+
+> 4
+
+Department of Statistics and Applied Probability, University of California Santa Barbara, CA, USA 
+
+> 5
+
+Scientific Data Division, Lawrence Berkeley National Laboratory, CA, USA 
+
+# Abstract 
+
+Despite the growing availability of large datasets, causal structure learning remains computation-ally prohibitive at scale. We revisit sparsest-permutation learning for linear structural equation models and show that exact Cholesky factoriza-tion is unnecessary for structure recovery. This observation motivates a support-level relaxation that searches for sparse triangular factors over a precision-support screening graph. The relaxed for-mulation can be efficiently evaluated via masked zero-fill incomplete Cholesky factorization, en-abling scalable comparison of candidate orderings. At the population level, we establish soundness for Markov equivalence class (MEC) recovery under no-cancellation and sparsest Markov representa-tion assumptions, as well as robustness to ordering misspecification. Motivated by these guarantees, we introduce SCOPE, a sparse-Cholesky pipeline that provides a scalable implementation of the re-laxed formulation. Experiments on synthetic and real datasets demonstrate that SCOPE matches the MEC recovery accuracy of substantially slower baselines, while achieving significantly reduced runtime and scaling to 10 4 variables. 
+
+# 1 INTRODUCTION 
+
+Learning a directed acyclic graph (DAG) and its Markov equivalence class (MEC) from observational data is a cen-tral goal in causal discovery. In modern applications such as genomics, neuroscience, and socio-economic systems, this task increasingly arises at large scales involving tens of thou-sands of variables (e.g., Linnarsson and Teichmann [2018], Trapnell [2014]). At such scales, existing approaches face a fundamental tension between statistical exactness and computational scalability, as enforcing exact conditional independence or likelihood-based characterizations quickly 
+
+Figure 1: Runtime-accuracy tradeoffs for MEC recovery across baseline causal discovery methods (means ± error bars) on synthetic Gaussian linear SEMs with bounded in-degree d = 5 , p = 100 , and n = 20 p.becomes computationally prohibitive (e.g., Verma and Pearl [1990], Andersson et al. [1997], Kalisch and Bühlmann [2007], Chickering [2002], Colombo et al. [2012]). Figure 1 empirically illustrates this fundamental ten-sion. Representative baseline methods—PC [Kalisch and Bühlmann, 2007], GES [Chickering, 2002], GSP [Solus et al., 2021], NOTEARS [Zheng et al., 2018], GOLEM [Ng et al., 2020]—enforce exact numerical formulations to achieve strong accuracy at substantially higher compu-tational cost. Related precision-based sparse-Cholesky pipelines, such as RFD [Squires et al., 2020a] and FROSTY [Bang and Oh, 2023], can be less accurate in these regimes. Motivated by this observation, we focus on recovering the sparse structural support that is essential for causal discovery rather than insisting on exact numerical fac-torization. The proposed algorithm, SCOPE, attains strong accuracy with significantly lower runtime in Figure 1. 
+
+1.1 CONTRIBUTIONS 
+
+We revisit sparsest-permutation (SP) learning for linear structural equation model (SEM) [Raskutti and Uhler, 2018]. 
+
+> arXiv:2605.05568v1 [stat.ML] 7 May 2026
+
+The SP approach searches over all possible orderings of vari-ables to find the Cholesky factor Lπ of the precision matrix 
+
+Ωπ [Pourahmadi, 1999] with the smallest number of nonze-ros as shown below: Exact SP: min  
+
+> π
+
+∥Lπ ∥0 s.t. Ωπ = Lπ L⊤ 
+
+> π
+
+,
+
+Ours: min  
+
+> π
+
+∥Lπ ∥0 s.t. Ωπ ◦ Mπ = ( Lπ L⊤ 
+
+> π
+
+) ◦ Mπ .
+
+As an alternative, we present a Relaxed Sparsest-Permutation (ReSP) formulation for causal structure learn-ing that requires the coefficients to equal the precision ma-trix only at locations indicated by Mπ .In the remainder of this paper, we detail the theoretical and conceptual motivation for our ReSP formulation and its significant practical benefits. Our main contributions are: • ReSP: Relaxation of SP learning to precision sup-port. We show that the exact Cholesky constraint 
+
+Ωπ = Lπ L⊤ 
+
+> π
+
+is not essential for structure recovery, and introduce a support-level relaxation that searches for sparse triangular factors under a fixed mask. • Scalable sparse-Cholesky pipeline for ReSP. We propose SCOPE, which evaluates the ReSP formu-lation over a candidate ordering set via masked zero-fill incomplete Cholesky factorization, followed by a lightweight refit-and-test pruning step and a sparsity-based selection step. • Theory. We prove population-level soundness of the ReSP formulation for MEC recovery under no-cancellation and sparsest Markov representation as-sumptions, and establish a robustness result under or-dering misspecification. Since the analysis is formu-lated in terms of Ω, it also extends directly to the covariance-equivalence class beyond Gaussianity. • Scalability. Experiments on synthetic and real-world data show that SCOPE remains competitive while scal-ing to graphs with up to p = 10 4 variables. Detailed proofs are deferred to Appendix C. 
+
+# 2 PRELIMINARIES 
+
+2.1 LINEAR STRUCTURAL EQUATION MODELS 
+
+The model structure is represented by a DAG G = ( V, E ),where V = {1, . . . , p } indexes variables and E ⊆ V × V
+
+is the set of directed edges. We write (j, k ) for an edge from node j to node k. For a node k ∈ V , let Pa( k) := {j ∈ V :(j, k ) ∈ E} and Ch( k) := {j ∈ V : ( k, j ) ∈ E} denote its parents and children. The moralized graph Gm is the undirected graph obtained by connecting any two parents of a common child and then dropping all edge directions. Let π = ( π1, . . . , π p) ∈ Sp be an ordering, where πi denotes the variable index at position i. We call π a (not necessarily unique) topological ordering if i < j whenever (πi, π j ) ∈ E.We view π equivalently as a map i 7 → π(i) := πi, and for any S ⊆ [p] × [p] define π(S) := {(π(i), π (j)) : ( i, j ) ∈ S}.For any A ∈ Rp×p, let Aπ := Pπ AP ⊤ 
+
+> π
+
+denote A indexed by ordering positions. In particular, supp( A) = π(supp( Aπ )) .A linear SEM associates X ∈ Rp with a DAG G via 
+
+X = BX + ϵ, (1) where B = [ Bkj ] is the weighted adjacency matrix satisfying 
+
+Bkj ̸ = 0 if and only if (j, k ) is an edge in G. The noise vector ϵ = ( ϵ1, . . . , ϵ p)⊤ has independent components with 
+
+E[ϵj ] = 0 and Var( ϵj ) = σ2 
+
+> j
+
+for all j ∈ [p], so that Σϵ =diag( σ21 , . . . , σ 2 
+
+> p
+
+). The covariance of X is 
+
+Σ = ( Ip − B)−1Σϵ(Ip − B)−⊤ ,
+
+and we denote the population precision matrix by Ω = Σ −1.The MEC consists of all DAGs that entail the same set of conditional independences (CI) [Spirtes et al., 2000, Pearl, 2009]. For a DAG G, let M(G) denote its MEC. We repre-sent M(G) by its CPDAG, where an edge is directed if and only if its orientation is invariant across all DAGs in M(G).Under the Gaussian linear SEM, CI relations are equivalent to vanishing partial correlations and hence are characterized by the population precision matrix Ω [Lauritzen, 1996]. Equivalently, one may view the induced equivalence through the second-order structure encoded by Ω, referred to as the covariance-equivalence class (CEC) [Spirtes et al., 1998, Pearl, 2009]. Since our algorithm and theory are formulated in terms of Ω, the same arguments naturally extend beyond Gaussianity to the corresponding Ω-based equivalence. Throughout the paper, we consider i.i.d. samples from the linear SEM (1) with independent Gaussian errors and Σ ≻ 0,so that the population precision Ω = Σ −1 is well-defined. We focus on regimes with small in-degree so that parent sets remain sparse, while allowing the moralized degree to be large due to hub nodes and moralization. This regime is consistent with networks observed in genomics, neuro-science, and socio-economic systems, which often exhibit sparse local dependencies with prominent hubs and substan-tial degree heterogeneity Barabási and Oltvai [2004], Jeong et al. [2000], Bullmore and Sporns [2009], Newman [2003]. 
+
+2.2 SPARSEST-PERMUTATION APPROACHES 
+
+We briefly formalize sparsest-permutation (SP) learning for Gaussian linear SEMs and summarize representative algorithmic instantiations. In linear SEMs, SP learning for-mulates structure discovery as a variable ordering problem. Across existing approaches, a common objective is 
+
+min 
+
+> π∈Sp
+
+∥Lπ ∥0 s.t. Ωπ = Lπ L⊤ 
+
+> π
+
+, (2) where Lπ is the lower-triangular Cholesky factor of Ωπ := 
+
+Pπ ΩP ⊤ 
+
+> π
+
+. The off-diagonal support of Lπ induces a directed edge set under π. Specifically, define 
+
+eE(π, L π ) := { (π(j), π (k)) : k > j, (Lπ )kj ̸ = 0 },
+
+and let Gπ = ( V, eE(π, L π )) be the induced DAG. By con-struction, the off-diagonal nonzeros of Lπ are in one-to-one correspondence with eE(π, L π ), so 
+
+∥Lπ ∥0 = p + | eE(π, L π )|.
+
+Identifiability for MEC recovery can be obtained under sparsest Markov representation (SMR) assumption, which is typically weaker than faithfulness; see Raskutti and Uhler [2018]. The distinction among SP-based methods lies in how the sparsity score ∥Lπ ∥0 is evaluated or approximated. 
+
+Exact SP (CI-based). The original SP objective treats zero identification as a CI problem and enforces sparsity entry-wise [Raskutti and Uhler, 2018]: Exact SP: 
+
+
+
+min 
+
+> π∈Sp
+
+∥Lπ ∥0,Lπ,ij = 0 ⇐⇒ Xi ⊥ Xj | XSij (π).
+
+Equivalently, these CI statements can be assessed via partial correlations by testing whether the corresponding entry of Ω
+
+vanishes. However, this formulation conditions on ordering-dependent sets Sij (π), that is, subsets of variables preceding 
+
+j under π. Because these sets can grow linearly with p, the number of required CI tests is exponential in the worst case. 
+
+Greedy SP variants. Greedy variants do not directly solve the global optimization problem over the full permutation space Sp. Instead, they perform a local search over permuta-tions using simple neighborhood moves. Starting from an initial ordering, these methods iteratively update it within a local neighborhood: Greedy SP: 
+
+
+
+π(0) initialized ,π(t+1) ∈ N (π(t)) s.t. S(Gπ(t+1) ) < S(Gπ(t) ),
+
+stop at π⋆ if S(Gπ′ ) > S(Gπ⋆ ) ∀π′ ∈ N (π⋆).
+
+Here, N (π) ⊂ Sp denotes a local neighborhood of order-ings (e.g., adjacent swaps Teyssier and Koller [2005] or tucks Lam et al. [2022]), and the score S may be cho-sen as an explicit sparsity proxy (e.g., | eE(π, L π )|) or as a likelihood-based score with a complexity penalty (e.g., edge-count penalties or BIC/BDeu-type criteria), so that lower-score moves tend to favor sparser induced graphs. However, greedy SP methods still compare orderings through repeated score evaluations, rather than by explicitly identifying indi-vidual zero entries in Lπ . Representative examples include GSP Solus et al. [2021], GRaSP Lam et al. [2022], and ARCS Ye et al. [2020]. 
+
+Limitations. Both exhaustive and greedy variants use the sparsity pattern of Lπ to compare candidate orderings, rather than as a key computational component for certifying zeros 
+
+π(supp( Lπ + L⊤ 
+
+> π
+
+)) S1 
+
+supp(Ω) S2 
+
+π0(supp( Lπ0 + L⊤ 
+
+> π0
+
+)) 
+
+Figure 2: Nested patterns induced by an ordering: S1 fill beyond supp(Ω) , and S2 more attainable sparsity under π0.in Lπ . Evaluating each candidate still entails many ordering-dependent statistical queries, either CI tests (Exact SP) or repeated likelihood-based scoring with complexity penalties (greedy SP). Consequently, even when the ordering search is restricted to local neighborhoods of Sp, the overall runtime need not decrease proportionally in large-scale settings. 
+
+2.3 SPARSE CHOLESKY VS. SP OBJECTIVES 
+
+Sparse Cholesky factorization computes a lower-triangular factor L satisfying A = LL ⊤ for a sparse symmetric posi-tive definite matrix A [Davis, 2006, Saad, 2003]. Its primary goal is to choose an ordering π so that factoring the per-muted matrix Aπ := Pπ AP ⊤ 
+
+> π
+
+introduces as little fill-in as possible, i.e., nonzeros created during elimination beyond the original sparsity pattern of Aπ .Fill-reducing approaches are typically formulated via an undirected elimination-graph objective, which captures the sparsity pattern induced during Cholesky elimination. With 
+
+Aπ = Lπ L⊤ 
+
+> π
+
+, we define the fill set under π as 
+
+F(π) = supp( Lπ + L⊤ 
+
+> π
+
+) \ supp( Aπ ).
+
+To connect with SP learning, we specialize to A = Ω , the population precision matrix. For Gaussian linear SEMs, SP learning can be viewed as an ordering search over π ∈ Sp for a sparse Cholesky factor of Ωπ Raskutti and Uhler [2018]. 
+
+Objective comparison. Although both sparse Cholesky ordering and SP learning are phrased through a triangular factor, they optimize different criteria: Sparse-Chol: min 
+
+> π∈Sp
+
+|F (π)| vs. SP: min 
+
+> π∈Sp
+
+∥Lπ ∥0.
+
+This mismatch arises because fill reduction is defined on an undirected elimination graph, whereas ∥Lπ ∥0 reflects 
+
+directed sparsity from conditional independencies. Figure 2 illustrates the difference in skeletons obtained under fill-reducing Cholesky orderings and under the SP criterion differ relative to the undirected edge set supp(Ω) .Sparse Cholesky factorization methods are designed to re-duce the set difference S1 in Figure 2 when computing an or-dering π and the corresponding factor Lπ . For a given order-ing π, the symmetrized triangular support π(supp( Lπ+L⊤ 
+
+> π
+
+)) 
+
+may extend beyond supp(Ω) which corresponds to fill-ins 
+
+in sparse linear algebra communities. SP learning imposes a stricter sparsity objective. Even after excluding the set difference S1, different orderings can in-duce different triangular sparsity patterns within supp(Ω) .The set difference S2 highlights additional nonzeros that van-ish under a reverse topological ordering π0, associated with moralized edges arising from v-structures under suitable regularity conditions. Accordingly, SP learning accounts for sparsity both outside and within supp(Ω) .An ordering with |F (π)| = 0 can still yield a denser Lπ than another ordering that incurs a small number of fill edges in the undirected elimination graph; see Appendix A. Ac-cordingly, fill reduction alone is insufficient to control the sparsity of Lπ . In other words, an incorrect variable ordering results in a non-decreasing number of undesirable fill edges S1, while identifying the vanishing moralization edges S2 requires the correct ordering—an intrinsically combinatorial search over orderings. Moreover, even given a correct order-ing, finite-sample estimation noise can obscure these vanish-ing edges and make them hard to detect reliably, rendering standard SP learning both computationally and statistically formidable in practice. 
+
+# 3 RELAXED SPARSEST-PERMUTATION FORMULATION 
+
+This section introduces a Relaxed SP (ReSP) formulation for causal structure learning and establishes soundness and robustness for MEC recovery at the population level: 
+
+min 
+
+> π∈Tp
+
+∥Lπ ∥0 s.t. 
+
+(
+
+(Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ Mπ = 0,Lπ ◦ (1 − Mπ ) = 0. (3) Here, M denotes the precision-support mask, defined by 
+
+M := 1{Ω̸ = 0 } ∈ { 0, 1}p×p, Mij = 1{Ωij ̸ = 0 }.
+
+For each ordering π, Ωπ := Pπ ΩP ⊤ 
+
+> π
+
+, and Mπ := Pπ M P ⊤ 
+
+> π
+
+.The set Tp collects candidate orderings, for example from prior knowledge or a user-specified ordering heuristic. The mask M yields an ordering-agnostic screening graph, re-stricting feasibility to supp(Ω) across all permutations. It suppresses the set difference S1 in Figure 2 by forbidding any fill outside supp(Ω) , while the formulation compares orderings by the sparsity of Lπ within the precision support. We evaluate (3) via masked zero-fill incomplete Cholesky factorization, often denoted as IC(0) in the literature Lin and Moré [1999], Meijerink and van der Vorst [1977], Saad [2003]. For each π we compute the IC(0) factor Lπ =IC0(Ω π ; Mπ ), which satisfies 
+
+(Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ Mπ = 0, Lπ ◦ (1 − Mπ ) = 0. (4) Our focus is the support of Lπ , not numerical approximation of Ωπ by Lπ L⊤ 
+
+> π
+
+.For linear SEMs, the precision entries combine direct and shared-child effects. To make this explicit, index variables so that B is strictly lower triangular. Then, for any j < k ,the population precision matrix admits the decomposition 
+
+Ωkj = −σ−2 
+
+> k
+
+Bkj + X
+
+> ℓ>k
+
+σ−2 
+
+> ℓ
+
+Bℓj Bℓk .
+
+The first term corresponds to the directed edge (j, k ), while the summation aggregates contributions from shared chil-dren of j and k. Consequently, absent exact algebraic can-cellations, any adjacency in the moralized graph Gm 
+
+> 0
+
+yields 
+
+Ωij ̸ = 0 . This motivates the following no-cancellation con-dition, under which supp(Ω) provides a valid ordering-agnostic screening mask. 
+
+Assumption 1 (No-cancellation Loh and Bühlmann [2014]) .
+
+Assume the linear SEM (1) with independent noise, and without loss of generality index variables so that B is strictly lower triangular. For all j < k ,
+
+Ωkj = 0 ⇒ Bkj = 0 and Bℓj Bℓk = 0 , ∀ ℓ > k. 
+
+Lemma 3.1 (Mask validity under no-cancellation) . Assume Assumption 1. Then for the true DAG G0 and any π ∈ Sp,
+
+π skel( G0) ⊆ supp(Ω π ) = π(skel( Gm 
+
+> 0
+
+)) .
+
+Lemma 3.1 shows that, uniformly over all orderings, precision-support mask restricts admissible nonzeros with-out removing true parent-child adjacencies, and rules out the set difference S1 (fill beyond supp(Ω) ). Under misspecified orderings, any induced candidates are confined to moralized edges. Hence, precision-support masking offers a scalable mechanism for suppressing false discoveries and is well suited to large graphs. ReSP may admit multiple minimizers, reflecting the fact that an equivalence class can contain multiple DAGs. We there-fore impose an SMR strictness condition relative to M(G0).For the analysis, we restrict our attention to candidate set 
+
+Tp on which the masked IC(0) construction is well-posed. Specifically, for every π ∈ Tp, IC(0) does not break down and introduces no fill outside the precision-support mask: 
+
+(Lπ L⊤ 
+
+> π
+
+) ◦ (1 − Mπ ) = 0, ∀ π ∈ Tp. (5) We call such Tp IC(0)-admissible. 
+
+Assumption 2 (SMR Raskutti and Uhler [2018]) . Let π0
+
+be a reverse topological ordering of G0. For each π ∈ Sp,define Lπ via Ωπ = Lπ L⊤ 
+
+> π
+
+and let Gπ be the induced DAG with edge set eE(π, L π ). Assume that 
+
+Gπ /∈ M (G0) ⇒ ∥Lπ ∥0 > ∥Lπ0 ∥0, ∀ π ∈ Sp.
+
+Theorem 3.2 (Guarantees of the ReSP formulation) . Con-sider a Gaussian linear SEM (1) with Assumption 1, and fix the precision-support mask. 
+
+• (Soundness). Suppose Tp is IC(0)-admissible and con-tains a reverse topological ordering π0 of G0, and that Assumption 2 holds. Then every minimizer (ˆ π, L ˆπ )
+
+of (3) satisfies Gˆπ ∈ M (G0).• (Robustness). For any choice of Tp and any π ∈ Tp,every IC(0) output Lπ for (4) satisfies 
+
+eE(π, L π ) ⊆ skel( Gm 
+
+> 0
+
+).
+
+Hence, under ordering misspecification, feasibility un-der the mask prevents any spillover beyond supp(Ω) .
+
+Theorem 3.2 provides best and worst case theoretical guar-antees of the ReSP formulation. When an IC(0)-admissible candidate set contains a reverse ordering and the SMR con-dition holds, minimizing the objective recovers a DAG in the true MEC. When such an ordering is absent in Tp, feasi-bility under the precision-support mask confines all induced edges to the moralized skeleton, ruling out false discoveries outside supp(Ω) . Consequently, small candidate sets Tp
+
+still provide a nontrivial accuracy floor, while preserving scalability through a reduced ordering search space. 
+
+# 4 SCOPE: A HEURISTIC ALGORITHM 
+
+We propose SCOPE (Sparse-ChOlesky PipelinE), a finite-sample procedure for optimizing the ReSP formulation (3) over a candidate ordering set Tp. SCOPE has four stages: 0) precision estimation, 1) relaxed-feasible factor construction, 2) refit-and-test refinement, and 3) sparsity-based selection. SCOPE solves the finite-sample counterpart of (3): 
+
+min 
+
+> π∈Tp
+
+∥eLπ ∥0 s.t. 
+
+
+
+(bΩπ − bLπ bL⊤ 
+
+> π
+
+) ◦ cMπ = 0,
+
+bLπ ◦ (1 − cMπ ) = 0,
+
+eLπ = REFIT TEST (X; supp( bLπ )) .
+
+(6) Here, bΩπ := Pπ bΩP ⊤ 
+
+> π
+
+and cMπ := Pπ cM P ⊤ 
+
+> π
+
+, where cM is an estimated precision-support mask constructed from bΩ.Algorithm 1 summarizes the procedure. 
+
+Stage 0). The ReSP formulation in (6) is expressed in terms of a precision matrix. Accordingly, we first compute a sparse estimator bΩ from the data, whose support determines the admissible mask cM = 1{bΩ̸ = 0 }.In principle, any consistent estimator of Ω can be used within SCOPE. However, the ReSP formulation depends highly on the zero pattern of the induced triangular factor, and accurate support recovery is prioritized over precise nu-merical estimation at this stage. Hence, we recommend an estimation strategy that enables thresholded support recov-ery under high-dimensional scaling. In our implementation, we use the graphical lasso (GL) with a distributionally robust optimization (DRO)-calibrated regularization parameter at level α(0) [Friedman et al., 2008, Cisneros-Velarde et al., 2020]. Appendix B provides theoretical rationale for the resulting precision estimate bΩ.
+
+Stage 1). For a fixed ordering π, Stage 1 computes a masked IC(0) factor bLπ = IC0( bΩπ ; cMπ ), a lower-triangular ma-trix satisfying the masked feasibility constraints in (4) with 
+
+(Ω π , M π ) replaced by (bΩπ , cMπ ).
+
+Algorithm 1 SCOPE: Sparse-Cholesky Pipeline 
+
+Require: Data X ∈ Rn×p, levels α(0) , α(2) , orderings Tp
+
+Ensure: Estimated edge set bE 
+
+> 1:
+
+bΩ ← ESTIMATE PRECISION (X; α(0) ) 
+
+> 2:
+
+cM ← BUILD MASK (bΩ)  
+
+> 3:
+
+for π ∈ Tp do  
+
+> 4:
+
+bΩπ ← Pπ bΩP ⊤ 
+
+> π
+> 5:
+
+cMπ ← Pπ cM P ⊤
+
+> π
+
+▷ ReSP factor evaluation in (3) : 
+
+> 6:
+
+bLπ ← IC0( bΩπ ; cMπ )
+
+▷ Refit-and-test pruning step:  
+
+> 7:
+
+eLπ ← REFIT TEST (X; supp( bLπ ), α (2) ) 
+
+> 8:
+
+end for  
+
+> 9:
+
+bπ ∈ arg min π∈Tp ∥eLπ ∥0 
+
+> 10:
+
+return bE ← eE(bπ, eLbπ )
+
+Stage 2). Stage 2 is a refit-and-test pruning step that miti-gates estimation bias in bΩ from Stage 0 and numerical errors accumulated during IC(0) from Stage 1. Stage 2 is designed to prune tiny but nonzero coefficients so as to remove mor-alization edges in S2 when the unshielded v-structures are exposed by the ordering, decreasing ∥bLπ ∥0. Let 
+
+cPa π (j) := {i < j : ( j, i ) ∈ supp( bLπ )}
+
+denote the candidate parent set of node j under ordering π.For each j, we refit the local regression restricted to cPa π (j),
+
+bβj, cPa π (j) ∈ arg min   
+
+> β∈R|cPa π(j)|
+
+Xj − XcPa π (j)β 22,
+
+and let pj,i be the usual (asymptotic) t-test p-value for test-ing H0 : βj,i = 0 in this refitted regression. We then define the pruned factor eLπ by entrywise masking of bLπ :
+
+(eLπ )ji := ( bLπ )ji 1{i ∈ cPa π (j), p j,i ≤ α(2) }, (i < j ),
+
+(eLπ )jj := ( bLπ )jj .
+
+This refit-and-test step follows post-selection OLS refitting ideas [Belloni et al., 2012, 2014], and the subsequent test-based pruning is in the spirit of screen-and-clean proce-dures [Wasserman and Roeder, 2009]. 
+
+Stage 3). Finally, SCOPE selects an ordering 
+
+bπ ∈ arg min 
+
+> π∈Tp
+
+∥eLπ ∥0
+
+and returns the corresponding directed edge set 
+
+bE := eE(bπ, eLbπ ) = {(bπ(j), bπ(k)) : k > j, (eLbπ )kj ̸ = 0 }.
+
+The criterion ∥eLπ ∥0 may have multiple minimizers over 
+
+Tp, as ordering-based sparsity objectives can be indifferent among orderings within the same MEC [Raskutti and Uhler, 2018, Solus et al., 2021]. In case of ties, any minimizer may be selected; if desired, ties can be broken by a sec-ondary score such as BIC computed from the refitted local regressions [Chickering, 2002, Teyssier and Koller, 2005]. Remark: Well-posedness. Stages 1) and 3) of SCOPE are deterministic given their inputs. Stages 0) and 2) em-ploy standard statistical procedures that are consistent under appropriate assumptions. Accordingly, the algorithm is well-defined in finite sample setting, with statistical guarantees inherited from the underlying components. 
+
+4.1 ONE-PASS SCOPE WITH APPROXIMATE MINIMUM DEGREE ORDERING 
+
+We adopt a data-driven choice Tp = {ˆπAMD } with |Tp| = 1 ,where ˆπAMD is an approximate minimum-degree (AMD) ordering computed from bΩ [Amestoy et al., 1996]. This minimalist choice is justified by Theorem 3.2, which en-sures that SCOPE remains informative even with a single-ton candidate ordering set by restricting evaluation to the precision-screened space induced by the mask. Two additional considerations support using AMD. First, minimum-degree elimination is a classical fill-reducing heuristic for sparse triangular factors [George, 1989, Berman et al., 1990]. Second, under the no-cancellation condition, the precision support coincides with the mor-alized skeleton (Lemma 3.1), so degree inflation caused by moralization tends to make minimum-degree orderings closer to reverse orderings in practice [Loh and Bühlmann, 2014]. Empirical results in Sections 5 and 6 confirm that this minimalist choice remains competitive at large scale. 
+
+4.2 COMPUTATIONAL COMPLEXITY 
+
+We analyze the runtime of one pass of Algorithm 1 for a fixed ordering π. Stage 0 (precision estimation and mask construction) is a plug-in component and may be imple-mented with any consistent precision estimator. To make the discussion concrete and to match our recommended implementation, we state the complexity under the DRO-calibrated graphical lasso. Under this choice, let B be the number of bootstrap replicates and let TGL be the number of iterations of the GL solver. Let dm be the maximum degree of the screened graph induced by the Stage 0 mask cM .
+
+Theorem 4.1 (Complexity for a fixed ordering) . Fix an ordering π and consider the singleton set Tp = {π}. Sup-pose Stage 0 uses the DRO-calibrated GL. One pass of Algorithm 1 that computes eLπ from X (Stages 0–2) runs in 
+
+T (π) = O B n p 2 + TGL p3 + p n d 2
+
+> m
+
+ .
+
+Theorem 4.1 aggregates the per-stage costs. In the above DRO-GL instantiation, Stage 0 typically dominates in dense-solver worst-case analyses through the O(TGL p3) term. Given the mask, IC(0) in Stage 1 contributes O(p d 2
+
+> m
+
+)
+
+via sparse elimination updates on screened neighborhoods. Stage 2 (R EFIT TEST ) fits p local regressions with at most 
+
+dm predictors, costing O(p n d 2
+
+> m
+
+) when dm < n . Hence, af-ter Stage 0 the cost scales only linearly in p and is otherwise governed by dm.Table 1: Worst-case computational complexity of represen-tative causal structure learning methods. Method Category Worst-case cost 
+
+SCOPE Sparse Cholesky O Bnp 2 + TGL p3 + pnd 2
+
+> m
+
+
+
+FROSTY Sparse Cholesky O Bnp 2 + TGL p3
+
+RFD Sparse Cholesky O(pw+3 )
+
+PC Constraint-based O(pq+2 )
+
+GSP Constraint-based O(pq+2 )
+
+GES Score-based O(p22p)
+
+MMHC Score-based O(p22p)
+
+NOTEARS Continuous opt. O(T (n ∨ p)p2)
+
+GOLEM Continuous opt. O(np 2 + T p 3)
+
+Even when Algorithm 1 evaluates multiple orderings, Stage 0) is computed once and shared across all π ∈ Tp.Hence, sweeping Tp costs |Tp| times the Stage 1–2) work, i.e., O(|Tp| p n d 2
+
+> m
+
+). There can be additional computational costs involved such as computing an AMD ordering from 
+
+bΩ, which costs O(p d 2
+
+> m
+
+).Table 1 summarizes worst-case complexity bounds for structure learning baselines: constraint-based methods (PC, GSP) Kalisch and Bühlmann [2007], Solus et al. [2021], score-based methods (GES, MMHC) Chickering [2002], Tsamardinos et al. [2006], continuous optimizations (NOTEARS, GOLEM) Zheng et al. [2018], Ng et al. [2020], and sparse-Cholesky pipelines (RFD, FROSTY) Squires et al. [2020a], Bang and Oh [2023]. In the table, q is the maximum conditioning-set size for CI-based methods, w
+
+is the search-depth parameter for RFD, and T is the num-ber of optimization iterations for NOTEARS and GOLEM. Among the compared methods, SCOPE and FROSTY ad-mit essentially cubic-order worst-case bounds in p, up to iteration counts and constant factors, enabling scalability at large p. By contrast, NOTEARS and GOLEM may scale poorly in practice because they repeatedly perform dense matrix computations, often with per-iteration complexity on the order of p3; see Section 5.1. 
+
+# 5 NUMERICAL EXPERIMENTS 
+
+In this section, we empirically evaluate our one-pass SCOPE algorithm in finite sample setting where bΩ is estimated from data. Specifically, we evaluate the CPDAG recovery perfor-mance when a reverse topological ordering π0 or when a heuristic AMD ordering is used. In Section 5.1, we compare our approach with major causal structure learning methods for various p, with n scaled as 20 p up to a cap of 20 , 000 . In Section 5.2, one-pass SCOPE algorithm’s performance in high-dimensional setting, i.e., n ≤ p, is explored, highlight-ing the strength of our unique approach. Additional results and implementation details are given in Appendix D. 
+
+Experimental setup. Synthetic data used in this section is generated from a linear SEM (1) with independent errors. To reflect the sparsity regime considered throughout the pa-Figure 3: CPDAG F1 versus runtime across problem sizes (bubble size p); × denotes timed-out runs (shaded region). Two one-pass SCOPE results are shown: when given π0 (SCOPE_ π0) and when given AMD ordering (SCOPE_AMD). per, we sample bounded in-degree DAGs where each node selects at most d parents among earlier nodes in an ordering. We draw nonzero edge weights uniformly from ±[0 .6, 0.8] 
+
+and sample error variances from [0 .8, 1.0] . We also include non-Gaussian errors to assess robustness beyond Gaussian-ity. We report CPDAG-skeleton F1, normalized structural Hamming distance on the CPDAG (nSHD; SHD divided by the number of true edges) [Yang et al., 2022, Ban et al., 2024], and wall-clock runtime with a 1800 s timeout. For precision-based pipelines (SCOPE, FROSTY, RFD), we measure runtime with bΩ given, because precision-estimation time varies widely across solvers and tuning parameter. 
+
+5.1 OBJECTIVE VALIDATION & COMPARISON 
+
+We vary p ∈ { 100 , 200 , 400 , 800 , 2k, 10 k} with bounded in-degree d = 5 under Gaussian noise. Figure 3 shows that one-pass SCOPE (using estimated bΩ) sustains excellent CPDAG recovery as indicated by F1 up to p = 10 k (heuristic 
+
+≈ 0.5, oracle ≈ 0.9). Given a correct ordering, one-pass SCOPE (labeled SCOPE_ π0) attains the best F1 across all 
+
+p, consistent with the soundness guarantee for the ReSP formulation (Theorem 3.2). With the AMD ordering, one-pass SCOPE remains competitive (labeled SCOPE_AMD) despite the decrease in F1, consistent with the robustness guarantee under ordering misspecification (Theorem 3.2). In the baseline comparison below, we report SCOPE un-der the AMD heuristic ordering. Compared with baselines, SCOPE attains a favorable balance of accuracy and scala-bility. FROSTY runs in (sub-)second time across all p, but its F1 quickly collapses toward zero as p increases. For GSP, F1 decreases from 0.5 to 0.1, and the method fails to return outputs beyond p = 800 . RFD stays below 0.2 in 
+
+F1 and is feasible only up to p = 200 . GES and GOLEM are moderately accurate when they finish, with F1 between 
+
+0.4 and 0.5, but they become infeasible beyond p = 400 .NOTEARS completes only at p = 100 . PC attains relatively Table 2: Large-p performance on synthetic linear SEMs.   
+
+> (a) d= 1
+
+n Method F1 nSHD 
+
+0.5p SCOPE 0.994 (0.004) 0.050 (0.043) 
+
+0.5p FROSTY 0.642 (0.007) 1.116 (0.034) 
+
+p SCOPE 0.951 (0.012) 0.264 (0.050) 
+
+p FROSTY 0.635 (0.008) 1.152 (0.041)   
+
+> (b) d= 5
+
+n Method F1 nSHD 
+
+0.5p SCOPE 0.614 (0.117) 0.917 (0.046) 
+
+0.5p FROSTY 0.024 (0.001) 78.041 (4.258) 
+
+p SCOPE 0.633 (0.031) 1.322 (0.189) 
+
+p FROSTY 0.023 (0.001) 85.968 (2.966) high F1 near 0.7 at moderate scales but becomes infeasible beyond p = 800 . In contrast, SCOPE is the only method that consistently returns results up to p = 10 k within the time budget while retaining strong accuracy. 
+
+5.2 HIGH-DIMENSIONAL PERFORMANCE 
+
+We evaluate high-dimensional performance at p = 10 4 with 
+
+n ∈ { 0.5p, p } under t-distributed noise, deferring other noise distributions to Appendix D.2. At this scale, many baselines are computationally infeasible, so we compare SCOPE (AMD heuristic ordering) with FROSTY on bounded in-degree DAG instances; Table 2 reports CPDAG accuracy. In the zero-fill-friendly regime d = 1 , moralization does not introduce co-parent links, so sparse elimination incurs essentially no fill [Rose et al., 1976, George and Liu, 1981]. Accordingly, SCOPE remains near-exact at p = 10 4 under the AMD heuristic ordering, achieving F1 > 0.95 with small nSHD. In contrast, FROSTY attains substantially lower F1
+
+(about 0.64 ) and noticeably larger nSHD. The gap widens at 
+
+d = 5 , where co-parent effects densify the precision-support mask. SCOPE maintains moderate accuracy ( F1 > 0.61 )Table 3: Proportions of biologically validated TF →target path recovered in the estimated CPDAGs. One-step Paths Two-step Paths Method Fwd/Rev Ratio Fwd/Rev Ratio PC 0.028/0.024 1.167 0.051/0.045 1.133 GES 0.028/0.024 1.167 0.056/0.045 1.244 SCOPE 0.078/0.045 1.733 0.108/0.061 1.770 
+
+with nSHD around 1, whereas FROSTY exhibits near-zero 
+
+F1 and extremely large nSHD. Overall, these results show that SCOPE continues to yield usable CPDAG estimates in high dimensions, even with heavy-tailed noise. 
+
+# 6 BREAST CANCER DATA ANALYSIS 
+
+To demonstrate real-world performance, we analyze an mRNA expression dataset of invasive ductal breast carci-noma samples from The Cancer Genome Atlas (TCGA) [The Cancer Genome Atlas Network, 2012], processed as in Koh et al. [2019]. Because transcription factors (TFs) regulate the expression of target genes, inferred edges be-tween them are expected to be directed from TF to target. We evaluate the efficacy of SCOPE with the AMD order-ing in inferring the CPDAG by comparing our directional discoveries with the biologically validated TF regulatory network from Koh et al. [2019]. We analyze a large TCGA mRNA expression dataset with 
+
+(n, p ) = (599 , 16325) and apply SCOPE on the full, unpar-titioned dataset. Due to the limited scalability of the baseline methods, we evaluate PC and GES using a split-and-union protocol based on random disjoint feature partitions. Specif-ically, we run PC on subsets of ∼800 features (GES on subsets of ∼400 features), and subsequently take the union of the directed edges across all respective splits. The choices of these baselines and their partition sizes are based on the runtime limits established in Figure 3. Additional results and implementation details are provided in Appendix E. Our main performance metric is whether edge directions are identified correctly versus in error. Specifically, we cal-culate the forward and reverse edge identification rates in estimated CPDAGs. The forward rate (Fwd) is the number of validated TF →target pairs supported by a directed path from TF to target, normalized by the number of directed edges. One-step (direct TF →target edge) and two-step (di-rectional TF →target path with one intermediate mediator) paths are considered. The reverse rate (Rev) counts the same pairs with direction flipped. Note that while the reversed edges misidentify the true causal direction of the regula-tory relationship, their presence in the external database still indicates a biologically meaningful association. Table 3 summarizes these two evaluation metrics and their ratios. SCOPE produces 271,066 directed edges, whereas PC and GES produce 62,422 and 308,533, respectively. SCOPE achieves substantially higher forward rates than PC and GES and exhibits the largest forward-to-reverse ratios. SCOPE also has the highest proportion of externally-validated associations (regardless of direction): 0.292 of its directed paths are biologically validated, compared with 0.148 and 0.153 for PC and GES, respectively. Despite operating on the full dataset, SCOPE completes CPDAG estimation in about 2 hours, versus roughly 5 hours for PC and 20 hours for GES under the split-and-union protocol. Although random feature splitting enables CPDAG estima-tion using scalability-limited methods, PC and GES, the procedure can potentially have adverse impacts. A plausible explanation is that random feature splitting can separate TFs from their targets, rendering the recovery of regulatory evidence impossible. Moreover, split-wise marginalization of many genes can distort the CI relations used for orienta-tion and introduce confounding-like effects. Combined with results in Table 3, these observations highlight the practi-cal value of methods such as SCOPE that operate on the full set of features, thereby preserving direct evidence and improving the credibility of inferred directions. 
+
+# 7 DISCUSSION 
+
+This work advances MEC recovery to large graphs by re-framing SP learning, thereby alleviating the combinatorial search over variable orderings. Rather than enforcing the exact Cholesky constraint Ωπ = Lπ L⊤ 
+
+> π
+
+, we show that MEC recovery is possible via the ReSP formulation. ReSP re-places exact factorization of a full matrix with support-level indicated entries and thereby loosens the tight coupling be-tween variable ordering and numerical factorization that affects structural sparsity. SCOPE operationalizes this re-laxation through a scalable sparse-Cholesky pipeline for ordering comparison. At the population level, the relaxation preserves the identifiability guarantees of SP under suitable conditions and also provides an intrinsic robustness property. Even under ordering misspecification, feasibility under the precision-support mask confines induced edges to the mor-alized skeleton. Empirically, ReSP and its implementation SCOPE remain competitive at a scale of 10 4 variables in simulations and excels in analyzing real mRNA expression data as validated with an external database. The ReSP formulation suggests several extensions. A first direction is to develop local ordering search tailored to ReSP, for example via swap- and tuck-type moves. Second, the modularity of SCOPE makes parallel and distributed vari-ants natural, such as multi-ordering evaluation and paral-lelized ordering heuristics, with the potential to improve scalability further. Finally, enforcing feasibility through the mask rather than an exact factorization identity may pro-vide a useful starting point beyond well-specified linear SEMs. Specifically, it can be adapted to computationally challenging misspecified regimes, such as interventional and latent-variable settings [Squires et al., 2020b, 2022]. Author Contributions 
+
+Briefly list author contributions. This is a nice way of mak-ing clear who did what and to give proper credit. This section is optional. H. Q. Bovik conceived the idea and wrote the paper. Coau-thor One created the code. Coauthor Two created the figures. 
+
+Acknowledgements 
+
+Authors thank Professor Hyung Won Choi at National Uni-versity of Singapore for helpful advice on real data analysis. 
+
+References 
+
+Patrick R. Amestoy, Timothy A. Davis, and Iain S. Duff. An approximate minimum degree ordering algorithm. SIAM Journal on Matrix Analysis and Applications , 17(4):886– 905, 1996. Steen A. Andersson, David Madigan, and Michael D. Perl-man. A characterization of Markov equivalence classes for acyclic digraphs. The Annals of Statistics , 25(2):505– 541, 1997. Michael Ashburner, Catherine A. Ball, Judith A. Blake, David Botstein, Heather Butler, J. Michael Cherry, Al-lan P. Davis, Kara Dolinski, Selina S. Dwight, Janan T. Eppig, Midori A. Harris, David P. Hill, Laurie Issel-Tarver, Andrew Kasarskis, Suzanna Lewis, John C. Matese, Joel E. Richardson, Martin Ringwald, Gerald M. Rubin, and Gavin Sherlock. Gene Ontology: Tool for the unification of biology. Nature Genetics , 25(1):25– 29, May 2000. ISSN 1061-4036, 1546-1718. doi: 10.1038/75556. Taiyu Ban, Lyuzhou Chen, Derui Lyu, Xiangyu Wang, and Huanhuan Chen. Causal structure learning supervised by large language model. In Submitted to International Conference on Learning Representations (ICLR) 2024 ,2024. URL https://openreview.net/forum? id=JzFLBOFMZ2 . OpenReview submission. Joshua Bang and Sang-Yun Oh. Frosty: A high-dimensional scale-free bayesian network learning method. Journal of Data Science , 21(2):354–367, 2023. doi: 10.6339/ 23-JDS1097. Albert-László Barabási and Zoltán N. Oltvai. Network biology: understanding the cell’s functional organization. 
+
+Nature Reviews Genetics , 5(2):101–113, 2004. doi: 10. 1038/nrg1272. Alexandre Belloni, Victor Chernozhukov, and Christian Hansen. Sparse models and methods for optimal instru-ments with an application to eminent domain. Economet-rica , 80(6):2369–2429, 2012. Alexandre Belloni, Victor Chernozhukov, and Christian Hansen. Inference on treatment effects after selection among high-dimensional controls. Review of Economic Studies , 81(2):608–650, 2014. Piotr Berman, Juan A. Garay, and John R. Gilbert. On the performance of the minimum degree ordering for Gaussian elimination. SIAM Journal on Matrix Analysis and Applications , 1990. Jose Blanchet, Yang Kang, and Karthyek Murthy. Robust wasserstein profile inference and applications to machine learning. Journal of Applied Probability , 56(3):830–857, 2019. doi: 10.1017/jpr.2019.49. Matthias Bollhöfer, Aryan Eftekhari, Simon Scheidegger, and Olaf Schenk. Large-scale sparse inverse covariance matrix estimation. SIAM Journal on Scientific Computing ,41(1):A380–A401, 2019. doi: 10.1137/17M1147615. Edward Bullmore and Olaf Sporns. Complex brain net-works: graph theoretical analysis of structural and func-tional systems. Nature Reviews Neuroscience , 10:186– 198, 2009. doi: 10.1038/nrn2575. David M. Chickering. Optimal structure identification with greedy search. In Proceedings of the Eighteenth Con-ference on Uncertainty in Artificial Intelligence (UAI) ,pages 111–118, 2002. Pedro Cisneros-Velarde, Alexander Petersen, Yi Yao, and Bin Yu. Distributionally robust formulation and model selection for the graphical lasso. In Proceedings of the Twenty Third International Conference on Artificial Intel-ligence and Statistics (AISTATS) , Proceedings of Machine Learning Research, 2020. Diego Colombo, Marloes H. Maathuis, Markus Kalisch, and Thomas S. Richardson. Learning high-dimensional directed acyclic graphs with latent and selection vari-ables. The Annals of Statistics , 40(6), 2012. doi: 10.1214/11-AOS940. Timothy A. Davis. Direct Methods for Sparse Linear Sys-tems . Society for Industrial and Applied Mathematics, Philadelphia, PA, 2006. Jerome Friedman, Trevor Hastie, and Robert Tibshirani. Sparse inverse covariance estimation with the graphical lasso. Biostatistics , 9(3):432–441, 2008. Alan George. The evolution of the minimum degree order-ing algorithm. SIAM Review , 31(1):1–19, 1989. Alan George and Joseph W. H. Liu. Computer Solution of Large Sparse Positive Definite Systems . Prentice-Hall, 1981. Cho-Jui Hsieh, Matyas A. Sustik, Inderjit S. Dhillon, Pradeep Ravikumar, and Russell A. Poldrack. BIG & QUIC: Sparse inverse covariance estimation for a million variables. In Advances in Neural Information Processing Systems 26 , pages 3165–3173, 2013. Cho-Jui Hsieh, Matyas A. Sustik, Inderjit S. Dhillon, and Pradeep Ravikumar. QUIC: Quadratic approximation for sparse inverse covariance estimation. Journal of Machine Learning Research , 15(106):2911–2947, 2014. Hawoong Jeong, Bálint Tombor, Réka Albert, Zoltán N. Oltvai, and Albert-László Barabási. The large-scale or-ganization of metabolic networks. Nature , 407(6804): 651–654, 2000. doi: 10.1038/35036627. Markus Kalisch and Peter Bühlmann. Estimating high-dimensional directed acyclic graphs with the PC-algorithm. Journal of Machine Learning Research , 8: 613–636, 2007. Markus Kalisch, Martin Mächler, Diego Colombo, Mar-loes H. Maathuis, and Peter Bühlmann. Causal infer-ence using graphical models with the R package pcalg. 
+
+Journal of Statistical Software , 47(11):1–26, 2012. doi: 10.18637/jss.v047.i11. Atanas Kamburov, Konstantin Pentchev, Hanna Galicka, Christoph Wierling, Hans Lehrach, and Ralf Herwig. ConsensusPathDB: Toward a more complete picture of cell biology. Nucleic Acids Research , 39(suppl_1):D712– D717, January 2011. ISSN 0305-1048, 1362-4962. doi: 10.1093/nar/gkq1156. Hiromi W. L. Koh, Damian Fermin, Christine Vogel, Kwok Pui Choi, Rob M. Ewing, and Hyungwon Choi. iOmicsPASS: Network-based integration of multiomics data for predictive subnetwork discovery. npj Systems Biology and Applications , 5(1):22, July 2019. ISSN 2056-7189. doi: 10.1038/s41540-019-0099-y. Wai-Yin Lam, Bryan Andrews, and Joseph D. Ramsey. Greedy relaxations of the sparsest permutation algorithm. In Proceedings of the Thirty-Eighth Conference on Un-certainty in Artificial Intelligence (UAI) , volume 180 of 
+
+Proceedings of Machine Learning Research , pages 1052– 1062. PMLR, 2022. Steffen L. Lauritzen. Graphical Models . Oxford University Press, Oxford, 1996. Chih-Jen Lin and Jorge J Moré. Incomplete cholesky factor-izations with limited memory. SIAM Journal on Scientific computing , 21(1):24–45, 1999. Sten Linnarsson and Sarah A Teichmann. Single-cell rna-sequencing technologies and applications. Nature Meth-ods , 2018. Han Liu, Fang Han, Ming Yuan, John Lafferty, and Larry Wasserman. High-dimensional semiparametric Gaussian copula graphical models. The Annals of Statistics , 40(4): 2293–2326, 2012. Po-Ling Loh and Peter Bühlmann. High-dimensional learn-ing of linear causal networks via inverse covariance esti-mation. Journal of Machine Learning Research , 15(88): 3065–3105, 2014. J. A. Meijerink and H. A. van der Vorst. An iterative solution method for linear systems of which the coefficient matrix is a symmetric M-matrix. In Sparse Matrices and Their Uses . Academic Press, 1977. M. E. J. Newman. The structure and function of complex networks. SIAM Review , 45(2):167–256, 2003. doi: 10. 1137/S003614450342480. Ignavier Ng, AmirEmad Ghassami, and Kun Zhang. On the role of sparsity and DAG constraints for learning linear DAGs. In Advances in Neural Information Processing Systems (NeurIPS) , pages 17943–17954, 2020. Joel S. Parker, Michael Mullins, Maggie C.U. Cheang, Samuel Leung, David Voduc, Tammi Vickery, Sherri Davies, Christiane Fauron, Xiaping He, Zhiyuan Hu, John F. Quackenbush, Inge J. Stijleman, Juan Palazzo, J.S. Marron, Andrew B. Nobel, Elaine Mardis, Torsten O. Nielsen, Matthew J. Ellis, Charles M. Perou, and Philip S. Bernard. Supervised Risk Predictor of Breast Cancer Based on Intrinsic Subtypes. Journal of Clinical Oncol-ogy , 27(8):1160–1167, March 2009. ISSN 0732-183X, 1527-7755. doi: 10.1200/JCO.2008.18.1370. Judea Pearl. Causality: Models, Reasoning, and Inference .Cambridge University Press, Cambridge, 2 edition, 2009. ISBN 978-0521895606. Mohsen Pourahmadi. Joint mean-covariance models with applications to longitudinal data: unconstrained parame-terisation. Journal of the American Statistical Association ,94(446):677–690, 1999. Garvesh Raskutti and Caroline Uhler. Learning directed acyclic graph models based on sparsest permutations. 
+
+Stat , 7(1):e183, 2018. Pradeep Ravikumar, Martin J. Wainwright, Garvesh Raskutti, and Bin Yu. High-dimensional covariance esti-mation by minimizing ℓ1-penalized log-determinant di-vergence. The Annals of Statistics , 39(6):3005–3032, 2011. Donald J. Rose, Robert E. Tarjan, and George S. Lueker. Al-gorithmic aspects of vertex elimination on graphs. SIAM Journal on Computing , 5(2):266–283, 1976. Yousef Saad. Iterative Methods for Sparse Linear Systems .SIAM, 2 edition, 2003. Liam Solus, Yuhao Wang, and Caroline Uhler. Consistency guarantees for greedy permutation-based causal inference algorithms. Biometrika , 108(4):795–814, 2021. Peter Spirtes, Thomas Richardson, Christopher Meek, Richard Scheines, and Clark Glymour. Using path di-agrams as a structural equation modeling tool. Socio-logical Methods & Research , 27(2):182–225, 1998. doi: 10.1177/0049124198027002003. Peter Spirtes, Clark Glymour, and Richard Scheines. Cau-sation, Prediction, and Search . MIT Press, 2 edition, 2000. Chandler Squires. causaldag : creation, manipulation, and learning of causal models , 2018. URL https:// github.com/uhlerlab/causaldag .Chandler Squires, Joshua Amaniampong, and Caroline Uh-ler. Efficient permutation discovery in causal DAGs. 
+
+arXiv preprint arXiv:2011.03610 , 2020a. Chandler Squires, Yuhao Wang, and Caroline Uh-ler. Permutation-based causal structure learning with unknown intervention targets. In Jonas Pe-ters and David Sontag, editors, Proceedings of the 36th Conference on Uncertainty in Artificial Intelli-gence (UAI) , volume 124 of Proceedings of Machine Learning Research , pages 1039–1048. PMLR, 03–06 Aug 2020b. URL https://proceedings.mlr. press/v124/squires20a.html .Chandler Squires, Annie Yun, Eshaan Nichani, Raj Agrawal, and Caroline Uhler. Causal structure discovery between clusters of nodes induced by latent factors. In Bernhard Schölkopf, Caroline Uhler, and Kun Zhang, editors, Pro-ceedings of the First Conference on Causal Learning and Reasoning , volume 177 of Proceedings of Machine Learning Research , pages 669–687. PMLR, 11–13 Apr 2022. URL https://proceedings.mlr.press/ v177/squires22a.html .Marc Teyssier and Daphne Koller. Ordering-based search: A simple and effective algorithm for learning bayesian networks. In Proceedings of the Twenty-First Conference on Uncertainty in Artificial Intelligence (UAI-05) , pages 584–590, Arlington, Virginia, USA, 2005. AUAI Press. The Cancer Genome Atlas Network. Comprehensive molec-ular portraits of human breast tumours. Nature , 490 (7418):61–70, October 2012. ISSN 0028-0836, 1476-4687. doi: 10.1038/nature11412. C. Tran, Pedro Cisneros-Velarde, Alexander Petersen, and Sang-Yun Oh. robust-selection: Robust se-lection (robsel) for graphical lasso regularization. PyPI, 2020. URL https://pypi.org/project/ robust-selection/ . Version 0.0.8. Chau Tran, Pedro Cisneros-Velarde, Sang-Yun Oh, and Alexander Petersen. Family-wise error rate control in gaussian graphical model selection via distributionally robust optimization. Stat , 11(1):e477, 2022. Cole et al. Trapnell. The dynamics and regulators of cell fate decisions are revealed by pseudotemporal ordering of single cells. Nature Biotechnology , 2014. Ioannis Tsamardinos, Laura E. Brown, and Constantin F. Aliferis. The Max-Min hill-climbing Bayesian network structure learning algorithm. Machine Learning , 65(1): 31–78, 2006. Thomas S. Verma and Judea Pearl. Equivalence and syn-thesis of causal models. In Proceedings of the Sixth Con-ference on Uncertainty in Artificial Intelligence (UAI) ,pages 220–227, 1990. Larry Wasserman and Kathryn Roeder. High dimensional variable selection. Annals of Statistics , 37(5A):2178– 2201, 2009. Yuqin Yang, Mohamed S Nafea, AmirEmad Ghassami, and Negar Kiyavash. Causal discovery in linear structural causal models with deterministic relations. In Bernhard Schölkopf, Caroline Uhler, and Kun Zhang, editors, Pro-ceedings of the First Conference on Causal Learning and Reasoning , volume 177 of Proceedings of Machine Learning Research , pages 944–993. PMLR, 11–13 Apr 2022. URL https://proceedings.mlr.press/ v177/yang22a.html .Qiaoling Ye, Arash A Amini, and Qing Zhou. Optimizing regularized cholesky score for order-based learning of bayesian networks. IEEE transactions on pattern analysis and machine intelligence , 43(10):3555–3572, 2020. Keli Zhang, Shengyu Zhu, Marcus Kalander, Ignavier Ng, Junjian Ye, Zhitang Chen, and Lujia Pan. gCastle: A python toolbox for causal discovery. arXiv preprint arXiv:2111.15155, 2021. Xun Zheng, Bryon Aragam, Pradeep Ravikumar, and Eric P. Xing. Dags with NO TEARS: Continuous optimization for structure learning. In Advances in Neural Information Processing Systems (NeurIPS) , 2018. Relaxed Sparsest-Permutation Formulation for Causal Discovery at Scale (Appendix) 
+
+Sunmin Oh 1 Sang-Yun Oh *,4,5 Gunwoong Park *,1,2,3 1Department of Statistics, Seoul National University, South Korea 
+
+> 2
+
+Interdisciplinary Program in Artificial Intelligence, Seoul National University, South Korea 
+
+> 3
+
+Institute for Data Innovation in Science, Seoul National University, South Korea 
+
+> 4
+
+Department of Statistics and Applied Probability, University of California Santa Barbara, CA, USA 
+
+> 5
+
+Scientific Data Division, Lawrence Berkeley National Laboratory, CA, USA 
+
+# A A MISMATCH BETWEEN FILL REDUCTION AND SP SPARSITY 
+
+This appendix provides an illustrative example showing that minimizing fill in the undirected elimination graph does not necessarily yield a sparse triangular factor under the SP criterion. It also highlights a subtle point: standard fill-reducing approaches optimize an elimination-graph objective that need not match the realized support of the numerical Cholesky factor, although the two are often aligned in practice for sparse Cholesky factorization. Figure 4 illustrates that fill-reducing approaches based on the undirected elimination graph can disagree with the SP objective, and that ∥Lπ ∥0 can be highly sensitive to the chosen ordering. The DAG and the zero pattern of the adjacency matrix B are shown in Figure 4a. Figure 4b shows the moralized graph and the corresponding precision support supp(Ω) . In particular, the common child at node 4 induces moral edges between nodes (0 , 3) and (1 , 3) , which are absent in the original DAG skeleton but appear in the moralized graph. Figures 4c–e compare three representative elimination orderings. The reverse topological ordering is πrev = [4 , 3, 2, 1, 0] in Figure 4c. The minimum-fill ordering is πmf = [0 , 2, 1, 3, 4] in Figure 4d. The minimum-degree ordering is πmd = [2 , 0, 1, 3, 4] in Figure 4e. Figure 4c shows that the reverse ordering introduces one fill edge (0 , 2) in the undirected elimination graph, yet it yields the sparsest Cholesky factor with ∥Lπrev ∥0 = 11 . In contrast, Figures 4d and e achieve zero fill in the undirected elimination graph so that |F (π)| = 0 , but both produce denser triangular factors with ∥Lπmf ∥0 = ∥Lπmd ∥0 = 13 . Thus, eliminating fill in the undirected elimination graph does not guarantee sparsity of Lπ under the SP criterion. The mechanism can be seen by tracking what happens when the elimination order is aligned with the true directionality. Under πrev , node 4 is removed first. When node 3 is processed next, the undirected elimination graph treats the moral edges (0 , 3) and (1 , 3) , created because 0, 1, and 3 share the common child 4, as still present. It therefore predicts additional interactions among {0, 1, 2} at the step for node 3 and produces the fill edge (0 , 2) . Numerically, once node 4 is removed, the coupling between 3 and {0, 1} that is mediated only through the common child 4 vanishes, so the moral edges (0 , 3) 
+
+and (1 , 3) do not generate subsequent nonzeros in the Cholesky factor. In this sense, fill predicted from the undirected elimination graph can overestimate the nonzeros that materialize in the numerical factorization. This gap explains why πrev 
+
+incurs nonzero fill in the undirected elimination graph while still producing a sparser Lπ .More importantly, when the elimination order is misaligned with the true ordering, the numerical factor can become markedly denser. This inflation is typically even more pronounced when the ordering also fails to reduce fill in the undirected elimination graph. The effect is visible in Figures 4d and 4e, where the triangular patterns contain many additional nonzeros, including in upper-triangular positions of the displayed sparsity maps. Intuitively, under a misspecified ordering, the induced directed edges disagree with the true causal directions, which increases the number of nonzeros required to represent the same second-order structure in triangular form. Consequently, using fill reduction alone as a surrogate for SP sparsity can be brittle for directed structure recovery. Overall, this counterexample shows that controlling fill in the undirected elimination graph alone can be misleading for SP learning, which motivates imposing an ordering-agnostic screening such as restricting feasibility to supp(Ω) before making sparsity comparisons across permutations. (a) DAG (b) Moral graph (c) rev-topo (d) min-fill (e) min-degree 
+
+Figure 4: DAG, moral graph, and triangulations under rev-topo, min-fill, and min-degree orderings, with sparsity patterns of 
+
+B, Ω, and L. Red dashed edges indicate fill-in. 
+
+# B FINITE-SAMPLE IMPLEMENTATION OF STAGE 0 
+
+This section details Stage 0 of SCOPE: finite-sample precision estimation and precision-support mask construction. We estimate the precision matrix using the graphical lasso and select its regularization parameter λ via a distributionally robust optimization (DRO) calibration [Friedman et al., 2008, Cisneros-Velarde et al., 2020]. We then apply λ-scale hard-thresholding, with the threshold scale justified by standard entrywise error bounds for precision estimation [Ravikumar et al., 2011, Liu et al., 2012]. The support of the thresholded precision estimate then defines the precision-support mask. 
+
+Graphical lasso with DRO calibration. Let Sym + 
+
+> p
+
+and Sym ++  
+
+> p
+
+denote the cones of symmetric positive semidefinite and symmetric positive definite matrices, respectively. Let Wi := XiX⊤ 
+
+> i
+
+∈ Sym + 
+
+> p
+
+and bΣ := 1
+
+> n
+
+Pni=1 Wi ∈ Sym + 
+
+> p
+
+be the empirical covariance matrix. The graphical lasso estimates the precision matrix by 
+
+min 
+
+> K∈Sym ++
+> p
+
+n
+
+tr( K bΣ) − log det( K) + λ∥K∥1,off 
+
+o
+
+, (7) which corresponds to ℓ1-penalized Gaussian likelihood maximization [Friedman et al., 2008]. Following [Cisneros-Velarde et al., 2020, Theorem 2.1], the same objective also arises from a worst-case expected Gaussian log-likelihood over a Wasserstein-type ambiguity set. We denote by bΩ( λ) any solution to (7) . It remains to choose λ in a way that yields explicit high-probability error bounds for bΩ( λ).
+
+Entrywise deviation control and the choice of λ. Under the DRO interpretation of Cisneros-Velarde et al. [2020] (rooted in Blanchet et al. [2019]), the regularization parameter λ is naturally tied to an entrywise deviation scale for the sample covariance. This choice is also consistent with classical finite-sample analyses of high-dimensional precision estimation, which typically condition on an event controlling ∥bΣ − Σ∥∞. For α ∈ (0 , 1) , define 
+
+λ := inf 
+
+n
+
+t > 0 : P0
+
+ ∥bΣ − Σ∥∞ ≤ t ≥ 1 − α
+
+o
+
+, (8) and the associated event 
+
+Eα := 
+
+n
+
+∥bΣ − Σ∥∞ ≤ λ
+
+o
+
+. (9) In practice, λ in (8) is estimated via the bootstrap RobSel procedure [Cisneros-Velarde et al., 2020]. Consistency of this bootstrap choice is established in low-dimensional regimes [Cisneros-Velarde et al., 2020, Remark 3.4–3.5] and [Tran et al., 2022]. In our setting, we use RobSel as a data-adaptive way to set λ for entrywise control. 
+
+Entrywise bounds on bΩ( λ) and thresholding justification. Under standard conditions for graphical lasso, an event like (9) is the natural input for controlling the entrywise error of the resulting precision estimate. In particular, under incoherence-type assumptions and bounded-degree conditions, the graphical lasso solution satisfies 
+
+∥bΩ( λ) − Ω∥∞ ≤ Cλ on Eα,
+
+for a constant C depending on Σ and the model class [Ravikumar et al., 2011]. If, moreover, the nonzero off-diagonal entries of Ω satisfy a minimum signal strength condition 
+
+θmin := min  
+
+> (i,j )∈S
+
+|Ωij | ≥ C′λ, S := {(i, j ) : i̸ = j, Ωij ̸ = 0 },then hard-thresholding at the same λ-scale recovers the off-diagonal support and signs of Ω on Eα; see Ravikumar et al. [2011] and Liu et al. [2012, Theorem 4.3]. Concretely, for a constant cthr > 0, define 
+
+bΩthr  
+
+> ij
+
+:= bΩ( λ)ij 1|bΩ( λ)ij | ≥ cthr λ , (i̸ = j), bΩthr  
+
+> ii
+
+:= bΩ( λ)ii . (10) 
+
+Precision-support mask used in SCOPE. We use bΩthr with cthr = 1 as the input precision matrix and construct the binary mask 
+
+cM := 1{bΩthr ̸ = 0 },
+
+with the diagonal included. We take cM as an ordering-agnostic screen of admissible interactions. When the above entrywise control and the minimum signal strength condition hold, the mask screens out locations where Ω is truly zero while retaining the true support with high probability [Ravikumar et al., 2011, Liu et al., 2012]. This provides theoretical evidence for using a precision-support mask as an ordering-agnostic admissible pattern for the subsequent masked IC(0) factorization. 
+
+# C PROOFS OF THEORETICAL RESULTS 
+
+C.1 PROOF OF LEMMA 3.1 
+
+By Loh and Bühlmann [2014, Theorem 2 and Assumption 1], under Assumption 1 we have, for all j̸ = k,
+
+Ωjk = 0 ⇐⇒ (j, k ) /∈ skel( Gm 
+
+> 0
+
+).
+
+Equivalently, 
+
+supp(Ω) = skel( Gm 
+
+> 0
+
+).
+
+Next, for any permutation matrix Pπ ,
+
+Ωπ = Pπ Ω P ⊤
+
+> π
+
+is a relabeling of indices, and hence 
+
+supp(Ω π ) = π supp(Ω)  = π skel( Gm 
+
+> 0
+
+).
+
+Finally, since skel( G0) ⊆ skel( Gm 
+
+> 0
+
+), applying π gives 
+
+π skel( G0) ⊆ π skel( Gm 
+
+> 0
+
+) = supp(Ω π ),
+
+which is the claim. 
+
+C.2 PROOF OF THEOREM 3.2 C.2.1 Proof for Soundness 
+
+We first record a simple consequence of precision-support masking and IC(0)-admissibility. 
+
+Lemma C.1 (Exact factorization under precision-support masking and IC(0)-admissibility) . Assume M = 1{Ω̸ = 0 } (with the diagonal included) and let Tp be IC(0)-admissible. Then, for every π ∈ Tp, the masked IC(0) output Lπ = IC0(Ω π ; Mπ )
+
+satisfies 
+
+Ωπ = Lπ L⊤ 
+
+> π
+
+, where Ωπ := Pπ ΩP ⊤ 
+
+> π
+
+, M π := Pπ M P ⊤ 
+
+> π
+
+.
+
+Proof. Fix π ∈ Tp. Since M = 1{Ω̸ = 0 }, we have Ω ◦ (1 − M ) = 0, and relabeling yields 
+
+Ωπ ◦ (1 − Mπ ) = 0.
+
+By the masked IC(0) invariants (4), 
+
+(Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ Mπ = 0.
+
+Moreover, IC(0)-admissibility (5) gives 
+
+(Lπ L⊤ 
+
+> π
+
+) ◦ (1 − Mπ ) = 0.Combining the last two equations and splitting over Mπ and (1 − Mπ ),
+
+Ωπ − Lπ L⊤ 
+
+> π
+
+= (Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ Mπ
+
+ + (Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ (1 − Mπ ) = 0.
+
+Here, the second term vanishes because 
+
+(Ω π − Lπ L⊤ 
+
+> π
+
+) ◦ (1 − Mπ ) = Ω π ◦ (1 − Mπ ) − (Lπ L⊤ 
+
+> π
+
+) ◦ (1 − Mπ ) = 0 − 0.
+
+Hence Ωπ = Lπ L⊤ 
+
+> π
+
+.Lemma C.1 implies that for every π ∈ Tp, the constraints in (3) reduce to the exact factorization constraint 
+
+Lπ L⊤ 
+
+> π
+
+= Ω π .
+
+Hence (3) is equivalent to minimizing the sparsity of the exact Cholesky factor of Ωπ over candidate orderings: 
+
+min 
+
+> π∈Tp
+
+∥Lπ ∥0 s.t. Lπ L⊤ 
+
+> π
+
+= Ω π .
+
+This is the same sparsity-based comparison underlying SP learning in Raskutti and Uhler [2018, Def. 2.2 and Thm. 2.3] so the remaining steps follow the standard SMR argument. Let (ˆ π, L ˆπ ) be any minimizer of (3) over Tp. By feasibility of (π0, L π0 ) and optimality, 
+
+∥Lˆπ ∥0 ≤ ∥ Lπ0 ∥0. (11) If Gˆπ /∈ M (G0), then Assumption 2 implies 
+
+∥Lˆπ ∥0 > ∥Lπ0 ∥0,
+
+which contradicts (11). Therefore Gˆπ ∈ M (G0).
+
+C.2.2 Proof of Robustness 
+
+Fix an arbitrary ordering π, and let Lπ = IC0(Ω π ; Mπ ) be the lower-triangular matrix satisfying the masked feasibility constraints in (4) under π. Recall the population mask M := 1{Ω̸ = 0 } and its permuted version Mπ := Pπ M P ⊤ 
+
+> π
+
+=
+
+1{Ωπ̸ = 0 }, where Ωπ := Pπ ΩP ⊤ 
+
+> π
+
+.Since Lπ is feasible for (4), it satisfies the support constraint 
+
+Lπ ◦ (1 − Mπ ) = 0 . (12) Consequently, for any k > j ,
+
+(Lπ )kj ̸ = 0 = ⇒ (Mπ )kj = 1 = ⇒ (Ω π )kj ̸ = 0 .
+
+Since (Ω π )kj = Ω π(k),π (j) and Ω is symmetric, the condition (Ω π )kj ̸ = 0 is equivalent to both Ωπ(k),π (j)̸ = 0 and 
+
+Ωπ(j),π (k)̸ = 0 , i.e., 
+
+(Lπ )kj ̸ = 0 = ⇒ (π(k), π (j)) , (π(j), π (k)) ∈ supp(Ω) .
+
+By Assumption 1, supp(Ω) = skel( Gm 
+
+> 0
+
+). Therefore every directed edge induced by a nonzero entry of Lπ connects a pair adjacent in skel( Gm 
+
+> 0
+
+), and hence 
+
+eE(π, L π ) :=  (π(j), π (k)) : k > j, (Lπ )kj ̸ = 0 ⊆ skel( Gm 
+
+> 0
+
+),
+
+which proves the claim. 
+
+C.3 PROOF OF THEOREM 4.1 
+
+We prove Theorem 4.1 by decomposing the runtime across stages. Fix an ordering π and consider one pass of Algorithm 1 (Stages 0–2). Let dm be the maximum degree of the screened graph encoded by the Stage 0 mask cM and let cMπ := Pπ cM P ⊤ 
+
+> π
+
+be the permuted mask. We bound the runtime by summing the stagewise costs. Stage 0 (precision estimation). When Stage 0 is implemented via DRO-calibrated graphical lasso, the cost has two components: • B bootstrap replicates, costing O(Bnp 2) in total to form the sample covariance matrices {bΣ(b)}Bb=1 .• One graphical lasso solve with TGL outer iterations, costing O(TGL p3) in a dense worst-case analysis, since the dominant subroutines reduce to dense matrix factorizations; see [Friedman et al., 2008, Hsieh et al., 2013, 2014]. Therefore, 
+
+T0 = O Bnp 2 + TGL p3 .
+
+Stage 1 (masked IC(0)). We show that masked IC(0) runs in O(p d 2
+
+> m
+
+) time under the degree bound dm. Write bLπ =IC0( bΩπ ; cMπ ) for Stage 1 output. For each row index k ∈ [p], define the active predecessor set 
+
+Sk := {j < k : ( cMπ )kj = 1 }.
+
+By definition of dm as a maximum degree bound for the screened graph, we have |Sk| ≤ dm for all k.Masked IC(0) computes, for each k, the entries {(bLπ )kj : j ∈ Sk} and the diagonal (bLπ )kk using only indices in Sk.Concretely, for each fixed pair j ∈ Sk, the IC(0) update for (bLπ )kj is of the generic form 
+
+(bLπ )kj = 1(bLπ )jj 
+
+
+
+(bΩπ )kj − X 
+
+> ℓ∈Sk∩Sj
+
+(bLπ )kℓ (bLπ )jℓ 
+
+
+
+,
+
+and the diagonal update has the form 
+
+(bLπ )2 
+
+> kk
+
+= ( bΩπ )kk − X
+
+> ℓ∈Sk
+
+(bLπ )2
+
+> kℓ
+
+,
+
+with the breakdown condition corresponding to (bLπ )2 
+
+> kk
+
+≤ 0.We now count arithmetic operations. For each k:• Computing (bLπ )kk requires a sum over t ∈ Sk and thus costs O(|Sk|) ≤ O(dm) operations. • For each j ∈ Sk, computing (bLπ )kj requires summing over Sk ∩ Sj . Since Sk ∩ Sj ⊆ Sk, this costs O(|Sk ∩ Sj |) ≤
+
+O(|Sk|) ≤ O(dm) operations. There are |Sk| ≤ dm such indices j.Hence the total cost at row k is 
+
+O(dm) + X
+
+> j∈Sk
+
+O(dm) = O(dm) + O(|Sk| dm) = O(d2
+
+> m
+
+).
+
+Summing over k = 1 , . . . , p yields 
+
+T1 =
+
+> p
+
+X
+
+> k=1
+
+O(d2
+
+> m
+
+) = O(p d 2
+
+> m
+
+).
+
+Stage 2 (R EFIT TEST ). Stage 2 performs p local regressions. For each node k, the candidate predictor set is the parent-candidate set implied by the support of the Stage 1 factor, hence its size is at most the screened degree bound: 
+
+sk := |cPa π (k)| ≤ dm.
+
+Consider the regression of Xk on XcPa π (k) with sk predictors. Forming the Gram matrix and cross-product costs 
+
+X⊤X : O(ns 2
+
+> k
+
+), X⊤y : O(ns k).
+
+Solving the resulting sk × sk linear system by a generic dense method costs O(s3
+
+> k
+
+). Under the stated regime dm < n ,we have sk ≤ dm < n , so s3 
+
+> k
+
+≤ s2
+
+> k
+
+n and the solve is dominated by O(ns 2
+
+> k
+
+). Computing residuals and t-statistics adds at most O(ns k + s2
+
+> k
+
+) and is also dominated by O(ns 2
+
+> k
+
+). Therefore, the total cost per node is O(ns 2
+
+> k
+
+) ≤ O(nd 2
+
+> m
+
+) for each k.Summing over k = 1 , . . . , p gives 
+
+T2 = O(p n d 2
+
+> m
+
+).Combining the stagewise bounds, 
+
+T (π) = T0 + T1 + T2 = O Bnp 2 + TGL p3 + p d 2 
+
+> m
+
++ p n d 2
+
+> m
+
+ .
+
+Since n ≥ 1, the term p d 2 
+
+> m
+
+is absorbed by p n d 2
+
+> m
+
+, yielding 
+
+T (π) = O B n p 2 + TGL p3 + p n d 2
+
+> m
+
+ ,
+
+which proves the theorem. 
+
+# D NUMERICAL EXPERIMENTS 
+
+Implementation details. Within SCOPE, we set α = 0 .01 for both Stage 0 selection of the graphical lasso regularization parameter λ and Stage 2 refit-and-test step. For Stage 0, the precision matrix bΩ is estimated by graphical lasso using the SQUIC solver [Bollhöfer et al., 2019], and λ is selected by the Robust Selection rule via the robust-selection Python package [Cisneros-Velarde et al., 2020, Tran et al., 2020]. If SQUIC fails (e.g., due to an internal assertion when the returned solution is not positive definite), we skip the corresponding trial. Unless otherwise stated, all remaining hyperparameters and solver settings are kept at their default values, as in the respective references. 
+
+Evaluation. For methods that output a DAG, we convert the estimated DAG to a CPDAG using the causaldag Python package [Squires, 2018]. In rare cases where the estimated DAG becomes excessively dense, this CPDAG conversion can be prohibitively slow; if the conversion exceeds 60 seconds, we terminate the conversion and use the DAG skeleton as a CPDAG proxy. Results are averaged over 30 replicates for settings with p < 10 4 and over 10 replicates for the largest-scale setting with p = 10 4.
+
+Synthetic linear SEM generation. Synthetic data is generated from a linear SEM (1) with independent errors. To match the sparsity regime considered throughout the paper, we sample bounded in-degree DAGs by letting each node select at most d parents among the earlier nodes in a random ordering. For graphs with p > 1000 , we generate DAGs in a blockwise manner using blocks of size at most 1000 . For each selected edge, the coefficient is drawn uniformly from ±[0 .6, 0.8] . Error variances are sampled independently from [0 .8, 1.0] . To assess robustness beyond Gaussianity, the noise terms are drawn from one of the following distributions: standard normal, Student-t with 10 degrees of freedom, or uniform. In all cases, the noise is centered to have mean zero and then rescaled so that its variance matches the sampled value in [0 .8, 1.0] .We summarize below the software used for each baseline and the corresponding user-specified hyperparameters, with all unspecified options left at their package defaults. • PC [Kalisch and Bühlmann, 2007]. Implementation: pcalg::pc (R) via rpy2 [Kalisch et al., 2012]. The algorithm uses the Gaussian Fisher-z CI test with α = 0 .01 . We set the maximum conditioning-set size to 
+
+m.max = 3 and use the original skeleton routine without the stable variant to keep the computational cost practical at our problem sizes. • GES [Chickering, 2002]. Implementation: pcalg::ges (R) with GaussL0penObsScore via rpy2 [Kalisch et al., 2012]. We use the standard ℓ0-penalized Gaussian score with penalty λ = 0 .5 log( n) (i.e., lambda_mult = 0 .5), and otherwise keep defaults. • GSP [Solus et al., 2021]. Implementation: causaldag (Python) [Squires, 2018]. We run GSP with a partial-correlation CI tester using α = 0 .01 . In the causaldag interface, we do not provide 
+
+fixed_adjacencies or fixed_gaps (so both remain None ), and we keep the remaining options at their defaults. • NOTEARS [Zheng et al., 2018]. Implementation: gCastle Notears (Python) [Zhang et al., 2021]. We use lambda1 = 0 .1, loss_type ="l2" , max_iter = 20 (gCastle default), and otherwise use defaults. If the estimated graph is not acyclic, we remove cycles by edge pruning, following the post-processing recommended in the NOTEARS paper (e.g., iteratively deleting the weakest edges until a DAG is obtained). Figure 5: CPDAG-skeleton F1. Shaded bands represent ±1 standard error around the mean across 30 replicates. 
+
+Figure 6: nSHD for CPDAG recovery. Shaded bands represent ±1 standard error around the mean across 30 replicates. • GOLEM [Ng et al., 2020]. Implementation: gCastle GOLEM (Python) [Zhang et al., 2021]. We use lambda_1 = 0 .1, lambda_2 = 0 .1, equal_variances =False , num_iter = 1000 (gCastle default), and otherwise use defaults. If the estimated graph is not acyclic, we apply the same edge-pruning post-processing as for NOTEARS, following the procedure recommended in the GOLEM paper. • FROSTY [Bang and Oh, 2023] and RFD [Squires et al., 2020a]. Implementation: Python implementations provided by the authors. Both methods take a precision estimate as input. We obtain bΩ by graphical lasso with λ selected by the Robust Selection rule at α = 0 .01 , following the tuning protocol in Bang and Oh [2023]. We solve the graphical lasso using the SQUIC implementation [Bollhöfer et al., 2019], and compute λ using the robust-selection Python package [Cisneros-Velarde et al., 2020, Tran et al., 2020]. 
+
+D.1 COMPARISON WITH BASELINES IN LOW DIMENSIONAL SETTINGS 
+
+We compare SCOPE under the AMD heuristic ordering with structure learning baselines on synthetic linear SEMs, varying 
+
+p ∈ { 20 , 40 , 60 , 80 , 100 } with n = 20 p and bounded indegree d ∈ { 1, 5}. Figures 5–6 report CPDAG-skeleton F1 and Table 4: Scalability results for high-dimensional synthetic SEMs under normal and uniform noise. Performance is evaluated on the estimated CPDAG.  
+
+> (a) Normal noise ( d= 1 )
+
+n Method F1 SHD 
+
+0.5p SCOPE 0.965 (0.006) 0.163 (0.078) 
+
+0.5p FROSTY 0.627 (0.010) 1.193 (0.050) 
+
+p SCOPE 0.911 (0.005) 0.345 (0.109) 
+
+p FROSTY 0.626 (0.008) 1.196 (0.042)  
+
+> (b) Normal noise ( d= 5 )
+
+n Method F1 SHD 
+
+0.5p SCOPE 0.580 (0.204) 1.166 (0.074) 
+
+0.5p FROSTY 0.022 (0.002) 88.658 (12.876) 
+
+p SCOPE 0.562 (0.021) 1.864 (0.109) 
+
+p FROSTY 0.021 (0.000) 93.024 (1.093)  
+
+> (c) Uniform noise ( d= 1 )
+
+n Method F1 SHD 
+
+0.5p SCOPE 0.948 (0.003) 0.268 (0.062) 
+
+0.5p FROSTY 0.622 (0.011) 1.218 (0.056) 
+
+p SCOPE 0.903 (0.007) 0.400 (0.075) 
+
+p FROSTY 0.624 (0.011) 1.207 (0.056)  
+
+> (d) Uniform noise ( d= 5 )
+
+n Method F1 SHD 
+
+0.5p SCOPE 0.642 (0.020) 1.241 (0.059) 
+
+0.5p FROSTY 0.022 (0.000) 85.750 (0.638) 
+
+p SCOPE 0.497 (0.175) 1.835 (0.302) 
+
+p FROSTY 0.020 (0.002) 97.246 (10.738) nSHD for CPDAG recovery under three noise distributions (normal, t, and uniform). Figure 1, presented earlier in the main text, shows only the Gaussian-case results for p = 100 and d = 5 , which form a subset of the results considered in Figure 5. Across all distributions, SCOPE maintains strong accuracy as p increases, indicating that its performance is not tied to a particular noise model. In the zero-fill-friendly regime ( d = 1 ), each node has at most one parent, so moralization introduces no co-parent links and the moralized graph coincides with the DAG skeleton. Moreover, this graph is chordal and admits a perfect elimination ordering [Rose et al., 1976, George and Liu, 1981]. Accordingly, sparse elimination can proceed with essentially zero fill, and SCOPE achieves near-exact CPDAG recovery when precision estimation noise is modest. When d = 5 , moralization-induced densification makes the ordering problem harder. However, the precision-support mask restricts admissible fill-in and suppresses elimination-induced artifacts, resulting in only moderate degradation in both F1 and nSHD. Relative to baselines, SCOPE matches or exceeds PC in skeleton recovery while avoiding the rapidly growing burden of CI testing as p increases. Among continuous-optimization methods, NOTEARS can be accurate but is substantially slower, while GOLEM is faster yet often loses accuracy. Compared with greedy search methods (GES/GSP), SCOPE consistently attains smaller nSHD, indicating more reliable CPDAG recovery in these regimes, and remains stable as p and d increase. Finally, the sparse-Cholesky baselines (FROSTY and RFD) tend to suffer from false discoveries—especially in the d = 5 
+
+regime—leading to substantially larger nSHD. We also observe small but systematic distribution-dependent differences. Relative to normal and t noise, uniform noise can yield slightly stronger performance at smaller p for several methods, consistent with lighter-tailed sampling fluctuations under the fixed scaling n = 20 p. In addition, in the nSHD plots under normal and uniform noise, nSHD exhibits a mild upward drift as p increases. A plausible explanation is that, as n grows with p, the plug-in precision estimate bΩ can become less sparse and induce a slightly denser screening mask cM . This in turn expands the admissible region for fill and can introduce a small increase in CPDAG discrepancy. Since these effects are largely mediated through Stage 0, their exact magnitude may vary with the choice of the plug-in precision estimator. 
+
+D.2 HIGH-DIMENSIONAL PERFORMANCE 
+
+Table 4 reports additional p = 10 4 scalability results under normal and uniform noise. Results under normal and uniform noise align with those under t noise in Table 2. In the zero-fill-friendly regime ( d = 1 ), SCOPE under the AMD heuristic ordering achieves high F1 with small nSHD across both n = 0 .5p and n = p. When d = 5 and moralization densifies the screened structure, SCOPE remains markedly more stable than FROSTY, whose F1 collapses and nSHD becomes extremely large. We also observe that increasing n does not necessarily improve accuracy, reflecting the plug-in nature of Stage 0 through the induced screening mask. Overall, SCOPE is robust across noise distributions and continues to yield usable CPDAG estimates at large scale. One-step Paths Two-step Paths Method Random partition # of directed edges Fwd/Rev Ratio Fwd/Rev Ratio PC 1 62,422 0.028/0.024 1.167 0.051/0.045 1.133 PC 2 62,515 0.026/0.024 1.083 0.050/0.047 1.064 PC 3 62,708 0.027/0.025 1.080 0.051/0.046 1.109 GES 1 308,533 0.028/0.024 1.167 0.056/0.045 1.244 GES 2 308,707 0.028/0.022 1.273 0.055/0.045 1.222 GES 3 307,769 0.029/0.022 1.318 0.056/0.045 1.244 SCOPE 271,066 0.078/0.045 1.733 0.108/0.061 1.770 
+
+Table 5: Proportions of biologically validated TF →target paths recovered in the estimated CPDAGs for additional random partitions. SCOPE is evaluated on the full dataset and is therefore unchanged across partitions. 
+
+# E BREAST CANCER DATA ANALYSIS 
+
+Data description. We illustrate the performance of our method for analyzing a real mRNA expression dataset from Koh et al. [2019]. See data files on authors’ public GitHub repository: https://github.com/Hiromikwl/DataCodes_ iOmicsPASS .The transcriptomic data consists of mRNA expression profiles derived from invasive ductal breast carcinoma samples from The Cancer Genome Atlas (TCGA) project [The Cancer Genome Atlas Network, 2012]. The samples are stratified into four intrinsic phenotypic subgroups-Luminal A, Luminal B, HER2E, and Basal-like-determined by the mRNA-based PAM50 signature [Parker et al., 2009]. The data were originally acquired via the Genomics Data Commons (GDC) data portal and processed using GDC pipelines aligned to the GRCh38 reference genome, and the original ENSEMBL identifiers were mapped and converted to HGNC gene symbols [Koh et al., 2019]. The mRNA data were mapped to a transcription factor (TF) regulatory network consisting of 2,486 TFs and 14,796 target genes. For broader pathway enrichment analysis, the study utilized a background set of 17,250 genes derived from ConsensusPathDB [Kamburov et al., 2011] and Gene Ontology biological processes [Ashburner et al., 2000]. 
+
+Implementation details. As described in Appendix B, we calibrate the graphical lasso regularization parameter λ via Robust Selection (RobSel). For the extremely high-dimensional TCGA mRNA dataset with (n, p ) = (599 , 16325) , we follow prior work [Tran et al., 2020, Bang and Oh, 2023] and set level α(0) = 0 .99 for Stage 0, as RobSel tends to select a conservative regularization parameter λ in this regime. In addition, since this high-dimensional setting already yields a relatively strong regularization level through the DRO calibration, we use bΩ( λ) directly as the Stage 0 precision estimate, instead of the thresholded version bΩthr in (10) . All other implementation details for SCOPE follow Appendix D. The implementations of PC and GES are also identical to those described in Appendix D. 
+
+Results on additional random partitions. Table 5 reports the PC and GES results for additional random partitions of the features; random partition 1 matches the result in Table 3. Across the additional random partitions, the same qualitative conclusion continues to hold. Although the split-based baselines show small partition-dependent fluctuations in both validations (one-step ratio ranges: PC, 1.080 –1.167 ; GES, 1.167 –1.318 ;two-step ratio ranges: PC, 1.064 –1.133 ; GES, 1.222 –1.244 ), SCOPE remains clearly separated from both methods, with substantially larger forward-to-reverse ratios in both one-step and two-step validations ( 1.733 and 1.770 , respectively). This qualitative gap is also consistent with the overall fraction of externally validated associations (regardless of direction): SCOPE attains 0.292 , whereas PC and GES remain in the ranges 0.147 –0.149 and 0.150 –0.153 , respectively.

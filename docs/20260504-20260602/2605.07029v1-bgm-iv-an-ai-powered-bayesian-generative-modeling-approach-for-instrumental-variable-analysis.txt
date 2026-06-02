@@ -1,0 +1,704 @@
+Title: BGM-IV: an AI-powered Bayesian generative modeling approach for instrumental variable analysis
+
+URL Source: https://arxiv.org/pdf/2605.07029v1
+
+Published Time: Mon, 11 May 2026 00:28:44 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# BGM-IV: an AI-powered Bayesian generative modeling approach for instrumental variable analysis 
+
+Guyue Luo Qiao Liu 
+
+Department of Biostatistics Yale University 
+
+{guyue.luo,qiao.liu}@yale.edu 
+
+# Abstract 
+
+Instrumental-variable (IV) regression enables causal estimation under endogene-ity, but modern IV problems often involve nonlinear structural effects and high-dimensional covariates. Existing nonlinear IV methods directly learn the causal relation in observed feature space or rely on learned representations within two-stage or moment-based procedures, which can struggle when the causal information is embedded in a high-dimensional representation. We propose BGM-IV, a latent Bayesian generative modeling approach that reframes nonlinear IV regression as posterior inference in a causally structured latent space. BGM-IV infers latent components that separately capture shared confounding structure, outcome-specific variation, treatment-specific variation, and covariate-only nuisance information. To account for endogeneity, BGM-IV replaces the confounded outcome likelihood with an IV-integrated pseudo-likelihood that averages over instrument-induced treatment values within the latent model. Across various benchmark datasets, BGM-IV remains competitive in the classical low-dimensional regime and per-forms best in high-dimensional covariate regimes. Together, these results show that structured latent generative modeling provides a principled and effective strategy to nonlinear IV estimation with rich covariates. The code of BGM-IV is available at https://github.com/liuq-lab/BGM-IV .
+
+# 1 Introduction 
+
+Causal questions arise when the goal is to estimate the effect of an intervention rather than to describe associations in observational data [ 1– 5]. This distinction is central in many modern applications. For example, online marketplaces seek to estimate how demand would change under a new price, advertising recommendation systems ask how users would respond under different exposure rules, and clinicians ask how interventions affect health outcomes given rich clinical records or molecular measurements. In such settings, modern predictive models may fit observed outcomes well while still answering the wrong question as they capture associations instead of effect of changing the treatment. The challenge becomes sharper when treatment is confounded by an unobserved variable. Prices respond to demand shocks, ads are targeted to users who are already likely to convert, and medical treatments are assigned using clinical information that is only partially observed. In these settings, a regression of outcome on treatment and covariates generally does not recover the causal effect [ 2,6, 3] since treatment assignment is correlated with unobserved factors that also affect the outcome. Instrumental variables (IVs) provide a classical solution to this problem by exploiting variation that changes treatment assignment but has no direct effect on the outcome [ 7– 9]. IVs are powerful as they isolate exogenous variation in treatment, but also make estimation more challenging: the causal effect must be inferred indirectly from how the instrument shifts treatment. 
+
+> Preprint.
+> arXiv:2605.07029v1 [stat.ML] 7 May 2026
+
+Modern IV problems are further complicated by nonlinear causal effects and high-dimensional covariates, such as images, electronic health records, or molecular measurements. Rich covariates may contain useful information about confounding, but treating them directly is statistically and computationally difficult [ 10 ]. Simply plugging predictive models into an IV estimator is often not enough as poor handling of high-dimensional covariates can lead to biased causal estimates [ 11 , 12 ]. Addressing such setting requires both flexible nonlinear causal effect modeling and a representation that separates causally relevant covariate information from nuisance variation [13–16]. Existing work has largely expanded the scope of IV estimation beyond classical linear models [ 17 ]. Classical IV estimators, such as two-stage least squares (2SLS), are widely used as they are simple and interpretable given the linear parametric specification [ 7, 18 ]. To relax parametric assumptions, nonparametric IV methods formulate the problem through series, sieve, and regularized inverse approaches [ 19 –22 ]. More recently, machine-learning IV methods have brought additional flexibility: KIV performs nonlinear IV regression in reproducing-kernel Hilbert spaces [ 23 ], DeepIV learns a treatment distribution and trains the outcome model through an integrated loss [ 24 ], DFIV learns deep representations for the two IV stages [ 25 ], and DeepGMM estimates structural functions through conditional moment restrictions [ 26 –28 ]. These advances show that flexible IV estimation is possible. However, when covariates are high-dimensional with nonlinear causal effects, existing methods still largely operate directly in observed or learned feature space without handling the irrelevant variation that may lead to biased causal effect estimate. This motivates us to learn representations that separate shared confounding structure from treatment-specific, outcome-specific, and nuisance variation. In this work, we propose BGM-IV, a Bayesian generative modeling approach for nonlinear IV regression with high-dimensional covariates. The central idea is to perform IV regression through posterior inference in a causally structured latent space, rather than directly in observed or generic learned feature space. By partitioning the latent representation into independent components that play different roles in the causal modeling, BGM-IV provides a principled way for estimating causal effect with IVs. Our main contributions are as follows. • BGM-IV bridges the gap between flexible nonlinear IV estimation and latent Bayesian generative modeling. The structured latent space decouples the complex dependencies of covariates on treatment and outcome variables, providing convenient causal analysis. • We propose a novel IV-integrated pseudo-likelihood term that replaces the confounded out-come likelihood, thereby incorporating endogeneity correction directly into latent posterior inference and allowing outcome to be learned from IV-induced treatment. • Through experiments on multiple benchmarks with various settings, we demonstrate that BGM-IV is competitive in classical low-dimensional IV settings and performs the best in high-dimensional covariate regimes. 
+
+# 2 Problem Setup 
+
+We observe i.i.d. samples {(X(i), Y (i), V (i), W (i))}ni=1 from an observational distribution, where 
+
+X ∈ X is the treatment (or exposure), Y ∈ R is the outcome, V ∈ V denotes observed covariates, and W ∈ W is an instrumental variable. Our target is the structural function 
+
+g0(x, v) = E[Y | do( X = x), V = v] ,
+
+using Pearl’s intervention notation [29]. Under the structural formulation, we write 
+
+Y = g0(X, V ) + ϵ, E[ϵ | V ] = 0 .
+
+The challenge is that treatment is endogenous: in general, 
+
+E[ϵ | X, V ]̸ = 0 ,
+
+so the observational regression function E[Y | X = x, V = v] generally differs from the causal target g0(x, v).Identification relies on the standard IV conditions, stated conditional on the observed covariates. Relevance requires the conditional distribution of treatment to vary with the instrument, so P (X |
+
+V, W ) depends on W [ 30 ]. Exclusion requires the instrument to affect the outcome only through its 2effect on treatment. Exogeneity requires the instrument to be mean-independent of the structural error conditional on the observed covariates, E[ϵ | V, W ] = 0 .1 Under these conditions, 
+
+E[Y | V, W ] = E[g0(X, V ) | V, W ] = 
+
+Z
+
+g0(x, V ) dP (x | V, W ).
+
+This moment equation shows that the instrument does not identify the structural function g0(x, v)
+
+directly. Instead, it identifies how g0 averages over the treatment distribution induced by the instru-ment, conditional on the covariates. In nonparametric IV, recovering g0 requires conditions such as completeness of the conditional expectation operator [19, 31–33]. The remaining challenge is how to model the causal target g0(x, v) and the observable moment equation induced by the IV assumptions when the covariates V are high-dimensional. The next section addresses this by introducing the latent generative structure used in BGM-IV. 
+
+# 3 Method 
+
+BGM-IV is a latent Bayesian generative modeling approach for nonlinear IV regression. The data-generating process is built upon the Bayesian generative modeling (BGM) framework [ 34 ], which has been shown to be effective for causal modeling in CausalBGM under the unconfoundedness assumption [ 35 ]. BGM-IV further extends the CausalBGM framework to handle the IVs when the unconfoundedness is violated by unobserved confounders. BGM-IV preserves the Bayesian inference principle of BGM and CausalBGM, but fundamentally reframes the learning process by modeling the instrument-induced treatment variation. This section presents the model, the IV quasi-posterior, and the training and structural prediction algorithm. 
+
+3.1 Latent Bayesian Generative Model 
+
+We introduce a low-dimensional latent space with four partition components Z = ( Z0, Z 1, Z 2, Z 3)
+
+to account for distinct roles in the causal modeling. The shared block Z0 enters both the treatment and outcome mechanisms and represents latent confounding variable. Z1 enters only the outcome mechanism, Z2 enters only the treatment mechanism, and Z3 explains covariate variation that is not directly used by either mechanism. This partition provides a causally structured representation of how high-dimensional covariates impact treatment and outcome. Under BGM-IV (see Figure 1), the joint model is specified as 
+
+Z ∼ π(z), V ∼ pθ (v | z), X ∼ pϕ(x | w, z0, z2), Y ∼ pω (y | x, z0, z1). (1) Here pθ is the covariate generative model parameterized by θ, pϕ is the treatment generative model parameterized by ϕ, and pω is the outcome generative model parameterized by ω. The instrumental variable W enters only through the treatment mechanism without directly entering the outcome model. Z3 represents nuisance that is used only to represent covariate variation, allowing latent space to retain rich information in covariates V without forcing all of it to affect treatment or outcome. The prior distribution π(z) is typically set to be a standard normal distribution. By default, the three generative models ( pθ , pϕ, and pω ) are specified as multivariate normal distribu-tions for continuous variables and Bernoulli or Categorical distributions for discrete variables. In a continuous setting, we parameterize the model as 
+
+
+
+V | Z ∼ N  μθ (z), Σθ (z),X | W, Z 0, Z 2 ∼ N  μϕ(w, z0, z2), σ 2
+
+> ϕ
+
+(w, z0, z2),Y | X, Z 0, Z 1 ∼ N  μω (x, z0, z1), σ 2 
+
+> ω
+
+(x, z0, z1).
+
+(2) Here ( μθ , Σθ ), ( μϕ, σ2
+
+> ϕ
+
+) and ( μω , σ2 
+
+> ω
+
+) denote learnable functions, parameterized by three neu-ral networks ( G, H, and F ) each with two output heads. For further simplification, we use a diagonal covariance structure for the covariate model Σθ (z) = diag  σ2
+
+> θ, 1
+
+(z), . . . , σ 2
+
+> θ,p
+
+(z). For binary treatments, the treatment model is replaced by a Bernoulli distribution X | W, Z 0, Z 2 ∼      
+
+> 1This is a conditional mean exogeneity restriction. The stronger condition W⊥ϵ|Vimplies it, but the conditional mean restriction is sufficient for the analysis here.
+
+3V
+
+H
+
+G
+
+FX Y    
+
+> Treatment Outcome
+> Latent variables (low -D)
+> 𝑍 !𝑍 "𝑍 #𝑍 $
+> Covariates (high -D)
+
+E
+
+W
+
+> IV
+
+X Y
+
+V
+
+W  
+
+> IV Treatment Outcome
+> Covariates (high -D)
+
+ϵ
+
+## BA
+
+HFigure 1: Illustration of the BGM-IV framework. (A) Traditional causal graph for the IV setting. The instrument W shifts treatment X, treatment affects outcome Y , and latent factors induce endogeneity. (B) The causal graph in BGM-IV model. Rectangles denote variables and circles denote learned neural networks. G, H, and F denote the covariate, treatment, and outcome generative models, respectively. The encoder E is used only for initialization and will not be used during training. 
+
+Bernoulli  πϕ(w, z0, z2) where πϕ(w, z0, z2) = logit −1(H(w, z0, z2; ϕ)) represents the propensity score. Analogous Bernoulli or categorical parameterizations can be used for discrete outcomes or covariates. 
+
+3.2 IV Quasi-Posterior 
+
+With endogenous treatment, directly training the outcome generator through pω (y | x, z0, z1) using the observed treatment can bias estimation of the structural function g0 as the observed treatment reflects both causal variation and confounding. BGM-IV therefore reformulate the standard outcome likelihood to avoid confounding bias. Specifically, it integrates the outcome model over the treatment distribution induced by the instrument, rather than conditioning directly on the observed endogenous treatment, which is denoted as: 
+
+pIV (y | w, z0, z1, z2) = 
+
+Z
+
+pω (y | x, z0, z1) pϕ(x | w, z0, z2) dx. (3) This is our derived IV-integrated pseudo-likelihood term, which is also related to the integrated treatment-distribution used by DeepIV [ 24 ], but the fundamental difference is that here the integral is coupled to posterior inference over the latent state rather than only to a supervised second-stage response network. The integral should be interpreted as a distributional first-stage correction: it averages the outcome density over treatment values that the instrument can generate for the same latent state, rather than conditioning the outcome model on the single observed endogenous treatment value. The resulting BGM-IV latent objective is a quasi-posterior, 
+
+qIV (z | x, y, v, w ) ∝ p(z) pθ (v | z) pϕ(x | w, z0, z2) pIV (y | w, z0, z1, z2). (4) It is a quasi-posterior because pIV (y | w, z0, z1, z2) is not the ordinary conditional likelihood term of a fully coherent joint likelihood for (X, Y, V, W, Z ). It is an IV pseudo-likelihood designed to align outcome learning with the treatment variation explained by W . This replacement is the central difference from CausalBGM where the outcome model is learned based on observed treatment values. The current IV pseudo-likelihood design still reserves the causal learning principles in the latent space while respecting the IV structure. For continuous treatments, the integral is approximated by Monte Carlo samples {x(m)|m =1, ..., M } where M is the Monte Carlo sample size and x(m) ∼ pϕ(x | w, z0, z2). The IV pseudo-likelihood is then calculated as: 
+
+log pIV (y | w, z0, z1, z2) ≈ log 
+
+(
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+pω (y | x(m), z0, z1)
+
+)
+
+. (5) 4For binary treatments, the same term is an exact finite mixture over the two treatment values weighted by pϕ(x | w, z0, z2).
+
+3.3 Stochastic Optimization Training 
+
+The joint posterior distribution of latent variables and model parameters is not tractable under BGM-IV. We therefore designed an iterative stochastic optimization procedure that alternates between updating subject-specific latent variables and updating the parameters of the generative models. At each iteration, we draw a mini-batch B. Each iteration consists of four steps: (a) update the covariate generator given the current latent variables, (b) update the treatment generator given the current latent variables, (c) update the outcome generator under the IV-integrated objective given the current latent variables, and (d) update the latent variables for subjects under the IV quasi-posterior. These steps are repeated until convergence. Given the current latent states {z(i)|i = 1 , ..., n }, the three generators are updated by minimizing mini-batch negative log-likelihood objectives. For a mini-batch B, the covariate generator is updated using 
+
+LV (θ) = − 1
+
+|B| 
+
+X
+
+> i∈B
+
+log pθ (v(i) | z(i)), (6) and the treatment generator is updated using 
+
+LX (ϕ) = − 1
+
+|B| 
+
+X
+
+> i∈B
+
+log pϕ(x(i) | w(i), z(i)0 , z(i)2 ), (7) The outcome generator is updated by minimizing the IV-integrated objective 
+
+LY (ω) = − 1
+
+|B| 
+
+X
+
+> i∈B
+
+log pIV (y(i) | w(i), z(i)0 , z(i)1 , z(i)2 ), (8) so that outcome learning is driven by treatment variation induced by the instrument rather than by the observed endogenous treatment alone. Given the updated network parameters (θ, ϕ, ω ), the latent variables for subjects in the current mini-batch are refined by maximizing the corresponding IV quasi-posterior. Equivalently, for each i ∈ B ,we update z(i) by gradient ascent on 
+
+log p(z(i)) + log pθ (v(i) | z(i)) + log pϕ(x(i) | w(i), z(i)0 , z(i)2 ) + log pIV (y(i) | w(i), z(i)0 , z(i)1 , z(i)2 ).
+
+(9) In practice, we also allow an optional warm-up stage in which the covariate and treatment generators are trained before the IV outcome objective is activated, which is analogous to stage-wise training in two-stage IV methods. The above stochastic optimization procedure is summarized in Algorithm 1. 
+
+3.4 Model Inference 
+
+After model training, we can then estimate our target structural function g0(x, v). Given any intervention value x and the covariates v in the test stage, BGM-IV first infers the latent variable under the covariate-only posterior using maximum a posteriori (MAP) estimation, 
+
+ˆz(v) = arg max  
+
+> z
+
+{log p(z) + log pθ (v | z)} . (10) The structural function is then estimated as 
+
+ˆg(x, v) = μω (x, ˆz0(v), ˆz1(v)) , (11) where μω is the mean function of the outcome generator. This step does not condition on W , Y , or the observed endogenous treatment assignment. X appears only as the intervention value provided to the structural function. Appendix A gives the expanded training and structural-MSE evaluation pseudocode used for the experiments. 5Algorithm 1 BGM-IV training and structural prediction 
+
+Require: Training data {(x(i), y (i), v(i), w (i))}ni=1 ; prior p(z); generators pθ (v | z), pϕ(x |
+
+w, z0, z2), pω (y | x, z0, z1).
+
+Ensure: Trained generators (ˆθ, ˆϕ, ˆω) and structural predictor ˆg(x, v). 
+
+> 1:
+
+Warm-start the encoder eψ and generative networks with EGM initialization; set z(i) ← eψ (v(i)). 
+
+> 2:
+
+for training epochs do  
+
+> 3:
+
+for mini-batch B do  
+
+> 4:
+
+Update θ using P 
+
+> i∈B
+
+− log pθ (v(i) | z(i)). 
+
+> 5:
+
+Update ϕ using P 
+
+> i∈B
+
+− log pϕ(x(i) | w(i), z(i)0 , z(i)2 ). 
+
+> 6:
+
+Approximate pIV (y(i) | w(i), z(i)0 , z(i)1 , z(i)2 ) in Eq. (3) by Monte Carlo sampling from 
+
+pϕ(x | w(i), z(i)0 , z(i)2 ), or by finite summation for binary X. 
+
+> 7:
+
+Update ω using P 
+
+> i∈B
+
+− log pIV (y(i) | w(i), z(i)0 , z(i)1 , z(i)2 ). 
+
+> 8:
+
+Update each z(i) by ascent on log qIV (z(i) | x(i), y (i), v(i), w (i)), as specified by Eq. (9).  
+
+> 9:
+
+end for  
+
+> 10:
+
+end for  
+
+> 11:
+
+for test pair (x, v) do  
+
+> 12:
+
+Compute ˆz(v) = arg max z{log p(z) + log pˆθ (v | z)}. 
+
+> 13:
+
+Return ˆg(x, v) = μˆω (x, ˆz0(v), ˆz1(v)) . 
+
+> 14:
+
+end for 
+
+# 4 Experiments 
+
+We evaluate BGM-IV on several IV benchmarks, including the demand-design derived from the airline-pricing simulation that have been widely used by existing state-of-the-arts IV methods, including DeepIV, KIV and DFIV [ 24 , 23 , 25 ]. The benchmark datasets are designed to isolate the role of covariate complexity: the original setting of demand-design benchmark exposes the low-dimensional observed covariates directly. We further extend the IV benchmarks to high-dimensional settings where covariates could be either a synthetic high-dimensional continuous proxy vector, or a high-dimensional image. We compare BGM-IV with KIV, DeepIV, DFIV, and DeepGMM [ 23 –25 , 27 ]. BGM-IV is implemented in TensorFlow [ 36 ] and an EGM initialization strategy [ 37 ] is used for initializing both model parameters and latent variables. To ensure fair comparison, DeepIV, DFIV, and DeepGMM use the default PyTorch implementations in the DFIV codebase [ 38 ]2. BGM-IV implementation details and hyperparameters are given in Appendix B. We evaluate each method by structural mean squared error (MSE) on the original outcome scale, using the same evaluation grid as prior demand-design IV benchmarks. To assess performance variability and robustness, each experimental configuration is independently repeated 20 times with different random seeds. 
+
+4.1 Demand Design Experiments 
+
+The demand-design benchmark models counterfactual demand estimation in an airline pricing problem with low-dimensional covariates. The treatment P is ticket price, the outcome Y is demand, and the observed covariates are time of year T and customer group S, which induce heterogeneous price sensitivity. Prices are endogenous because an unobserved demand shock affects both the price chosen by the airline and the realized demand. The instrument C is a cost shifter that changes price through the pricing equation but is excluded from the demand equation conditional on the observed covariates. This setting captures the difficulty of IV regression: the observational relation between high prices and sales need not match the structural effect of changing prices. Following the standard demand design, the outcome is generated from 
+
+Y = f0(P, T, S )+ ϵ, f0(P, T, S ) = 100+(10+ P )Sψ (T )−2P, P = 25+( C+3) ψ(T )+ U. 
+
+Here ψ(T ) is a nonlinear seasonal function, U is the unobserved price-demand shock, and the disturbance ϵ is correlated with U through a correlation parameter ρ. We vary both the training 
+
+> 2https://github.com/liyuan9988/DeepFeatureIV/tree/master
+
+6Figure 2: Structural MSE on the demand-design benchmark across sample sizes and confounding levels. Error bands show variability over 20 independent repetitions. sample size n and ρ to test whether each method recovers the structural function rather than the confounded regression surface. Full sampling details and the structural evaluation grid are given in Appendix D. We use 20 independent repetitions for each configuration. As shown in Figure 2, BGM-IV achieves the lowest structural MSE when the training sample size is small ( n = 1 , 000 ) across all confounding levels. As the sample size increases to n=5000 and n=10000, BGM-IV achieves comparable or slightly worse performance compared to the best baseline DFIV. The results show that BGM-IV is still very competitive for IV regression even in low-dimensional settings. 
+
+4.2 High-Dimensional Vector-Proxy Experiments 
+
+The vector-proxy benchmark is the high-dimensional extension of the original demand-design benchmark. The structural demand equation, price equation, instrument, and scalar treatment remain unchanged, but the customer group is no longer observed as a discrete label. Instead, for each group 
+
+s ∈ { 1, . . . , 7} we draw a prototype μs ∈ RD independently from N (0, ID ) (D = 784 by default) and observe 
+
+r = μS + σrep η, η ∼ N (0 , ID ),
+
+so the observed covariate is v = [ T, r] with vdim = D + 1 . This construction follows the proxy-variable view that latent causal factors may be observed only through noisy measurements or surrogates [ 39 , 40 ], but here the proxy mechanism is fully controlled so the benchmark isolates representation learning rather than identification by proxy variables. This benchmark provides a controlled high-dimensional representation task: the customer-type signal is embedded in a noisy continuous high-dimensional vector. For fair comparison, DeepIV, DFIV, and DeepGMM use the same fully connected network (encoder) for dimension reduction given the 
+
+D-dimensional proxy, and KIV receives the raw vector covariates through its kernel implementation. We used 20 independent repetitions for each setting. As shown in Table 1 and Figure 3, DFIV remains the still the strongest baseline method overall. BGM-IV achieves the lowest mean structural MSE across all examined sample sizes and confounding levels. The improvement is substantial with sample size n = 5 , 000 and n = 10 , 000 . The results indicate that when the causally relevant signal is embedded in a noisy high-dimensional proxy, the structured latent representation of BGM-IV is more effective than operating directly in observed or a learned feature space. 
+
+4.3 High-Dimensional Image Experiments 
+
+The image-covariate benchmark follows the high-dimensional covariate demand setting introduced by DeepIV and used by DFIV [ 24 , 25 ]. It keeps the same causal mechanism as the demand-design benchmarks, but now the customer-type signal is observed through the number indicated by a 28 × 28 
+
+MNIST image [ 41 ]. Thus the customer-type signal that determines heterogeneous price sensitivity is embedded in a high-dimensional image covariate. The observed covariates contain both T and the MNIST image, while the treatment remains the scalar ticket price P .7Table 1: Structural MSE ( ×10 4) on the high-dimensional vector-proxy benchmark. Each cell reports mean ± standard deviation over 20 repeats. Best result in each row is bolded. 
+
+ρ n DeepGMM DeepIV KIV DFIV BGM-IV 0.1 1000 6.12 ± 0.38 1.38 ± 0.04 1.08 ± 0.04 0.74 ± 0.04 0.58 ± 0.14 
+
+5000 5.92 ± 0.38 1.12 ± 0.06 0.90 ± 0.02 0.68 ± 0.07 0.32 ± 0.41 
+
+10000 5.74 ± 0.39 0.75 ± 0.09 0.84 ± 0.02 0.68 ± 0.10 0.25 ± 0.38 
+
+0.25 1000 6.08 ± 0.36 1.39 ± 0.04 1.07 ± 0.03 0.74 ± 0.06 0.61 ± 0.14 
+
+5000 5.76 ± 0.50 1.10 ± 0.05 0.90 ± 0.02 0.70 ± 0.08 0.19 ± 0.28 
+
+10000 5.64 ± 0.29 0.74 ± 0.06 0.84 ± 0.01 0.65 ± 0.08 0.26 ± 0.39 
+
+0.5 1000 6.13 ± 0.31 1.38 ± 0.03 1.07 ± 0.03 0.74 ± 0.05 0.67 ± 0.17 
+
+5000 5.78 ± 0.34 1.11 ± 0.06 0.90 ± 0.02 0.70 ± 0.08 0.23 ± 0.35 
+
+10000 5.68 ± 0.21 0.75 ± 0.06 0.84 ± 0.01 0.66 ± 0.08 0.17 ± 0.31 
+
+0.75 1000 6.17 ± 0.29 1.39 ± 0.04 1.07 ± 0.04 0.73 ± 0.05 0.63 ± 0.19 
+
+5000 5.77 ± 0.38 1.10 ± 0.05 0.90 ± 0.02 0.71 ± 0.07 0.27 ± 0.32 
+
+10000 5.63 ± 0.41 0.75 ± 0.05 0.84 ± 0.01 0.65 ± 0.08 0.10 ± 0.20 
+
+0.9 1000 6.13 ± 0.32 1.37 ± 0.04 1.06 ± 0.05 0.74 ± 0.06 0.66 ± 0.16 
+
+5000 5.70 ± 0.36 1.10 ± 0.05 0.91 ± 0.03 0.69 ± 0.07 0.30 ± 0.40 
+
+10000 5.69 ± 0.24 0.73 ± 0.07 0.84 ± 0.02 0.66 ± 0.09 0.10 ± 0.20 
+
+Figure 3: Structural MSE distribution on the high-dimensional vector-proxy benchmark across sample sizes and confounding levels. Boxplots are based on 20 independent repetitions. This benchmark tests whether an estimator can combine IV correction for endogenous prices with recovery of the customer-type signal that governs heterogeneous price sensitivity from image covari-ates, rather than fitting the confounded observational relation between price and demand. We ran 20 independent simulations for each configuration. As shown in Table 2 and Figure 4, BGM-IV again achieves the lowest mean structural MSE in every reported configuration. The improvement becomes larger when sample size n increases. Additional paired comparisons with the strongest baseline in each high-dimensional configuration are reported in Appendix E. Overall, these results provide consistent evidence that structured latent generative modeling is particularly beneficial when IV estimation needs to be carried out from high-dimensional covariates. 
+
+4.4 Ablation: EGM Initialization 
+
+The EGM initialization in BGM-IV is used only to initialize the latent states and generative model parameters before the stochastic optimization procedure for training. To test its contribution, we run the BGM-IV with EGM initialization or with traditional neural network initialization (e.g., Xavier uniform initialization). We run this comparison at n = 5000 for ρ ∈ { 0.1, 0.5, 0.9} in all three main benchmarks. EGM initialization substantially reduces the mean structural MSE compared to the traditional neural network initialization. These results indicate that the EGM initialization is more than a computational convenience: it provides a better starting point for both the latent states and the 8Table 2: Structural MSE ( ×10 4) on the MNIST image experiments. Each cell reports mean ±
+
+standard deviation over 20 repeats. Best result in each row is bolded. 
+
+n ρ DeepGMM DeepIV KIV DFIV BGM-IV 1000 0.1 5.89 ± 0.58 1.55 ± 0.09 2.08 ± 0.02 1.10 ± 0.09 0.92 ± 0.20 
+
+0.25 5.35 ± 0.83 1.57 ± 0.06 2.08 ± 0.03 1.14 ± 0.14 0.88 ± 0.14 
+
+0.5 5.64 ± 0.76 1.69 ± 0.42 2.09 ± 0.03 1.12 ± 0.09 0.91 ± 0.13 
+
+0.75 5.35 ± 0.88 1.53 ± 0.08 2.09 ± 0.03 1.13 ± 0.10 0.90 ± 0.14 
+
+0.9 5.77 ± 0.63 1.73 ± 0.61 2.07 ± 0.02 1.12 ± 0.07 0.89 ± 0.18 
+
+5000 0.1 5.37 ± 0.67 1.03 ± 0.52 1.93 ± 0.02 0.86 ± 0.10 0.47 ± 0.28 
+
+0.25 5.34 ± 0.70 0.95 ± 0.10 1.92 ± 0.02 0.79 ± 0.09 0.49 ± 0.33 
+
+0.5 5.14 ± 0.91 0.96 ± 0.07 1.92 ± 0.02 0.79 ± 0.07 0.48 ± 0.34 
+
+0.75 5.42 ± 0.65 1.08 ± 0.51 1.92 ± 0.02 0.77 ± 0.09 0.40 ± 0.25 
+
+0.9 5.57 ± 0.47 0.91 ± 0.10 1.92 ± 0.02 0.81 ± 0.09 0.47 ± 0.27 
+
+10000 0.1 5.30 ± 0.87 1.04 ± 0.75 1.88 ± 0.02 0.65 ± 0.09 0.36 ± 0.32 
+
+0.25 5.13 ± 0.67 0.81 ± 0.09 1.88 ± 0.01 0.66 ± 0.09 0.32 ± 0.24 
+
+0.5 5.60 ± 0.71 0.81 ± 0.10 1.87 ± 0.02 0.68 ± 0.10 0.30 ± 0.25 
+
+0.75 5.37 ± 0.84 0.92 ± 0.55 1.87 ± 0.02 0.65 ± 0.08 0.36 ± 0.23 
+
+0.9 5.35 ± 0.52 0.92 ± 0.55 1.88 ± 0.02 0.65 ± 0.11 0.35 ± 0.23 
+
+Figure 4: Structural MSE distribution on the MNIST image experiments across sample sizes and confounding levels. Boxplots are based on 20 independent repetitions. generative networks, leading to more stable training and more reliable convergence of the subsequent stochastic optimization. Full ablation tables and distributional summaries are reported in Appendix F. 
+
+# 5 Conclusion 
+
+We introduced BGM-IV, a latent Bayesian generative modeling approach for nonlinear instrumental-variable regression with high-dimensional observed covariates. BGM-IV introduces a structured low-dimension latent space for decoupling the complex dependencies of covariates on treatment and outcome. To handle endogeneity, BGM-IV replaces the standard outcome likelihood with an IV-integrated pseudo-likelihood, allowing the causal relationship to be learned from instrument-induced treatment variation rather than from the observed endogenous treatment alone. Across benchmarks with diverse settings, BGM-IV remains competitive in the classical low-dimensional setting and shows its substantial advantage when covariates become high-dimensional. BGM-IV is computationally more intensive than direct two-stage predictors because it alternates neural-generator updates with subject-level latent MAP inference and Monte Carlo approximation of the IV-integrated likelihood (see Appendix C). Future work includes extending BGM-IV to a more complex treatment or instrument settings, such as longitudinal or dynamic regimes. 9Acknowledgments and Disclosure of Funding 
+
+This work was partially supported by the National Institutes of Health (NIH) under award R00HG013661. 
+
+# References 
+
+[1] J. Pearl, M. Glymour, and N.P. Jewell. Causal Inference in Statistics: A Primer . Wiley, 2016. ISBN 9781119186847. URL https://books.google.com/books?id=L3G-CgAAQBAJ .[2] Guido W. Imbens and Donald B. Rubin. Causal Inference for Statistics, Social, and Biomedical Sciences: An Introduction . Cambridge University Press, 2015. [3] M.A. Hernan and J.M. Robins. Causal Inference: What If . Chapman & Hall/CRC Monographs on Statistics & Applied Probab. CRC Press, 2025. ISBN 9781420076165. URL https: //books.google.com/books?id=_KnHIAAACAAJ .[4] Donald B Rubin. Estimating causal effects of treatments in randomized and nonrandomized studies. Journal of educational Psychology , 66(5):688, 1974. [5] Paul W Holland. Statistics and causal inference. Journal of the American statistical Association ,81(396):945–960, 1986. [6] Stephen L. Morgan and Christopher Winship. Counterfactuals and Causal Inference: Methods and Principles for Social Research . Analytical Methods for Social Research. Cambridge University Press, 2 edition, 2014. [7] Joshua D Angrist, Guido W Imbens, and Donald B Rubin. Identification of causal effects using instrumental variables. Journal of the American statistical Association , 91(434):444–455, 1996. [8] Joshua D Angrist and Jörn-Steffen Pischke. Mostly harmless econometrics: An empiricist’s companion . Princeton university press, 2009. [9] Joshua Angrist and Guido Imbens. Identification and estimation of local average treatment effects, 1995. [10] Victor Chernozhukov, Whitney K Newey, and Rahul Singh. Automatic debiased machine learning of causal and structural effects. Econometrica , 90(3):967–1027, 2022. [11] Alexander D’Amour, Peng Ding, Avi Feller, Lihua Lei, and Jasjeet Sekhon. Overlap in observational studies with high-dimensional covariates. Journal of Econometrics , 221(2): 644–654, 2021. [12] Victor Chernozhukov, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian Hansen, Whitney Newey, and James Robins. Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal , 21(1):C1–C68, 02 2018. ISSN 1368-4221. doi: 10.1111/ectj.12097. URL https://doi.org/10.1111/ectj.12097 .[13] Fredrik Johansson, Uri Shalit, and David Sontag. Learning representations for counterfactual inference. In International conference on machine learning , pages 3020–3029. PMLR, 2016. [14] Christos Louizos, Uri Shalit, Joris M Mooij, David Sontag, Richard Zemel, and Max Welling. Causal effect inference with deep latent-variable models. Advances in neural information processing systems , 30, 2017. [15] Uri Shalit, Fredrik D Johansson, and David Sontag. Estimating individual treatment effect: generalization bounds and algorithms. In International conference on machine learning , pages 3076–3085. PMLR, 2017. [16] Bernhard Schölkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, and Yoshua Bengio. Toward causal representation learning. Proceedings of the IEEE , 109(5):612–634, 2021. 10 [17] Anpeng Wu, Kun Kuang, Ruoxuan Xiong, and Fei Wu. Instrumental variables in causal inference and machine learning: A survey. ACM Computing Surveys , 57(11):1–36, 2025. [18] James H Stock and Francesco Trebbi. Retrospectives: Who invented instrumental variable regression? Journal of Economic Perspectives , 17(3):177–194, 2003. [19] Whitney K Newey and James L Powell. Instrumental variable estimation of nonparametric models. Econometrica , 71(5):1565–1578, 2003. [20] Richard Blundell, Xiaohong Chen, and Dennis Kristensen. Semi-nonparametric iv estimation of shape-invariant engel curves. Econometrica , 75(6):1613–1669, 2007. [21] Serge Darolles, Yanqin Fan, Jean-Pierre Florens, and Eric Renault. Nonparametric instrumental regression. Econometrica , 79(5):1541–1565, 2011. [22] Xiaohong Chen and Demian Pouzo. Estimation of nonparametric conditional moment models with possibly nonsmooth generalized residuals. Econometrica , 80(1):277–321, 2012. [23] Rahul Singh, Maneesh Sahani, and Arthur Gretton. Kernel instrumental variable regression. 
+
+Advances in Neural Information Processing Systems , 32, 2019. [24] Jason Hartford, Greg Lewis, Kevin Leyton-Brown, and Matt Taddy. Deep iv: A flexible approach for counterfactual prediction. In International conference on machine learning , pages 1414–1423. PMLR, 2017. [25] Liyuan Xu, Yutian Chen, Siddarth Srinivasan, Nando de Freitas, Arnaud Doucet, and Arthur Gretton. Learning deep features in instrumental variable regression. In International Conference on Learning Representations , 2021. URL https://openreview.net/forum?id=sy4Kg_ ZQmS7 .[26] Lars Peter Hansen. Large sample properties of generalized method of moments estimators. 
+
+Econometrica: Journal of the econometric society , pages 1029–1054, 1982. [27] Andrew Bennett, Nathan Kallus, and Tobias Schnabel. Deep generalized method of moments for instrumental variable analysis. Advances in neural information processing systems , 32, 2019. [28] Nishanth Dikkala, Greg Lewis, Lester Mackey, and Vasilis Syrgkanis. Minimax estimation of conditional moment models. Advances in Neural Information Processing Systems , 33: 12248–12262, 2020. [29] Judea Pearl. Causality . Cambridge University Press, 2 edition, 2009. [30] John Bound, David A Jaeger, and Regina M Baker. Problems with instrumental variables estimation when the correlation between the instruments and the endogenous explanatory variable is weak. Journal of the American statistical association , 90(430):443–450, 1995. [31] Peter Hall and Joel L. Horowitz. Nonparametric methods for inference in the presence of instrumental variables. The Annals of Statistics , 33(6):2904 – 2929, 2005. doi: 10.1214/ 009053605000000714. URL https://doi.org/10.1214/009053605000000714 .[32] Marine Carrasco, Jean-Pierre Florens, and Eric Renault. Linear inverse problems in structural econometrics estimation based on spectral decomposition and regularization. Handbook of econometrics , 6:5633–5751, 2007. [33] Xavier D’Haultfoeuille. On the completeness condition in nonparametric instrumental problems. 
+
+Econometric Theory , 27(3):460–471, 2011. [34] Qiao Liu and Wing Hung Wong. A bayesian generative modeling approach for arbitrary conditional inference. arXiv preprint arXiv:2601.05355 , 2026. [35] Qiao Liu and Wing Hung Wong. An ai-powered bayesian generative modeling approach for causal inference in observational studies. Journal of the American Statistical Association , 0 (ja):1–20, 2026. doi: 10.1080/01621459.2026.2654227. URL https://doi.org/10.1080/ 01621459.2026.2654227 .11 [36] Martín Abadi, Paul Barham, Jianmin Chen, Zhifeng Chen, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Geoffrey Irving, Michael Isard, et al. {TensorFlow }: a system for 
+
+{Large-Scale } machine learning. In 12th USENIX symposium on operating systems design and implementation (OSDI 16) , pages 265–283, 2016. [37] Qiao Liu, Zhongren Chen, and Wing Hung Wong. An encoding generative modeling approach to dimension reduction and covariate adjustment in causal inference with observational studies. 
+
+Proceedings of the National Academy of Sciences , 121(23):e2322376121, 2024. [38] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, et al. Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems , 32, 2019. [39] Manabu Kuroki and Judea Pearl. Measurement bias and effect restoration in causal inference. 
+
+Biometrika , pages 423–437, 2014. [40] Wang Miao, Zhi Geng, and Eric J Tchetgen Tchetgen. Identifying causal effects with proxy variables of an unmeasured confounder. Biometrika , 105(4):987–993, 2018. [41] Yann LeCun, Léon Bottou, Yoshua Bengio, and Patrick Haffner. Gradient-based learning applied to document recognition. Proceedings of the IEEE , 86(11):2278–2324, 2002. 
+
+# A Detailed Training and Evaluation Algorithm 
+
+Algorithm 2 expands the main-text procedure in Algorithm 1. For the vector-proxy experiment, the neural baselines use a shared fully connected vector feature block, while BGM-IV uses the corresponding vector encoder and covariate decoder. For image-covariate experiments, we use CNN feature extractors in the image components to keep the representation-learning setup comparable with DeepIV, DFIV, and DeepGMM. 
+
+# B BGM-IV Implementation Details and Hyperparameters 
+
+For reproducibility, we report the BGM-IV implementation settings used in the experiments. Hyper-parameters were fixed within each benchmark and were taken from the corresponding experiment configuration. The same settings were used across sample sizes, confounding levels, and repetitions within a benchmark unless otherwise stated. MNIST-HD uses the MNIST-IV configuration with 
+
+vdim set to 1000, equivalently through a copied configuration or command-line override, so that 215 nuisance Gaussian covariates are appended to the base [T, image 784 ] covariate. Table 3 summarizes the shared optimization and inference settings, and Table 4 reports benchmark-specific dimensions and batch sizes. The generic low-dimensional BGM-IV model uses fully connected networks for the encoder, covariate generator, treatment generator, and outcome generator. The encoder eψ (v) and covariate generator 
+
+pθ (v | z) use hidden units [64 , 64 , 64 , 64 , 64] . The treatment generator receives [z0, z2, w ] and uses hidden units [64 , 32 , 8] ; the outcome generator receives [z0, z1, x ] and also uses hidden units 
+
+[64 , 32 , 8] . Hidden layers use LeakyReLU activations with slope 0.2, final layers are linear, and dense layers use L2 regularization with coefficient 10 −4.For the vector-proxy benchmark, BGM-IV replaces the generic covariate encoder and decoder with vector-specific modules. The vector feature block maps the 784-dimensional proxy through a dense layer of width 128, ReLU activation, dropout 0.1, and a dense layer of width 64. The vector encoder then applies an additional MLP with hidden units [128 , 64] and LeakyReLU activations before the final latent output. The vector covariate decoder uses separate branches for time and the proxy vector, with mean and softplus-variance heads for each branch. The treatment and outcome networks remain the same as in the generic model and retain the inputs [z0, z2, w ] and [z0, z1, x ], respectively. For the image-covariate benchmarks, the image feature extractor uses two 3 × 3 convolution layers with 64 filters, max pooling, dropout 0.1, and dense layers of widths 128 and 64. The image encoder then applies an additional MLP with hidden units [128 , 64] and LeakyReLU activations before the 12 Algorithm 2 Detailed BGM-IV training and structural-MSE evaluation 
+
+Require: Training data Dtrain = {(x(i), y (i), v(i), w (i))}ni=1 ; evaluation test pairs 
+
+{(x(r)eval , v(r)eval )}Rr=1 ; benchmark structural values g0(x(r)eval , v(r)eval ); prior p(z); generators 
+
+pθ (v | z), pϕ(x | w, z0, z2), pω (y | x, z0, z1) with outcome mean μω ; step sizes αθ , α ϕ, α ω , β z ;Monte Carlo size M .
+
+Ensure: Trained generators (ˆθ, ˆϕ, ˆω), structural predictions ˆg(x(r)eval , v(r)eval ), and structural MSE. 
+
+1: Initialize parameters (θ(0) , ϕ (0) , ω (0) ).
+
+2: if EGM initialization is enabled then 
+
+3: Train the encoder eψ and the generative networks with the EGM warm-start objective. 
+
+4: Set z(i, 0) ← eψ (v(i)) for all training units. 
+
+5: else 
+
+6: Set z(i, 0) ∼ N (0 , I) for all training units. 
+
+7: end if 
+
+8: for training epochs do 
+
+9: Sample a mini-batch B ⊂ { 1, . . . , n }.
+
+10: Partition z(i,k ) = ( z(i,k )0 , z(i,k )1 , z(i,k )2 , z(i,k )3 ) for i ∈ B .
+
+11: Set Lv (θ) ← −|B| −1 P 
+
+> i∈B
+
+log pθ (v(i) | z(i,k )).
+
+12: Update θ(k+1) ← θ(k) − αθ ∇θ Lv (θ(k)).
+
+13: Set Lx(ϕ) ← −|B| −1 P 
+
+> i∈B
+
+log pϕ(x(i) | w(i), z(i,k )0 , z(i,k )2 ).
+
+14: Update ϕ(k+1) ← ϕ(k) − αϕ∇ϕLx(ϕ(k)).
+
+15: for each i ∈ B do 
+
+16: if X is continuous then 
+
+17: Draw x(i,m ) ∼ pϕ(k+1) (x | w(i), z(i,k )0 , z(i,k )2 ), m = 1 , . . . , M .
+
+18: Evaluate log p(i,m ) ← log pω(k) (y(i) | x(i,m ), z(i,k )0 , z(i,k )1 ).
+
+19: Set c(i) ← max m log p(i,m ) and log bL(i)IV ← c(i) + log {PMm=1 exp(log p(i,m ) − c(i))} − 
+
+log M , which evaluates Eq. (5) using the standard log-sum-exp stabilization. 
+
+20: else 
+
+21: Compute log bL(i)IV by evaluating Eq. (3) as an exact two-point mixture over x ∈ { 0, 1}.
+
+22: The mixture uses weights from pϕ(k+1) (x | w(i), z(i,k )0 , z(i,k )2 ) and component densities 
+
+pω(k) (y(i) | x, z(i,k )0 , z(i,k )1 ).
+
+23: end if 
+
+24: end for 
+
+25: Set Ly, IV (ω) ← −|B| −1 P 
+
+> i∈B
+
+log bL(i)IV .
+
+26: Update ω(k+1) ← ω(k) − αω ∇ω Ly, IV (ω(k)).
+
+27: for each i ∈ B do 
+
+28: Update each latent state by ascent on the objective in Eq. (9): 
+
+29: z(i,k +1) ← z(i,k ) + βz ∇z(i,k ) {log p(z(i,k )) + log pθ(k+1) (v(i) | z(i,k )) + log pϕ(k+1) (x(i) |
+
+w(i), z(i,k )0 , z(i,k )2 ) + log bL(i)IV }.
+
+30: end for 
+
+31: end for 
+
+32: Set (ˆθ, ˆϕ, ˆω) ← (θ(K), ϕ (K), ω (K)).
+
+33: for test pair (x(r)eval , v(r)eval ) do 
+
+34: Compute ˆz(v(r)eval ) = arg max z{log p(z) + log pˆθ (v(r)eval | z)}.
+
+35: Set ˆg(x(r)eval , v(r)eval ) ← μˆω (x(r)eval , ˆz0(v(r)eval ), ˆz1(v(r)eval )) .
+
+36: end for 
+
+37: Set MSE struct ← R−1 PRr=1 {ˆg(x(r)eval , v(r)eval ) − g0(x(r)eval , v(r)eval )}2.
+
+38: Return (ˆθ, ˆϕ, ˆω), {ˆg(x(r)eval , v(r)eval )}Rr=1 , and MSE struct .13 Table 3: Shared BGM-IV optimization and inference hyperparameters. 
+
+Component Setting Optimizer Adam with β1 = 0 .9 and β2 = 0 .99 
+
+Generator learning rate 10 −4 for θ, ϕ, and ω
+
+Latent-state learning rate 10 −4 for subject-level latent updates EGM pretraining learning rate 2 × 10 −4
+
+Training schedule 200 configured epochs; the implementation loops over range(epochs + 1) , giving 201 epoch indices; evaluation every 10 epochs EGM warm-start 50,000 configured iterations; the implementation loops over 
+
+range(egm_n_iter + 1) , giving 50,001 warm-start iteration in-dices; 500 batches per evaluation EGM discriminator/generator schedule Five discriminator updates per generator update ( g_d_freq=5 )EGM reconstruction setting Latent reconstruction enabled in the EGM objective (use_z_rec=True )Latent initialization z(i) ← eψ (v(i)) after EGM warm-start Latent posterior weighting Weight 0.5 on the covariate-prior component in the latent-state objec-tive ( latent_pzv_weight=0.5 )First-stage warm-up 0 epochs IV Monte Carlo size 1000 samples for training and 1000 samples for evaluation Test-time latent MAP Encoder initialization; 1000 Adam steps; learning rate 10 −4
+
+Table 4: Benchmark-specific BGM-IV dimensions and batch sizes.                                       
+
+> Benchmark vdim Latent partition Batch size Covariate module Low-dimensional demand 2[2 ,2,1,2] (dim( z) = 7 )64 Generic MLP encoder and covari-ate generator Vector-proxy 785 [2 ,1,1,2] (dim( z) = 6 )32 Vector encoder and vector covari-ate decoder; σrep = 0 .5
+> MNIST-IV 785 [2 ,1,1,2] (dim( z) = 6 )32 Image encoder and image covariate decoder MNIST-HD 1000 [2 ,1,1,2] (dim( z) = 6 )32 Image encoder and image covariate decoder with 215 appended Gaus-sian nuisance covariates
+
+final latent output. In MNIST-HD, an additional nuisance branch maps the 215 appended Gaussian covariates through widths 64 and 32 before concatenation with the time and image features. The image decoder projects the latent state to a 7 × 7 × 128 tensor, applies two transposed-convolution upsampling blocks followed by convolutional refinement, and uses a sigmoid image output; when nuisance covariates are present, it also includes nuisance mean and variance heads. The treatment and outcome networks again use [z0, z2, w ] and [z0, z1, x ] as inputs. Preprocessing follows the experiment scripts in the BGM-IV experiment driver. For the low-dimensional demand benchmark, X, Y , V , and W are standardized using training-set means and standard deviations, with standard deviations below 10 −6 replaced by 1. The same fitted transforma-tions are applied to the evaluation grid for X and V , and structural MSE is reported on the original outcome scale. For the vector-proxy, MNIST-IV, and MNIST-HD benchmarks, the scripts use the fixed DFIV-compatible scaling X 7 → (X − 17 .779) /3.7 and Y 7 → (Y + 292 .1) /158 .0; V and W
+
+are kept on their raw observed scales. 
+
+# C Computational Cost 
+
+All experiments were run on high-performance computing cluster. For BGM-IV, the low-dimensional demand and vector-proxy experiments were run with CPU workers, with TensorFlow GPU visibility disabled by the experiment configuration. The MNIST-IV and MNIST-HD image-covariate exper-iments were run with GPU workers; in the reported runs, each image-covariate worker used one NVIDIA RTX 5000 Ada GPU. Baseline methods were run through the DFIV codebase with Ray parallelism. DFIV, DeepIV, and DeepGMM use PyTorch GPU execution when a GPU worker is 14 Table 5: Compute resources used for the reported experiments. One run denotes one independent repetition at a fixed sample size, confounding level, and benchmark configuration. 
+
+Experiment family BGM-IV worker Baseline workers Resource notes Low-dimensional de-mand CPU worker CPU worker for KIV; GPU-enabled PyTorch workers for DFIV, DeepIV, and Deep-GMM when scheduled with GPU resources BGM-IV explicitly dis-ables TensorFlow GPU visibility; repeated runs are parallelized across independent workers. Vector-proxy demand CPU worker CPU worker for KIV; GPU-enabled PyTorch workers for DFIV, DeepIV, and Deep-GMM when scheduled with GPU resources Same worker-level setup as the low-dimensional de-mand benchmark; Table 6 gives per-worker runtimes for n = 5000 .MNIST-IV One NVIDIA RTX 5000 Ada GPU worker CPU worker for KIV; GPU-enabled PyTorch workers for DFIV, DeepIV, and Deep-GMM when scheduled with GPU resources Image-covariate BGM-IV runs use TensorFlow GPU execution with one worker assigned to one GPU. MNIST-HD One NVIDIA RTX 5000 Ada GPU worker CPU worker for KIV; GPU-enabled PyTorch workers for DFIV, DeepIV, and Deep-GMM when scheduled with GPU resources Same image-covariate GPU setup as MNIST-IV, with 215 additional nui-sance covariates. 
+
+Table 6: Per-worker one-repeat runtime on the n = 5000 vector-proxy demand benchmark. Runtimes are reported in minutes and summarized across five usable confounding settings.                                
+
+> Method Usable ρMean Median Min Max BGM-IV 55.86 4.24 3.09 9.96 DFIV 52.89 2.86 2.79 2.97 DeepIV 55.62 3.41 2.17 10.61 DeepGMM 52.27 2.33 2.14 2.36 KIV 56.71 6.48 6.43 7.72
+
+assigned, whereas KIV uses the repository’s CPU-based kernel implementation. Table 5 summarizes the compute-worker types used in the reported experiments. The final experiments reported in the paper used the resources listed here; the broader research process also included additional exploratory, debugging, and failed runs that are not included in the reported timing summaries. We also report a runtime audit to contextualize the computational cost of BGM-IV. Because methods were run with different numbers of parallel workers, we compare inferred per-worker one-repeat runtimes rather than total benchmark wall-clock times. For BGM-IV, repeat-level training-history files are used as completion artifacts. For the baseline methods, repeat-task metadata and final result files are used. Near-identical timestamps are grouped into parallel waves, and the per-worker runtime for each setting is estimated from the gaps between consecutive waves or from start-to-finish metadata. These estimates are derived from filesystem modification times and should be interpreted as approximate runtime diagnostics, not hardware-normalized FLOP measurements. Table 6 and Figure 5 summarize the audit on the n = 5000 vector-proxy demand benchmark with 
+
+vdim = 785 and ρ ∈ { 0.1, 0.25 , 0.5, 0.75 , 0.9}. Each row averages the inferred per-worker one-repeat runtime across the five usable confounding settings. 
+
+# D Experiment Details 
+
+D.1 Low-Dimensional Demand Design 
+
+The low-dimensional demand benchmark follows the synthetic airline demand design used in DeepIV, KIV, and DFIV [ 24 , 23 , 25 ]. Let S denote customer group, T time of year, C the cost-shifter 15 Figure 5: Per-worker one-repeat runtime on the n = 5000 vector-proxy demand benchmark. Bars show the mean runtime across the five confounding settings in Table 6. instrument, and U an unobserved demand shock. We draw 
+
+S ∼ Unif {1, . . . , 7}, T ∼ Unif[0 , 10] , C, U, η ∼ N (0 , 1) ,
+
+and set 
+
+ψ(T ) = 2 
+
+ (t − 5) 4
+
+600 + exp[ −4( t − 5) 2] + t
+
+10 − 2
+
+
+
+.
+
+For a confounding level ρ, the structural disturbance and price are 
+
+ϵ = ρU + p1 − ρ2η, P = 25 + ( C + 3) ψ(T ) + U. 
+
+The structural demand function and observed outcome are 
+
+f0(P, T, S ) = 100 + (10 + P )Sψ (T ) − 2P, Y = f0(P, T, S ) + ϵ. 
+
+Thus P is endogenous through U , while C shifts price and is mean independent of the structural disturbance conditional on the observed covariates. The observed covariates are V = ( T, S ).Evaluation uses the standard grid with 20 prices in [10 , 25] , 20 time points in [0 , 10] , and all seven customer groups, giving 2800 structural evaluation points. 
+
+D.2 High-Dimensional Vector-Proxy Demand Design 
+
+The vector-proxy benchmark again keeps the treatment, instrument, outcome, structural function, and evaluation grid fixed. Instead of observing customer group directly or through an image, we create type-specific prototypes μ1, . . . , μ7 ∈ R784 using a fixed feature seed. For a unit with customer group S, the observed proxy vector is 
+
+r = μS + σrep η, η ∼ N (0 , I784 ),
+
+with σrep = 0 .5. The observed covariates are v = [ T, r] with vdim = 785 . The same prototype construction is used for all methods, and the evaluation grid attaches vector proxies to the same 20-by-20-by-7 combinations of price, time, and customer group. DeepIV, DFIV, and DeepGMM use the shared fully connected vector feature block 784 → 128 → 64 before their method-specific networks. BGM-IV uses the matching vector encoder and vector covariate decoder for the pθ (v | z)
+
+path, while KIV receives the raw vector covariates through its kernel implementation. 
+
+D.3 Image-Covariate Demand Design 
+
+The image-covariate benchmark keeps the same treatment, instrument, outcome, structural function, and evaluation grid as the low-dimensional demand design. The only change is the observation of customer group: instead of exposing S as a categorical covariate, we attach a randomly sampled MNIST digit image with label S [41 ]. The observed covariate is therefore v = [ T, image 784 ] with 
+
+vdim = 785 . Training images are sampled from the MNIST training split and evaluation images from the test split, while the structural grid remains the same 20-by-20-by-7 demand grid. 16 Table 7: Structural MSE ( ×10 4) on the nuisance-augmented image-covariate demand design with 
+
+vdim = 1000 . Each cell reports mean ± standard deviation over 10 independent repeats. Best result in each row is bolded. 
+
+n ρ DeepGMM DeepIV KIV DFIV BGM-IV 5000 0.1 5.50 ± 0.77 1.74 ± 0.51 1.93 ± 0.02 1.46 ± 0.10 0.84 ± 0.25 
+
+0.25 5.61 ± 0.45 1.59 ± 0.11 1.93 ± 0.02 1.53 ± 0.11 0.78 ± 0.06 
+
+0.5 5.32 ± 0.50 1.67 ± 0.16 1.92 ± 0.02 1.52 ± 0.13 0.85 ± 0.27 
+
+0.75 5.48 ± 0.65 1.59 ± 0.09 1.92 ± 0.02 1.46 ± 0.10 0.74 ± 0.06 
+
+0.9 5.59 ± 0.30 1.61 ± 0.05 1.92 ± 0.02 1.53 ± 0.07 0.87 ± 0.24 
+
+10000 0.1 5.54 ± 0.64 1.21 ± 0.05 1.87 ± 0.02 1.52 ± 0.09 0.55 ± 0.25 
+
+0.25 5.72 ± 0.55 1.22 ± 0.06 1.87 ± 0.01 1.55 ± 0.13 0.56 ± 0.29 
+
+0.5 5.71 ± 0.46 1.20 ± 0.05 1.87 ± 0.02 1.54 ± 0.13 0.52 ± 0.28 
+
+0.75 5.36 ± 0.83 1.19 ± 0.04 1.87 ± 0.01 1.51 ± 0.11 0.41 ± 0.06 
+
+0.9 5.68 ± 0.42 1.23 ± 0.05 1.87 ± 0.01 1.48 ± 0.07 0.53 ± 0.26 
+
+20000 0.1 5.56 ± 0.53 0.81 ± 0.10 1.84 ± 0.01 1.31 ± 0.09 0.26 ± 0.23 
+
+0.25 5.56 ± 0.59 0.79 ± 0.03 1.84 ± 0.01 1.34 ± 0.09 0.20 ± 0.18 
+
+0.5 5.47 ± 0.54 0.78 ± 0.03 1.84 ± 0.01 1.36 ± 0.11 0.14 ± 0.01 
+
+0.75 5.39 ± 0.60 0.78 ± 0.04 1.84 ± 0.01 1.28 ± 0.09 0.21 ± 0.16 
+
+0.9 5.43 ± 0.81 0.79 ± 0.04 1.84 ± 0.01 1.35 ± 0.10 0.21 ± 0.22 
+
+Figure 6: Structural MSE distribution on the nuisance-augmented image-covariate demand design. Boxplots are based on 10 independent repetitions. 
+
+D.4 Nuisance-Augmented Image-Covariate Demand Design 
+
+The nuisance-augmented benchmark keeps the image-covariate demand design fixed and appends independent Gaussian nuisance covariates to the observed vector. Specifically, after constructing 
+
+v = [ T, image 784 ], we append 215 independent N (0 , 1) features, yielding vdim = 1000 . These added covariates do not enter the price equation, outcome equation, instrument, or structural function. They are included only to test robustness when causally useful image information is embedded in a larger high-dimensional adjustment vector. Evaluation again uses the same 2800 structural grid over price, time, and customer group. 17 Table 8: Paired comparison between BGM-IV and the strongest baseline on the high-dimensional vector-proxy demand design. Structural MSE values and paired differences are reported on the ×10 4
+
+scale; negative mean differences indicate lower MSE for BGM-IV. 
+
+n ρ Best baseline Baseline BGM-IV Mean diff. Wilcoxon p (Holm) Paired t p 
+
+1000 0.1 DFIV 0.736 ± 0.044 0.582 ± 0.137 -0.154 0.0029 0.0002 1000 0.25 DFIV 0.737 ± 0.065 0.605 ± 0.136 -0.132 0.0093 0.0015 1000 0.5 DFIV 0.740 ± 0.054 0.674 ± 0.174 -0.067 0.0725 0.0855 1000 0.75 DFIV 0.726 ± 0.052 0.633 ± 0.190 -0.094 0.0459 0.0389 1000 0.9 DFIV 0.743 ± 0.061 0.665 ± 0.159 -0.078 0.0725 0.0340 5000 0.1 DFIV 0.685 ± 0.068 0.324 ± 0.405 -0.361 0.0043 0.0009 5000 0.25 DFIV 0.701 ± 0.079 0.186 ± 0.283 -0.515 0.0002 2.43e-07 5000 0.5 DFIV 0.696 ± 0.085 0.227 ± 0.346 -0.468 0.0005 1.73e-05 5000 0.75 DFIV 0.708 ± 0.073 0.275 ± 0.322 -0.433 0.0010 4.17e-06 5000 0.9 DFIV 0.695 ± 0.072 0.301 ± 0.404 -0.394 0.0024 0.0003 10000 0.1 DFIV 0.679 ± 0.107 0.249 ± 0.383 -0.430 0.0024 5.57e-05 10000 0.25 DFIV 0.646 ± 0.079 0.256 ± 0.393 -0.391 0.0024 0.0004 10000 0.5 DFIV 0.665 ± 0.087 0.172 ± 0.311 -0.492 0.0003 2.35e-06 10000 0.75 DFIV 0.652 ± 0.087 0.097 ± 0.200 -0.555 5.72e-05 2.13e-09 10000 0.9 DFIV 0.664 ± 0.089 0.098 ± 0.200 -0.566 5.72e-05 1.43e-09 
+
+Table 9: Paired comparison between BGM-IV and the strongest baseline on the high-dimensional image-covariate demand design. Structural MSE values and paired differences are reported on the 
+
+×10 4 scale; negative mean differences indicate lower MSE for BGM-IV. 
+
+n ρ Best baseline Baseline BGM-IV Mean diff. Wilcoxon p (Holm) Paired t p 
+
+1000 0.1 DFIV 1.105 ± 0.091 0.924 ± 0.197 -0.180 0.0073 0.0026 1000 0.25 DFIV 1.139 ± 0.142 0.876 ± 0.139 -0.263 0.0002 9.75e-06 1000 0.5 DFIV 1.122 ± 0.089 0.912 ± 0.131 -0.209 0.0029 1.61e-05 1000 0.75 DFIV 1.129 ± 0.106 0.899 ± 0.145 -0.230 0.0012 2.83e-05 1000 0.9 DFIV 1.124 ± 0.067 0.892 ± 0.181 -0.232 0.0028 9.08e-05 5000 0.1 DFIV 0.859 ± 0.100 0.475 ± 0.282 -0.385 0.0013 7.42e-06 5000 0.25 DFIV 0.795 ± 0.097 0.488 ± 0.328 -0.307 0.0041 8.16e-05 5000 0.5 DFIV 0.793 ± 0.073 0.481 ± 0.338 -0.312 0.0070 0.0008 5000 0.75 DFIV 0.773 ± 0.088 0.404 ± 0.252 -0.369 0.0015 2.75e-06 5000 0.9 DFIV 0.813 ± 0.088 0.471 ± 0.269 -0.343 0.0008 3.20e-05 10000 0.1 DFIV 0.649 ± 0.095 0.357 ± 0.324 -0.292 0.0070 0.0016 10000 0.25 DFIV 0.664 ± 0.088 0.322 ± 0.240 -0.342 0.0005 4.14e-06 10000 0.5 DFIV 0.677 ± 0.107 0.303 ± 0.246 -0.375 0.0006 1.63e-05 10000 0.75 DFIV 0.647 ± 0.087 0.359 ± 0.226 -0.288 0.0029 0.0002 10000 0.9 DFIV 0.650 ± 0.111 0.350 ± 0.230 -0.299 0.0021 3.29e-05 
+
+# E Paired Comparisons Against the Strongest Baseline 
+
+For each high-dimensional configuration, we identify the baseline with the lowest mean structural MSE and compare BGM-IV with that baseline using matched repetitions. Tables 8, 9, and 10 report the mean structural MSE of the selected baseline and BGM-IV, the paired mean difference, and supplementary paired-test summaries. Negative mean differences indicate lower structural MSE for BGM-IV. 18 Table 10: Paired comparison between BGM-IV and the strongest baseline on the nuisance-augmented image-covariate demand design. Structural MSE values and paired differences are reported on the 
+
+×10 4 scale; negative mean differences indicate lower MSE for BGM-IV. 
+
+n ρ Best baseline Baseline BGM-IV Mean diff. Wilcoxon p (Holm) Paired t p 
+
+5000 0.1 DFIV 1.457 ± 0.105 0.844 ± 0.246 -0.612 0.0293 9.15e-05 5000 0.25 DFIV 1.530 ± 0.113 0.780 ± 0.061 -0.750 0.0293 4.31e-09 5000 0.5 DFIV 1.517 ± 0.132 0.850 ± 0.271 -0.667 0.0293 0.0001 5000 0.75 DFIV 1.460 ± 0.107 0.741 ± 0.064 -0.719 0.0293 8.63e-08 5000 0.9 DFIV 1.532 ± 0.074 0.865 ± 0.245 -0.666 0.0293 3.79e-05 10000 0.1 DeepIV 1.212 ± 0.048 0.546 ± 0.252 -0.667 0.0293 9.13e-06 10000 0.25 DeepIV 1.220 ± 0.062 0.565 ± 0.293 -0.655 0.0293 5.40e-05 10000 0.5 DeepIV 1.195 ± 0.052 0.523 ± 0.285 -0.672 0.0293 8.95e-05 10000 0.75 DeepIV 1.190 ± 0.040 0.409 ± 0.060 -0.781 0.0293 1.38e-10 10000 0.9 DeepIV 1.225 ± 0.056 0.529 ± 0.262 -0.697 0.0293 3.07e-06 20000 0.1 DeepIV 0.813 ± 0.108 0.264 ± 0.234 -0.549 0.0293 0.0002 20000 0.25 DeepIV 0.785 ± 0.036 0.202 ± 0.182 -0.584 0.0293 2.76e-06 20000 0.5 DeepIV 0.777 ± 0.031 0.138 ± 0.014 -0.639 0.0293 2.61e-12 20000 0.75 DeepIV 0.781 ± 0.040 0.211 ± 0.158 -0.569 0.0293 3.22e-06 20000 0.9 DeepIV 0.790 ± 0.041 0.212 ± 0.221 -0.578 0.0293 1.41e-05 
+
+19 Table 11: Structural MSE ( ×10 4) for the demand design dataset EGM ablation. Each cell reports mean ± standard deviation over 20 repeats. 
+
+ρ n BGM-IV BGM-IV (EGM=0) 0.1 5000 0.05 ± 0.01 1.25 ± 0.57 0.5 5000 0.04 ± 0.01 1.51 ± 0.77 0.9 5000 0.05 ± 0.01 1.28 ± 0.67 
+
+Figure 7: Distribution of structural MSE for full BGM-IV and BGM-IV (EGM=0) on the low-dimensional demand design at n = 5000 and ρ ∈ { 0.1, 0.5, 0.9}.
+
+# F EGM Initialization Ablation 
+
+We evaluate the contribution of the EGM warm start by comparing full BGM-IV against BGM-IV (EGM=0), which keeps the same alternating training and MAP structural prediction pipeline but sets the EGM initialization budget to zero. The ablation is run at n = 5000 and ρ ∈ { 0.1, 0.5, 0.9}
+
+for each main benchmark, using 20 independent repetitions. Table 11 and Figure 7 show the low-dimensional demand results; Table 12 and Figure 8 show the vector-proxy results; and Table 13 and Figure 9 show the image-covariate results. 20 Table 12: Structural MSE ( ×10 4) for the vector-proxy demand design dataset EGM ablation. Each cell reports mean ± standard deviation over 20 repeats. 
+
+ρ n BGM-IV BGM-IV (EGM=0) 0.1 5000 0.32 ± 0.41 2.30 ± 0.46 0.5 5000 0.23 ± 0.35 2.25 ± 0.43 0.9 5000 0.30 ± 0.40 2.26 ± 0.47 
+
+Figure 8: Distribution of structural MSE for full BGM-IV and BGM-IV (EGM=0) on the high-dimensional vector-proxy demand design at n = 5000 and ρ ∈ { 0.1, 0.5, 0.9}.Table 13: Structural MSE ( ×10 4) for the MNIST demand design dataset EGM ablation. Each cell reports mean ± standard deviation over 20 repeats. 
+
+ρ n BGM-IV BGM-IV (EGM=0) 0.1 5000 0.47 ± 0.28 2.74 ± 0.33 0.5 5000 0.48 ± 0.34 2.62 ± 0.41 0.9 5000 0.47 ± 0.27 2.68 ± 0.38 
+
+Figure 9: Distribution of structural MSE for full BGM-IV and BGM-IV (EGM=0) on the high-dimensional image-covariate demand design at n = 5000 and ρ ∈ { 0.1, 0.5, 0.9}.21

@@ -1,0 +1,1036 @@
+Title: RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation
+
+URL Source: https://arxiv.org/pdf/2605.05890v1
+
+Published Time: Fri, 08 May 2026 01:00:39 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Yifei Xie 1 Jian Huang 1
+
+## Abstract 
+
+Estimating causal effects from observational data has become increasingly critical in diverse fields including healthcare, economics, and social pol-icy. The fundamental challenge in causal infer-ence arises from the missing counterfactuals and the selection bias. Existing methods are largely limited to point estimates and lack the capacity for distribution modeling. In this work, we pro-pose RepFlow, a novel framework that formulates causal effect estimation as a joint optimization problem integrating representation learning with Conditional Flow Matching (CFM). RepFlow mit-igates selection bias by minimizing the entropi-cally regularized Wasserstein distance between treated and control representations. To enhance numerical stability, we further introduce an L2
+
+normalization constraint on latent representations. This balanced representation enables the flow model to accurately capture the distribution of potential outcomes. Extensive experiments across a wide range of benchmarks demonstrate that RepFlow consistently outperforms existing meth-ods in both point and distributional causal effect estimation. 
+
+## 1. Introduction 
+
+Estimating causal effects plays an essential role across di-verse fields. While traditional predictive tasks typically identify statistical associations, causal inference seeks to answer counterfactual ’what-if’ questions, providing critical guidance for effective decision-making (Pearl, 2009). For instance, in healthcare, clinicians need to determine the op-timal treatment plan for a patient by assessing the predicted outcomes for different patient groups (Corrao et al., 2012). In social policy, governments endeavor to determine whether subsidized job-training programs actually improve workers’ employment prospects (Britto et al., 2022). Similarly, in  
+
+> 1Department of Data Science and Artificial Intelligence, The Hong Kong Polytechnic University, Hong Kong, China. Corre-spondence to: Jian Huang <j.huang@polyu.edu.hk >.
+> Preprint. May 8, 2026.
+
+digital marketing, platforms seek to predict whether an ad-vertisement will successfully persuade a user to purchase a product (Rzepakowski & Jaroszewicz, 2012). The fundamental challenge of causal inference is that we can observe outcomes only for the treatment received, not for alternatives. Randomized controlled trials (RCTs) are widely regarded as the gold standard for identifying causal effects, as random treatment assignment ensures compara-bility between treated and control groups (Hern ´an & Robins, 2010). In practice, however, RCTs are often infeasible ow-ing to ethical constraints and high costs. Consequently, the growing availability of large-scale observational data has further increased interest in causal inference from observa-tional studies (Rosenbaum & Rubin, 1983). In such settings, treatment assignment is typically non-random as confound-ing variables influence it. This leads to selection bias, also known as covariate shift, in which the distributions of mea-sured features differ across treatment groups (Kirklin et al., 2010). For instance, in clinical practice, a newly approved medication is more often prescribed to younger patients, while older patients are more likely to remain on standard treatment. In this case, age becomes a confounder that ren-ders the two groups incomparable. Unless these distribution shifts are adequately addressed, models will fail to provide accurate causal estimates. To address selection bias in observational data, traditional causal inference research has developed a variety of tech-niques primarily focused on estimating the Average Treat-ment Effect (ATE). Approaches such as propensity score matching and weighting aim to balance covariate distri-butions (Lunceford & Davidian, 2004; Imai & Ratkovic, 2014). Doubly robust estimators combine outcome model-ing with propensity scores for improving robustness against model misspecification (Chernozhukov et al., 2018). How-ever, these methods generally provide population-level es-timates and overlook treatment effect heterogeneity. Con-sequently, there has been a growing interest in estimating the Conditional Average Treatment Effect (CATE) to cap-ture subgroup-specific effects. This includes various meta-learners, such as the S-learner, T-learner, and DR-learner, which split the CATE estimation into supervised learning sub-problems (Athey & Imbens, 2015; K¨ unzel et al., 2019; Kennedy, 2023), as well as tree-based approaches such as Causal Forests (Wager & Athey, 2018). Furthermore, deep 1
+
+> arXiv:2605.05890v1 [cs.LG] 7 May 2026 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation
+
+representation learning methods have attracted considerable attention by learning balanced embeddings that minimize the distance between treatment and control distributions. These approaches consider a range of frameworks, such as using integral probability metrics (IPM) for regularization or harnessing optimal transport (Shalit et al., 2017; Has-sanpour & Greiner, 2019; Cheng et al., 2022; Wang et al., 2023). A notable shortcoming of the aforementioned meth-ods is that they primarily focus on point estimates, which are unable to capture the full distribution of predicted out-comes. Learning the entire distribution is necessary for reliable decision-making, as it provides fundamental infor-mation about the uncertainty of treatment effects (Gische & Voelkle, 2022; Kennedy et al., 2023). To mitigate this constraint, researchers have turned to gen-erative modeling as a compelling technique for learning the distribution of predicted outcomes. Early work in this area leveraged Generative Adversarial Networks (GANs), such as GANITE, to synthesize potential outcomes (POs) (Yoon et al., 2018). However, GAN-based frameworks com-monly suffer from training instability and mode collapse. In recent years, diffusion-based methods have become a popular choice for causal inference (Chao et al., 2023; Ma et al., 2024; Chen et al., 2025), offering a flexible way to model complex data distributions. However, the SDE-based sampling process in these models is inefficient, requiring many iterations and resulting in slow sampling speeds. The random characteristic of the process can also lead to numer-ical instability in the generated POs. To handle these issues, PO-Flow adopts a Flow Matching framework based on Ordi-nary Differential Equations (ODEs) (Wu et al., 2025). This ODE-based solution provides more efficient inference and generates more stable, deterministic sample paths. However, despite these improvements to the generative mechanism, PO-Flow does not address the fundamental issue of selection bias inherent to observational studies. In this work, we present a representation enhanced flow matching framework, called RepFlow, that integrates bal-anced representation learning with generative causal mod-eling. At the core of our approach is a joint objective func-tion that simultaneously optimizes a representation encoder and a conditional flow matching model. Specifically, we mitigate selection bias by minimizing the Wasserstein dis-crepancy between treatment groups in a latent space, which is computed efficiently via entropic regularization. To en-sure computational stability and prevent gradient explosions during optimal transport optimization, we enforce L2 nor-malization in the representation layer to smoothly map latent features onto a unit hypersphere. This balanced foundation enables the conditional flow matching model to learn the full density of POs accurately. By using an ODE formula-tion to map noise to output distributions, RepFlow provides deterministic, interpretable sample paths that enable fast, ac-curate sampling during inference. This unified architecture ensures the generative process remains robust even under substantial covariate shift. Ultimately, our framework deliv-ers a unified, flexible approach that enables fast, accurate sampling and reliable causal estimation across a wide range of complex settings. Our main contributions are summarized as follows: • We propose RepFlow, a unified framework that inte-grates balanced representation learning with condi-tional flow matching to mitigate selection bias and model the full distribution of potential outcomes (POs). • We design a stable joint objective by combining en-tropically regularized Wasserstein distance with L2-normalized representations, effectively improving nu-merical stability and preventing gradient explosion dur-ing training. • We provide a theoretical analysis establishing a dis-tributional generalization bound, showing that the ex-pected distributional error is controlled by the factual distribution losses and the Wasserstein distance be-tween treatment groups in the latent space, which mo-tivates our joint optimization strategy. • Extensive experiments on IHDP, ACIC 2018, and syn-thetic datasets demonstrate that RepFlow consistently outperforms state-of-the-art baselines in both point and distributional causal effect estimation. 
+
+## 2. Related Work 
+
+2.1. CATE Estimation 
+
+Existing literature on CATE estimation generally falls into two categories: model-agnostic and model-specific ap-proaches. Model-agnostic estimators decompose the causal task into standard supervised learning problems. These include one-step ”plug-in” learners, such as the S-learner and T-learner, which estimate POs directly to compute their difference (Athey & Imbens, 2015; K ¨unzel et al., 2019). However, these methods often fail to adequately address selection bias. In contrast, two-step learners, such as the X-learner and DR-learner, first utilize nuisance functions to construct pseudo-outcomes and subsequently regress these values onto input covariates to obtain the CATE (He et al., 2022; Kennedy, 2023). These strategies commonly assume that the CATE function has a simpler functional structure than the underlying POs. In finite-sample settings, this as-sumption can introduce a specific inductive bias that is often too restrictive, potentially resulting in suboptimal perfor-mance in predicting individualized outcomes. Model-specific estimators adapt specialized machine learn-ing techniques directly for causal inference tasks. This 2RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+category includes tree-based approaches, exemplified by Causal Forest, which modify random forest objectives to estimate heterogeneous treatment effects during tree build-ing (Wager & Athey, 2018). Neural network architectures like CFRNet and DragonNet have gained popularity (Shalit et al., 2017; Shi et al., 2019); these methods rely on repre-sentation learning to align covariate distributions between treatment and control groups, therefore alleviating selection bias (Shalit et al., 2017; Hassanpour & Greiner, 2019; Du et al., 2021; Cheng et al., 2022; Wang et al., 2023). Other approaches, such as CEVAE, incorporate latent-variable models to address hidden confounding while modeling out-come distributions (Louizos et al., 2017). However, most of these approaches primarily target CATE estimation rather than predicting individualized POs. Since these models are typically restricted to point estimates, they lack the capacity to provide full distributional information regarding POs. 
+
+2.2. Generative models for causal inference 
+
+Generative models were introduced for learning complex data distributions from a given dataset, enabling the gener-ation of high quality samples that reflect underlying data variance (Goodfellow et al., 2020; Ho et al., 2020; Zhou et al., 2023; Chao et al., 2023; Chen et al., 2025). Build-ing on this ability, recent studies have applied generative methods to causal inference related tasks (Sanchez et al., 2023), including generating counterfactual images (Deng et al., 2024), performing causal discovery, and answering causal queries (S ´anchez-Martin et al., 2022). While these methods indicate the flexibility of generative modeling for causal reasoning, they are primarily designed for structural equation or image counterfactual generation, rather than for directly estimating causal effects from observational data. Another line of work applies generative models to causal treatment effect estimation under the POs framework. GAN-ITE introduces a two-stage adversarial architecture in which a counterfactual generator produces proxy outcomes to su-pervise an ITE generator (Yoon et al., 2018); however, this approach is prone to resulting in instability during adver-sarial training. Diffusion-based approaches have also been proposed for modeling POs (Ma et al., 2024). Although DiffPO incorporates inverse propensity weighting (IPW) into the diffusion noise loss to address treatment imbalance, this design introduces substantial numerical bias and vari-ance, leading to unstable training when propensity scores are near 0 or 1. In addition, the method incurs high compu-tational cost due to the large number of sampling iterations required for POs generation. More recently, PO-Flow adopts flow matching to generate POs with deterministic dynamics and improved sampling efficiency. Despite its efficiency, PO-Flow does not explicitly mitigate selection bias, making it sensitive to distribution shifts between treated and con-trol groups. To bridge these gaps, we propose RepFlow, which combines balanced representation learning with a flow matching framework, enabling unbiased causal effect estimation without reliance on IPW weighting. 
+
+## 3. Preliminaries 
+
+In this section, we establish the formal notation for causal effect estimation and introduce the fundamentals of Contin-uous Normalizing Flows and the Flow Matching training paradigm. 
+
+3.1. Causal Inference and Potential Outcomes 
+
+We consider an observational dataset D = {(xi, a i, y i)}ni=1 
+
+drawn from a distribution p(X, A, Y ), where x ∈ RdX
+
+denotes the observed covariates, a ∈ { 0, 1} is the binary treatment assignment, and y ∈ RdY is the observed out-come. Following the potential outcomes framework (Rubin, 1974), let Y (0) and Y (1) represent the potential outcomes under control and treatment, respectively. The observed outcome is given by Y = AY (1) + (1 − A)Y (0) . Our objective is to estimate the CATE, defined as τ (x) = E[Y (1) −Y (0) | X =
+
+x]. In order to identify causal effects from observational data, we need to make the following standard assumption: 
+
+Assumption 3.1. We assume the standard causal identi-fication conditions: (i) Consistency , i.e., if an individual receives treatment A = a, then Y = Y (a); (ii) Unconfound-edness , i.e., {Y (0) , Y (1) } ⊥ ⊥ A | X; and (iii) Overlap , i.e., 
+
+0 < P(A = 1 | X = x) < 1 for all x ∈ X .
+
+Under Assumption 3.1, the distribution of potential out-comes can be identifd from observational data as p(Y (a) |
+
+X) = p(Y | X, A = a). Consequently, the CATE denoted as τ , can be identified through the following expansion of expectations: 
+
+τ = E[Y (1) | X] − E[Y (0) | X]= E[Y | A = 1 , X ] − E[Y | A = 0 , X ].
+
+Definition 3.1. Let Φ : X → Z be the representation net-work, and let ˆpθ (Y |ϕ(x), a ) be the conditional distribution of potential outcomes generated by the Repflow model. For a unit x ∈ X and treatment assignment a ∈ { 0, 1}, the distributional distance is defined as: 
+
+dθ,ϕ (x, a ) = D (p(Y |x, a ), ˆpθ (Y |ϕ(x), a )) ,
+
+where D(·, ·) is a metric on the space of probability distri-butions, such as the Wasserstein distance W1.
+
+Definition 3.2. Conditioned on the treatment assignment, 3RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation     
+
+> (a) Training Phase (b) Inference Phase
+> Figure 1. Architecture of Repflow.
+
+the factual distribution losses for each group are: 
+
+ϵa=1  
+
+> F
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x|a = 1) dx, ϵa=0  
+
+> F
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x|a = 0) dx. 
+
+Definition 3.3. The expected distributional estimation error is defined as the total discrepancy between the true and esti-mated potential outcome distributions over the population: 
+
+ϵD (θ, ϕ ) = 
+
+Z
+
+> X
+
+(dθ,ϕ (x, 1) + dθ,ϕ (x, 0)) p(x)dx. (1) While many existing works focus primarily on estimating the response function μa(x) = E[Y (a) | X = x] to com-pute the point estimate of τ , our approach aims to model the full conditional distribution p(Y | X, A = a).
+
+3.2. Continuous Normalizing Flows and Flow Matching Continuous Normalizing Flows (CNFs). CNFs are a class of generative models that transform a simple prior p1 (e.g., standard Gaussian) into a complex data distribution p0 via an invertible ODE-based mapping (Chen et al., 2018; Gao et al., 2024). Unlike discrete normalizing flows (Rezende & Mohamed, 2015), which stack finite invertible layers, CNFs model distributions through continuous trajectories, offer-ing greater flexibility and avoiding the gradient instability and costly Jacobian computations associated with deep dis-crete flows. Formally, let yt ∈ RdY for t ∈ [0 , 1] follow a trajectory governed by a learnable velocity field vθ (ψt, t ):
+
+dy t
+
+dt = vθ (ψt, t ), y0 ∼ p0, y1 ∼ p1, (2) where vθ is parameterized by a neural network. 
+
+Flow Matching (FM). FM trains a CNF by regressing the velocity field vθ onto a target vector field ut(x) that induces a desired probability path pt(x):
+
+LFM (θ) = Et∼U [0 ,1] ,x ∼pt(x)∥vθ (x, t ) − ut(x)∥2. (3) However, naively optimizing LFM is intractable in practice because the marginal vector field ut(x) and the path pt(x)
+
+generally lack a closed-form expression. To address this, we adopt Conditional Flow Matching (CFM), which decomposes the marginal vector field into sample-conditional vector fields ut(x|y0) generating condi-tional paths pt(x|y0). A key theoretical foundation of this approach is that the gradient of the CFM loss is equivalent to that of the original FM loss, ∇θ LFM (θ) = ∇θ LCFM (θ), as formally established in Theorem 2 of (Lipman et al., 2023). We define a linear interpolant between an observed outcome 
+
+y0 ∼ p0 and noise y1 ∼ N (0 , I ):
+
+ψt(y0, y 1) = (1 − t)y0 + ( t + σ(1 − t)) y1,ut(y0, y 1) = ddt ψt(y0, y 1) = (1 − σ)y1 − y0,
+
+where σ > 0 ensures ψ0 ∼ N (y0, σ 2I). The CFM objective becomes 
+
+LCFM (θ) = Et,y 0,y 1 ∥vθ (ψt(y0, y 1)) − ut(y0, y 1)∥2. (4) Optimizing this objective allows us to predict potential out-comes (POs). Unlike PO-Flow, we integrate balanced repre-sentations ϕ(X) to mitigate selection bias in observational data. 
+
+## 4. Methodology 
+
+In this section, We propose a unified framework that com-bines balanced representation learning with flow-based gen-erative modeling for estimating POs. As shown in Figure 1, our framework comprises of two primary components: (1) a representation learning module that projects covariates into a balanced latent space to address selection bias, and (2) a conditional flow matching module that generates potential outcomes based on these balanced representations. 
+
+Theorem 4.1. Let Φ : X → Z be the representation net-work. Then, the expected distributional error over the popu-lation satisfies: 
+
+ϵD (θ, ϕ ) ≤ ϵa=0  
+
+> F
+
++ ϵa=1  
+
+> F
+
++ BΦ · W  pa=1 Φ , p a=0 Φ
+
+ , (5) 
+
+where W(·, ·) denotes the Wasserstein distance between distributions and BΦ is a constant. 
+
+4RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Proof. The detailed proof is provided in Appendix A. Theorem 4.1 provides the theoretical foundation for our pro-posed joint loss function by establishing a upper bound on the expected distributional error. It formally demonstrates that simultaneously minimizing the flow matching loss and the latent distribution discrepancy leads to a principled con-trol of the overall estimation error. This result motivates our integrated optimization strategy and explains its robustness under selection bias. 
+
+4.1. Balanced Representation Learning 
+
+In observational studies, treatment assignments are typically non-random, which introduces selection bias. For example, in clinical settings, patients exhibiting more severe symp-toms are more likely to receive aggressive treatments. This scenario represents a distributional shift in covariates, ex-pressed as p(X | A = 0) ̸ = p(X | A = 1) . Neglecting this shift can result in substantial bias and increased variance in estimates of POs, particularly in regions with low overlap. To mitigate selection bias, we minimize the discrepancy be-tween these distributions using the Wasserstein distance as the metric. The empirical distributions of represen-tations for the control and treatment groups are denoted as ˆP a=0  
+
+> ϕ
+
+= {z0 
+
+> i
+
+}ni=1 and ˆP a=1  
+
+> ϕ
+
+= {z1 
+
+> j
+
+}mj=1 , respectively. While previous approaches often used the maximum mean discrepancy (MMD) or relied on dual-form Wasserstein approximations that impose complex Lipschitz constraints (Shalit et al., 2017; Hassanpour & Greiner, 2019; Kong et al., 2023; Liu et al., 2025), we adopt the optimal transport (OT) framework (Villani et al., 2008). Specifically, the Wasser-stein distance is defined as the minimum cost of transporting mass between distributions (Kantorovich, 2006): 
+
+Lbal = W( ˆP a=0  
+
+> ϕ
+
+, ˆP a=1  
+
+> ϕ
+
+) = min      
+
+> π∈Π( ˆPa=0
+> ϕ,ˆPa=1
+> ϕ)
+
+⟨H, π ⟩, (6) where H ∈ Rn×m 
+
+> +
+
+is the cost matrix with Hij = ∥z0 
+
+> i
+
+−z1 
+
+> j
+
+∥2
+
+representing the Euclidean distance between representations, and Π denotes the set of all feasible transport plans. Since solving the Kantorovich problem is computationally inten-sive, we introduce entropic regularization to enable efficient training. This regularization allows us to compute the regu-larized transport plan via the sinkhorn algorithm (Distances, 2013). A key technical refinement in our framework is the enforce-ment of L2 normalization at the output layer of the repre-sentation network ϕ, ensuring z = ϕ(x)/∥ϕ(x)∥2. This strategy constrains all learned representations to lie on a unit hypersphere, yielding several critical advantages. This improves numerical stability by bounding the cost matrix H,preventing extreme values in Sinkhorn iterations and gradi-ent explosion. It also ensures fully differentiable objectives with stable gradients, enabling more reliable and efficient up-dates This improves numerical stability by bounding the cost matrix H, preventing extreme values in Sinkhorn iterations and gradient explosion. It also ensures fully differentiable objectives with stable gradients, enabling more reliable and efficient updates to ϕ.By minimizing Lbal , we ensure that the learned represen-tations Z are balanced across treatment groups, thereby mitigating selection bias and providing a robust foundation for the subsequent Flow Matching process. 
+
+4.2. Conditional Flow Matching for Potential Outcomes 
+
+To model the conditional distribution of POs, we utilize the balanced representation Z as the conditioning variable within the CFM framework. A major challenge in balanced representation learning is ensuring that the mapping ϕ does not discard essential information for predicting Y while minimizing the distribution discrepancy. In our framework, we address this by jointly optimizing the representation network and the velocity field. To this end, we define a velocity field vθ (ψt, t, z, a ) condi-tioned on the learned representation Z and the treatment assignment a. The objective of the flow matching task is to minimize the following loss: 
+
+Lflow (θ) = Et,y 0,y 1,x,a || vθ (ψt, t, ϕ (x), a ) − ut(y0, y 1)|| 2,
+
+(7) where ut is the conditional vector field transporting the base distribution to the outcome distribution. To achieve a representation that is both balanced across treat-ment groups and highly informative for outcome estimation, we define the total objective function as a weighted sum of the balancing loss and the flow matching loss: 
+
+Ltotal = Lflow (θ) + λLbal (ϕ), (8) where λ > 0 is a hyperparameter governing the trade-off between balance and predictive power. Under this joint optimization target , the representation network ϕ receives gradients from both Lbal and Lflow . While Lbal encourages Z
+
+to be treatment invariant, Lflow acts as a predictive constraint that prevents Z from collapsing into an uninformative state. By extracting outcome relevant information, ϕ(x) estab-lishes a robust conditioning manifold for the velocity field. The training of RepFlow involves the joint optimization of the representation encoder ϕ and the velocity network vθ
+
+by minimizing Ltotal . The detailed training procedure is provided in Algorithm 1. 
+
+POs Generation and Causal Effect Estimation. In the RepFlow framework, the estimation of POs is formulated as a continuous trajectory integration problem. Once the condi-tioned velocity field vθ is trained, it defines a deterministic 5RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+probability path that maps standard Gaussian noise to the outcome distribution. This enables precise PO estimation by leveraging the learned dynamics. Specifically, for a given individual x and treatment as-signment a ∈ { 0, 1}, we first compute the representation 
+
+z = ϕ(x). To generate a potential outcome ˆy(a), we ini-tialize a latent noise y1 ∼ N (0 , I ) at t = 1 . The potential outcome is then obtained by solving the following reverse-time ODE: 
+
+ˆy(a) = y1 −
+
+Z 10
+
+vθ (ψt, t ; z, a )dt. (9) In our implementation, this continuous-time integral is solved using the Runge-Kutta method (Butcher, 1996) to ensure numerical stability and precision trajectory tracking from the latent space to the outcome space. Based on the identification results in Assumption 3.1, the causal effect is estimated by comparing the expected potential outcomes. We draw M independent samples 
+
+{y(m)1 }Mm=1 from the prior distribution N (0 , I ) and gen-erate the corresponding synthetic outcomes {y(a,m )}Mm=1 
+
+using the reverse-time process defined in Eq. (9) . The re-sponse functions are then empirically estimated as 
+
+ˆμa(z) = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+y(a,m ), a ∈ { 0, 1}. (10) The individual treatment effect for an individual with covari-ates x is subsequently estimated as 
+
+ˆτ (x) = ˆ μ1(ϕ(x)) − ˆμ0(ϕ(x)) . (11) By leveraging the set of generated samples {y(a,m )}Mm=1 ,our approach enables the construction of an empirical esti-mation of the conditional distribution p(Y | X = x, A = a).Such distributional knowledge is vital for accounting for uncertainty in practical applications; it not only informs how likely a specific outcome is but also provides the prob-ability that a potential outcome lies within a desired range. By moving beyond point estimation, our method allows for a more comprehensive assessment of the reliability of the estimates, providing a more principled basis for informed decision-making. 
+
+## 5. Experiments 
+
+In this section, we conduct extensive experiments to evaluate the performance of our proposed RepFlow model. We aim to demonstrate that by combining representation enhancement with flow matching, our method achieves superior preci-sion in causal effect estimation across diverse benchmark datasets. 
+
+Algorithm 1 RepFlow: Representation-Enhanced Flow Matching Training 
+
+Require: Observational data D, Representation network ϕ
+
+with initial parameters θϕ, Velocity network v initial parameters θv . 
+
+> 1:
+
+while not converged do  
+
+> 2:
+
+Sample mini-batch B = {(xi, a i, y i)}mi=1 from D. 
+
+> 3:
+
+Compute representations: Z = ϕ(X). 
+
+> 4:
+
+Compute balancing loss Lbal using Eq. (6).  
+
+> 5:
+
+Sample t, noise y1, and construct interpolant ψt. 
+
+> 6:
+
+Compute target velocity ut. 
+
+> 7:
+
+Predict velocity ˆv = v(ψt, t ; Z, A ). 
+
+> 8:
+
+Compute flow matching loss using Eq. (7).  
+
+> 9:
+
+θv ← θv − η∇θv Lf low  
+
+> 10:
+
+Ltotal = Lf low + λLbal  
+
+> 11:
+
+θϕ ← θϕ − η∇θϕ Ltotal  
+
+> 12:
+
+end while  
+
+> 13:
+
+Output: Trained networks ϕ and v.     
+
+> Table 1. In-sample and out-of-sample performance (mean ± stan-dard error) of ϵPEHE and ϵATE on the IHDP dataset. Results are averaged over 100 repetitions.
+
+Method pϵin PEHE ϵin ATE 
+
+pϵout PEHE ϵout ATE 
+
+S-learner 1.10 ±.06 .21 ±.08 1.17 ±.10 .24 ±.11 T-learner 0.72 ±.05 .10 ±.06 0.75 ±.07 .10 ±.07 DR-learner 0.74 ±.17 .17 ±.10 0.72 ±.18 .20 ±.10 CF 3.80 ±.20 .18 ±.01 3.80 ±.20 .40 ±.03 CEVAE 2.70 ±.10 .34 ±.01 2.60 ±.10 .46 ±.02 CFRW 0.71 ±.02 .25 ±.01 0.76 ±.02 .27 ±.01 GANITE 1.90 ±.40 .24 ±.09 2.40 ±.40 .28 ±.10 DiffPO 0.79 ±.16 .16 ±.07 0.84 ±.18 .19 ±.08 POflow 0.41 ±.08 .07 ±.05 0.45 ±.10 .09 ±.07 Repflow (Ours) 0.31 ±.05 .08 ±.05 0.33 ±.09 .08 ±.06 5.1. Experimental Setup Datasets. Following previous studies (Shalit et al., 2017; Ma et al., 2024; Wu et al., 2025), we evaluate our model on two publicly available causal inference benchmarks and compare it with other generative models for distribution estimation on synthetic data. The data generation settings are detailed in Appendix B. • IHDP Dataset: This is a semi-synthetic dataset based on the Infant Health and Development Program, where the covariates are obtained by a randomized experi-ment assessing the impact of home visits by specialist doctors on the cognitive test scores for premature in-fants (Hill, 2011). The dataset comprises 747 units (including 139 treated and 608 control) and 25 pre-treatment covariates measuring various aspects of the children and their mothers. It is widely used to evaluate a model’s accuracy in small sample scenario. 6RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Table 2. Results for benchmarking causal effect estimation on ACIC 2018 (24 datasets) for both in & out of sample, respectively. Reported: % of runs with the Top 1 and 3 performances. Method TOP1 pϵin PEHE % TOP3 pϵin PEHE % TOP1 ϵin ATE % TOP3 ϵin ATE % TOP1 pϵout PEHE % TOP3 pϵout PEHE % TOP1 ϵout ATE % TOP3 ϵout ATE %S-learner 0.00 4.17 0.00 4.17 0.00 4.17 0.00 4.17 T-learner 0.00 8.33 0.00 8.33 0.00 4.17 0.00 4.17 DR-learner 8.33 33.33 0.00 12.50 4.17 25.00 0.00 16.67 CF 0.00 8.33 12.50 37.50 0.00 4.17 0.00 4.17 CEVAE 0.00 20.83 0.00 16.67 0.00 16.67 4.17 8.33 CFRW 12.50 33.33 4.17 37.50 25.00 29.17 4.17 37.50 GANITE 8.33 58.33 8.33 33.33 8.33 66.67 8.33 45.83 DiffPO 20.83 50.00 25.00 58.33 25.00 62.50 20.83 66.67 POflow 12.50 16.67 8.33 29.17 4.17 12.50 4.17 20.83         
+
+> Repflow(Ours) 37.50 66.67 41.67 62.50 33.33 79.17 58.33 87.50
+
+• ACIC 2018 Dataset: The ACIC 2018 dataset is a col-lection of semi-synthetic datasets released for the 2018 Atlantic Causal Inference Conference Challenge. It is built upon the Linked Birth and Infant Death Data, featuring 177 dimensional medical covariates, and sim-ulates treatment assignments and potential outcomes across 24 distinct generative mechanisms (Dorie et al., 2019). Sample sizes range from 1,000 to 50,000, test-ing the scalability and robustness of estimators. 
+
+Baselines. We compare our method with representative approaches from four categories: (i) model-agnostic learn-ers, including S-learner (Athey & Imbens, 2015), T-learner (K ¨unzel et al., 2019), and DR-learner (Kennedy, 2023); (ii) model-specific methods, including Causal Forest (CF) (Wa-ger & Athey, 2018) and CEVAE (Louizos et al., 2017); (iii) representation-based models, including CFRW (Shalit et al., 2017); and (iv) deep generative models, including GANITE (Yoon et al., 2018), DiffPO (Ma et al., 2024), and POflow (Wu et al., 2025). Implementation details of all methods are provided in Appendix C. 
+
+Performance Metrics and Settings. We evaluate causal effect estimation using three standard metrics, where lower values indicate better performance: • Precision in the Estimation of Heteroge-neous Effects (ϵPEHE ): Measures the root mean squared error in estimating the CATE: 
+
+√ϵPEHE =
+
+q 1
+
+> N
+
+PNi=1 (ˆ τ (xi) − τ (xi)) 2.• ATE Error ( ϵATE ): Measures the absolute error in estimating the ATE: ϵATE = |τ − ˆτ |.• Empirical Wasserstein Distance ( W1): Measures the discrepancy between the true and estimated distribu-tions of potential outcomes, defined as: 
+
+W1(p1, p 2) = 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥ˆy(i) − y(i)∥,
+
+Figure 2. Illustrations of dimensionality reduction results via UMAP are shown: the left panel displays original covariates, and the right panel shows learned representations. Red points indicate treated samples, while blue points correspond to control samples. 
+
+where p1 = pθ (Y |X, A ) and p2 = p(Y |X, A ) denote the estimated and true conditional distributions of POs, respec-tively. 
+
+Table 3. Results showing in & out-of-sample empirical Wasser-stein distance (i.e., ˆW 1 
+
+> in
+
+and ˆW 1
+
+> out
+
+) for potential outcomes on the synthetic datasets.                                                         
+
+> Setting A Setting B
+> ˆW1
+> in ˆW1
+> out ˆW1
+> in ˆW1
+> out
+> GANITE 1.27 ±0.09 1.30 ±0.08 1.29 ±0.23 1.32 ±0.22
+> DiffPO 1.15 ±0.15 1.17 ±0.11 1.25 ±0.26 1.35 ±0.23
+> POflow 1.08 ±0.06 1.14 ±0.05 1.26 ±0.16 1.28 ±0.15
+> Repflow (ours) 1.00 ±0.15 1.03 ±0.12 1.11 ±0.12 1.13 ±0.14
+
+5.2. Results and Analysis 
+
+Table1 displays the performance on the IHDP dataset. Tradi-tional learners and existing generative baselines demonstrate limited precision in estimating potential outcomes, whereas RepFlow consistently achieves the lowest estimation error in both within-sample and out-of-sample settings. For the more complex ACIC 2018 datasets, Table 2 indicates that RepFlow maintains superior stability across diverse experi-mental scenarios and outperforms state-of-the-art methods in the majority of runs. Table 3 reports empirical Wasser-stein distances on synthetic datasets. Across both Setting 7RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+A and Setting B, RepFlow attains the smallest in-sample ( ˆW 1
+
+> in
+
+) and out-of-sample ( ˆW 1
+
+> out
+
+) distances, indicating highly accurate modeling of PO distributions. To visualize the effect of representation network in RepFlow for mitigating selection bias, we employ Uniform Manifold Approximation and Projection (UMAP) (McInnes et al., 2018) to project the data into a 3D space. As illustrated in Figure 2(a), the original covariates of the IHDP dataset show a distinct distributional shift between the treated and control groups. In contrast, Figure 2(b) shows that our RepFlow successfully maps these features into a balanced represen-tation space where the two distributions are significantly overlapped. 
+
+Table 4. Ablation Study on the IHDP Dataset. Method pϵin PEHE ϵin ATE 
+
+pϵout PEHE ϵout ATE 
+
+Repflow w/o rep 0.47 ±.06 .09 ±.08 0.50 ±.08 .11 ±.08 Repflow with λ = 0 0.40 ±.06 .09 ±.07 0.41 ±.10 .10 ±.07 Repflow with mmd 0.34 ±.05 .08 ±.06 0.36 ±.10 .09 ±.07 Repflow 0.31 ±.05 .08 ±.05 0.33 ±.09 .08 ±.06 
+
+5.3. Ablation Study 
+
+To assess the contribution of each component in RepFlow, we conduct ablation experiments on the IHDP dataset by considering the following variants: (i) RepFlow w/o rep, which removes the representation learning module; (ii) RepFlow with λ = 0 , which disables the distribution regu-larization in flow matching; and (iii) RepFlow with MMD, which replaces the wasserstein distance with an MMD-based distribution alignment. The full model is denoted as RepFlow. The results are summarized in Table 4. We observe that removing the representation module leads to a clear degra-dation in both in-sample and out-of-sample performance, highlighting the importance of learning balanced and infor-mative representations. Disabling the distribution regular-ization by setting λ = 0 also results in inferior performance, especially in out-of-sample PEHE, indicating the necessity of enforcing distributional consistency. Overall, the full RepFlow achieves the best performance, confirming that all components contribute to accurate and robust causal effect estimation. 
+
+5.4. Sensitivity Analysis 
+
+We explore the sensitivity of the hyper-parameters on the IHDP dataset and the results are shown in Figure 3. When λ is too small, insufficient regularization leads to poor generalization, while overly large λ restricts model flexibility and degrades performance. Moderate values of 
+
+λ yield the best in-sample and out-of-sample performance, 0.01 0.05 0.1 0.5 1.0 5.0 10.0                   
+
+> λ
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> √ εPEHE
+> In-sample Out-sample 0.01 0.05 0.1 0.5 1.0 5.0 10.0
+> λ
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> ATE Absolute Error
+> In-sample Out-sample 510 15 20 25
+> Latent Dimension
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> √ εPEHE
+> In-sample Out-sample 510 15 20 25
+> Latent Dimension
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.12
+> 0.14
+> 0.16
+> ATE Absolute Error
+> In-sample Out-sample
+
+Figure 3. Results of varying values of parameters on IHDP dataset. 
+
+balancing fitting accuracy and distributional consistency. Performance remains stable across a wide range of latent dimensions, with only minor fluctuations in PEHE and ATE error, indicating RepFlow is not overly sensitive to this hyperparameter. Overall, RepFlow demonstrates robustness to hyperparame-ter variations, with stable performance across settings and optimal results under moderate distribution regularization. 
+
+## 6. Conclusion 
+
+We presented RepFlow, a framework that integrates repre-sentation learning with conditional flow matching to esti-mate potential outcome distributions. By minimizing the latent Wasserstein distance and enforcing L2 normaliza-tion, RepFlow effectively mitigates selection bias while ensuring numerical stability. Furthermore, we provide a rigorous distributional generalization bound that establishes a principled theoretical foundation for our joint optimiza-tion strategy. Comprehensive evaluations across synthetic, IHDP, and ACIC 2018 datasets demonstrate that RepFlow consistently outperforms state-of-the-art baselines. A limitation of our current framework is the reliance on the unconfoundedness assumption, which presumes that treatment assignment is conditionally independent of po-tential outcomes given the observed covariates. Our future work focuses on extending this framework to more gen-eral settings with unmeasured confounding, where causal effect identifiability requires the introduction of additional structural assumptions. We explore extensions based on instrumental variable (IV) (Hartford et al., 2017) and proxi-mal causal inference methods (Cui et al., 2024) to support causal estimation under unmeasured confounding. 8RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+## Impact Statement 
+
+This research bridges representation learning and generative flows to enhance the reliability of causal effect estimation from observational data. By effectively mitigating selec-tion bias and capturing potential outcome distributions, our method could be applied to a wide range of applications, such as decision-making in healthcare, public policy, busi-ness. 
+
+## References 
+
+Athey, S. and Imbens, G. W. Machine learning methods for estimating heterogeneous causal effects. stat , 1050(5): 1–26, 2015. Britto, D. G., Pinotti, P., and Sampaio, B. The effect of job loss and unemployment insurance on crime in brazil. 
+
+Econometrica , 90(4):1393–1423, 2022. Butcher, J. C. A history of runge-kutta methods. Applied numerical mathematics , 20(3):247–260, 1996. Chao, P., Bl ¨obaum, P., and Kasiviswanathan, S. P. Interven-tional and counterfactual inference with diffusion models. 
+
+arXiv preprint arXiv:2302.00860 , 4:16, 2023. Chen, L., Shen, X., and Pan, W. Enhancing causal effect estimation with diffusion-generated data. arXiv preprint arXiv:2504.03630 , 2025. Chen, R. T., Rubanova, Y., Bettencourt, J., and Duvenaud, D. K. Neural ordinary differential equations. Advances in neural information processing systems , 31, 2018. Cheng, M., Liao, X., Liu, Q., Ma, B., Xu, J., and Zheng, B. Learning disentangled representations for counterfac-tual regression via mutual information minimization. In 
+
+Proceedings of the 45th International ACM SIGIR Con-ference on Research and Development in Information Retrieval , pp. 1802–1806, 2022. Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., and Robins, J. Double/debiased machine learning for treatment and structural parameters. 
+
+The Econometrics Journal , 21(1):C1–C68, 2018. ISSN 1368-4221, 1368-423X. doi: 10.1111/ectj.12097. Corrao, G., Nicotra, F., Parodi, A., Zambon, A., Soranna, D., Heiman, F., Merlino, L., and Mancia, G. External adjustment for unmeasured confounders improved drug– outcome association estimates based on health care uti-lization data. Journal of clinical epidemiology , 65(11): 1190–1199, 2012. Cui, Y., Pu, H., Shi, X., Miao, W., and Tchetgen Tchetgen, E. Semiparametric proximal causal inference. Journal of the American Statistical Association , 119(546):1348–1359, 2024. Deng, C., Zhu, D., Li, K., Guang, S., and Fan, H. Causal diffusion transformers for generative modeling. arXiv preprint arXiv:2412.12095 , 2024. Distances, C. M. S. Lightspeed computation of optimal transport. Advances in neural information processing systems , 26(2292-2300):5, 2013. Dorie, V., Hill, J., Shalit, U., Scott, M., and Cervone, D. Automated versus do-it-yourself methods for causal infer-ence: Lessons learned from a data analysis competition. 
+
+Statistical science , 34(1):43–68, 2019. Du, X., Sun, L., Duivesteijn, W., Nikolaev, A., and Pech-enizkiy, M. Adversarial balancing-based representation learning for causal effect inference with observational data. Data Mining and Knowledge Discovery , 35(4): 1713–1738, 2021. Gao, Y., Huang, J., Jiao, Y., and Zheng, S. Convergence of continuous normalizing flows for learning probability distributions. arXiv preprint arXiv:2404.00551 , 2024. Gische, C. and Voelkle, M. C. Beyond the mean: A flexible framework for studying causal effects using linear models. 
+
+psychometrika , 87(3):868–901, 2022. Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., and Bengio, Y. Generative adversarial networks. Communications of the ACM , 63(11):139–144, 2020. Hartford, J., Lewis, G., Leyton-Brown, K., and Taddy, M. Deep iv: A flexible approach for counterfactual predic-tion. In International Conference on Machine Learning ,pp. 1414–1423. PMLR, 2017. Hassanpour, N. and Greiner, R. Learning disentangled repre-sentations for counterfactual regression. In International Conference on Learning Representations , 2019. He, Y., Huang, G., Chen, S., Teng, J., Wang, K., Yin, Z., Sheng, L., Liu, Z., Qiao, Y., and Shao, J. X-learner: Learning cross sources and tasks for universal visual rep-resentation. In European Conference on Computer Vision ,pp. 509–528. Springer, 2022. Hern´ an, M. A. and Robins, J. M. Causal inference, 2010. Hill, J. L. Bayesian nonparametric modeling for causal infer-ence. Journal of Computational and Graphical Statistics ,20(1):217–240, 2011. Ho, J., Jain, A., and Abbeel, P. Denoising diffusion proba-bilistic models. Advances in neural information process-ing systems , 33:6840–6851, 2020. 9RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Imai, K. and Ratkovic, M. Covariate balancing propensity score. Journal of the Royal Statistical Society Series B: Statistical Methodology , 76(1):243–263, 2014. Kantorovich, L. V. On the translocation of masses. Journal of mathematical sciences , 133(4), 2006. Kennedy, E. H. Towards optimal doubly robust estimation of heterogeneous causal effects. Electronic Journal of Statistics , 17(2):3008–3049, 2023. Kennedy, E. H., Balakrishnan, S., and Wasserman, L. Semi-parametric counterfactual density estimation. Biometrika ,110(4):875–896, 2023. Kingma, D. P. and Ba, J. Adam: A method for stochas-tic optimization. In Bengio, Y. and LeCun, Y. (eds.), 
+
+International Conference on Learning Representations ,2015. Kirklin, J. K., Naftel, D. C., Kormos, R. L., Stevenson, L. W., Pagani, F. D., Miller, M. A., Ulisney, K. L., Bald-win, J. T., and Young, J. B. Second intermacs annual report: more than 1,000 primary left ventricular assist device implants. The Journal of Heart and Lung Trans-plantation , 29(1):1–10, 2010. Kong, I., Park, Y., Jung, J., Lee, K., and Kim, Y. Covariate balancing using the integral probability metric for causal inference. In International Conference on Machine Learn-ing , pp. 17430–17461. PMLR, 2023. K ¨unzel, S. R., Sekhon, J. S., Bickel, P. J., and Yu, B. Met-alearners for estimating heterogeneous treatment effects using machine learning. Proceedings of the national academy of sciences , 116(10):4156–4165, 2019. Langley, P. Crafting papers on machine learning. In Langley, P. (ed.), Proceedings of the 17th International Conference on Machine Learning (ICML 2000) , pp. 1207–1216, Stan-ford, CA, 2000. Morgan Kaufmann. Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., and Le, M. Flow matching for generative modeling. In 
+
+International Conference on Learning Representations ,2023. Liu, C., Jiao, Y., Wang, J., and Huang, J. Wasserstein distributionally robust nonparametric regression. arXiv preprint arXiv:2505.07967 , 2025. Louizos, C., Shalit, U., Mooij, J. M., Sontag, D., Zemel, R., and Welling, M. Causal effect inference with deep latent-variable models. Advances in neural information processing systems , 30, 2017. Lunceford, J. K. and Davidian, M. Stratification and weight-ing via the propensity score in estimation of causal treat-ment effects: a comparative study. Statistics in medicine ,23(19):2937–2960, 2004. Ma, Y., Melnychuk, V., Schweisthal, J., and Feuerriegel, S. Diffpo: A causal diffusion model for learning dis-tributions of potential outcomes. Advances in Neural Information Processing Systems , 37:43663–43692, 2024. McInnes, L., Healy, J., and Melville, J. Umap: Uniform manifold approximation and projection for dimension reduction. arXiv preprint arXiv:1802.03426 , 2018. Pearl, J. Causality . Cambridge university press, 2009. Rezende, D. and Mohamed, S. Variational inference with normalizing flows. In International conference on ma-chine learning , pp. 1530–1538. PMLR, 2015. Rosenbaum, P. R. and Rubin, D. B. The central role of the propensity score in observational studies for causal effects. Biometrika , 70(1):41–55, 1983. Rubin, D. B. Estimating causal effects of treatments in randomized and nonrandomized studies. Journal of edu-cational Psychology , 66(5):688, 1974. Rzepakowski, P. and Jaroszewicz, S. Decision trees for up-lift modeling with single and multiple treatments. Knowl-edge and Information Systems , 32(2):303–327, 2012. Sanchez, P., Liu, X., O’Neil, A. Q., and Tsaftaris, S. A. Diffusion models for causal discovery via topological ordering. In International Conference on Learning Rep-resentations , 2023. Shalit, U., Johansson, F. D., and Sontag, D. Estimating individual treatment effect: generalization bounds and algorithms. In International conference on machine learn-ing , pp. 3076–3085. PMLR, 2017. Shi, C., Blei, D., and Veitch, V. Adapting neural networks for the estimation of treatment effects. Advances in neural information processing systems , 32, 2019. S ´anchez-Martin, P., Rateike, M., and Valera, I. Vaca: De-signing variational graph autoencoders for causal queries. 
+
+Proceedings of the AAAI Conference on Artificial In-telligence , 36(7):8159–8168, Jun. 2022. doi: 10.1609/ aaai.v36i7.20789. URL https://ojs.aaai.org/ index.php/AAAI/article/view/20789 .Villani, C. et al. Optimal transport: old and new , volume 338. Springer, 2008. Wager, S. and Athey, S. Estimation and inference of hetero-geneous treatment effects using random forests. Journal of the American Statistical Association , 113(523):1228– 1242, 2018. Wang, H., Fan, J., Chen, Z., Li, H., Liu, W., Liu, T., Dai, Q., Wang, Y., Dong, Z., and Tang, R. Optimal trans-port for treatment effect estimation. Advances in Neural Information Processing Systems , 36:5404–5418, 2023. 10 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Wu, D., Inouye, D. I., and Xie, Y. Po-flow: Flow-based generative models for sampling potential outcomes and counterfactuals. arXiv preprint arXiv:2505.16051 , 2025. Yoon, J., Jordon, J., and Van Der Schaar, M. Ganite: Estima-tion of individualized treatment effects using generative adversarial nets. In International conference on learning representations , 2018. Zhou, X., Jiao, Y., Liu, J., and Huang, J. A deep gener-ative approach to conditional sampling. Journal of the American Statistical Association , 118(543):1837–1848, 2023. 11 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+## A. Proof 
+
+Definition A.1. Let Φ : X → Z be the representation network, and let ˆpθ (Y |ϕ(x), a ) be the conditional distribution of potential outcomes generated by the Repflow model. For a unit x ∈ X and treatment assignment a ∈ { 0, 1}, the distributional distance is defined as: 
+
+dθ,ϕ (x, a ) = D (p(Y |x, a ), ˆpθ (Y |ϕ(x), a )) ,
+
+where D(·, ·) is a metric on the space of probability distributions, such as the Wasserstein distance W1.
+
+Assumption A.1. The representation function Φ : X → Z is one-to-one. We define Ψ : Z → X to be the inverse of Φ,such that Ψ(Φ( x)) = x for all x ∈ X . This assumption ensures that the transformation from the covariate space to the latent space preserves all necessary information for causal identification and allows for the change of variables in the error bound derivation. 
+
+Definition A.2. The expected factual and counterfactual distributional losses for the model (θ, ϕ ) are defined respectively as: 
+
+ϵF (θ, ϕ ) = 
+
+Z
+
+> X ×{ 0,1}
+
+dθ,ϕ (x, a )p(x, a )dxda (12) 
+
+ϵCF (θ, ϕ ) = 
+
+Z
+
+> X ×{ 0,1}
+
+dθ,ϕ (x, a )p(x, 1 − a)dxda (13) 
+
+Definition A.3. Conditioned on the treatment assignment, the factual and counterfactual losses for each group are: Factual: ϵa=1  
+
+> F
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x|a = 1) dx, ϵa=0  
+
+> F
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x|a = 0) dx (14) Counterfactual: ϵa=1  
+
+> CF
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x|a = 0) dx, ϵa=0  
+
+> CF
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x|a = 1) dx (15) where pa=1 (x) and pa=0 (x) denote the treated and control distributions respectively. 
+
+Definition A.4. The expected estimation of distributional is defined as the total error in estimating the potential outcome distributions across the entire population: 
+
+ϵD (θ, ϕ ) = 
+
+Z
+
+> X
+
+(dθ,ϕ (x, 1) + dθ,ϕ (x, 0)) p(x)dx (16) 
+
+Definition A.5. Let G be a family of real-valued functions g : Z → R defined over the representation space Z. For a pair of probability distributions p, q over Z, the Integral Probability Metric (IPM) is defined as: 
+
+IPM G(p, q ) = sup 
+
+> g∈G
+
+Z
+
+> Z
+
+g(z)p(z)dz −
+
+Z
+
+> Z
+
+g(z)q(z)dz (17) The IPM G(·, ·) defines a pseudo-metric on the space of probability functions over Z. For sufficiently large function families, it becomes a proper metric. Specifically: • If G is the set of 1-Lipschitz functions, IPM G corresponds to the Wasserstein distance W1, used in RepFlow to mitigate selection bias. • If G is the set of unit norm functions in a universal Reproducing Kernel Hilbert Space (RKHS), IPM G corresponds to the Maximum Mean Discrepancy (MMD) .
+
+Lemma A.1. Let u := p(a = 1) be the proportion of treated units in the population. The expected factual and counterfactual distributional losses satisfy: 
+
+ϵF (θ, ϕ ) = u · ϵa=1  
+
+> F
+
+(θ, ϕ ) + (1 − u) · ϵa=0  
+
+> F
+
+(θ, ϕ ) (18) 
+
+ϵCF (θ, ϕ ) = (1 − u) · ϵa=1  
+
+> CF
+
+(θ, ϕ ) + u · ϵa=0  
+
+> CF
+
+(θ, ϕ ) (19) 12 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Proof. By the law of total expectation, we can decompose the joint distribution p(x, a ) as p(a)p(x|a). Noting that 
+
+p(a = 1) = u and p(a = 0) = 1 − u, the factual loss becomes: 
+
+ϵF =
+
+Z
+
+> X ×{ 0,1}
+
+dθ,ϕ (x, a )p(x, a )dxda 
+
+= p(a = 1) 
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x|a = 1) dx + p(a = 0) 
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x|a = 0) dx 
+
+= u · ϵa=1  
+
+> F
+
++ (1 − u) · ϵa=0 
+
+> F
+
+Similarly, for the counterfactual loss, we evaluate the distance under the flipped treatment assignment 1 − a:
+
+ϵCF =
+
+Z
+
+> X ×{ 0,1}
+
+dθ,ϕ (x, a )p(x, 1 − a)dxda 
+
+= p(a = 0) 
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x|a = 0) dx + p(a = 1) 
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x|a = 1) dx 
+
+= (1 − u) · ϵa=1  
+
+> CF
+
++ u · ϵa=0 
+
+> CF
+
+which completes the proof. 
+
+Lemma A.2. Let Φ : X → Z be an invertible representation with Ψ as its inverse. Let pa=1 Φ , p a=0 Φ be the distributions induced by Φ over Z . Let u = p(a = 1) and G be a family of functions g : Z → R. Denote by IPM G(·, ·) the integral probability metric induced by G.Assume there exists a constant BΦ > 0 such that for a ∈ { 0, 1}, the normalized distribution distance functions gθ,ϕ (z, a ) :=  
+
+> 1
+> BΦ
+
+dθ,ϕ (Ψ( z), a ) belong to G. Then we have: 
+
+ϵCF (θ, ϕ ) ≤ (1 − u)ϵa=1  
+
+> F
+
+(θ, ϕ ) + uϵ a=0  
+
+> F
+
+(θ, ϕ ) + BΦ · IPM G(pa=1 Φ , p a=0 Φ ) (20) 
+
+Proof. Consider the discrepancy between the total counterfactual distributional loss and a weighted combination of group-specific factual distributional losses. Let: 
+
+∆ = ϵCF (θ, ϕ ) − (1 − u)ϵa=1  
+
+> F
+
+(θ, ϕ ) + uϵ a=0  
+
+> F
+
+(θ, ϕ )
+
+By the decomposition properties of counterfactual and factual losses defined in Lemma A.1, we have: 
+
+∆ = (1 − u)ϵa=1  
+
+> CF
+
++ uϵ a=0 
+
+> CF
+
+ − (1 − u)ϵa=1  
+
+> F
+
++ uϵ a=0 
+
+> F
+
+ = (1 − u) ϵa=1  
+
+> CF
+
+− ϵa=1 
+
+> F
+
+ + u ϵa=0  
+
+> CF
+
+− ϵa=0 
+
+> F
+
+ (21) Using the integral definitions A.3 of factual and counterfactual losses, we express Eq. 21 as integrals over the covariate space X . Performing a change of variables to the representation space Z via the invertible mapping Φ and its inverse Ψ:
+
+∆ = (1 − u)
+
+Z
+
+> Z
+
+dθ,ϕ (Ψ( z), 1)  pa=0 Φ (z) − pa=1 Φ (z) dz + u
+
+Z
+
+> Z
+
+dθ,ϕ (Ψ( z), 0)  pa=1 Φ (z) − pa=0 Φ (z) dz (22) Based on the premise that there exists a constant BΦ > 0 such that the normalized distributional distance function 
+
+gθ,ϕ (z, a ) := 1 
+
+> BΦ
+
+dθ,ϕ (Ψ( z), a ) belongs to the function family G, the integrals are rewritten as: 
+
+∆ = BΦ(1 − u)
+
+Z
+
+> Z
+
+1
+
+BΦ
+
+dθ,ϕ (Ψ( z), 1)  pa=0 Φ (z) − pa=1 Φ (z) dz + BΦu
+
+Z
+
+> Z
+
+1
+
+BΦ
+
+dθ,ϕ (Ψ( z), 0)  pa=1 Φ (z) − pa=0 Φ (z) dz 
+
+(23) By applying the definition A.5 of the Integral Probability Metric (IPM) for family G , where | R 
+
+> Z
+
+g(z)( pa=1 Φ − pa=0 Φ )dz | ≤ 
+
+IPM G(pa=1 Φ , p a=0 Φ ), and noting that (1 − u) + u = 1 :
+
+∆ ≤ BΦ(1 − u)
+
+Z
+
+> Z
+
+g(z, 1)  pa=0 Φ (z) − pa=1 Φ (z) dz + BΦu
+
+Z
+
+> Z
+
+g(z, 0)  pa=1 Φ (z) − pa=0 Φ (z) dz 
+
+= BΦ(1 − u)
+
+Z
+
+> Z
+
+g(z, 1)  pa=1 Φ (z) − pa=0 Φ (z) dz + BΦu
+
+Z
+
+> Z
+
+g(z, 0)  pa=1 Φ (z) − pa=0 Φ (z) dz 
+
+≤ BΦ(1 − u) · IPM G
+
+ pa=1 Φ , p a=0 Φ
+
+ + BΦu · IPM G
+
+ pa=1 Φ , p a=0 Φ
+
+
+
+= BΦ
+
+(1 − u) + u · IPM G
+
+ pa=1 Φ , p a=0 Φ
+
+
+
+= BΦ · IPM G
+
+ pa=1 Φ , p a=0 Φ
+
+. (24) 13 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+Finally, rearranging the terms yields the distributional generalization bound: 
+
+ϵCF ≤ (1 − u)ϵa=1  
+
+> F
+
++ uϵ a=0  
+
+> F
+
++ BΦ · IPM G(pa=1 Φ , p a=0 Φ )
+
+This confirms that the counterfactual distributional error is bounded by the factual errors and the distribution discrepancy in the latent space. 
+
+Lemma A.3. Consider two distribution functions P1(x) and P2(x) supported over X ; let G be the family of 1-Lipschitz functions, W be the Wasserstein distance, Villani (Villani et al., 2008) demonstrate 
+
+IPM G(P1, P 2) = W(P1, P 2). (25) 
+
+Theorem A.1. Let Φ : X → Z be the representation network. Then, the expected distributional error over the population satisfies: 
+
+ϵD (θ, ϕ ) ≤ ϵa=0  
+
+> F
+
++ ϵa=1  
+
+> F
+
++ BΦ · W  pa=1 Φ , p a=0 Φ
+
+ , (26) 
+
+where W(·, ·) denotes the Wasserstein distance between distributions. Proof. First, we expand the definition of ϵD using the law of total probability p(x) = p(x, a = 0) + p(x, a = 1) :
+
+ϵD =
+
+Z
+
+> X
+
+(dθ,ϕ (x, 1) + dθ,ϕ (x, 0)) p(x)dx 
+
+=
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x)dx 
+
+| {z }
+
+> I
+
++
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x)dx 
+
+| {z }
+
+> II
+
+. (27) For term I, we decompose the population distribution p(x) into factual ( a = 1 ) and counterfactual ( a = 0 ) components: I =
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x, a = 1) dx +
+
+Z
+
+> X
+
+dθ,ϕ (x, 1) p(x, a = 0) dx 
+
+= u · ϵa=1  
+
+> F
+
++ (1 − u) · ϵa=1  
+
+> CF
+
+. (28) Similarly, for term II, we decompose p(x) relative to a = 0 :II =
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x, a = 0) dx +
+
+Z
+
+> X
+
+dθ,ϕ (x, 0) p(x, a = 1) dx 
+
+= (1 − u) · ϵa=0  
+
+> F
+
++ u · ϵa=0  
+
+> CF
+
+. (29) Summing Term I and Term II, and applying the Lemmas A.2 and A.3: 
+
+ϵD = u · ϵa=1  
+
+> F
+
++ (1 − u) · ϵa=1  
+
+> CF
+
++ (1 − u) · ϵa=0  
+
+> F
+
++ u · ϵa=0 
+
+> CF
+
+≤ u · ϵa=1  
+
+> F
+
++ (1 − u) · ϵa=0  
+
+> F
+
++ ϵCF 
+
+≤ ϵa=0  
+
+> F
+
++ ϵa=1  
+
+> F
+
++ BΦ · W (pa=1 Φ , p a=0 Φ )
+
+(30) This concludes the proof. 
+
+## B. Data Generation Settings 
+
+To further evaluate the performance of our method in distribution estimation, we conduct the following synthetic data generation settings with high-dimensional covariates X ∈ Rd (d = 100 ). The observed outcome is defined as Y =
+
+AY (1) + (1 − A)Y (0) . Both settings share a common structure for potential outcomes: 
+
+(
+
+Y (0) = f (X) + ϵ0,Y (1) = f (X) + τ (X) + ϵ1,
+
+where ϵ0, ϵ 1 ∼ N (0 , 1) . The baseline function f (X) and treatment effect τ (X) are defined as: 
+
+f (X) = 0 .5X21 + 0 .5 exp 
+
+ X2 + X3
+
+4
+
+
+
++ sin( X4 + X5),τ (X) = 1 .0 + 0 .5X1 − 0.5X22 + sin( X3).
+
+14 RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation 
+
+B.1. Setting A: Propensity-based Selection 
+
+In this setting, X ∼ N (0, Id). Selection bias is introduced via a logistic propensity score π(X) = P (A = 1 | X):logit [π(X)] = 0 .5 + 0 .5X1 − X22 + sin( X3),
+
+where A ∼ Bernoulli [π(X)] .
+
+B.2. Setting B: Covariate Shift 
+
+In this setting, the treatment assignment is balanced ( P (A = 1) = 0 .5), but the covariate distributions for the two groups are forced to differ to simulate strong distribution shift: 
+
+X | A = a ∼
+
+(
+
+N (0, Id), a = 0 
+
+N (s · 1d, Id), a = 1 ,
+
+where the shift parameter is set to s = 0 .5. This setting tests the model’s ability to generalize across treatment groups with limited overlap. 
+
+## C. Implementation details 
+
+We implement RepFlow in PyTorch. Experiments were carried out on 4 × NVIDIA A100.The representation network comprises an initial projection layer, two residual blocks with ReLU activation, and a final linear layer that outputs ℓ2-normalized latent representations. The velocity network comprises an outcome embedding module, a time embedding layer, and a FiLM layer for feature conditioning. This is followed by two gated residual blocks with SiLU activation that adaptively incorporate conditioning variables, a skip-connection aggregation mechanism that sums intermediate features across all blocks to form the final hidden state, and a dual-head projection layer that predicts treatment-specific velocity fields v0
+
+and v1. For model training, we adopt the Adam optimizer (Kingma & Ba, 2015). To ensure an equitable comparison, all methods use the same 70/20/10 train/validation/test split of the dataset, with the validation set used to select the optimal hyperparameters. 15
