@@ -1,0 +1,688 @@
+Title: Subspace-Decomposed JEPAs: Disentangling Progression and Content in Latent World Models
+
+URL Source: https://arxiv.org/pdf/2605.31111v1
+
+Published Time: Mon, 01 Jun 2026 01:17:16 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# Subspace-Decomposed JEPAs: Disentangling Progression and Content in Latent World Models 
+
+Lucas Thil 
+
+LIX, École Polytechnique IRT SystemX Palaiseau, France 
+
+lix@polytechnique.fr 
+
+Jesse Read 
+
+LIX, École Polytechnique Palaiseau, France 
+
+Rim Kaddah 
+
+IRT SystemX Palaiseau, France 
+
+Guillaume Doquet 
+
+Safran Tech Chateaufort, France 
+
+## Abstract 
+
+Joint-Embedding Predictive Architectures (JEPAs) learn compact latent world models by predicting future embeddings, but no single coordinate of the latent is designated to encode task progression. We carve the JEPA latent into two or-thogonal subspaces with disjoint roles: a low-dimensional progression subspace 
+
+zprog ∈ Rk shaped by a cosine-margin triplet loss, and a high-dimensional con-tent subspace zcont ∈ RD−k regularised by the existing SIGReg objective of LEWM. We prove that the two anti-collapse forces act on disjoint coordinates, so they compose additively rather than competing on the same dimensions. Our method, SD-JEPA improves over the L EWM baseline on the majority of its con-trol benchmarks at matched compute, and outperforms the strongest non-L EWM JEPA baseline on Push-T; a subspace-ablation falsifier confirms the split is the load-bearing ingredient. Beyond planning, the resulting 1-D angular progression co-ordinate θt = atan2( zprog  
+
+> 2
+
+, zprog  
+
+> 1
+
+) functions as a scene-aware compass on the latent. It advances with task progress, regresses when the agent backtracks, and under con-trolled perturbations both spikes and relocalises to a semantically appropriate new task-phase sector, separating the moment of surprise from its meaning in a way that prediction-error scalars cannot. Three quantitative tests back this up: |∆θt| outper-forms the standard latent-prediction-error surprise (z-MSE) at localising semantic events on 40 held-out cube episodes by up to +0 .18 pooled AUROC ( 97 .5% per-episode win rate at ±1-step tolerance); a within-episode linear probe across all four environments ( 40 episodes per env) shows the 8-dimensional progression subspace (4.2% of the latent) explains 72 –95% of task-progress variance, with the largest probe-vs-clock gap on Reacher tracking the only env with a robust zprog -aware planning lift. Code at https://github.com/LucasStill/SD-JEPA 
+
+## 1 Introduction 
+
+World models aim at predicting the consequences of actions in a compact latent space so that agents can plan, imagine, and generalize. Joint-Embedding Predictive Architectures (JEPAs) [LeCun et al., 2022, Assran et al., 2023, Bardes et al., 2024, Assran et al., 2025] pursue this in feature space, forgoing pixel-level reconstruction. The recent L EWM method [Maes et al., 2026] establishes an end-to-end pixel JEPA with a two-term loss, next-embedding MSE plus a Sketch Isotropic                 
+
+> Preprint.
+> arXiv:2605.31111v1 [cs.LG] 29 May 2026 SD-JEPA
+> (k=2)
+> LeWM
+> DINO-WM+prop
+> PLDM
+> DINO-WM
+> GCBC
+> GCIQL
+> GCIVL
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Success Rate (  ) 90 87
+> 100 97 100 100 100 100
+> Two-Room
+> SD-JEPA
+> (k=4)
+> LeWM
+> PLDM
+> DINO-WM
+> 88 86
+> 78 79
+> Reacher
+> SD-JEPA
+> (k=8)
+> LeWM
+> Wang+ '26
+> DINO-WM+prop
+> PLDM
+> DINO-WM
+> GCBC
+> GCIQL
+> GCIVL
+> 97.3 96 91.33 92
+> 78 74 75
+> 20
+> 33
+> Push-T
+> SD-JEPA
+> (k=2)
+> LeWM
+> PLDM
+> DINO-WM
+> GCBC
+> GCIQL
+> GCIVL
+> 72 74
+> 65
+> 86 84
+> 64
+> 56
+> OGBench-Cube
+> Planning success across environments SD-JEPA vs. baselines from LeWM (Maes et al., 2026)
+
+Figure 1: Planning success rate (%) across the four L EWM benchmark environments. Baselines reproduced from Maes et al. [2026], Wang et al. [2026], Tassa et al. [2018], Park et al. [2024], Sobal et al., Zhou et al. [2024] Fig. 6. SD-JEPA (sea-green, leftmost) reports the multi-seed mean at the optimal kprog per environment, with sample standard deviation from multi-seed runs. SD-JEPA improves over L EWM on three of the four environments at matched 10-epoch compute (Two-Room 
+
++3 , Reacher +2 , Push-T +1 .3); cube −2 at k=2 .Gaussian Regularizer (SIGReg) Balestriero and LeCun [2025] on the marginal latent distribution, and demonstrates competitive planning with ∼15M parameters trainable on a single GPU. A recurring observation across L EWM and adjacent work is that these latents capture slow features 
+
+and exhibit emergent temporal straightening [Hénaff et al., 2019, Sobal et al., 2022], but they do not carry an interpretable notion of progression: there is no axis along the latent whose value corresponds to “how far along” the agent is in an episode, nor any geometric prior that different episodes of the same task should share a common progression manifold. A natural way to add a designated progression axis is to allocate a low-dimensional subspace of the latent to it, and shape that subspace with a temporal-ordering objective. Cosine-margin triplet losses are a well-established mechanism for this purpose in temporal contrastive learning [Dwibedi et al., 2019, Schneider et al., 2023]: they pull embeddings of temporally adjacent frames together and push apart frames that are far in time, thereby imposing a smooth ordering on the resulting representation. Independently, recent work on temporal straightening for latent planning [Wang et al., 2026] demonstrates that geometric regularisers on latent trajectories can substantially improve gradient-based planners. What has not been studied is whether such structured-progression objectives can be combined with the marginal-distribution anti-collapse mechanisms used by end-to-end JEPAs (specifically, SIGReg in L EWM) without the two regularisers interfering. This paper asks: can we add a structured progression coordinate to a LEWM -style JEPA latent without breaking its SIGReg anti-collapse guarantee, and does the resulting architecture improve planning? 
+
+Contributions. 
+
+1. We introduce SD-JEPA, an extension of L EWM that splits the JEPA latent into a low-dimensional 
+
+progression subspace zprog and a high-dimensional content subspace zcont , shaped respectively by a cosine-margin triplet loss and SIGReg. 2. We prove that the two anti-collapse forces (SIGReg on zcont , triplet on zprog ) act on disjoint coordinates with disjoint gradient supports, so they compose additively rather than competing on the same dimensions; we connect the triplet loss and SIGReg via the sample/dimension-contrastive duality of Garrido et al. [2023], and validate the decomposition empirically with a subspace-ablation falsifier. 3. We propose a planning cost that decomposes into a content term ( zcont -MSE) and an optional angular term on zprog , and show that SD-JEPA matches or improves on L EWM on the majority of its control benchmarks at matched compute. 4. We characterise the resulting 1-D angular progression coordinate θt = atan2( zprog 2 , zprog 1 ) as a scene-aware compass on the latent: it tracks task progress, regresses under genuine task regression, and under controlled perturbations decouples the moment of surprise from its post-perturbation 
+
+re-localisation .22 Background 
+
+2.1 Notation and setting 
+
+We follow the L EWM setting. An offline dataset of trajectories {(o1: Tu , a 1: Tu )}Uu=1 is given, with pixel observations ot and action labels at. An encoder fθ maps observations to latents zt = fθ (ot) ∈
+
+RD , and a predictor pϕ models dynamics autoregressively in latent space: ˆzt+1 = pϕ(zt−H+1: t, a t),where H is the history length. Planning is performed by CEM over action sequences to minimize a latent-space cost to a goal embedding zg = fθ (og ).
+
+2.2 LeWM: next-embedding prediction with SIGReg 
+
+LEWM trains the encoder and predictor jointly with 
+
+LLeWM = ∥ ˆzt+1 − zt+1 ∥22
+
+| {z }
+
+> Lpred
+
++ λ SIGReg( z), (1) where SIGReg enforces that the marginal distribution of z is isotropic Gaussian. Using the Cramér– Wold theorem, SIGReg aggregates the univariate Epps–Pulley normality statistic over M random unit directions u(m) ∈ SD−1:
+
+SIGReg( Z) = 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+T
+
+
+
+Zu (m)
+
+, (2) with T (·) the Epps–Pulley test statistic. The key property of (2) is that it constrains only the marginal 
+
+distribution p(z); the conditional p(zt+1 | zt) is unaffected. 
+
+2.3 Duality of contrastive and covariance-based regularizers 
+
+Garrido et al. [2023] show that the sample-contrastive criterion Lc = ∥K⊤K − diag( K⊤K)∥2 
+
+> F
+
+and the dimension-contrastive criterion Lnc = ∥KK ⊤ − diag( KK ⊤)∥2 
+
+> F
+
+(with K the embedding matrix) are equivalent up to the row- and column-norms of K:
+
+Lnc +
+
+> M
+
+X
+
+> j=1
+
+∥Kj, ·∥42 = Lc +
+
+> N
+
+X
+
+> i=1
+
+∥K·,i ∥42. (3) Under double-L2-normalization of rows and columns, Lnc = Lc + N − M . SIGReg and the cosine-triplet both belong to this broader variance-repulsion family, a fact we exploit in §4. 
+
+## 3 Method: SD-JEPA 
+
+3.1 Subspace decomposition of the latent 
+
+We split the JEPA latent into a progression subspace and a content subspace :
+
+zt = P zprog 
+
+> t
+
+| {z }
+
+> ∈RD
+
++ Q zcont 
+
+> t
+
+| {z }
+
+> ∈RD
+
+, zprog  
+
+> t
+
+∈ Rk, zcont  
+
+> t
+
+∈ RD−k, (4) where P ∈ RD×k and Q ∈ RD×(D−k) are fixed orthogonal injections with P ⊤P = Ik, Q⊤Q =
+
+ID−k, P ⊤Q = 0 . In practice we take the canonical split P = [ Ik; 0] , Q = [0; ID−k], so that zprog 
+
+> t
+
+and zcont  
+
+> t
+
+are simply the first k and last D − k coordinates of zt. We use k = 2 by default. 
+
+3.2 Four-term training objective 
+
+SD-JEPA is trained with 
+
+LSD = Lpred (z) + λS SIGReg( zcont ) + λT Ltrip (zprog ) + λstr Lstraight (z) (5) with: 3• Lpred (z) = ∥ ˆzt+1 − zt+1 ∥22 on the full latent (unchanged from L EWM). • SIGReg( zcont ): SIGReg ( (2) ) applied only to the content subspace, using random unit directions sampled in RD−k.• Ltrip (zprog ): a cosine-margin triplet loss on zprog that orders embeddings by their position within a trajectory: positives are sampled within a temporal window ϑt of an anchor, negatives outside the window or from a different trajectory. • Lstraight (z) = −Et[cos( vt, vt+1 )] with vt = zt+1 − zt: explicit temporal straightening (see §A.3). The LeWM base is recovered as λT = λP = λstr = 0 and applying SIGReg to the full z instead of 
+
+zcont .
+
+3.3 Latent-space indicators as predictor conditioning 
+
+From zprog  
+
+> t
+
+we compute the angular and radial readouts 
+
+θt = atan2( zprog  
+
+> t, 2
+
+, zprog  
+
+> t, 1
+
+), rt = ∥zprog  
+
+> t
+
+∥2. (6) These are scalar, scale- and rotation-aware quantities that summarize where on the progression mani-fold the current state sits. We expose them to the autoregressive predictor as additional conditioning alongside the action embedding: 
+
+ˆzt+1 = pϕ(zt−H+1: t, a t, (θt, r t)) . (7) Concretely, (θt, r t) (with θt encoded as (sin θt, cos θt) to avoid wrap-around discontinuities) is embedded to the predictor’s hidden dimension and summed with the action embedding before AdaLN-zero conditioning. This gives the predictor an explicit progression compass , analogous in spirit to sinusoidal positional encodings in attention: no new information, but better-structured information. 
+
+3.4 Planning with an angular goal-matching cost 
+
+In L EWM, planning minimizes ∥ ˆzH −zg ∥22 at the end of a rollout. We replace this with a decomposed cost: 
+
+C( ˆ zH ) = ∥ ˆzcont H − zcont  
+
+> g
+
+∥22
+
+| {z }
+
+> content match
+
++ γ  1 − cos( ˆθH , θ g )| {z }
+
+> angular progression match
+
++ δ (ˆ rH − rg )2
+
+| {z }
+
+> radial match
+
+. (8) The angular and radial terms make the progression match scale-invariant and independent of the ambient content geometry. The receding-horizon Cross-Entropy Method (CEM) solver is otherwise identical to L EWM: at each replanning step, 300 candidate action sequences are sampled, the top-30 
+
+retained as elites to update the sampling Gaussian, and we iterate 30 times on Push-T and 10 times on the other environments. 
+
+## 4 Theoretical analysis 
+
+We state the two propositions that establish why the subspace split composes additively rather than competing on the same dimensions. Full proofs and three further results (consistency with emergent straightening, identifiability of the progression axis, when the split fails) are deferred to App. A. 
+
+Proposition 1 (Disjoint gradient supports) . Let z ∈ RD be written as z = P zprog + Qzcont with 
+
+P ⊤P = Ik, Q⊤Q = ID−k, P ⊤Q = 0 (§3). Let SIGReg be applied on zcont and any function L on 
+
+zprog alone. Then span( ∇z SIGReg( Q⊤z)) ⊆ col( Q), span( ∇z L(P ⊤z)) ⊆ col( P ), and these two subspaces are orthogonal. Proof sketch. SIGReg( Q⊤z) depends on z only through Q⊤z, so by the chain rule 
+
+∇z SIGReg( Q⊤z) = Q ∇zcont SIGReg( zcont ), which lies in col( Q). Identically for L and P .Orthogonality follows from P ⊤Q = 0 . □
+
+Proposition 2 (No double-counting on orthogonal subspaces) . Let Ltrip act on zprog and SIGReg 
+
+act on zcont . Under the split, their anti-collapse gradients act on orthogonal coordinates: removing either term cannot be compensated by increasing the other (the other has no gradient in the affected directions). 
+
+4These two results together formalise the architectural intuition: triplet on zprog and SIGReg on zcont 
+
+are complementary rather than redundant despite belonging to the same variance-repulsion family in the sense of Garrido et al. [2023]. The empirical falsifier (A2_full = A0, Tab. 2) confirms the proposition matters in practice: when the split is removed and triplet acts on the full latent, the gain disappears. Disjointness is at the latent level; the encoder’s parameter gradients are still the sum of both terms via the chain rule, so encoder-level conflict is not formally precluded. 
+
+## 5 Experiments 
+
+5.1 Setup 
+
+We evaluate SD-JEPA on the four control benchmarks of Maes et al. [2026]: Two-Room (2-D naviga-tion), Reacher (DM-Control), Push-T (2-D manipulation), and OGBench-Cube (3-D manipulation). All evaluations use the paper’s protocol, 50 -step horizon, 25 -step goal offset, CEM solver with 300 
+
+candidates / 30 iterations on Push-T and 10 iterations elsewhere, planning horizon 5 at frame-skip 5.We train each model for 10 epochs at batch size 128 , matching the LeWM training budget; encoder and predictor architectures are inherited from LeWM (ViT-tiny encoder, 6-layer transformer predictor, 
+
+∼18 M parameters total). Multi-seed runs use seeds {0, 42 , 3072 }. Implementation details, dataset paths, hyperparameters, and a glossary of the ablation rung names (A0, A2, A2_full, A4, A5, A6) used throughout this section are in App. C and Tab. 6. 
+
+5.2 Main results 
+
+Figure 1 shows planning success rate per environment for SD-JEPA against the published LeWM numbers and the cross-method baselines reported by Maes et al. [2026]. SD-JEPA improves over LeWM on three of the four environments at matched 10-epoch compute :• Reacher : +2 over LeWM ( 86 → 88 at kprog =4 , 3-seed mean across both planning costs); +12 
+
+over our A0 rerun ( 76 ). • Two-Room : +3 over LeWM ( 87 → 90 at kprog =2 , 3-seed mean). • Push-T : +1 .3 over LeWM ( 96 → 97 .3 at kprog =8 , 3-seed mean), +5 over the strongest non-LeWM baseline (DINO-WM with proprioception, 92 ). • OGBench-Cube : −2 vs LeWM at kprog =2 (72 vs 74 , 3-seed mean); the kprog ={4, 8} sweep does not close the gap (cube prefers k=2 in our 10-epoch regime). The optimal kprog is task-dependent (§5.4); the architectural framework is robust across k ∈ { 2, 4, 8}.Table 1 reports cross-method numbers.                               
+
+> Method Two-Room Reacher Push-T OGB-Cube best k
+> LEWM [Maes et al., 2026] 87 86 96 74 ,SD-JEPA, kprog =2 90 (n=3) 84 (n=3) 94 (n=3) 72 (n=3) ,
+> SD-JEPA, best k(ours) 90 88 97.3 72 2 / 4 / 8 / 2
+> ∆vs. L EWM +3 +2 +1 .3−2,
+
+Table 1: Planning success rate (%) on the four LeWM benchmark environments. SD-JEPA at kprog =2 
+
+is our minimal triplet-only rung (subspace split + cosine triplet on zprog , no other auxiliary loss terms); the “best k” row reports the highest 3-seed mean across the per-environment kprog sweep (Tab. 3). ‡ Single seed (3072), multi-seed in flight. A2_full (split removed, falsifier) returns to the LeWM baseline at 96 on Push-T (Tab. 2). 
+
+5.3 The subspace split is load-bearing 
+
+To isolate which component of SD-JEPA drives the gain, two falsifiers on Push-T (Tab. 2, single seed). A2_full disables the split: 96 = A0. A2_split_full keeps the split but mis-targets the triplet on the full latent: 92 , four points below A0. The split itself, not the triplet in isolation, is the load-bearing ingredient: the empirical analogue of Prop. 2 on the actual training dynamics. 5Variant kprog Triplet target SIGReg domain Push-T (%) A0 (baseline) 0 , full z 96 A2_full 0 full z full z 96 A2 (canonical) 2 zprog zcont 98      
+
+> A2_split_full 2full zzcont 92
+
+Table 2: Subspace-ablation falsifier on Push-T (single seed 3072). A2_full = A0 isolates the split as the source of the gain; A2_split_full < A0 shows that even with the split, mis-targeting the triplet onto the full latent actively damages zcont . Both findings empirically validate the disjoint-gradient-supports framing (Prop. 1, 2). 
+
+5.4 kprog scales with task complexity 
+
+The optimal kprog varies per env (Tab. 3). On Push-T, multi-seed evaluation gives a clean monotone 
+
+94 → 96 → 97 .3 at k ∈ { 2, 4, 8}, with the k=8 checkpoint exhibiting a near-perfect S1 progression manifold ( σr ∈ [0 .04 , 0.07] , angular span 6.1 rad on seven held-out episodes; App. E). Two-Room is non-monotone ( k=2 and k=8 both 90 , k=4 at 88 ), consistent with the 1-D navigation topology saturating at two progression dimensions; Reacher prefers a moderate k=4 (92 vs. 84 /82 ). The cross-env pattern is not “higher k always wins” but “the right k matches the task’s intrinsic progression dimensionality.” A negative control with zprog -only MSE planning collapses to 28% on Push-T: the progression subspace is too low-dimensional to carry goal information alone; the gain at higher k
+
+comes from the encoder devoting more budget to a coherent progression manifold while the planning cost still operates primarily on zcont .                      
+
+> Env kprog =2 kprog =4 kprog =8 Best k
+> Push-T 94.0 96.0 97.3 k=8
+> Two-Room 90.0 88.0 90.0 k={2,8}
+> Reacher 84.0 88.0 83.3 k=4
+> OGB-Cube 72.0 69.3 69.3 k=2
+
+Table 3: Cross-environment kprog sweep, 3-seed mean per cell (seeds {0, 42 , 3072 }) at the zcont -MSE planning cost. The optimal k varies per env in [2 , 8] . Full-z planning shifts means by at most ±4 pp, the largest effect being +3 .3 pp on Reacher at k=8 (App. D). 
+
+5.5 The latent acts as a scene-aware compass 
+
+The canonical SD-JEPA architecture exposes a 1-D angular readout θt = atan2( zprog  
+
+> t, 2
+
+, zprog  
+
+> t, 1
+
+) on the trained progression subspace. We probe what this coordinate captures along three axes: the cross-episode geometry it produces in zprog versus zcont , the physical task quantities it correlates with across environments, and how it behaves under controlled observation perturbations. The picture is environment-dependent and partly clock-like, partly task-coupled; the full per-environment breakdown is in App. E. 
+
+Cross-episode geometry matches the disjoint-supports prediction. Prop. 1 predicts that zprog 
+
+should carry shared cross-episode progression structure while zcont should be episode-specific. The Push-T A2 t-SNE (Fig. 4, App. E) makes the asymmetry visible: zcont separates into per-episode clusters while zprog ’s arcs partially mix across episodes. The second moments confirm it: 
+
+cos( zprog [t]) ≈ 0.5 vs. cos( zcont [t]) ≈ 0, with the full z inheriting the zcont -side near-orthogonality. 
+
+θt is partly a clock and partly a task-phase coordinate, with the balance varying by env and 
+
+kprog . We score the per-episode Spearman ρ between θt and candidate proxies: the elapsed-time clock ( step_idx ) plus env-specific physical quantities ( block_target_dist on Cube, 
+
+ee_target_dist on Reacher, block_angle_err on Push-T). Mean |ρ| tables, heatmaps, and per-episode signed values are in App. E. Cube is the only env where a task-physical signal beats the clock ( block_target_dist , |ρ|=0 .59 vs 0.47 ); elsewhere the two are within 0.1 or the clock leads. On Push-T, |ρ| with the clock falls from 0.91 at k=2 to 0.56 at k=8 as the physical signals catch up, 6consistent with θ becoming more cyclic-phase-like at higher k. The cube state-traj overlay (Fig. 4, App. E) makes one episode concrete: θ traces a smooth phase gradient along the planar trajectory. 
+
+θt as a richer surprise signal: separating the moment of surprise from its meaning . Standard latent VoE, ∥ ˆzt+1 − zt+1 ∥, says when the model was wrong but not about what ; identical scalar magnitudes may correspond to different counterfactual interpretations. We test the angular signal on Push-T with a teleport-and-continue perturbation: at step 50 of held-out episode 0, the next observation is replaced by a frame from episode 1000 (whose T-block sits on the opposite side of the goal) and the planner resumes. Two distinct signals appear in θt (Fig. 3). (i) A sharp single-frame spike of ∼1.5 rad in |∆θt| (≈ 75 × baseline drift) marks the moment , like a scalar VoE spike. (ii) After the spike, θt does not return: it relocalises from sector θ ≈ − 2.5 to sector θ ≈ − 4.0, corresponding to the new solving mode (T-block on the other side), marking the meaning , the model’s updated belief about which task phase is active. Standard MSE-VoE reports only the spike, not the re-localisation. Three further perturbation modes (splice, 1-frame teleport, reverse) reproduce this pattern (App. F). 
+
+|∆θt| outperforms scalar prediction-error at localising semantic phase events. The qualitative argument above motivates a quantitative test: does |∆θt| actually pinpoint task-meaningful events more reliably than the latent prediction-error magnitude ∥ ˆzt+1 −zt+1 ∥ (z-MSE), the standard surprise metric in latent world models? On OGBench-Cube the gripper-contact transitions provide an objective ground-truth event signal: each pick-and-place episode has roughly four such transitions (close, open, close, open) marking semantically meaningful phase boundaries. We compute the per-step AUROC of each surprise metric against labels marking “step is within ±tol of any contact transition” on 
+
+40 held-out episodes ( 160 ground-truth events, 1480 steps; SD-JEPA kprog =8 checkpoint). Pooled AUROC and the per-episode head-to-head appear in Tab. 4; the qualitative phase overlay on episode 
+
+500 is shown in Fig. 2 and the four-panel summary across all episodes in Fig. 14 (App. G).                        
+
+> tolerance z-MSE |∆θ|margin ( |∆θ|− z-MSE) |∆θ|wins
+> ±1step 0.238 0.414 +0.176 39 /40 (97 .5% )
+> ±2steps 0.360 0.473 +0 .113 34 /40 (85% )
+> ±3steps 0.513 0.565 +0 .052 29 /40 (72 .5% )
+
+Table 4: Phase-event-alignment AUROC on OGBench-Cube. Each step in each held-out episode is labelled positive iff it falls within ±tolerance of a ground-truth gripper-contact transition; we report pooled AUROC of each surprise metric against these labels (40 held-out episodes, 160 events, 1480 steps). |∆θ| outperforms z-MSE at every tolerance, with a 97 .5% per-episode win rate at the tightest tolerance. The two metrics measure different things: as a complementary control, an action-corruption test on the same checkpoint shows z-MSE is the better tool when the question is “where is the magnitude anomaly” (App. G). Both observations are consistent with the design intent that θt exposes structural / phase information not captured by the scalar prediction error. 
+
+Figure 2: Cube episode 500 head-to-head: per-step normalised z-MSE (blue) and |∆θt| (red) vs the binary gripper-contact signal (green; dashes mark transitions). z-MSE peaks at t≈10 , mid-manipulation; |∆θt| peaks at the contact transition t≈32 , with secondary peaks aligned to the other transitions. The per-episode AUROC distribution across all 40 held-out episodes is in App. G, Fig. 14. 
+
+zprog packs within-episode progress information densely. A complementary test asks how much task-progress information is packed into the progression subspace per dimension. We fit linear-regression probes from various latent features to a per-episode-normalised target-distance signal, in two regimes: a per-episode probe (within each held-out episode, leave-one-step-out CV; mean R 2 over 740 episodes) and a pooled probe (leave 25% of episodes out, 30 bootstraps). On cube, the per-episode probe gives zprog (8 dims, 4.2% of the latent) mean R 2 = 0.905 (100 % positive over 40 episodes); 
+
+(sin θ, cos θ) packs 55 .5% of the variance into just 2 dimensions, 2× a random-2-d projection of z
+
+(0.263 ) and the elapsed-time clock ( 0.291 ). Cross-env replication on the same 40 -episode-per-env protocol confirms the claim is not cube-specific (Tab. 5): zprog R2 ∈ { 0.91 , 0.91 , 0.95 , 0.72 } on cube/Push-T/Reacher/Two-Room, 100% positive on the first three and 95% on Two-Room, never below 0.72 across any env using only 4.2% of the latent. The largest probe-vs-clock gap, +0 .66 
+
+on Reacher, lines up with Reacher being the only env with a robust zprog -aware planning lift (§5.6, App. D). The pooled probe is the honest caveat: across episodes with different absolute initial distances, only step_idx stays reliably positive (App. G, Tab. 9, Fig. 16, 17); the compass is a per-trajectory phase coordinate, not a globally calibrated cross-episode distance estimate.                                  
+
+> feature (mean R 2over 40 eps) Cube Push-T Reacher Two-Room
+> step_idx (clock) 0.291 0.617 0.286 0.690 (sin θ, cos θ)(2-d) 0.555 0.422 0.335 0.040
+> random-2-d projection of z(control) 0.263 0.295 0.236 −0.271
+> zprog (8-d, 4.2% of latent) 0.905 0.908 0.948 0.717
+
+Table 5: Cross-environment per-episode linear probe ( 40 held-out episodes per env, LOO-CV) against an env-specific target-distance signal. zprog wins everywhere using only 4.2% of the latent and is positive on ≥ 95% of episodes in every env ( 100% on Cube/Push-T/Reacher). The probe-vs-clock gap is largest on Reacher ( +0 .66 R2), the only env with a robust zprog -aware planning lift. Per-feature dimensions, full distribution, and the pooled-probe negative result are in App. G. 
+
+Three operationalisations of the same intuition. The phase-event AUROC (Tab. 4, |∆θt| wins on 39 /40 cube episodes) asks where the semantic events are; the regime-change CPD (App. G) asks where the regime boundaries are; the linear probe (Tab. 9, App. G) asks how much progress information is packed per dimension. All three confirm that the trained zprog subspace, and θ in particular, carries task-phase structure that the standard scalar prediction-error metric does not surface.     
+
+> (a) Progression angle θt: re-localisation (the meaning ). (b) Angular surprise |∆θt|: 1-frame spike ( moment ).
+
+Figure 3: Push-T A2 under the teleport-and-continue perturbation. (a) Unwrapped θt before vs. after the perturbation: θt does not return to the pre-perturbation trace but relocalises from one sector of the progression manifold to a semantically appropriate new one. (b) |∆θt| shows a sharp single-frame spike at step 50 , ∼ 75 × the baseline drift. MSE-surprise reports only the spike, not the re-localisation. 
+
+5.6 Cross-environment summary and limitations 
+
+SD-JEPA improves on three of four L EWM envs (Tab. 1, Tab. 3, 3-seed multi-seed); the framework is robust across kprog ∈ { 2, 4, 8} but the per-env optimum varies. Whether full-z planning helps is also task-dependent (Reacher +3 .3 pp at k=8 , other envs within ±1 pp; App. D). The latent-geometry diagnostics establish that the architecture produces the predicted progression-content geometry 
+
+independently of any planning-success delta, providing a second axis of evidence on top of the empirical one. 
+
+Known limitations. (i) Per-environment kprog tuning means we report best-k values rather than a single universal k. (ii) The triplet and angular readouts both use cosine geometry; other distance metrics or non-angular readouts (e.g. a learned scalar progression head) may surface complementary structure. (iii) The fixed orthogonal [P, Q ] is a modeling choice; a learned orthogonal decomposition is the natural extension. Extended ablations on auxiliary terms (straightening, polar conditioning, angular planning cost) are in App. D. 86 Related work 
+
+Latent world models. We complete the related work mentioned in the introduction with pixel-space architectures such as DreamerV3 Hafner et al. [2024] and feature-space JEPAs include I-JEPA, V-JEPA, PLDM, DINO-WM, and most directly LeWM [LeCun et al., 2022, Assran et al., 2023, Bardes et al., 2024, Sobal et al., 2022, Maes et al., 2026]. Latent-action world models such as LAWM, Genie, Gaia-2, Cosmos and explore alternative conditioning regimes [Garrido et al., 2026, Bruce et al., 2024, Ye et al., 2024, Team et al., 2025, Russell et al., 2025, Agarwal et al., 2025]. SD-JEPA inherits LeWM’s encoder-predictor stack and the SIGReg anti-collapse regularizer, adding only a fixed orthogonal subspace split and a triplet term on the progression side; the parameter count is identical to LeWM ( 18 .04 M, no new learnable weights). 
+
+Progression geometry and temporal straightening. The cosine-margin triplet on zprog is a temporal-ordering loss in the family of Dwibedi et al. [2019], Schneider et al. [2023]. Our straighten-ing regulariser Lstraight = −E[cos( vt, vt+1 )] is identical to the curvature loss of Wang et al. [2026] (stop-gradient anti-collapse, gradient-descent planner). On Push-T at the matched protocol, their best published configuration reaches 91 .3 ± 2.5; SD-JEPA at kprog =8 reaches 97 .3 ± 1.2, 6 points above. Adding the curvature regulariser on top of SIGReg in our setup (rung A4, App. D) costs 14 points on Push-T, consistent with the principle that anti-collapse forces should not compete on the same coordinates. Latent straightening has applications in OOD detection Internò et al. [2025]. The SSL duality framework of Garrido et al. [2023] grounds our no-double-counting result. 
+
+## 7 Discussion 
+
+The latent as a navigable map. The diagnostics in §5.5 support reading θt as less of a chronological counter and more of a state-based navigation signal: it advances with task progress, regresses in lockstep when the agent backtracks, and under perturbation jumps to a semantically appropriate new sector. The qualitative parallel with mammalian head-direction cells [Taube et al., 1990, Knierim and Hamilton, 2011] is suggestive; we make no mechanistic claim. App. F reproduces the moment-and-meaning decoupling under three further perturbation modes. 
+
+When does θ-coupling translate into a planning lift? The full-z planning lift is non-uniform: Reacher gains +3 .3 pp at kprog =8 , Cube +2 .0, Two-Room and Push-T nothing. Cross-referencing per-environment θ-task coupling (App. E), θ-coupling is necessary but not sufficient : Reacher (coupling |ρ| = 0 .49 ) sees the cleanest lift; Two-Room ( 0.34 ) sees none. The two anomalies have separate bottlenecks: Cube has the strongest coupling ( 0.59 ) but the predictor’s contact-rich rollout error caps the cost-function gain, while Push-T at kprog =8 is already near the ceiling ( 97 .3% ). Reacher sits in the sweet spot: phase-coupled enough for the angular cost to add information, simple-enough dynamics that the predictor is not the bottleneck. The cross-environment probe (Tab. 5) gives a complementary mechanistic story for the same pattern: Reacher has the largest within-episode probe-vs-clock gap ( +0 .66 R2, the largest in our suite), so the encoder concentrates the most progress information into zprog exactly where the planning cost can exploit it. 
+
+What θt adds beyond scalar VoE. The angular readout differs from ∥ ˆzt+1 − zt+1 ∥ in three ways: it reports a phase sector , it is signed , and it is cross-environment comparable on a unit circle. The three tests of §5.5 confirm complementarity rather than competition with VoE; the broader design space of geometric readouts of structured-latent world models is an open agenda. 
+
+## 8 Conclusion 
+
+SD-JEPA splits the JEPA latent into a low-dimensional progression subspace shaped by a cosine-margin triplet loss and a high-dimensional content subspace regularised by SIGReg. We prove the two anti-collapse forces act on disjoint coordinates and validate this empirically: removing the split collapses the architectural gain back to the L EWM baseline. At matched 10-epoch compute (3-seed multi-seed) SD-JEPA improves on three of four L EWM control benchmarks (Two-Room 
+
++3 , Reacher +2 , Push-T +1 .3; cube −2). Beyond planning, the 1-D angular coordinate θt behaves as a scene-aware compass that tracks progress, regresses on backtrack, and under perturbations 9separates the moment of surprise from its meaning . Three independent quantitative tests back this up: |∆θt| beats z-MSE at semantic-event localisation on 40 cube episodes ( +0 .18 pooled AUROC at ±1-step tolerance, 39 /40 per-episode wins), change-point detection on the angular-velocity trace beats prediction-error metrics at loose tolerance, and a within-episode linear probe replicates across all four envs ( 40 episodes per env) with zprog R2 ∈ [0 .72 , 0.95] using only 4.2% of the latent. All three back the same conclusion: the angular readout extends the standard interpretability toolkit with information the scalar prediction-error metric does not supply. 
+
+## References 
+
+Niket Agarwal, Arslan Ali, Maciej Bala, Yogesh Balaji, Erik Barker, Tiffany Cai, Prithvijit Chattopadhyay, Yongxin Chen, Yin Cui, Yifan Ding, et al. Cosmos world foundation model platform for physical ai. arXiv preprint arXiv:2501.03575 , 2025. Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent, Michael Rabbat, Yann LeCun, and Nicolas Ballas. Self-supervised learning from images with a joint-embedding predictive architecture. 2023. doi: 10.48550/ARXIV.2301.08243. URL https://arxiv.org/abs/2301.08243 .Mido Assran, Adrien Bardes, David Fan, Quentin Garrido, Russell Howes, Mojtaba, Komeili, Matthew Muckley, Ammar Rizvi, Claire Roberts, Koustuv Sinha, Artem Zholus, Sergio Arnaud, Abha Gejji, Ada Martin, Francois Robert Hogan, Daniel Dugas, Piotr Bojanowski, Vasil Khalidov, Patrick Labatut, Francisco Massa, Marc Szafraniec, Kapil Krishnakumar, Yong Li, Xiaodong Ma, Sarath Chandar, Franziska Meier, Yann LeCun, Michael Rabbat, and Nicolas Ballas. V-jepa 2: Self-supervised video models enable understanding, prediction and planning. (arXiv:2506.09985), 2025. doi: 10.48550/arXiv.2506.09985. URL http://arxiv. org/abs/2506.09985 . arXiv:2506.09985 [cs]. Randall Balestriero and Yann LeCun. Lejepa: Provable and scalable self-supervised learning without the heuristics. (arXiv:2511.08544), November 2025. doi: 10.48550/arXiv.2511.08544. URL http://arxiv. org/abs/2511.08544 . arXiv:2511.08544 [cs]. Adrien Bardes, Quentin Garrido, Jean Ponce, Xinlei Chen, Michael Rabbat, Yann LeCun, Mido Assran, and Nicolas Ballas. V-jepa: latent video prediction for visual representation learning (2024). In URL https://openreview. net/forum , 2024. Jake Bruce, Michael D Dennis, Ashley Edwards, Jack Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai, Aditi Mavalankar, Richie Steigerwald, Chris Apps, et al. Genie: Generative interactive environments. In 
+
+Forty-first International Conference on Machine Learning , 2024. Zijian Dong, Ruilin Li, Yilei Wu, Thuan T Nguyen, Joanna S Chong, Fang Ji, Nathanael R Tong, Christopher L Chen, and Juan H Zhou. Brain-jepa: Brain dynamics foundation model with gradient positioning and spatiotemporal masking. Advances in Neural Information Processing Systems , 37:86048–86073, 2024. Debidatta Dwibedi, Yusuf Aytar, Jonathan Tompson, Pierre Sermanet, and Andrew Zisserman. Temporal cycle-consistency learning. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 1801–1810, 2019. Quentin Garrido, Yubei Chen, Adrien Bardes, Laurent Najman, and Yann Lecun. On the duality between contrastive and non-contrastive self-supervised learning. In ICLR 2023-Eleventh International Conference on Learning Representations , 2023. Quentin Garrido, Tushar Nagarajan, Basile Terver, Nicolas Ballas, Yann LeCun, and Michael Rabbat. Learning latent action world models in the wild. (arXiv:2601.05230), January 2026. doi: 10.48550/arXiv.2601.05230. URL http://arxiv.org/abs/2601.05230 . arXiv:2601.05230 [cs]. Jean-Bastien Grill, Florian Strub, Florent Altché, Corentin Tallec, Pierre Richemond, Elena Buchatskaya, Carl Doersch, Bernardo Avila Pires, Zhaohan Guo, Mohammad Gheshlaghi Azar, et al. Bootstrap your own latent-a new approach to self-supervised learning. Advances in neural information processing systems , 33: 21271–21284, 2020. Danijar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timothy Lillicrap. Mastering diverse domains through world models. (arXiv:2301.04104), April 2024. doi: 10.48550/arXiv.2301.04104. URL http://arxiv.org/abs/ 2301.04104 . arXiv:2301.04104 [cs]. Olivier J Hénaff, Robbe LT Goris, and Eero P Simoncelli. Perceptual straightening of natural videos. Nature neuroscience , 22(6):984–991, 2019. 
+
+10 Christian Internò, Robert Geirhos, Markus Olhofer, Sunny Liu, Barbara Hammer, and David Klindt. Ai-generated video detection via perceptual straightening. arXiv preprint arXiv:2507.00583 , 2025. James J Knierim and Derek A Hamilton. Framing spatial cognition: neural representations of proximal and distal frames of reference and their roles in navigation. Physiological reviews , 91(4):1245–1279, 2011. Yann LeCun et al. A path towards autonomous machine intelligence version 0.9. 2, 2022-06-27. Open Review ,62(1):1–62, 2022. Lucas Maes, Quentin Le Lidec, Damien Scieur, Yann LeCun, and Randall Balestriero. Leworldmodel: Stable end-to-end joint-embedding predictive architecture from pixels. (arXiv:2603.19312), March 2026. doi: 10.48550/arXiv.2603.19312. URL http://arxiv.org/abs/2603.19312 . arXiv:2603.19312 [cs]. Seohong Park, Kevin Frans, Benjamin Eysenbach, and Sergey Levine. Ogbench: Benchmarking offline goal-conditioned rl. arXiv preprint arXiv:2410.20092 , 2024. Julian Quevedo, Ansh Kumar Sharma, Yixiang Sun, Varad Suryavanshi, Percy Liang, and Sherry Yang. Worldgym: World model as an environment for policy evaluation, 2025. URL https://arxiv. org/abs/2506.00613 , 2(4):9. Lloyd Russell, Anthony Hu, Lorenzo Bertoni, George Fedoseev, Jamie Shotton, Elahe Arani, and Gianluca Corrado. Gaia-2: A controllable multi-view generative world model for autonomous driving. arXiv preprint arXiv:2503.20523 , 2025. Steffen Schneider, Jin Hwa Lee, and Mackenzie Weygandt Mathis. Learnable latent embeddings for joint behavioural and neural analysis. Nature , 617(7960):360–368, 2023. Vlad Sobal, Wancong Zhang, Kyunghyun Cho, Randall Balestriero, Tim GJ Rudner, and Yann LeCun. Stress-testing offline reward-free reinforcement learning: A case for planning with latent dynamics models. In 7th Robot Learning Workshop: Towards Robots with Human-Level Abilities .Vlad Sobal, Jyothir SV, Siddhartha Jalagam, Nicolas Carion, Kyunghyun Cho, and Yann LeCun. Joint embedding predictive architectures focus on slow features. arXiv preprint arXiv:2211.10831 , 2022. Yuval Tassa, Yotam Doron, Alistair Muldal, Tom Erez, Yazhe Li, Diego de Las Casas, David Budden, Abbas Abdolmaleki, Josh Merel, Andrew Lefrancq, et al. Deepmind control suite. arXiv preprint arXiv:1801.00690 ,2018. Jeffrey S Taube, Robert U Muller, and James B Ranck. Head-direction cells recorded from the postsubiculum in freely moving rats. i. description and quantitative analysis. Journal of Neuroscience , 10(2):420–435, 1990. HunyuanWorld Team, Zhenwei Wang, Yuhao Liu, Junta Wu, Zixiao Gu, Haoyuan Wang, Xuhui Zuo, Tianyu Huang, Wenhuan Li, Sheng Zhang, et al. Hunyuanworld 1.0: Generating immersive, explorable, and interactive 3d worlds from words or pixels. arXiv preprint arXiv:2507.21809 , 2025. Ying Wang, Oumayma Bounou, Gaoyue Zhou, Randall Balestriero, Tim G. J. Rudner, Yann LeCun, and Mengye Ren. Temporal straightening for latent planning. (arXiv:2603.12231), March 2026. doi: 10.48550/arXiv. 2603.12231. URL http://arxiv.org/abs/2603.12231 . arXiv:2603.12231 [cs]. Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Sejune Joo, Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben Tan, Yu-Wei Chao, Bill Yuchen Lin, et al. Latent action pretraining from videos. arXiv preprint arXiv:2410.11758 , 2024. Gaoyue Zhou, Hengkai Pan, Yann LeCun, and Lerrel Pinto. Dino-wm: World models on pre-trained visual features enable zero-shot planning. arXiv preprint arXiv:2411.04983 , 2024. 
+
+## A Extended theoretical analysis 
+
+This appendix reproduces the full theoretical content compressed into §4, including the corollary on the marginal product structure, the Garrido-style duality discussion, and three further results (consistency with emergent straightening, identifiability of the progression axis, and conditions under which the split fails). 11 A.1 Non-conflict under the subspace split Proposition 3 (Disjoint gradient supports) . Let z ∈ RD be written as z = P zprog + Qzcont with 
+
+P, Q as in §3, and let SIGReg be applied on zcont and L on zprog . Then for every sample, 
+
+span  ∇z SIGReg( Q⊤z) ⊆ col( Q), span  ∇z L(P ⊤z) ⊆ col( P ), (9) 
+
+and these two subspaces are orthogonal. Proof sketch. SIGReg( Q⊤z) depends on z only through Q⊤z, so its gradient with respect to z
+
+factors through Q: ∇z SIGReg( Q⊤z) = Q ∇zcont SIGReg( zcont ). Identically for the second loss 
+
+L on zprog and P . Orthogonality P ⊤Q = 0 gives the conclusion. Proposition 1 formalises the informal claim that an arbitrary loss on zprog alone does not interfere with SIGReg on zcont . The triplet loss on zprog and the prediction loss on the full z do have components in col( Q) (through the content subspace of the predictor output), so the non-conflict is specifically between the marginal-distributional term on zcont and any progression-geometric term on zprog .
+
+Corollary 1. Under the subspace split, the isotropic Gaussian constraint imposed by SIGReg holds on the marginal p(zcont ) regardless of the geometry imposed on p(zprog ) by any loss acting on zprog 
+
+alone. 
+
+A.2 Relation to the sample/dimension-contrastive duality 
+
+The cosine-margin triplet loss on zprog is a sample-contrastive criterion in the sense of Garrido et al. [2023]: it repels zprog  
+
+> a
+
+from zprog  
+
+> n
+
+while attracting it to zprog  
+
+> p
+
+, in a space of L2-normalized embeddings (cosine similarity is the inner product of unit vectors). SIGReg on zcont is not exactly a dimension-contrastive criterion, but it belongs to the same variance-repulsion family : it penalizes any departure of the marginal from isotropic Gaussian, and in particular penalizes any direction along which the variance is abnormally low (collapse) or the covariance is nonzero (feature correlation). Under the double-L2-normalization assumption of Garrido et al. [2023], the anti-collapse force of the triplet loss on zprog equals (up to additive constants) that of a VICReg-style dimension-contrastive criterion. SIGReg subsumes that variance/covariance criterion as a special case (matching the second moments of an isotropic Gaussian). 
+
+Proposition 4 (No double-counting on orthogonal subspaces) . Let Ltrip act on zprog and SIGReg 
+
+act on zcont . Under the subspace split, their anti-collapse gradients act on orthogonal coordinates and therefore do not duplicate: removing either term cannot be compensated by increasing the other, since the other has no gradient in the affected coordinate directions. Proof sketch. Apply Proposition 1 with the triplet loss as the function L on zprog .Proposition 2 is the practical consequence of the duality: even though triplet and SIGReg are of the same family (in the Garrido sense), on the subspace split they are complementary rather than redundant . This gives a clean theoretical justification for using both terms simultaneously rather than treating one as subsuming the other. 
+
+A.3 Consistency with emergent straightening 
+
+LEWM reports (Sec. 5 and Appendix H of [Maes et al., 2026]) that as training proceeds, the cosine similarity between consecutive latent velocity vectors vt = zt+1 − zt increases emergently, without any explicit regularization. This perceptual straightening property, inspired by Hénaff et al. [2019], is an invariant of good representations of natural dynamics: straight paths in latent space are linearly extrapolable, and so compound less error over multi-step rollouts. Our straightening term Lstraight (z) = −E[cos( vt, vt+1 )] makes this trend explicit. It is: • scale-invariant in z: cosine depends only on directions of velocity, not magnitudes; this means 
+
+Lstraight does not compete with the variance-related component of SIGReg ;12 • subspace-consistent : applying Lstraight on the full z does not prefer one of zprog , zcont over the other; in practice we may apply it only on zcont if zprog is already sufficiently constrained by the triplet ordering; • a soft regularizer : it does not force cos = 1 (perfectly straight dynamics), only moves the population mean upward. 
+
+Proposition 5 (Soft bias towards the emergent optimum) . Let LLeWM denote the LEWM base loss and assume (as empirically reported) that along its optimization path E[cos( vt, vt+1 )] increases monotonically toward a limit c⋆ < 1. Adding λstr Lstraight as a soft term (with λstr > 0) preserves the limiting direction of optimization: the gradient of Lstraight at the LeWM optimum is aligned with the direction of increasing straightness, hence the added term is non-antagonistic. 
+
+Empirically this is the weakest of our claims, but it rests on the reported emergence from previous works. It motivates treating straightening as a warm-start regularizer rather than a hard constraint. 
+
+A.4 Identifiability of the progression axis 
+
+Under the canonical (P, Q ) split with k = 2 , the angular coordinate θt = atan2( zprog 2 , zprog 1 ) is identifiable up to a global rotation (the triplet loss enforces a cyclic ordering on the unit-circle but does not pin a unique reference direction). This rotation freedom is harmless when the planning cost itself is rotation-invariant (the canonical zcont -MSE cost is, by construction). The identifiability is local to episodes: episodes with different durations or solving modes can each present a coherent angular progression in zprog without any global reference direction shared across them. 
+
+A.5 When does the subspace split fail? 
+
+The construction above assumes the progression subspace zprog is a reasonable k-dimensional summary of the episode phase. This assumption fails when: 1. The environment lacks coherent episodic temporal structure (e.g. purely exploratory rollouts with no consistent task progression). In that case the triplet loss has no useful ordering signal and the split degenerates to the LeWM baseline. 2. The task has multiple branching progressions (e.g. different goals per episode with no shared notion of completion). The triplet loss can still impose local orderings within each branch, but a single k-dimensional progression manifold may not accommodate the branching cleanly; goal-conditioned variants are a natural extension. 3. k is too large: the progression subspace absorbs content information, polluting the (θ, r ) reading. We sweep k ∈ { 2, 4, 8} as an ablation. 
+
+## B Implementation notes 
+
+We build on the public reference implementation of L EWM [Maes et al., 2026] for the encoder, pre-dictor, action-conditioning, and SIGReg modules. SD-JEPA additions are localised to (a) computing the canonical injections P, Q on the projected latent, (b) instantiating the cosine-margin triplet on 
+
+zprog , and (c) the optional polar-conditioning / angular-planning-cost paths described in App. D. The triplet uses within-batch sampling: for each anchor, a positive is drawn from the same trajectory within a temporal window ϑt and a negative from outside that window or from a different trajectory in the same batch, so triplet computation adds negligible overhead to the standard JEPA training step. 
+
+## C Hyperparameter summary 
+
+Per-environment configs, dataset paths, hyperparameter sweeps, and training-time stop conditions are documented in the released code. The base hyperparameters: AdamW, lr 5×10 −5, weight decay 
+
+10 −3, cosine-annealed over the 10 training epochs, batch size 128 , image resolution 224 × 224 ,ViT-tiny encoder (patch size 14 ), 6-layer transformer predictor with AdaLN-zero action conditioning, embedding dimension 192 . The frame-skip is 5 for all environments. Default loss weights: λS = 0 .09 
+
+13 Rung name Meaning A0 LEWM baseline. No split, SIGReg on the full latent, no triplet. A2 (canonical) The proposed minimal SD-JEPA configuration: subspace split with kprog =2 ,SIGReg restricted to zcont , cosine triplet on zprog , no other auxiliary terms. The optimal kprog varies per environment ( k ∈ { 2, 4, 8}); we use “A2 ( k=·)” for the broader sweep. A2_full Falsifier of the split. kprog =0 (no split), SIGReg and triplet both act on the full    
+
+> z.A2_split_full Mis-targeted falsifier. Split present ( kprog =2 ) but the triplet is applied on the full
+> zinstead of zprog .
+
+Table 6: Ablation rung legend used throughout §5. A2 and the kprog sweep are reported in the body; the falsifiers appear in §5.3. Auxiliary-term rungs (A4 / A5 / A6, adding straightening, polar predictor conditioning, and the angular planning cost respectively) are defined and reported in App. D. (SIGReg), λT = 0 .10 (triplet). Optional auxiliary weights ( λstr for straightening, γθ , δ r for the angular planning cost) default to 0; see App. D for the A4 / A5 / A6 sweep. 
+
+## D Additional auxiliary-term explorations 
+
+While exploring the design space of SD-JEPA we tested several optional auxiliary terms that, in our setup, do not improve the canonical A2 configuration. We document them here for completeness and as a reference for follow-up work. (i) A4 adds the temporal-straightening regulariser Lstraight =
+
+−E[cos( vt, vt+1 )] on the full latent. On Push-T this rung underperforms A2 by roughly 14 points: applying the straightening cost to the full z overlaps with SIGReg’s isotropic-Gaussian requirement on zcont , an instance of the double-counting that Prop. 2 predicts. The same regulariser is the central contribution of Wang et al. [2026], who use it under stop-gradient anti-collapse where the conflict does not arise (Sec. 6). (ii) A5 adds polar (sin θ, cos θ, r ) conditioning of the predictor’s AdaLN on top of A4 and yields a further ∼2-point drop, suggesting that exposing the angular readout to the predictor at training time over-specialises the content channel without compensating gains. (iii) A6 
+
+additionally engages the angular planning cost γθ (1 − cos( ˆθ − θg )) + δr (ˆ r − rg )2 on zprog at evaluation time. We also tested an auxiliary first-anchor regulariser pulling the genuine first-of-episode frames in each batch toward a fixed reference direction in zprog , as an attempt to globally calibrate θt across episodes; this rung returns to the canonical A2 baseline and supports re-engaging the angular planning cost without regression but does not improve over A2 in our setup. We document these explorations to show that the canonical SD-JEPA architecture (A2) does not require any of these extra regularisers, and that adding them tends to interfere with rather than complement the disjoint-supports decomposition. Additional environments can be further explored such as WorldGym Quevedo et al., richer learning approaches directly in the latent Grill et al. [2020], or totally different modalities such as in neu-roscience Dong et al. [2024] to observe if we can link such progression metrics to isolate distinct phenomena. 
+
+## E Extended latent geometry across environments 
+
+This appendix collects the per-environment latent-geometry figures complementing §5.5. For each environment we ran the latent-compass analysis on the trained checkpoint indicated, on a small set of held-out episodes spanning the dataset’s full episode-id range. Per checkpoint we report (i) the t-SNE projections of zprog and zcont , (ii) the trajectory-overlay heatmap of θt in raw state space, (iii) per-episode signed-Spearman heatmaps against candidate task-progress proxies, and (iv) one frame strip per env exhibiting an interesting non-monotone or multi-phase θ behaviour. 
+
+E.1 Push-T at kprog =2 (canonical A2) 
+
+The body’s t-SNE pair (Fig. 4) is from this checkpoint. The Push-T r-coordinate stays in roughly 
+
+[0 .90 , 1.57] with per-episode std up to 0.49 , θ-span around 3.3 rad. Per-episode signed Spearman 14 Run |ρ| vs. clock best non-clock proxy ( |ρ|) clock vs. task Push-T A2 ( kprog =2 ) 0.91 block_angle_err (0.81) clock dominates Push-T A2 ( kprog =8 ) 0.56 block_angle_err (0.57) tied Reacher ( kprog =8 ) 0.53 ee_target_dist (0.49) tied Two-Room ( kprog =8 ) 0.50 agent_target_dist (0.34) clock leads †
+
+Cube ( kprog =8 ) 0.47 block_target_dist (0.59) task wins 
+
+Table 7: Per-environment mean |ρ| between θt and the elapsed-time clock vs. the strongest non-clock proxy. † Two-Room’s expert demos include out-and-back trajectories where θ traces a U-shape; Spearman is monotonic and underestimates non-monotonic phase coupling (Fig. 8). Cube is the only environment where a task-physical signal beats the clock. 
+
+(a) zprog : per-episode arcs partially over-lap, indicating shared cross-episode pro-gression structure. 
+
+(b) zcont : each episode forms its own distinct cluster, indicating episode-specific content. 
+
+(c) Cube ep. 1000 ( k=8 ,seed 42): planar trajec-tory coloured by θt.
+
+Figure 4: Latent geometry of the trained Push-T A2 (a, b; kprog =2 , seed 3072, epoch 10, seven held-out episodes; squares: start, stars: end) and a cube state-traj overlay (c). (a, b) The disjoint-supports prediction of Prop. 1 – cross-episode mixing on the progression side, per-episode separation on the content side – is visible in both panels. (c) Cube is the only env where θt correlates more strongly with a task-physical signal ( block_target_dist , |ρ|=0 .59 ) than with the elapsed-time clock ( 0.47 ); the angular gradient along the planar path makes the compass visible. against five candidate proxies (Fig. 5) shows that |ρ| with step_idx is consistently very high (≈ 0.86 –1.00 ) on all but one episode (ep 8000, the regression case), with block_angle_err and 
+
+block_goal_dist as close runners-up. 
+
+Figure 5: Per-episode signed Spearman ρ between θt and each candidate proxy on Push-T A2 (kprog =2 ). Red = positive, blue = negative; sign tracks the orientation of the angular trajectory in that episode. Episode 8000 (the regression case where the agent reverses) inverts the clock correlation. 15 t cos( z[t]) cos( zprog [t]) cos( zcont [t])          
+
+> 50.014 0.612 0.009
+> 25 −0.016 0.521 −0.021
+> 50 −0.016 0.371 −0.019
+
+Table 8: Cross-episode mean cosine similarity at fixed t on a Push-T A2 checkpoint ( kprog =2 
+
+canonical checkpoint), seven held-out episodes spanning the dataset’s episode-id range. Confirms the disjoint-supports asymmetry (Prop. 1) at the second-moment level; the t-SNE in Fig. 4 (main text) shows the same pattern qualitatively. 
+
+Figure 6: Push-T agent trajectories in raw state space (agent (x, y ) in pixel-equivalent units), seven held-out episodes coloured by θt. The angular gradient broadly tracks the agent’s progression along its physical path, with notable deviations on the cyclic-motion episodes. 
+
+E.2 Push-T at kprog =8 
+
+The k = 8 checkpoint shows a substantially cleaner S1 progression manifold: r ∈ [0 .62 , 0.77] 
+
+with per-episode std ∈ [0 .04 , 0.07] , angular span 6.1 rad (effectively full-circle coverage). The clock advantage seen at k = 2 also narrows: mean |ρ| vs. step_idx drops from 0.91 to 0.56 , with 
+
+block_angle_err and block_goal_dist reaching |ρ| ≈ 0.56 as well. At k = 8 θ is less time-like and more cyclic-phase-like. 
+
+E.3 Reacher at kprog =8 
+
+Mean |ρ| on Reacher is 0.53 for the clock and 0.49 for ee_target_dist ; on individual episodes the latter beats the clock. joint_speed is essentially uncorrelated with θ (|ρ| ≈ 0.08 ): θ is not encoding “how fast is the arm moving.” The +3 .3 pp full-z planning lift on Reacher (Tab. 3) is consistent with the angular-cost-on-zprog adding usable information when the latent’s θ is well-coupled to the end-effector-to-goal geometry. 
+
+E.4 Two-Room at kprog =8 , the cyclic-phase example 
+
+The mean Two-Room |ρ| is 0.50 for the clock and 0.34 for agent_target_dist , but the per-episode picture is bimodal: ep 1000 is clock-like ( ρ = +0 .88 ), ep 7000 is fully task-coupled ( ρ = −0.90 ), ep 3000 (Fig. 8) is the cyclic case where Spearman fails. Mutual information or circular correlation would tighten these estimates; we leave that to follow-up work. 16 Figure 7: Reacher end-effector trajectories (computed from finger_pos ) for five held-out episodes, coloured by θt. Two episodes (500 and 1000) show very strong individual coupling between θ and the end-effector-to-target distance ( |ρ| = 0 .92 and 0.79 ), the cleanest phase-coordinate cases in the cohort. 
+
+Figure 8: Two-Room episode 3000: the agent crosses from the right room into the left, then comes back . θt traces a U-shape ( 1.12 → 4.73 → 0.88 ); Spearman returns ρ ≈ 0 for that episode even though θ is visibly tracking the agent’s spatial phase. This is the cleanest illustration in our suite of where Spearman lies about cyclic phase coordinates. 
+
+E.5 OGBench-Cube at kprog =8 
+
+OGBench-Cube is the only environment in our suite where a task-physical signal beats the elapsed-time clock in correlation with θt (mean |ρ| with block_target_dist is 0.59 vs 0.47 with 
+
+step_idx ). It is also the environment with the most varied per-episode behaviour: spatial-distance encoding for reaches, gripper-state encoding for picks, and U-cycle encoding for U-shaped paths. The frame strip on episode 500 (Fig. 9) and the 3D t-SNE projections (Fig. 10) capture this variability. 
+
+## F Supplementary perturbation analyses 
+
+Brief background on head-direction cells. For readers unfamiliar with the neuroscience analogy invoked in §7: head-direction (HD) cells are neurons in the rodent hippocampal-entorhinal system that encode the animal’s facing direction in the world, independent of location [Taube et al., 1990, Knierim and Hamilton, 2011]. Each cell fires preferentially when the head is oriented in a specific allocentric direction; together they form a 1-D circular code where a population peak travels around a circle as the animal turns. Two properties make the parallel with θt natural: (i) a scalar circular 17 Figure 9: OGBench-Cube episode 500 (a multi-phase pick): θt traces a non-monotone trajectory (2.46 → 4.65 → 1.78 → 3.21 → 1.13 → 1.97 → 3.49 ) tracking the gripper-contact / gripper-opening signals ( |ρ| = 0 .76 and 0.79 ). Different cube episodes expose θ encoding different physical phases per episode (spatial distance for reaches, gripper state for picks, U-cycle phase for tracebacks), the strongest single piece of evidence that θ is an adaptive task-phase coordinate rather than a wrapped clock.    
+
+> (a) zprog , 3D t-SNE: each episode forms a compact branch in a distinct direction.
+> (b) zcont , 3D t-SNE: cleaner per-episode separation than zprog , even more pronounced than in 2D.
+
+Figure 10: 3D t-SNE projections of the OGBench-Cube SD-JEPA latent at kprog =8 , four held-out episodes. The third dimension makes the per-episode structure substantially more legible; the same disjoint-supports asymmetry observed on Push-T (Fig. 4) holds here. coordinate (a 360 ◦ heading is collapsed to one moving peak), and (ii) re-mapping under perturbation, when the environment is teleported, rotated, or otherwise restructured, HD-cell populations re-anchor their peak to the new visual cues and then track coherently from there, the same kind of structural re-localisation we observe in θt after our teleport-and-continue perturbation. We do not claim our latent rediscovered the biological circuit; the parallel is qualitative, two systems converging on a similar geometric solution (a single circular phase coordinate + re-mapping under sensory restructuring) for what is broadly the same problem. The main text headlines the teleport-and-continue perturbation (Figure 3), in which the “moment” (latent surprise spike) and the “meaning” (post-perturbation relocalisation in θ) come apart cleanly. Three complementary perturbation modes confirm and refine that picture. All run on Push-T A2 (canonical, kprog = 2 , seed 3072 , epoch 10), processed by the same encoder with no test-time fine-tuning. 18 Splice (Figure 11). We replace all frames of episode 0 from step 50 onward with frames from episode 1000 . Unlike the headline teleport-and-continue — which uses an episode-pair chosen to maximise the visual contrast in solving mode, the splice picks an arbitrary substitute scene. Result: a ≈ 0.17 rad surprise spike at the boundary ( ∼ 8× baseline mean), followed by sustained elevated noise across steps 50 –70 as the encoder processes the unfamiliar trajectory. The post-perturbation θt
+
+diverges from the clean baseline but does not pin to a single new sector; instead it traces a new path consistent with the new episode’s progression. This is a weaker but still positive surprise signal, the magnitude depends on how angularly distinguishable the donor episode is from the original. 
+
+Figure 11: Splice perturbation on Push-T A2. Episode 0’s frames are replaced with episode 1000 ’s frames from step 50 onward. The spike magnitude ( ≈ 0.17 rad, ∼ 8× baseline) is more modest than in the teleport-and-continue case (Fig. 3) because the donor episode was not selected for maximum angular contrast. 
+
+Single-frame teleport (Figure 12). We insert a single frame from a structurally different scene at step 50 of episode 0, then resume episode 0. The angular surprise spikes to ≈ 0.20 rad at the substituted frame and returns to baseline within a single step, a textbook illustration of localised surprise with immediate recovery. The model registers the anomaly, reports a sharp θ jump, and resumes normal localisation as soon as the genuine observation stream returns. This mode tests 
+
+recovery dynamics : when the perturbation is transient, relocalisation is also transient. 
+
+Reverse-window perturbation (Figure 13). We reverse a 10-frame window of episode 0 starting at step 40 . Critically, the set of frames presented to the encoder is unchanged — only the temporal order is altered. Any angular discontinuity in this mode must therefore be a model-dynamics phenomenon, not a scene-novelty artifact. The result: matched spikes of ≈ 0.11 rad at the window’s leading boundary (step 40 ) and ≈ 0.13 rad at the trailing boundary (step 50 ), with elevated noise within the reversed window. This rules out the alternative hypothesis that the surprise spikes in the splice and teleport modes are simply registering “a novel scene appeared”; they are registering “the dynamics violated the model’s local expectations”, which is the stronger and more interesting claim. 
+
+Animated GIF for talks / online supplementary. The same teleport-and-continue experiment ren-ders as an animated GIF via analysis/surprise_voe.py –gif –mode teleport_continue .The animation marks the perturbation frame with a red border + “TELEPORT” overlay text and switches the on-screen θt trace from blue (pre-perturbation) to red (post-perturbation), making the relocalisation visible in real time. The static Figure 3 carries the same information for the paper. 19 Figure 12: Single-frame teleport perturbation on Push-T A2. A single anomalous frame is inserted at step 50 , followed by the original episode resuming. The angular surprise spike at the perturbation returns to baseline within one step, the cleanest illustration of θ as a transient surprise-sensitive readout that snaps back when the observation stream is restored. 
+
+Figure 13: Reverse-window perturbation on Push-T A2. We reverse 10 frames of episode 0 starting at step 40 ; the set of pixels presented is unchanged, only their temporal order. Matched angular surprise spikes appear at both boundaries of the reversed window ( ∼0.11 rad at step 40, ∼0.13 rad at step 50), confirming that the surprise signal is a response to dynamics violation rather than scene novelty. The clean (blue) baseline is mostly hidden behind the red perturbed curve since the two coincide outside the reversed window. 
+
+## G Phase-event localisation vs. classical surprise: extended results 
+
+This appendix collects the full empirical evidence for the comparison between |∆θt| and z-MSE as surprise signals on OGBench-Cube (§5.5, Tab. 4, Fig. 2). The headline finding is that the two metrics measure complementary things: |∆θt| is the right tool for semantic-event localisation, z-MSE is the right tool for raw magnitude-anomaly detection, and combining them does not improve detection on either test. 20 G.1 Phase-alignment summary across all 40 episodes 
+
+Figure 14: Phase-event-alignment AUROC summary on OGBench-Cube (40 held-out episodes, 160 ground-truth gripper-contact events). The first three panels are per-episode AUROC scatter plots (one dot per episode, x = AUROC of z-MSE, y = AUROC of |∆θ|) at tolerances ±1, ±2, ±3 steps; the diagonal y = x marks parity. The fourth panel is a side-by-side box-and-strip plot of the per-episode AUROC distributions for each metric and tolerance. At every tolerance the |∆θ| cluster sits above the diagonal; the box plot shows the IQRs barely overlap. Per-episode AUROC distribution at ±2-step tolerance:            
+
+> metric median mean IQR
+> |∆θ|0.472 0.470 [0 .415 ,0.544]
+> z-MSE 0.353 0.358 [0 .312 ,0.421]
+
+Both AUROC distributions sit below 0.5 at the tight ±1-step tolerance: z-MSE peaks during the stable-contact phase (when the cube is being translated while gripped) rather than at the transitions themselves, and only ∼11% of all steps are positive labels. |∆θ|’s peaks are consistently closer to transitions even when not exactly aligned, so widening the tolerance window catches more of those near-aligned peaks and pushes |∆θ| above 0.5 before z-MSE follows. The right reading is the gap, not the absolute level. 
+
+G.2 Action-corruption AUROC: the magnitude-anomaly negative control 
+
+To verify that the two metrics genuinely measure different things, we run a complementary test where the corruption is a magnitude anomaly rather than a semantic event. We replace a contiguous 25% 
+
+band of each episode’s actions with a random shuffle and ask each metric to localise the corrupted band as a per-step random-segment AUROC.                     
+
+> env corruption z-MSE |∆θ|combined (rank-sum) Reacher action shuffle 0.771 0.657 0.736
+> Reacher other-episode 0.808 0.663 0.763
+> Push-T action shuffle 0.598 0.496 0.553
+> Cube action shuffle 0.696 0.659 0.694
+
+z-MSE wins this test by construction: the action-shuffle injects a magnitude anomaly that a 192 -dimensional MSE detects more sensitively than a 1-dimensional phase scalar; the per-step random-segment label rewards information bandwidth, not semantic alignment. The combined rank-sum score does not beat z-MSE on any cell; the two metrics are not strictly orthogonal but are clearly answering different questions. 
+
+G.3 Regime-change segmentation (change-point detection) 
+
+A second formulation of the same hypothesis: at semantic phase events, θt exhibits a regime shift (different mode of evolution before vs. after) while z-MSE just spikes and returns to baseline. We run BinSeg with K = 4 requested change points on the 40 cube episodes and compute precision/recall/F1 against the ground-truth contact transitions with greedy 1-to-1 matching at tolerance ±tol. 21 metric F1 ±1 F1 ±2 F1 ±3           
+
+> |dθ/dt |(observed angular vel.) 0.394 0.613 0.812
+> z-MSE 0.481 0.769 0.775
+> |∆θ|(prediction error) 0.425 0.725 0.744
+
+Figure 15: Change-point F1 summary across 40 cube episodes for the three signals at three tolerances. At loose tolerance ( ±3), the observed angular-velocity trace |dθ/dt | beats both prediction-error metrics, supporting the reading that the θ trajectory itself is naturally segmented by the task. At tighter tolerance, BinSeg locates spike-and-return boundaries (z-MSE) more precisely than smoother regime boundaries. The regime-change test is a partial vindication: at loose tolerance the observed angular-velocity trace beats both prediction-error metrics, but at tight tolerance z-MSE’s spike-and-return pattern produces sharper change-point boundaries that BinSeg locates more accurately. This is consistent with the AUROC reading: |∆θ| excels at peak alignment with semantic events, z-MSE excels at sharp magnitude-spike segmentation; both are useful and the choice depends on what the practitioner wants to detect. 
+
+G.4 Linear-probe information density: full per-feature table 
+
+Figure 16: Linear-probe R 2 on cube task progress (cube-to-target distance, per-episode normalised). Left: pooled probe across episodes; only step_idx is positive, the high-dim features overfit catas-trophically. Right: within-episode probe (leave-one-step-out CV per episode, mean over 40 episodes); 
+
+zprog (8-d) reaches mean R 2 = 0 .91 and is positive on 100% of episodes; (sin θ, cos θ) packs 55 .5% 
+
+of the variance into 2 dimensions, well above the random-2-d control. We fit Ridge probes from each latent feature to a per-episode-normalised cube-to-target progress target. The pooled regime leaves 25% of episodes out and fits on the rest ( 30 bootstraps); the per-episode regime fits within each of 40 held-out episodes with leave-one-step-out CV. The body of the paper (Fig. 16) shows the headline pooled-vs-per-episode contrast; the full per-feature table is below. 22 feature dim pooled R 2 per-episode mean R 2 frac per-ep R 2 > 0                                                 
+
+> step_idx (clock baseline) 1+0.110 +0 .291 90%
+> θ(raw, 1-d) 1−0.034 +0 .243 67% ∆θ(from start, 1-d) 1−0.037 +0 .392 85% (sin θ, cos θ)2−0.040 +0.555 92 .5%
+> zprog 8+0 .026 +0.905 100 %∆zprog (from start) 8−0.054 +0 .905 100%
+> zcont 184 −1.762 (overfit) ——
+> z(full) 192 −1.777 (overfit) ——random 2-d projection (control) 2−0.052 +0 .263 77 .5%
+
+The interpretation in the body covers the headline. The pooled probe makes one further point clearly: the compass is a per-trajectory phase coordinate, not a globally calibrated absolute-distance estimate. The two regimes ask different questions, and the answers are consistent with the design intent ( zprog 
+
+encodes within-episode progression, while episode-specific scene content lives in zcont ). 
+
+Figure 17: Cross-environment per-episode probe ( 40 episodes per env, LOO-CV) against the env-specific natural target-distance signal. Left: mean R 2 across feature × env; zprog (8-d, blue) wins everywhere using only 4.2% of the latent dim, with the largest probe-vs-clock gap on Reacher. Right: per-episode R 2 distribution, (sin θ, cos θ) vs zprog across the four envs. Headline numbers in body Tab. 5.                  
+
+> median mean IQR
+> zprog 0.932 0.905 [0 .85 ,0.98] (sin θ, cos θ)0.596 0.555 [0 .46 ,0.69]
+> step_idx 0.360 0.291 [0 .18 ,0.45]
+
+Table 9: Per-episode R 2 distribution for the headline features (40 cube episodes, leave-one-step-out CV). zprog ’s IQR sits well above the clock’s, with no overlap. 
+
+## H Cross-machine reproducibility note 
+
+Trainings ran on a mix of H100 GPUs and (for Push-T) RTX 5090 GPUs; all evaluations are on H100. Single-seed checkpoints exhibit non-trivial planning-success variance across these microarchitectures even when training data, config, and seed are identical. Concrete observation: a SD-JEPA kprog =4 
+
+checkpoint trained on an H100 at seed 0 evaluates to 100% on Push-T; the analogous re-train on an RTX 5090 at the same seed evaluates to 94% , a 6-point gap on identical configuration. We attribute this to non-bit-deterministic bf16 matmuls across tensor-core kernels, dataloader shuffling sensitivity to num_workers , and library version pinning differences across the two machines. Multi-seed averaging absorbs the variance: the 3-seed Push-T means at kprog =4 and kprog =8 (96 .0 and 97 .3)sit cleanly within L EWM’s own reported single-environment σ = 2 .83 . We therefore treat ≥ n = 3 
+
+multi-seed means as the reportable comparison granularity throughout the paper. 23

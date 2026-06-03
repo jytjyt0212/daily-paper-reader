@@ -6,91 +6,130 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-04 ~ 2026-06-02
-- 运行时间：2026-06-02 09:28:15 UTC
+- 最新运行日期：2026-06-03
+- 运行时间：2026-06-03 23:24:05 UTC
 - 运行状态：成功
-- 本次总论文数：23
-- 精读区：12
-- 速读区：11
+- 本次总论文数：36
+- 精读区：22
+- 速读区：14
 
 ### 今日简报（AI）
-今日收录23篇论文，精读12篇，重点推荐《MOSAIC》与《Resolving the bias-precision paradox》两篇高分因果学习研究。  
-方向集中在因果发现与科学时间序列、个性化医学的因果表示学习，以及医学重建中的解耦学习。  
-建议关注因果表示学习在科学和医疗中的应用，特别是稀疏可加模型与随机因果表示方法。
-- 详情：[/20260504-20260602/README](/20260504-20260602/README)
+今日36篇论文中世界模型综述与多模态行动扩散获满分，生成模型与自动驾驶成焦点。
+最值得看世界模型的全面架构方法论综述，以及鲁棒端到端自动驾驶的多模态行动扩散方法。
+建议优先精读两篇满分论文，速读列表中改进流模型与保守流等新范式也值得跟进。
+- 详情：[/202606/03/README](/202606/03/README)
 
 ### 精读区论文标签
-1. [MOSAIC: Module Discovery via Sparse Additive Identifiable Causal Learning for Scientific Time Series](/20260504-20260602/2605.05524v1-mosaic-module-discovery-via-sparse-additive-identifiable-causal-learning-for-scientific-time-series)  
+1. [World Models: A Comprehensive Survey of Architectures, Methodologies, Reasoning Paradigms, and Applications](/202606/03/2606.00133v1-world-models-a-comprehensive-survey-of-architectures-methodologies-reasoning-paradigms-and-applications)  
+   标签：评分：10.0/10、query:world-models
+   evidence：关于世界模型架构与应用的全面综述
+2. [Multimodal Action Diffusion for Robust End-to-End Autonomous Driving](/202606/03/2606.02105v1-multimodal-action-diffusion-for-robust-end-to-end-autonomous-driving)  
+   标签：评分：10.0/10、query:self-driving
+   evidence：端到端自动驾驶动作扩散Transformer
+3. [CORE-MTL: Rethinking Gradient Balancing via Causal Orthogonal Representations](/202606/03/2606.02221v1-core-mtl-rethinking-gradient-balancing-via-causal-orthogonal-representations)  
+   标签：评分：10.0/10、query:causal-rep
+   evidence：因果正交表示用于多任务学习
+4. [Semantic Flow Regularization: Teaching LLMs to Generate Diverse Yet Coherent Responses](/202606/03/2605.27971v1-semantic-flow-regularization-teaching-llms-to-generate-diverse-yet-coherent-responses)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：用于LLM多样性的条件流匹配
+5. [Bayesian Gated Non-Negative Contrastive Learning](/202606/03/2605.28441v1-bayesian-gated-non-negative-contrastive-learning)  
    标签：评分：9.0/10、query:causal-rep
-   evidence：具有可识别性保证的因果表示学习
-2. [Resolving the bias-precision paradox with stochastic causal representation learning for personalized medicine](/20260504-20260602/2605.05706v1-resolving-the-bias-precision-paradox-with-stochastic-causal-representation-learning-for-personalized-medicine)  
+   evidence：贝叶斯门控非负对比学习用于解耦
+6. [Compositional Text-to-Image Generation Via Region-aware Bimodal Direct Preference Optimization](/202606/03/2605.28615v1-compositional-text-to-image-generation-via-region-aware-bimodal-direct-preference-optimization)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：扩散DPO用于文本到图像生成
+7. [Test Time Training for Supervised Causal Learning](/202606/03/2605.30015v1-test-time-training-for-supervised-causal-learning)  
    标签：评分：9.0/10、query:causal-rep
-   evidence：因果表示学习用于治疗效果估计
-3. [GenAI Powered Dynamic Causal Inference with Unstructured Data](/20260504-20260602/2605.07834v1-genai-powered-dynamic-causal-inference-with-unstructured-data)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：利用GenAI表示进行动态因果推断
-4. [Causal Learning with the Invariance Principle](/20260504-20260602/2605.13589v1-causal-learning-with-the-invariance-principle)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：利用不变性原理进行因果表示学习
-5. [Learning Disentangled Representations for Generalized Multi-view Clustering](/20260504-20260602/2605.15640v1-learning-disentangled-representations-for-generalized-multi-view-clustering)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：多视图聚类中的解耦表示学习
-6. [Identifiable Multimodal Causal Representation Learning under Partial Latent Sharing](/20260504-20260602/2605.19135v1-identifiable-multimodal-causal-representation-learning-under-partial-latent-sharing)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：多模态因果表征学习及可辨识性
-7. [A Dialogue between Causal and Traditional Representation Learning: Toward Mutual Benefits in a Unified Formulation](/20260504-20260602/2605.21058v1-a-dialogue-between-causal-and-traditional-representation-learning-toward-mutual-benefits-in-a-unified-formulation)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：统一因果与传统表示学习
-8. [Disentanglement Beyond Generative Models with Riemannian ICA](/20260504-20260602/2605.22531v1-disentanglement-beyond-generative-models-with-riemannian-ica)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：基于黎曼ICA超越生成模型的解耦
-9. [Causal Representation Learning for Generalisable Recommendation](/20260504-20260602/2605.27043v1-causal-representation-learning-for-generalisable-recommendation)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：用于可泛化推荐的因果表示学习和解耦
-10. [MERIT: Learning Disentangled Music Representations for Audio Similarity](/20260504-20260602/2605.27346v1-merit-learning-disentangled-music-representations-for-audio-similarity)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：因子特定的解耦音乐表示
-11. [Dynamic Interaction-Aware and Causality-Disentangled Framework for Multimodal Sentiment Analysis](/20260504-20260602/2605.30994v1-dynamic-interaction-aware-and-causality-disentangled-framework-for-multimodal-sentiment-analysis)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：多模态融合中的因果解耦与干预
-12. [Interpretability Without Tradeoffs: Disentangling Polysemanticity At Equal Predictive Performance](/20260504-20260602/2605.31304v1-interpretability-without-tradeoffs-disentangling-polysemanticity-at-equal-predictive-performance)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：显式无损无监督解耦方法
+   evidence：基于测试时训练的监督因果学习方法，提升泛化能力
+8. [Equivariant Latent Alignment via Flow Matching under Group Symmetries](/202606/03/2605.30705v1-equivariant-latent-alignment-via-flow-matching-under-group-symmetries)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：等变流匹配用于潜在对齐
+9. [Can BEV Perception Gracefully Degrade under Sensor Failures?](/202606/03/2605.30983v1-can-bev-perception-gracefully-degrade-under-sensor-failures)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：多模态BEV感知在传感器故障下的优雅降级
+10. [Subspace-Decomposed JEPAs: Disentangling Progression and Content in Latent World Models](/202606/03/2605.31111v1-subspace-decomposed-jepas-disentangling-progression-and-content-in-latent-world-models)  
+   标签：评分：9.0/10、query:world-models
+   evidence：具有解耦进展与内容潜空间的世界模型
+11. [Physical Object Understanding with a Physically Controllable World Model](/202606/03/2606.00439v1-physical-object-understanding-with-a-physically-controllable-world-model)  
+   标签：评分：9.0/10、query:world-models
+   evidence：用于物理对象理解的概率世界模型
+12. [DriveAnchor: Progressive Anchor-based Flow Learning for Autonomous Driving Planning](/202606/03/2606.00519v1-driveanchor-progressive-anchor-based-flow-learning-for-autonomous-driving-planning)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：自动驾驶规划使用流匹配
+13. [MBench: A Comprehensive Benchmark on Memory Capability for Video World Models](/202606/03/2606.00793v1-mbench-a-comprehensive-benchmark-on-memory-capability-for-video-world-models)  
+   标签：评分：9.0/10、query:world-models
+   evidence：视频世界模型记忆能力基准
+14. [Decoupled Residual Denoising Diffusion Models for Unified and Data Efficient Image-to-Image Translation](/202606/03/2606.01048v1-decoupled-residual-denoising-diffusion-models-for-unified-and-data-efficient-image-to-image-translation)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：用于图像翻译的新型解耦残差去噪扩散模型
+15. [Beyond Task Success: Behavioral and Representational Diagnostics for WAM and VLA](/202606/03/2606.01095v1-beyond-task-success-behavioral-and-representational-diagnostics-for-wam-and-vla)  
+   标签：评分：9.0/10、query:world-models
+   evidence：世界动作模型和VLA策略的诊断方法
+16. [Towards Interactive Video World Modeling: Frontiers, Challenges, Benchmarks, and Future Trends](/202606/03/2606.01164v1-towards-interactive-video-world-modeling-frontiers-challenges-benchmarks-and-future-trends)  
+   标签：评分：9.0/10、query:world-models
+   evidence：交互式视频世界建模综述
+17. [DeepIPCv3: Event-Aware Multi-Modal Sensor Fusion for Sudden Pedestrian Crossing Avoidance](/202606/03/2606.01277v1-deepipcv3-event-aware-multi-modal-sensor-fusion-for-sudden-pedestrian-crossing-avoidance)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：多模态融合（LiDAR+事件相机）用于自动驾驶
+18. [Unified Driving Tokens: Representation- and Geometry-Guided Discrete Tokenizer for Driving World Models and Planning](/202606/03/2606.01935v1-unified-driving-tokens-representation--and-geometry-guided-discrete-tokenizer-for-driving-world-models-and-planning)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：用于驾驶世界模型的表示引导离散分词器
+19. [FocusDiT: Masking Queries in Diffusion Transformers for Fine-grained Image Generation](/202606/03/2606.02090v1-focusdit-masking-queries-in-diffusion-transformers-for-fine-grained-image-generation)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：使用扩散变压器进行细粒度图像生成
+20. [EvoDrive: Pareto Evolution for Safety-Critical Autonomous Driving via Self-Improving LLM Agents](/202606/03/2606.03678v1-evodrive-pareto-evolution-for-safety-critical-autonomous-driving-via-self-improving-llm-agents)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：基于LLM智能体和帕累托演进的自动驾驶场景生成
+21. [A Quantitative Approximation Framework for Flow Distillation in Diffusion Models](/202606/03/2606.03820v1-a-quantitative-approximation-framework-for-flow-distillation-in-diffusion-models)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：扩散模型流蒸馏的定量框架
+22. [Bootstrap Your Generator: Unpaired Visual Editing with Flow Matching](/202606/03/2606.03911v1-bootstrap-your-generator-unpaired-visual-editing-with-flow-matching)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：流匹配模型的无配对训练用于编辑
 
 ### 速读区论文标签
-1. [Disentangled Learning Improves Implicit Neural Representations for Medical Reconstruction](/20260504-20260602/2605.04234v1-disentangled-learning-improves-implicit-neural-representations-for-medical-reconstruction)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：解耦学习用于隐式神经表征
-2. [Relaxed Sparsest-Permutation Formulation for Causal Discovery at Scale](/20260504-20260602/2605.05568v1-relaxed-sparsest-permutation-formulation-for-causal-discovery-at-scale)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：可扩展的因果结构学习方法
-3. [RepFlow: Representation Enhanced Flow Matching for Causal Effect Estimation](/20260504-20260602/2605.05890v1-repflow-representation-enhanced-flow-matching-for-causal-effect-estimation)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：结合流匹配的表征学习因果效应估计
-4. [Mask2Cause: Causal Discovery via Adjacency Constrained Causal Attention](/20260504-20260602/2605.07280v1-mask2cause-causal-discovery-via-adjacency-constrained-causal-attention)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：利用生成式注意力进行因果结构学习
-5. [SpecPL: Disentangling Spectral Granularity for Prompt Learning](/20260504-20260602/2605.04504v1-specpl-disentangling-spectral-granularity-for-prompt-learning)  
+1. [Improved techniques for fine-tuning flow models via adjoint matching: a deterministic control pipeline](/202606/03/2605.06583v1-improved-techniques-for-fine-tuning-flow-models-via-adjoint-matching-a-deterministic-control-pipeline)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：通过伴随匹配微调流模型
+2. [Conservative Flows: A New Paradigm of Generative Models](/202606/03/2605.06905v1-conservative-flows-a-new-paradigm-of-generative-models)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：新生成范式保守流
+3. [Tessellations of Semi-Discrete Flow Matching](/202606/03/2605.07513v1-tessellations-of-semi-discrete-flow-matching)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：流匹配生成建模方法
+4. [Statistical Convergence of Spherical First Hitting Diffusion Models](/202606/03/2605.07625v1-statistical-convergence-of-spherical-first-hitting-diffusion-models)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：首次击中扩散模型的理论分析
+5. [TextLDM: Language Modeling with Continuous Latent Diffusion](/202606/03/2605.07748v1-textldm-language-modeling-with-continuous-latent-diffusion)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：大语言模型文本生成
+6. [Learning a directed acyclic graph with additive heteroscedastic errors](/202606/03/2605.26515v1-learning-a-directed-acyclic-graph-with-additive-heteroscedastic-errors)  
    标签：评分：7.0/10、query:causal-rep
-   evidence：使用VAE解耦光谱粒度进行提示学习中的解耦
-6. [Decoupling Semantics and Fingerprints: A Universal Representation for AI-Generated Image Detection](/20260504-20260602/2605.07074v1-decoupling-semantics-and-fingerprints-a-universal-representation-for-ai-generated-image-detection)  
+   evidence：利用异方差性进行因果发现与DAG学习
+7. [Time Series Causal Discovery via Context-Conditioned and Causality-Augmented Pretraining](/202606/03/2605.26759v1-time-series-causal-discovery-via-context-conditioned-and-causality-augmented-pretraining)  
    标签：评分：7.0/10、query:causal-rep
-   evidence：通过谱解耦分离AI生成图像的语义和指纹
-7. [What Makes a Representation Good for Single-Cell Perturbation Prediction?](/20260504-20260602/2605.19343v1-what-makes-a-representation-good-for-single-cell-perturbation-prediction)  
-   标签：评分：7.0/10、query:causal-rep
-   evidence：用于扰动预测的因果表示学习
-8. [Deep Attention Reweighting: Post-Hoc Attention-Based Feature Aggregation in CNNs for Disentangling Core and Spurious Features under Spurious Correlations](/20260504-20260602/2605.20732v1-deep-attention-reweighting-post-hoc-attention-based-feature-aggregation-in-cnns-for-disentangling-core-and-spurious-features-under-spurious-correlations)  
-   标签：评分：7.0/10、query:causal-rep
-   evidence：通过注意力重加权解耦核心与虚假特征
-9. [BGM-IV: an AI-powered Bayesian generative modeling approach for instrumental variable analysis](/20260504-20260602/2605.07029v1-bgm-iv-an-ai-powered-bayesian-generative-modeling-approach-for-instrumental-variable-analysis)  
-   标签：评分：6.0/10、query:causal-rep
-   evidence：贝叶斯生成模型用于工具变量因果推断
-10. [Inference Time Causal Probing in LLMs](/20260504-20260602/2605.07631v1-inference-time-causal-probing-in-llms)  
-   标签：评分：6.0/10、query:causal-rep
-   evidence：大语言模型内部表示的因果探测
-11. [Causal Dimensionality of Transformer Representations: Measurement, Scaling, and Layer Structure](/20260504-20260602/2605.08740v1-causal-dimensionality-of-transformer-representations-measurement-scaling-and-layer-structure)  
-   标签：评分：6.0/10、query:causal-rep
-   evidence：测量Transformer表征的因果维度
+   evidence：时间序列因果发现预训练
+8. [SAM-Enhanced Segmentation on Road Datasets: Balancing Critical Classes in Autonomous Driving](/202606/03/2605.28136v1-sam-enhanced-segmentation-on-road-datasets-balancing-critical-classes-in-autonomous-driving)  
+   标签：评分：7.0/10、query:self-driving
+   evidence：自动驾驶感知中基于SAM的语义分割标注方法
+9. [Conf-Gen: Conformal Uncertainty Quantification for Generative Models](/202606/03/2605.28920v1-conf-gen-conformal-uncertainty-quantification-for-generative-models)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：面向生成模型的共形不确定性量化框架
+10. [SAFE-Pruner: Semantic Attention-Guided Future-Aware Token Pruning for Efficient Vision-Language-Action Manipulation](/202606/03/2605.29662v1-safe-pruner-semantic-attention-guided-future-aware-token-pruning-for-efficient-vision-language-action-manipulation)  
+   标签：评分：7.0/10、query:self-driving
+   evidence：针对VLA模型的高效令牌剪枝方法，利用未来层注意力
+11. [Moment Matching Q-Learning](/202606/03/2605.29033v1-moment-matching-q-learning)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：基于得分和流的生成模型应用于Q学习
+12. [Before Parc Fermé: RL-Time Pruning for Efficient Embodied LLMs in Autonomous Driving](/202606/03/2605.31256v1-before-parc-ferm-rl-time-pruning-for-efficient-embodied-llms-in-autonomous-driving)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：自动驾驶中嵌入式LLM的强化学习时剪枝方法
+13. [Context-Conditioned Generative Models Enable Subnational Refinement of Sparse Humanitarian Surveys](/202606/03/2605.31489v1-context-conditioned-generative-models-enable-subnational-refinement-of-sparse-humanitarian-surveys)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：流匹配生成模型用于调查细化
+14. [Where to Refine, When to Stop: Rethinking Redundancy via Latent Discrepancy for Efficient Visual Autoregressive Generation](/202606/03/2606.00310v1-where-to-refine-when-to-stop-rethinking-redundancy-via-latent-discrepancy-for-efficient-visual-autoregressive-generation)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：通过修剪冗余token实现高效视觉自回归生成
 
 
 <div class="dpr-home-promo-card">
