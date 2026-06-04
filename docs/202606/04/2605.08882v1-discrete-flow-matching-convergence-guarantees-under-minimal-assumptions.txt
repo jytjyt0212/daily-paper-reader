@@ -1,0 +1,5849 @@
+Title: Discrete Flow Matching: Convergence Guarantees Under Minimal Assumptions
+
+URL Source: https://arxiv.org/pdf/2605.08882v1
+
+Published Time: Tue, 12 May 2026 00:51:48 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# Discrete Flow Matching: Convergence Guarantees Under Minimal Assumptions 
+
+Le-Tuyet-Nhi Pham 
+
+École Polytechnique, CMAP, IP Paris Route de Saclay, 91120 Palaiseau, France 
+
+le-tuyet-nhi.pham@polytechnique.edu 
+
+Giovanni Conforti 
+
+Università degli Studi di Padova, Via Trieste, 63, 35131 Padova, Italia 
+
+gconfort@math.unipd.it 
+
+Zhenjie Ren 
+
+LaMME, Université Évry Paris-Saclay Boulevard François Mitterrand 91000, France 
+
+zhenjie.ren@univ-evry.fr 
+
+Alain Durmus 
+
+École Polytechnique, CMAP, IP Paris Route de Saclay, 91120 Palaiseau, France 
+
+alain.durmus@polytechnique.edu 
+
+## Abstract 
+
+Flow Matching has recently emerged as a popular class of generative models for simulating a target distribution μ1 from samples drawn from a source distribution 
+
+μ0. This framework relies on a fixed coupling between μ0 and μ1, and on a deterministic or stochastic bridge to define an interpolating process between the two distributions. The time marginals of this process can then be approximately sampled by estimating the transition rates, or more generally the generator, of its Markovian projection. This framework has recently been extended to the case of discrete source and target distributions, under the name Discrete Flow Matching 
+
+(DFM). However, theoretical guarantees for such models remain scarce. In this paper, we study two DFM models on Zdm = {0, . . . , m − 1}d, sampled through time discretization, and derive non-asymptotic associated bounds for both of them. In contrast to previous work, we establish non-asymptotic bounds in Kullback– Leibler divergence for the early-stopped version of the target distribution. We also derive explicit convergence guarantees in total variation distance with respect to the true target distribution. Importantly, these bounds rely only on an approximation error assumption, relaxing standard score assumptions used in earlier works, while also yielding improved dependence on the vocabulary size m and the dimension d.
+
+## 1 Introduction 
+
+Generative modeling via stochastic processes has become a central paradigm in modern machine learning as illustrated by the popularity and interest in diffusion models [ SDWMG15 , SE19 , HJA20 ,SSDK +21 ]. Recently, Flow Matching [ LCBH +23 , LGL22 , AVE22 , ABVE25 ] has emerged as an alternative approach that defines a probability path between two arbitrary distributions and learns the characterization of a Markov dynamic that follows this path, resulting in simple training objectives and the ability to handle a wide variety of tasks. More precisely, Flow Matching methods consist in simulating a target distribution μ1 from samples drawn from a source distribution μ0 over a finite time horizon. By employing a fixed coupling 
+
+π and a reference Markov process (Rt)t∈[0 ,1] , we can define an interpolant (XI 
+
+> t
+
+)t∈[0 ,1] such that 
+
+(XI0, X I1) ∼ π and (XI 
+
+> t
+
+)t∈[0 ,1] given (XI0, X I1) has the same conditional distribution as (Rt)t∈[0 ,1] 
+
+given (R0, R 1). However, (XI 
+
+> t
+
+)t∈[0 ,1] is not Markov in general. One option then is to consider its Markov projection. Indeed, under appropriate conditions on the reference process, there exists a 
+
+> Preprint.
+> arXiv:2605.08882v1 [cs.LG] 9 May 2026
+
+Markov process whose marginals are the same as the interpolated process. This process is called the Markov projection of (XI 
+
+> t
+
+)t∈[0 ,1] . In particular, in the continuous setting, (Rt)t∈[0 ,1] is typically a diffusion process with constant volatility, possibly zero; hence encompassing deterministic flows. Then, the resulting Markov projection has the same volatility and has an unknown drift. However, this drift is a solution of a simple regression problem and can be approximated efficiently with additional conditions on (Rt)t∈[0 ,1] [ Pel23 , AVE22 , ABVE25 , LCBH +23 , Liu22 , LGL22 ]. The same type of construction can be adapted to the discrete data. In this setting, (Rt)t∈[0 ,1] is supposed to be a continuous-time Markov chain (CTMC) and a Markov projection of (XI 
+
+> t
+
+)t∈[0 ,1] also exists. This Markov process is also a CTMC whose generator or equivalently (concrete) score is a solution of a variational problem which can be efficiently solved under appropriate conditions on (Rt)t∈[0 ,1] 
+
+[ LME24 , HHY +24 , GRS +24 , CYB +24 , SGH +24 , WLL +25 ]. This approach has shown strong empirical performance, mirroring the impact of discrete diffusion [ AJH +21 , HNJ +21 ] and score-based methods [ CBB +22 , SYD +23 ], which are now supported by many theoretical guarantees [PSO +25, BS25, CDPR25, LTSL26a]. Due to their increasing popularity, Flow Matching methods have motivated significant recent interest in understanding their theoretical foundations. While there has been a series of work providing such guarantees, e.g., [ SCD24 , LCHH25 ], in the continuous setting, achieving similar results as for continuous diffusion models, such analyses are scarcer in the discrete setting. In particular, existing results often rely on either restrictive assumptions or uniformization scheme for simulating the associated CTMC [ SLH +25 , WOY +25 ], or faces scalability issues as the vocabulary size m
+
+increases [WOX +26]. 
+
+Our contribution. This work addresses these existing limitations by investigating Discrete Flow Matching (DFM) associated with two reference Markov processes: nearest-neighbor and uniform random walks. Leveraging the associated interpolants and supposing an approximation error on the estimated score, commonly assumed in the literature, we derive explicit convergence bounds of the resulting generative models adopting a Discrete Markov Probabilistic Model (DMPM) discretization scheme [PSO +25]. More specifically, • We demonstrate that under only an approximation error assumption, our proposed discretiza-tion with an early-stopping rule achieves an O(ε2) error in KL divergence with respect to the early-stopped version of the target distribution with a total step complexity of ˜O(d2/ε 2)
+
+for uniform random walk and ˜O(d2m2/ε 2) for nearest-neighbor random walk, where the notation ˜O hides logarithmic factors of d, m, ε .• In addition, we also derive explicit convergence guarantees in total variation (TV) distance with respect to the true target distribution, which is missing in prior studies. Our results not only improve the error’s dependence on the vocabulary size m and the dimension d but also eliminate the restrictive boundedness conditions on the approximate score found in prior work [SLH +25 , WOY +25 , WOX +26 ]. We provide a detailed comparison of these theoretical distinctions in Section 4. 
+
+Notation. Given a measurable space (E, E), we denote by P(E) the set of probability measures of 
+
+E and by 2E the power set of E. Let μ, ν ∈ P (E), a probability measure π ∈ P (E × E) is called a coupling of (μ, ν ) if its marginals satisfy π(A × E) = μ(A) and π(E × B) = ν(B) for any A, B ∈ E .We denote by Π( μ, ν ) the set of all couplings of (μ, ν ). We define the KL divergence (also called relative entropy) of μ with respect to ν as KL( μ|ν) := R log(d μ/ dν)d μ if μ is absolutely continuous with respect to ν, and KL( μ|ν) = + ∞ otherwise. Given two real numbers a, b ∈ R, we write a ≲ b
+
+(resp. a ≳ b) to mean a ≤ Cb (resp. a ≥ Cb ) for a universal constant C > 0. Given n ∈ N∗, we denote [n] = {1, . . . , n }. For any finite set A, let |A| denote its cardinality. 
+
+## 2 Discrete Flow Matching 
+
+2.1 Discrete Stochastic Interpolant and their Markov projection 
+
+We first formalize Discrete Flow Matching (DFM) by constructing Markov jump dynamics that interpolate between the two distributions, denoted by μ0 and μ1, over the state space Zdm =
+
+2{0, 1, . . . , m − 1}d. Our construction is similar to the original one introduced in [ GRS +24 ]. Our presentation nevertheless differs a little taking the stochastic interpolant perspective [ ABVE25 ]instead of the flow matching one. To this end, we first define an interpolant (XI 
+
+> t
+
+)t∈[0 ,1] as follows. We refer to Section A for the formal definition of the notions we used in this section and a proper introduction to CTMC. 
+
+Jump Markov Bridge and Discrete Stochastic Interpolant. Consider first a rate matrix (or generator) (t, x, y ) ∈ [0 , 1] × (Zdm)2 7 → qt(x, y ). We assume (qt)t∈[0 ,1] is a stable, conservative, and non-explosive rate matrix [ FMS14 ]. This rate matrix defines the transition probabilities between states of the CTMC (Xt)t∈[0 ,1] with transition kernel denoted for s, t, x t, x s ∈ ([0 , 1]) 2 × (Zdm)2
+
+with s < t by pt|s(xt|xs) = P(Xt = xt|Xs = xs) if P(Xs = xs)̸ = 0 and pt|s(xt|xs) = 
+
+P(Xt = xt) otherwise. Indeed, if (qt)t∈[0 ,1] is homogeneous, i.e. , qt = q for any t ∈ [0 , 1] , the transition probabilities of (Xt)t∈[0 ,1] are given for s, t, x t, x s ∈ ([0 , 1]) 2 × (Zdm)2 with s < t by 
+
+pt|s(xt|xs) = exp(( t − s)q(xs, x t)) . This is an easy consequence of the Forward or Backward Kolmogorov equations given in (17) and (18) respectively in the appendix. Based on this CTMC, we can consider the jump Markov bridge measure Bq corresponding to the conditional distribution of 
+
+(Xt)t∈[0 ,1] given it starting and end points (X0, X 1) on the space of càdlàg paths D([0 , 1] , Zdm), i.e. ,
+
+Bq (·| X0, X 1) represents the distribution of (Xt)t∈[0 ,1] given (X0, X 1); see Section A for a formal definition. Given a coupling π ∈ Π( μ0, μ 1), we can now define an interpolated process (XI 
+
+> t
+
+)t∈[0 ,1] 
+
+that bridges μ0 and μ1 as: 
+
+(XI0, X I1) ∼ π , (XI 
+
+> t
+
+)t∈[0 ,1] (XI0, X I1) ∼ Bq (·| XI0, X I1) . (1) Denote by (pI
+
+> t
+
+)t∈[0 ,1] the time marginal densities of (XI 
+
+> t
+
+)t∈[0 ,1] , that is P(XI 
+
+> t
+
+∈ A) = P 
+
+> x∈A
+
+pI
+
+> t
+
+(x)
+
+for t ∈ [0 , 1] and A ⊂ Zdm. As a straightforward consequence of the definition of (XI 
+
+> t
+
+)t∈[0 ,1] , we have 
+
+pI
+
+> t
+
+(x) = X
+
+> x0,x 1∈Zdm
+
+pt|0(x|x0)p1|t(x1|x)˜ π(x0, x 1) , (2) where ˜π(x0, x 1) := π(x0, x 1)/p 1|0(x1|x0) .
+
+We consider here two reference dynamics for our framework: the Nearest-Neighbor Random Walk (NNRW) and the Uniform Random Walk (URW). 
+
+Nearest-Neighbor Random Walk. The generator associated with the NNRW is defined as: 
+
+q(x, y ) = 
+
+
+
+1/2 if y = σ(x) with σ ∈ M N ,
+
+−d if y = x , 
+
+0 otherwise ,
+
+(3) where MN = {σℓ
+
+> +
+
+, σ ℓ
+
+> −
+
+}dℓ=1 denotes the set of operators performing forward and backward jumps along the ℓ-th coordinate of the torus Zdm:
+
+σℓ
+
+> ±
+
+(x) = x ± eℓ (mod m) .
+
+Note that the base CTMC (Xt)t∈[0 ,1] has the component Xit |Xi
+
+> 0
+> i.i.d.
+
+∼ p(1)  
+
+> t|0
+
+for all i ∈ [d] and t ∈ [0 , 1] .More precisely, for any component i ∈ [d] and 0 ≤ s < s + t ≤ 1, the displacement is given by Xit+s − Xis = N i, + 
+
+> t
+
+− N i, − 
+
+> t
+
+(mod m), where N i, ± 
+
+> t
+
+∼ Poisson( t/ 2) are independent counters for forward and backward jumps and the net displacement Sit = N i, + 
+
+> t
+
+− N i, − 
+
+> t
+
+follows a Skellam distribution Skellam( t/ 2, t/ 2) [Ske46 ]. Thus the transition density of the full process is the product of marginals on the torus Zdm:
+
+pt+s|s(y|x) = 
+
+> d
+
+Y
+
+> i=1
+
+X
+
+> k∈Z
+
+P(Sit = yi − xi + km ) , (4) where the Skellam probability is expressed via the modified Bessel function of the first kind I|a|:
+
+P(Sit = a) = e −tI|a|(t) , Ib(z) = 
+
+> ∞
+
+X
+
+> n=0
+
+1
+
+n!( n + b)! 
+
+ z
+
+2
+
+2n+b
+
+for a ∈ Z, b ∈ N .
+
+The formal proof establishing the validity of (4) is detailed in Section B.1. 3Uniform Random Walk. The generator associated with the URW is defined as 
+
+q(x, y ) = 
+
+
+
+1/m if dH(x, y ) = 1 ,
+
+−d(m − 1) /m if y = x , 
+
+0 otherwise ,
+
+(5) where dH(x, y ) denotes the Hamming distance between x and y. With a slight abuse of notation, we denote the set of possible jump operators as MU := {σℓn : ℓ ∈ [d], n ∈ [m − 1] }, where 
+
+σℓn(x) = x + ne ℓ (mod m)
+
+describes a jump of size n on the ℓ-th component. Using the properties of the Hamming distance on product spaces, the transition density ps+t|s(y|x) can be derived [ZCG24, Proposition 1]: 
+
+ps+t|s(y|x) = 
+
+ 1 + ( m − 1)e −t
+
+m
+
+d
+
+αdH(y,x ) 
+
+> t
+
+, where αt := 1 − e−t
+
+1 + ( m − 1)e −t . (6) 
+
+Markovian projection of the interpolant. A fundamental challenge is that the interpolant 
+
+(XI 
+
+> t
+
+)t∈[0 ,1] is generally non-Markovian. To address this issue, we introduce its Markovian projection 
+
+(XM 
+
+> t
+
+)t∈[0 ,1] . As we see in our next result, this process is a Markov process uniquely characterized by a time-inhomogeneous generator that preserves the marginal distributions of the original path, that is P(XM 
+
+> t
+
+= x) = P(XI 
+
+> t
+
+= x) = pI
+
+> t
+
+(x) =: μt(x) for all t ∈ [0 , 1] , x ∈ Zdm, and therefore that transports the marginals μ0 to μ1.
+
+Theorem 1 (Markovian Projection of the Mixture Bridge) . Let π ∈ Π( μ0, μ 1) be an arbitrary coupling and q be a homogeneous stable, conservative, and non-explosive generator. The Marko-vian projection (XM 
+
+> t
+
+)t∈[0 ,1] of (XI 
+
+> t
+
+)t∈[0 ,1] defined in (1) is the unique (in law) Markov process characterized by the time-inhomogeneous generator qM 
+
+> t
+
+such that, for all t ∈ [0 , 1] and x̸ = y ∈ Zdm:
+
+qM 
+
+> t
+
+(x, y ) = q(x, y )uM 
+
+> t
+
+(x, y ) , (7) 
+
+where the score function uM is defined as 
+
+uM 
+
+> t
+
+(x, y ) = 
+
+P 
+
+> x0,x 1∈Zdm
+
+p1|t(x1|y)pt|0(x|x0)˜ π(x0, x 1)
+
+pI
+
+> t
+
+(x) . (8) For completeness, the full proof of Theorem 1 is provided in Section B.2. Note that uM can be expressed as the conditional expectation 
+
+uM 
+
+> t
+
+(x, y ) = E
+
+h
+
+u(XI1) 
+
+> t
+
+(x, y ) XI 
+
+> t
+
+= x
+
+i
+
+where u(x1) 
+
+> t
+
+(x, y ) := p1|t(x1|y)
+
+p1|t(x1|x) . (9) This implies 
+
+qM 
+
+> t
+
+(x, y ) := E
+
+h
+
+q(XI1) 
+
+> t
+
+(x, y ) | XI 
+
+> t
+
+= x
+
+i
+
+where q(x1) 
+
+> t
+
+(x, y ) = q(x, y )u(x1) 
+
+> t
+
+(x, y ) . (10) 
+
+2.2 Generative Process 
+
+While the Markovian projection defines an ideal generative process, its exact simulation remains infeasible due to two main bottlenecks: (i) the intractability of the exact score defined in (8) , and (ii) the requirement for time discretization in inhomogeneous CTMCs. Although techniques such as the uniformization algorithm [ WOY +25 ] can bypass discretization, they can suffer from high computational cost and poor scalability in high-dimensional regimes. We address the former by learning an approximate score via the loss function detailed below, and the latter by employing DMPM discretization scheme [ PSO +25 ], implementing a piecewise-constant generator. In the following sections, we formalize our generative framework, detailing the score training procedure and the construction of the resulting approximate dynamics. 4Practical Training and Loss Minimization. To approximate the true discrete score uM, we introduce a parameterized function class {uM,θ : [0 , 1] × (Zdm)2 → R+ : θ ∈ Θ}. Given a time-discretization {tk}Kk=0 of [0 , 1 − η] associated with the step-size hk+1 = tk+1 − tk where 
+
+η ∈ (0 , 1) denotes an early-stopping parameter, the optimal parameter θ⋆ is obtained by minimizing the following empirical divergence-based objective: 
+
+θ 7 → L e(θ) := 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+qM,θ tk φ qM
+
+> tk
+
+qM,θ tk
+
+!
+
+(XI 
+
+> tk
+
+, σ (XI 
+
+> tk
+
+)) 
+
+#
+
+, (11) where qM is defined in (7) , qM,θ = qu M,θ , φ(a) = a log( a) + 1 − a for a ≥ 0, and M serves as a unified shorthand for both MN and MU for brevity. This is discrete version of the score entropy loss used in [ LME24 , GRS +24 ]. It has been already considered in the literature on theoretical guarantee for discrete diffusion models [ PSO +25 , LLLS25 , LHL +25 , DHW26 ]. We also consider a discretized version of the concrete score matching loss considered in [MCSE22] 
+
+L2(θ) := 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+ 
+
+qM,θ tk − qM
+
+> tk
+
+
+
+(XI 
+
+> tk
+
+, σ (XI 
+
+> tk
+
+)) 
+
+2
+
+#
+
+.
+
+The final objective on which we will make our main approximation assumption is obtained by combining the two previous losses: 
+
+L = Le + L2 . (12) Following [ MCSE22 , LME24 ], L admits the following numerically tractable simplification, thanks to the conditional expectation expression of the generator in (10): 
+
+˜L(θ) = 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+
+
+−q(XI1) 
+
+> tk
+
+log qM,θ tk + qM,θ tk +
+
+
+
+qM,θ tk − q(XI1)
+
+> tk
+
+2
+
+(XI 
+
+> tk
+
+, σ (XI 
+
+> tk
+
+)) 
+
+#
+
+,
+
+where q(x1) 
+
+> t
+
+(x, σ (x)) admits the closed-form formula in (10). 
+
+Generative Dynamics. Given the learned score {uM,θ ⋆ 
+
+> tk
+
+}Kk=0 associated with the discretization grid {tk}Kk=0 , we define the generative process as follows. Starting from the prior distribution 
+
+Xθ⋆ 
+
+> 0
+
+∼ μ0, we propagate the state forward using the approximate score. For each t ∈ [tk, t k+1 ),given Xθ⋆ 
+
+> tk
+
+, the dynamics are governed by the generator qM,θ ⋆ 
+
+> t
+
+(x, y ) = ˜ uM,θ ⋆ 
+
+> t
+
+(x, y |Xθ⋆ 
+
+> tk
+
+)q(x, y ) for 
+
+x̸ = y, where ˜uM,θ ⋆
+
+is given by ˜uM,θ ⋆ 
+
+> t
+
+(x, y |Xθ⋆ 
+
+> tk
+
+) = uM,θ ⋆ 
+
+> tk
+
+(Xθ⋆ 
+
+> tk
+
+, σ (Xθ⋆ 
+
+> tk
+
+)) if y = σ(x) for σ ∈ M 
+
+and is 0 otherwise. Equipped with this generator, we can use an exponential distributed holding time to sample (Xθ⋆ 
+
+> t
+
+)t∈[tk ,t k+1 ]. This approach, referred to as DMPM, is adopted from [ PSO +25 ]. Crucially, we stop the simulation at tK = 1 − η to ensure the convergence results hold despite the score’s divergence at the final time step. 
+
+## 3 Main Results 
+
+3.1 Convergence Guarantees of DFM 
+
+To quantify the performance of DFM, we first formalize the cumulative approximation error across the training intervals. 
+
+M1 (Approximation Error) . There exists a constant ˜ε ≥ 0 such that 
+
+L(θ⋆) ≤ ˜ε2 .
+
+Under this requirement, we establish our main result as follows. 
+
+Theorem 2. Consider the early-stopping parameter η ∈ (0 , 1) and the time-discretization {tk}Kk=0 
+
+of [0 , 1 − η] with tk = 1 − (1 + h)−k, where h ∈ (0 , 1) is the parameter that controls the step sizes. Under M1, the following holds for both NNRW and URW 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) ≲ m2η−2 ˜ε(p|M| + ˜ ε) + ( λ(m)) 2d2m2h log( η−1) log  mη −1 ,
+
+where λ(m) represents the fixed jump rate, taking value 1/2 in the case of NNRW and 1/m for URW, and M denotes the collection of jump operators (see Section 2.1 for detailed definition). 
+
+5Theorem 2 derives a non-asymptotic error bound for DFM under minimal assumption M1, explicitly decomposing the KL divergence into approximation and discretization components. We provide a sketch of the proof for this main theorem in Section 3.2, while the complete technical derivation is deferred to Section B.6. Theorem 2 indicates that to reach a precision of KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) = O(ε2), the parameter controlling step size and the approximation error can be set as: 
+
+h = ε2
+
+d2m2(λ(m)) 2 log( η−1) log( mη −1) and ˜ε = ε2η2
+
+m2p|M| .
+
+This leads to a total iteration complexity of: 
+
+K = log( η−1)log(1 + h) = O
+
+ d2m2(λ(m)) 2
+
+ε2 log 2 1
+
+η log mη
+
+
+
+.
+
+This quadratic scaling with respect to the dimension d is consistent with existing complexity findings in [ LCHH25 , Corollary 5.2] and [ WOX +26 ] . In particular, we obtain an iteration complexity of ˜O(d2/ε 2) for URW and ˜O(d2m2/ε 2) for NNRW setting (where ˜O omits logarithmic factors). Crucially, for the URW case, our analysis improves the dependence on the vocabulary size m
+
+compared to the recent work of [WOX +26]. 
+
+Corollary 1. Consider the early-stopping parameter η ∈ (0 , 1) and the time-discretization {tk}Kk=0 
+
+of [0 , 1 − η] with tk = 1 − (1 + h)−k, where h ∈ (0 , 1) is the parameter that controls the step sizes. Under M1, the following holds for both NNRW and URW 
+
+∥Law( Xθ⋆ 
+
+> 1−η
+
+) − μ1∥TV ≲ C( m)dη + mη −1
+
+qp|M| ˜ε + ˜ ε2 + λ(m)dm ph log ( mη −1) log( η−1),
+
+where C( m)is defined as 1 for the URW and m for the NNRW dynamics. Here λ(m) represents the fixed jump rate, taking value 1/2 in the case of NNRW and 1/m for URW, and M denotes the collection of jump operators 
+
+Corollary 1 establish the explicit error bound in TV distance with respect to the true target distribution, which is missing in [WOX +26]. The proof follows directly from Theorem 2 through an application of Pinsker’s and triangle inequalities. For completeness, the detailed proof of Corollary 1 is provided in Section B.7. 
+
+Remark 1. The term C( m)dη quantifies the early-stopping error, a direct consequence of truncating the generative flow at 1 − η to avoid the singularity of the score at t = 1 . In the URW case, the graph is effectively complete, i.e. , any state can transition to any other in a single jump. This all-to-all connectivity allows the distribution to shift globally and instantaneously, leading to a bound that is independent of the state-space size ( C( m) = 1 ). In contrast, the NNRW is constrained to a lattice-like topology where transitions only occur between immediate neighbors. To move probability mass across the domain, the NNRW must flow through m intermediate states, which is reflected in the linear scaling C( m) = m. Corollary 1 implies that to achieve O(ε) error in TV distance, we can set 
+
+η = ε
+
+C( m)d , ˜ε = ε4
+
+(C( m)) 2d2m2p|M| and h = ε2
+
+(λ(m)) 2d2m2 log( mη −1) log( η−1) .
+
+This implies a total iteration complexity of: 
+
+K = log( η−1)log(1 + h) = ˜O
+
+ d2m2(λ(m)) 2
+
+ε2
+
+
+
+.
+
+In particular, we get an iteration complexity ˜O(d2/ε 2) for URW and ˜O(d2m2/ε 2) for NNRW setting. 
+
+3.2 Proposed methodology: A Sketch of Proof Convergence Proof. In what follows, we present a sketch of proof of the main result stated in Theorem 2 in order to outline our core methodology. To evaluate KL divergence of ground-truth against the generated distribution, we first employ the data processing inequality for the relative entropy [ Nut21 , Lemma 1.6]. We then decompose the total divergence into propagation mismatches 6by applying Girsanov’s theorem for jump processes [ CDPR25 , Theorem G.0.1] and substitute the formula of the piecewise-constant generator as follows 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) 
+
+≤ KL(Law( XM[0 ,1−η])|Law( Xθ⋆
+
+> [0 ,1−η]
+
+)) = λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+uM 
+
+> t
+
+log uM
+
+> t
+
+uM,θ ⋆
+
+> tk
+
+− uM 
+
+> t
+
++ uM,θ ⋆
+
+> tk
+
+!
+
+(σ)
+
+#
+
+dt
+
+≤λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+ φ(uM 
+
+> t
+
+) − φ(uM 
+
+> tk
+
+) + log uM 
+
+> tk
+
+(uM 
+
+> tk
+
+− uM 
+
+> t
+
+) (σ)
+
+#
+
+dt
+
+| {z }
+
+> Edisc
+
++
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+qM 
+
+> t
+
+log qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+− qM 
+
+> tk
+
++ qM,θ ⋆
+
+> tk
+
+!
+
+(σ)
+
+#
+
+dt
+
+| {z }
+
+> Eapprox
+
+,
+
+where φ(a) := a log( a) − a + 1 and λ(m) represents the fixed jump rate, taking value 1/2 for NNRW and 1/m for URW. Here we used the shorthand qM 
+
+> t
+
+(σ) = qM 
+
+> t
+
+(XM 
+
+> t
+
+, σ (XM 
+
+> t
+
+)) (and analo-gously for qM 
+
+> tk
+
+(σ), q M,θ ⋆ 
+
+> tk
+
+(σ)). To analyze the approximation error Eapprox , we decompose the rate 
+
+qM 
+
+> t
+
+as (qM 
+
+> t
+
+/q M 
+
+> tk
+
+)qM 
+
+> tk
+
+to isolate the divergence term qM 
+
+> tk
+
+log( qM 
+
+> tk
+
+/q M,θ ⋆ 
+
+> tk
+
+). We then use the following boundedness of the score to upper bound the ratio qM 
+
+> t
+
+/q M 
+
+> tk
+
+by m2/η 2:
+
+Lemma 1 (Uniform Boundedness of the Score) . For both the NNRW and URW base processes, the score is uniformly bounded on [0 , 1 − η]. Specifically, for any x ∈ Zdm, t ∈ [0 , 1 − η] and σ ∈ M ,
+
+1 − tm ≲ uM 
+
+> t
+
+(x, σ (x)) ≲ m
+
+1 − t .
+
+Additionally, for any x ∈ Zdm and t ∈ [0 , 1 − η], the following bounds hold for any x1 ∈ Zdm:
+
+X
+
+> σ∈M
+
+u(x1) 
+
+> t
+
+(x, σ (x)) ≲ dm 
+
+1 − t and X
+
+> σ∈M
+
+uM 
+
+> t
+
+(x, σ (x)) ≲ dm 
+
+1 − t . (13) Consequently, bounding Eapprox reduces to controlling the term qM 
+
+> tk
+
+log( qM 
+
+> tk
+
+/q M,θ ⋆ 
+
+> tk
+
+) and qM,θ ⋆ 
+
+> tk
+
+− qM 
+
+> tk
+
+,which can be addressed by applying triangle, Cauchy-Schwarz and Jensen inequalities, then using 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+(
+
+qM,θ ⋆ 
+
+> tk
+
+φ qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+!
+
++
+
+
+
+qM,θ ⋆ 
+
+> tk
+
+− qM
+
+> tk
+
+2
+
+)
+
+(XM 
+
+> tk
+
+, σ (XM 
+
+> tk
+
+)) 
+
+#
+
+≤ ˜ε2 ,
+
+which is equivalent to M 1 since XM
+
+> t
+> dist
+
+= XI 
+
+> t
+
+for all t ∈ [0 , 1] . We then obtain Eapprox =
+
+O(m2η−2 ˜ε(p|M| + ˜ ε)) . To analyze Edisc , we first derive an ordinary differential equation (ODE) for the DFM score by leveraging the Kolmogorov equations (17) (18): 
+
+Lemma 2. For any fixed σ ∈ M , the score satisfies the following ODE 
+
+∂tuM 
+
+> t
+
+(x, σ (x)) = λ(m) X
+
+> σ′∈M
+
+AM 
+
+> t
+
+(x, u M; σ, σ ′) , (14) 
+
+where λ(m) represents the fixed jump rate, taking the value 1/2 in the case of NNRW and 1/m for URW. Here the operator AM 
+
+> t
+
+is defined by 
+
+AM 
+
+> t
+
+(x, u M; σ, σ ′) := uM 
+
+> t
+
+(x, σ (x)) uM 
+
+> t
+
+(x, σ ′(x)) − uM 
+
+> t
+
+(x, σ ′(σ(x))) + pI
+
+> t
+
+(σ′(x)) 
+
+pI
+
+> t
+
+(x)
+
+uM 
+
+> t
+
+(σ′(x), σ (x)) − uM 
+
+> t
+
+(x, σ (x)) uM 
+
+> t
+
+(σ′(x), x ) .
+
+This ODE allows us to obtain explicit evolutions for the score and its entropy function by applying Itô’s formula: 7Lemma 3 (Score and Entropy Dynamics) . Fix σ ∈ M , the evolution of the score uM 
+
+> t
+
+(σ) and its associated entropy φ(uM 
+
+> t
+
+(σ)) are governed by: 
+
+E uM 
+
+> t
+
+(σ) Fs
+
+ − uM 
+
+> s
+
+(σ) = λ(m)
+
+Z ts
+
+E
+
+" X
+
+> σ′∈M
+
+BM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′) Fs
+
+#
+
+dr , 
+
+E φ(uM 
+
+> t
+
+(σ))  − E φ(uM 
+
+> s
+
+(σ))  = λ(m)
+
+Z ts
+
+E
+
+" X
+
+> σ′∈M
+
+CM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′)
+
+#
+
+dr , 
+
+(15) 
+
+for any 0 ≤ s ≤ t ≤ 1 − η, where (Ft)t∈[0 ,1−η] denotes the filtration of (XM 
+
+> t
+
+)t∈[0 ,1−η] and the operators BM, CM are defined by 
+
+BM 
+
+> r
+
+(x, u M; σ, σ ′) := uM 
+
+> r
+
+(x, σ ′(x)) uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) − uM 
+
+> r
+
+(x, σ ′(σ(x))) + pI 
+
+> r
+
+(σ′(x)) 
+
+pI 
+
+> r
+
+(x)
+
+uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x ) .
+
+CM 
+
+> r
+
+(x, u M; σ, σ ′) := uM 
+
+> r
+
+(x, σ (σ′(x))) log uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) 
+
+uM 
+
+> r
+
+(x, σ (x)) + uM 
+
+> r
+
+(x, σ ′(x)) uM 
+
+> r
+
+(x, σ (x)) − uM 
+
+> r
+
+(σ′(x), σ (σ′(x)))  .
+
+Substituting these expressions into discretization error gives 
+
+Edisc 
+
+≤ λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z ttk
+
+E
+
+X
+
+> σ,σ ′
+
+ CM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′) − log uM 
+
+> tk
+
+(σ)BM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′) drdt . 
+
+The primary technical challenge in the above expression lies in logarithmic terms. If the score vanishes or explodes near the boundaries of the time interval, the discretization gap becomes uncontrollable. Our analysis hinges on a key stability property shown in Lemma 1 that ensures the discrete score remains bounded on [0 , 1 − η]. This boundedness ensures that the logarithmic term is stable up to the early-stopping threshold η. By strategically selecting the time-grid {tk}Kk=0 to counteract the 
+
+1/(1 − t) growth, we close the estimates and achieve the ˜O(( λ(m)) 2d2m2h) total discretization error in KL divergence. 
+
+Remark 2. In standard discrete diffusion models, the score function satisfies a transitive identity: 
+
+ut(x, z ) = ut(x, y )ut(y, z ), which causes the integrand in (15) to vanish, greatly simplifying the convergence analysis. In contrast, DFM lacks this property, rendering its theoretical analysis more complex than its diffusion-based counterparts. 
+
+Proof of Stability of the Score. The proof of the key Lemma 1 relies on the characterization of the projected score uM 
+
+> t
+
+as the conditional expectation of the bridge score u(x1) 
+
+> t
+
+:
+
+uM 
+
+> t
+
+(x, y ) = E
+
+h
+
+u(XI1) 
+
+> t
+
+(x, y ) XI 
+
+> t
+
+= x
+
+i
+
+,
+
+for x, y ∈ Zdm and t ∈ [0 , 1 − η]. Here, u(x1) 
+
+> t
+
+denotes the bridge score, which is given by the ratio of transition densities: 
+
+u(x1) 
+
+> t
+
+(x, y ) = p1|t(x1|y)
+
+p1|t(x1|x) .
+
+Consequently, the projected score inherits the uniform stability of the underlying bridge score. For the NNRW, the boundedness of u(x1) 
+
+> t
+
+is established by analyzing the ratios of modified Bessel functions within the Skellam density, leveraging the Amos inequality [ Amo74 , Eq. (9)] to bound these ratios. For the URW, stability follows directly from the explicit transition density formula, which ensures the discrete score remains bounded for all t ∈ [0 , 1 − η]. We emphasize that an early-stopping strategy is essential here, as the score exhibits a singularity at the terminal time t = 1 . The detailed proof is provided in Section B.3 for completeness. 84 Related works 
+
+Discrete Diffusion Models. Discrete diffusion models (DDMs) are central to categorical generation in domains like language and chemistry [ AJH +21 , HNJ +21 ]. Recent works treats their reverse dy-namics as controlled jump processes to derive non-asymptotic bounds [ PSO +25 , CDPR25 , LLLS25 ,LTSL26b]. 
+
+Discrete Flow Matching. Despite DFM’s practical success [ GRS +24 , CYB +24 ], theoretical research remains limited. Existing analyses [ SLH +25 , WOY +25 ] typically focus on analyzing the statistical error of the one-jump-bridge-based dynamic using the exact uniformization simulation. While such algorithm eliminates discretization error theoretically, it can suffer from poor scalability. In contrast, our work implements the DMPM sampler [ PSO +25 ] using the random-walk-based dynamics and focus on analyzing the resulting discretization error. Unlike prior studies [ SLH +25 , WOY +25 ], our framework requires no assumptions on the ground-truth or estimated generators. Furthermore, we achieve a reduction in error dependence on both the dimension d and vocabulary size m. In comparison to the recent work of [ WOX +26 ], our analysis provides a tighter complexity bound with respect to m by leveraging the favorable properties of URW dynamic. In addition, it is worth mentioning that the assumption of the approximation error considered in [ WOX +26 ] is different from ours. Indeed, in our notation, their condition reads: 
+
+> K−1
+
+X
+
+> k=0
+
+E
+
+Z tk+1 
+
+> tk
+
+E
+
+ X 
+
+> z̸=XAlg
+> t
+
+qM,θ ⋆ 
+
+> t
+
+φ qAlg 
+
+> t
+
+qM,θ ⋆
+
+> t
+
+!
+
+(XAlg  
+
+> t
+
+, z ) XAlg 
+
+> tk
+
+ dt
+
+ ≤ ˜ε2 , (16) where (XAlg  
+
+> t
+
+)t∈[0 ,1] is a process with the transition rate (qAlg  
+
+> t
+
+)t∈[0 ,1] induced by the ground-truth generator and the specific time-discretization scheme. We summarize this comparison in Table 1.                              
+
+> References Discretization scheme Approx. assump. Early-stopping* Measure Iteration Complexity
+> [WOX +26] Theorem 1 Tau-leaping and Euler (16) Yes TV distance ˜O(d2m/ε 2)
+> [WOX +26] Theorem 3 Time-corrected sampler (16) Yes TV distance ˜O(d2m/ε 2)
+> [WOX +26] Theorem 4 Location-corrected sampler (16) Yes TV distance ˜O(d2m/ε 2)
+> (worst case)
+> This work Theorem 2 DMPM with URW dynamic M1Yes KL divergence ˜O(d2/ε 2)
+> This work Corollary 1 DMPM with URW dynamic M1No TV distance ˜O(d2/ε 2)
+
+Table 1: Comparison of complexity results for achieving O(ε) error in TV distance or O(ε2) error in KL divergence between our work and existing theoretical DFM literature. Early-stopping: “Yes” denotes that the error bound applies to an early-stopped version of the target distribution, whereas “No” signifies a bound derived for the true target distribution. 
+
+## 5 Conclusion and Limitations 
+
+We establish the non-asymptotic convergence guarantees for DFM on Zdm that rigorously account for discretization error under minimal assumptions. By characterizing the score dynamics through our framework and leveraging score’s stability, we address the technical challenges posed by DFM’s. We first establish convergence guarantees in KL divergence for DFM relative to the early-stopped target distribution. For URW dynamics, we achieve an O(ε2) error with an iteration complexity of 
+
+˜O(d2/ε 2), significantly improving the d and m dependencies found in prior work. Furthermore, we derive TV distance bounds relative to the true target distribution, addressing a key gap in existing literature. However, several open questions remain. It would be valuable to complement our analysis with a statistical study of DFM for specific neural network architectures as in [ SLH +25 , WOY +25 ]. 9Acknowledgments and Disclosure of Funding 
+
+The work of LTNP has been supported by the École Doctorale de Mathématiques Hadamard (EDMH). AD is supported by the France 2030 program (ANR-25-PEIA-0001, THEOREM project), Hi! Paris, and the Agence Nationale de la Recherche (Grant 11-LABX-0047). AD also received funding from the Fondation de l’École polytechnique (Servir la science campaign) and the European Union (ERC-2022-SYG-OCEAN-101071601). Views and opinions expressed are those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council Executive Agency; neither the European Union nor the granting authority can be held responsible for them. 
+
+## References 
+
+[ABVE25] Michael Albergo, Nicholas M Boffi, and Eric Vanden-Eijnden. Stochastic interpolants: A unifying framework for flows and diffusions. Journal of Machine Learning Research ,26(209):1–80, 2025. [AJH +21] Jacob Austin, Daniel D. Johnson, Jonathan Ho, Daniel Tarlow, and Rianne van den Berg. Structured denoising diffusion models in discrete state-spaces. In A. Beygelz-imer, Y. Dauphin, P. Liang, and J. Wortman Vaughan, editors, Advances in Neural Information Processing Systems , 2021. [Amo74] Donald E Amos. Computation of modified bessel functions and their ratios. Mathe-matics of computation , 28(125):239–251, 1974. [AVE22] Michael S Albergo and Eric Vanden-Eijnden. Building normalizing flows with stochas-tic interpolants. arXiv preprint arXiv:2209.15571 , 2022. [BS25] Francis Bach and Saeed Saremi. Sampling binary data by denoising through score functions. In Forty-second International Conference on Machine Learning , 2025. [CBB +22] Andrew Campbell, Joe Benton, Valentin De Bortoli, Tom Rainforth, George Deli-giannidis, and Arnaud Doucet. A continuous time framework for discrete denoising models. In Alice H. Oh, Alekh Agarwal, Danielle Belgrave, and Kyunghyun Cho, editors, Advances in Neural Information Processing Systems , 2022. [CDPR25] Giovanni Conforti, Alain Durmus, Le-Tuyet-Nhi Pham, and Gael Raoul. Non-asymptotic convergence of discrete diffusion models: Masked and random walk dynamics, 2025. [CYB +24] Andrew Campbell, Jason Yim, Regina Barzilay, Tom Rainforth, and Tommi Jaakkola. Generative flows on discrete state-spaces: Enabling multimodal flows with applications to protein co-design. In Forty-first International Conference on Machine Learning ,2024. [DHW26] Daniil Dmitriev, Zhihan Huang, and Yuting Wei. Efficient sampling with discrete diffusion models: Sharp and adaptive guarantees. arXiv preprint arXiv:2602.15008 ,2026. [Fel40] Willy Feller. On the integro-differential equations of purely discontinuous markoff processes. Transactions of the American Mathematical Society , 48(3):488–515, 1940. [FMS14] Eugene A Feinberg, Manasa Mandava, and Albert N Shiryaev. On solutions of kolmogorov’s equations for nonhomogeneous jump markov processes. Journal of Mathematical Analysis and Applications , 411(1):261–270, 2014. [GRS +24] Itai Gat, Tal Remez, Neta Shaul, Felix Kreuk, Ricky TQ Chen, Gabriel Synnaeve, Yossi Adi, and Yaron Lipman. Discrete flow matching. Advances in Neural Information Processing Systems , 37:133345–133385, 2024. [HHY +24] Peter Holderrieth, Marton Havasi, Jason Yim, Neta Shaul, Itai Gat, Tommi Jaakkola, Brian Karrer, Ricky TQ Chen, and Yaron Lipman. Generator matching: Generative modeling with arbitrary markov processes. arXiv preprint arXiv:2410.20587 , 2024. 10 [HJA20] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models. 
+
+Advances in neural information processing systems , 33:6840–6851, 2020. [HNJ +21] Emiel Hoogeboom, Didrik Nielsen, Priyank Jaini, Patrick Forré, and Max Welling. Argmax flows and multinomial diffusion: Learning categorical distributions. In A. Beygelzimer, Y. Dauphin, P. Liang, and J. Wortman Vaughan, editors, Advances in Neural Information Processing Systems , 2021. [Kle08] Achim Klenke. Probability theory: a comprehensive course . Springer, 2008. [LCBH +23] Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu, Maximilian Nickel, and Matthew Le. Flow matching for generative modeling. In The Eleventh International Conference on Learning Representations , 2023. [LCHH25] Yuhao Liu, Yu Chen, Rui Hu, and Longbo Huang. Finite-time analysis of discrete-time stochastic interpolants. In Forty-second International Conference on Machine Learning , 2025. [LGL22] Xingchao Liu, Chengyue Gong, and Qiang Liu. Flow straight and fast: Learning to generate and transfer data with rectified flow. arXiv preprint arXiv:2209.03003 , 2022. [LHL +25] Yuchen Liang, Renxiang Huang, Lifeng Lai, Ness Shroff, and Yingbin Liang. Absorb and converge: Provable convergence guarantee for absorbing discrete diffusion models. 
+
+arXiv preprint arXiv:2506.02318 , 2025. [Liu22] Qiang Liu. Rectified flow: A marginal preserving approach to optimal transport. arXiv preprint arXiv:2209.14577 , 2022. [LLLS25] Yuchen Liang, Yingbin Liang, Lifeng Lai, and Ness Shroff. Discrete diffusion models: Novel analysis and new sampler guarantees. arXiv preprint arXiv:2509.16756 , 2025. [LME24] Aaron Lou, Chenlin Meng, and Stefano Ermon. Discrete diffusion modeling by estimating the ratios of the data distribution, 2024. [LTSL26a] Yuchen Liang, Zhiheng Tan, Ness Shroff, and Yingbin Liang. Sharp convergence rates for masked diffusion models, 2026. [LTSL26b] Yuchen Liang, Zhiheng Tan, Ness Shroff, and Yingbin Liang. Sharp convergence rates for masked diffusion models. arXiv preprint arXiv:2602.22505 , 2026. [MCSE22] Chenlin Meng, Kristy Choi, Jiaming Song, and Stefano Ermon. Concrete score match-ing: Generalized score matching for discrete data. Advances in Neural Information Processing Systems , 35:34532–34545, 2022. [Nor98] James R Norris. Markov chains . Number 2. Cambridge university press, 1998. [Nut21] Marcel Nutz. Introduction to entropic optimal transport. Lecture notes, Columbia University , 2021. [Pel23] Stefano Peluchetti. Non-denoising forward-time diffusions. arXiv preprint arXiv:2312.14589 , 2023. [PSO +25] Le-Tuyet-Nhi Pham, Dario Shariatian, Antonio Ocello, Giovanni Conforti, and Alain Oliviero Durmus. Discrete markov probabilistic models: An improved discrete score-based framework with sharp convergence bounds under minimal assumptions. In Forty-second International Conference on Machine Learning , 2025. [SCD24] Marta G Silveri, Giovanni Conforti, and Alain Durmus. Theoretical guarantees in kl for diffusion flow matching. Advances in Neural Information Processing Systems ,37:138432–138473, 2024. [SDWMG15] Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. Deep unsupervised learning using nonequilibrium thermodynamics. In International confer-ence on machine learning , pages 2256–2265. pmlr, 2015. 11 [SE19] Yang Song and Stefano Ermon. Generative modeling by estimating gradients of the data distribution. Advances in neural information processing systems , 32, 2019. [SGH +24] Neta Shaul, Itai Gat, Marton Havasi, Daniel Severo, Anuroop Sriram, Peter Holderri-eth, Brian Karrer, Yaron Lipman, and Ricky TQ Chen. Flow matching with general discrete paths: A kinetic-optimal perspective. arXiv preprint arXiv:2412.03487 , 2024. [Ske46] John G Skellam. The frequency distribution of the difference between two poisson variates belonging to different populations. Journal of the Royal Statistical Society Series A: Statistics in Society , 109(3):296–296, 1946. [SLH +25] Maojiang Su, Mingcheng Lu, Jerry Yao-Chieh Hu, Shang Wu, Zhao Song, Alex Reneau, and Han Liu. A theoretical analysis of discrete flow matching generative models, 2025. [SSDK +21] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Er-mon, and Ben Poole. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Representations , 2021. [SYD +23] Haoran Sun, Lijun Yu, Bo Dai, Dale Schuurmans, and Hanjun Dai. Score-based continuous-time discrete diffusion models. In The Eleventh International Conference on Learning Representations , 2023. [WLL +25] Jin Wang, Yao Lai, Aoxue Li, Shifeng Zhang, Jiacheng Sun, Ning Kang, Chengyue Wu, Zhenguo Li, and Ping Luo. Fudoki: Discrete flow-based unified understanding and generation via kinetic-optimal velocities. arXiv preprint arXiv:2505.20147 , 2025. [WOX +26] Zhengyan Wan, Yidong Ouyang, Liyan Xie, Fang Fang, Hongyuan Zha, and Guang Cheng. Corrected samplers for discrete flow models. arXiv preprint arXiv:2601.22519 ,2026. [WOY +25] Zhengyan Wan, Yidong Ouyang, Qiang Yao, Liyan Xie, Fang Fang, Hongyuan Zha, and Guang Cheng. Error analysis of discrete flow with generator matching. arXiv preprint arXiv:2509.21906 , 2025. [ZCG24] Zikun Zhang, Zixiang Chen, and Quanquan Gu. Convergence of score-based discrete diffusion models: A discrete-time analysis. arXiv preprint arXiv:2410.02321 , 2024. 
+
+## A Continuous Time Markov Chains and Jump Markov Bridge 
+
+Continuous Time Markov Chains. Here we present briefly Continuous-Time Markov Chains (CTMCs) as they are at the basis of the DFMs that we consider in this paper. A CTMC on Zdm is a time-indexed right-continuous stochastic process (Xt)t≥0 on a probability space (Ω , F, P) that Markov, i.e. , for any 0 ≤ s < t , almost surely, P(Xtn = xtn |F s) = P(Xtn = xtn |Xs), where 
+
+(Ft)t≥0 is the natural filtration associated with (Xt)t≥0.To design CTMCs, one central object is a rate matrix, i.e. , function (x, t, B) ∈ Zdm × R+ × 2Zdm 7 →
+
+qt(x, B); also referred to Q-function or generator. In particular, we consider the following assumption on (qt)t≥0.
+
+H1. (qt)t≥0 is a stable conservative rate matrix, i.e., it satisfies the following properties: • for all (x, t ) ∈ Zdm × R+, the function qt(x, ·) is a signed (discrete) measure on Zdm such that qt(x, Zdm) = 0 and 0 ≤ qt(x, B \ { x}) < ∞ for all B ⊂ Zdm;• for all B ⊂ Zdm, the function (x, t ) 7 → qt(x, B) is measurable; • for all x ∈ Zdm, the singleton {x} is q-bounded, i.e., sup t∈R+ (−qt(x, {x})) < ∞.12 Under H1, the generator (qt)t≥0 allows to define a sub-Markov semigroup {ps,t : 0 ≤ s < t } on 
+
+Zdm and corresponding CTMCs, i.e. , for 0 ≤ s < t , pt|s is a transition sub-probability density and the Chapman-Kolmogorov equation holds, i.e., for any 0 ≤ s < u < t and xs, x u, x t ∈ Zdm,
+
+pt|s(xt|xs) = ( pu|spt|u)( xt|xs) := X
+
+> xu∈Zdm
+
+pu|s(xu|xs)pt|u(xt|xu) .
+
+In the case where for any 0 < s < t , pt|s = pt−s|0, then {ps,t : 0 ≤ s < t } is said to be a homogeneous semigroup. Otherwise it is said to be inhomogeneous. Here we suppose that there is no explosion which is equivalent to the fact that the family of semigroup 
+
+{ps,t : 0 ≤ s < t } is in fact Markov. 
+
+H2. For any 0 ≤ s < t and x ∈ Zdm, ps,t (x, Zdm) = 1 .
+
+Remark 3. Note that [ Fel40 , Theorem 6] ensure that H2 holds if there exists a measurable function 
+
+t 7 → ϕt such that sup x∈Zdm (−qt(x, {x})) ≤ ϕt for any t ≥ 0, and for a fixed p > 1, R ts (ϕu)pdu < 
+
++∞ for any 0 ≤ s < t .Under H1 and H2, for any initialization X0 ∼ μ0, there exists a CTMC (Xt)t≥0 starting from X0
+
+and associated with the family of transitions {ps,t : 0 ≤ s < t }:
+
+pt|s(xt|xs) = 
+
+P(Xt = xt|Xs = xs) if P(Xs = xs)̸ = 0 ,
+
+P(Xt = xt) otherwise .
+
+In addition, [ FMS14 , Theorem 4.3.] shows that for all (x, s ) ∈ Zdm × R+ and B ⊂ Zdm such that 
+
+sup t∈R+,x ∈B(−qt(x, {x})) < ∞, the function ps,t (x, B) satisfies for almost t > s the forward Kolmogorov equation: 
+
+∂p s,t 
+
+∂t (x, B) = 
+
+Z
+
+> B
+
+qt(y, {y})ps,t (x, dy) + 
+
+Z
+
+> Zdm
+
+qt(y, B \ { y})ps,t (x, dy) , (17) and the backward Kolmogorov equation: 
+
+∂p s,t 
+
+∂s (x, B) = −qs(x, {x})pt|s(B|x) −
+
+Z
+
+> X\{ x}
+
+qs(x, y )pt|s(B|dy) . (18) We note that while we restrict our presentation to a family of inhomogeneous generators (qt)t≥0
+
+indexed by R+, the same results and construction apply when it is restricted to a finite interval [0 , 1] .
+
+Jump Markov Bridge. Based on a probability measure Qq on the set of càdlàg paths W =
+
+D([0 , 1] , Zdm) , we define the bridge Bq associated with Qq as the Markov kernel on (Zdm)2 ×W, such that, for any measurable set A ⊂ W, Qq (A) = P 
+
+> x0,x 1
+
+Bq (A|x0, x 1)Qq
+
+> 0,1
+
+(x0, x 1) where Qq 
+
+> 0,1
+
+denotes the joint distribution of the endpoints (X0, X 1) under Qq . The existence of such a kernel is guaranteed by the existence of regular conditional probabilities (see, e.g., [ Kle08 , Theorem 8.37]). Formally, for any finite set of time indices I = {t1, . . . , t n}, we denote by Qq 
+
+> I
+
+the I-marginal distribution of 
+
+Qq , i.e., the pushforward measure of Qq under the evaluation map (xt)t∈[0 ,1] 7 → (xt1 , . . . , x tn ).From a probabilistic perspective, Bq represents the conditional distribution of the process (Xt)t∈[0 ,1] 
+
+given its endpoints: for any bounded measurable function f on W, E[f (( Xt)t∈[0 ,1] )|X0, X 1] = R 
+
+> W
+
+f (( xt)t∈[0 ,1] )Bq (d( xt)t∈[0 ,1] |X0, X 1).
+
+## B Technical Proofs 
+
+B.1 Proof of (4) We first derive the expression for the one-dimensional case and subsequently extend the result to d
+
+dimensions, leveraging the mutual independence of the coordinate processes. We denote by q(1) the one-dimensional generator for any coordinate process (Xit )t∈[0 ,1] , where 
+
+i ∈ [d] and 0 ≤ t ≤ 1, which admits the following formula for a, b ∈ Zm:
+
+q(1) (a, b ) = 
+
+
+
+1/2 if a = b ± 1 ,
+
+−1 if a = b , 
+
+0 otherwise .
+
+13 We verify the identity Xit+s − Xis = Sit (mod m) for 0 ≤ s < t ≤ 1 by demonstrating that the kernel 
+
+p(1) 
+
+> t+s|s
+
+(b|a) = X
+
+> k∈Z
+
+P(Sit = b − a + km ) = e −t X
+
+> k∈Z
+
+I|b−a+km |(t)
+
+is the transition density for each component i ∈ [d]. This is achieved by proving that p(1)  
+
+> t+s|s
+
+satisfies the one-dimensional Kolmogorov forward equation (17). Indeed, for any a̸ = b, we have 
+
+∂tp(1) 
+
+> t+s|s
+
+(b|a) = −e−t X
+
+> k∈Z
+
+I|b−a+km |(t) + e −t X
+
+> k∈Z
+
+∂tI|b−a+km |(t) ,
+
+where we moved the derivative and the generator inside the summation as the sum converges absolutely and uniformly for t > 0. Substituting the identity ∂tIn(t) = ( In−1(t) + In+1 (t)) /2 for 
+
+n ∈ N∗ yields 
+
+∂tp(1) 
+
+> t+s|s
+
+(b|a) = −e−t X
+
+> k∈Z
+
+I|b−a+km |(t) + 12 e−t X
+
+> k∈Z
+
+(I|b−a+km |+1 + I|b−a+km |− 1)= X
+
+> c∈Zm
+
+X
+
+> k∈Z
+
+e−tI|c−a+km |(t)q(1) (c, b ) = X
+
+> c∈Zm
+
+p(1) 
+
+> t+s|s
+
+(c|a)q(1) (c, b ) ,
+
+where we used I|z|+1 + I|z|− 1 = I|z+1 | + I|z−1| for any z ∈ Z∗ in the second equality. Turning to the case where a = b, we obtain 
+
+∂tp(1) 
+
+> t+s|s
+
+(a|a) = −∂t
+
+X
+
+> b̸=a
+
+p(1) 
+
+> t+s|s
+
+(b|a)
+
+ = − X
+
+> b̸=a
+
+X
+
+> c∈Zm
+
+p(1) 
+
+> t+s|s
+
+(c|a)q(1) (c, b )= − X
+
+> c∈Zm
+
+p(1) 
+
+> t+s|s
+
+(c|a) X
+
+> b̸=a
+
+q(1) (c, b ) = X
+
+> c∈Zm
+
+p(1) 
+
+> t+s|s
+
+(c|a)q(1) (c, a ) ,
+
+where the last line follows from the fact that P 
+
+> b∈Zm
+
+q(1) (c, b ) = 0 for any c ∈ Zm. The 
+
+d-dimensional extension follows by showing that the product transition density pt+s|s(y|x) = 
+
+Qdi=1 p(1) 
+
+> t+s|s
+
+(yi|xi) satisfies the global Kolmogorov forward equation with generator q defined in (3) .Indeed, for x, y ∈ Zdm, we have 
+
+∂tpt+s|s(y|x) = ∂t
+
+> d
+
+Y
+
+> i=1
+
+p(1) 
+
+> t+s|s
+
+(yi|xi)
+
+!
+
+=
+
+> d
+
+X
+
+> ℓ=1
+
+∂tp(1) 
+
+> t+s|s
+
+(yℓ|xℓ) Y
+
+> i̸=ℓ
+
+p(1) 
+
+> t+s|s
+
+(yi|xi) .
+
+As shown before, the one-dimensional kernel p(1)  
+
+> s+t|s
+
+satisfies the following for any a, b ∈ Zm:
+
+∂tp(1) 
+
+> t+s|s
+
+(b|a) = X
+
+> c∈Zm
+
+p(1) 
+
+> t+s|s
+
+(c|a)q(1) (c, b ) ,
+
+which in turn implies 
+
+∂tpt+s|s(y|x) = 
+
+> d
+
+X
+
+> ℓ=1
+
+X
+
+> j∈Zm
+
+p(1) 
+
+> t+s|s
+
+(j|xℓ)q(1) (j, y ℓ) Y
+
+> i̸=ℓ
+
+p(1) 
+
+> t+s|s
+
+(yi|xi)=
+
+> d
+
+X
+
+> ℓ=1 1
+
+X
+
+> j=−1
+
+p(1) 
+
+> t+s|s
+
+(yℓ + j|xℓ)q(1) (yℓ + j, y ℓ) Y
+
+> i̸=ℓ
+
+p(1) 
+
+> t+s|s
+
+(yi|xi)= X
+
+> σ∈M
+
+pt+s|s(σ(y)|x)q(σ(y), y ) + pt+s|s(y|x)q(y, y )= X
+
+> z∈Zdm
+
+pt+s|s(z|x)q(z, y ) .
+
+Consequently, pt+s|s satisfies the Kolmogorov forward equation associated with the nearest-neighbor random walk generator q. Invoking the uniqueness of solutions to the Kolmogorov equation [ Nor98 ,Theorem 2.8.3], we conclude that pt+s|s is the true transition density of (Xt)t∈[0 ,1] , thereby validating its representation via the Poisson process. 14 B.2 Proof of Theorem 1: Markovian Projection 
+
+For fixed x0, x 1 ∈ Zdm and 0 ≤ t < t + ∆ t ≤ 1, we have 
+
+P(Xt+∆ t = y | Xt = x, X 1 = x1) = pt+∆ t|t(y|x)p1|t+∆ t(x1|y)
+
+p1|t(x1|x) .
+
+Recall that by Kolmogorov equation, pt+∆ t|t(y|x) = 1y=x + q(x, y )∆ t + o(∆ t) with q is the homogeneous generator of (Xt)t∈[0 ,1] and analogously for the bridge generator qx0→x1 
+
+> t
+
+between x0
+
+and x1. Plugging this into the preceding equation yields 
+
+qx0→x1 
+
+> t
+
+(x, y )∆ t + o(∆ t) = q(x, y ) p1|t+∆ t(x1|y)
+
+p1|t(x1|x) ∆t + o(∆ t) ,
+
+for x̸ = y. Divide both hand sides by ∆t and let ∆t → 0, we obtain that 
+
+qx0→x1 
+
+> t
+
+(x, y ) = q(x, y ) p1|t(x1|y)
+
+p1|t(x1|x) .
+
+Note that because the expression for qx0→x1 
+
+> t
+
+is independent of the starting point x0, it can be written more simply as q(x1) 
+
+> t
+
+. Using this notation, we define the transition rate for x̸ = y over the interval 
+
+t ∈ [0 , 1] as: 
+
+qM 
+
+> t
+
+(x, y ) := E
+
+h
+
+q(XI1) 
+
+> t
+
+(x, y ) XI 
+
+> t
+
+= x
+
+i
+
+,
+
+with the diagonal terms qM 
+
+> t
+
+(x, x ) = − P  
+
+> y̸=x
+
+qM 
+
+> t
+
+(x, y ) chosen to enforce the row-sum constraint. A direct calculation yields the explicit form of the generator qM 
+
+> t
+
+(x, y ) for y̸ = x:
+
+qM 
+
+> t
+
+(x, y ) = q(x, y )uM 
+
+> t
+
+(x, y ) ,
+
+where the discrete score function uM is defined as 
+
+uM 
+
+> t
+
+(x, y ) := 
+
+P 
+
+> x0,x 1∈Zdm
+
+p1|t(x1|y)pt|0(x|x0)˜ π(x0, x 1)
+
+pI
+
+> t
+
+(x) ,
+
+where ˜π(x0, x 1) = π(x0, x 1)/p 1|0(x1|x0). We now verify that the projected generator qM 
+
+> t
+
+induces a probability flow that preserves the marginals of the mixture bridge (XI 
+
+> t
+
+)t∈[0 ,1] by showing that pI
+
+> t
+
+satisfies the Kolmogorov forward equation associated with qM 
+
+> t
+
+. Recall that (s, t, x, y ) 7 → pt|s(y|s)
+
+satisfies for any x, y ∈ Zdm and 0 ≤ s < t ≤ 1 both the Kolmogorov forward and backward equation (17), (18). Exploiting these equations and (2), for t ∈ (0 , 1) , we get that 
+
+∂tpI
+
+> t
+
+(x) = X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1) ∂tpt|0(x|x0)p1|t(x1|x) + pt|0(x|x0)∂tp1|t(x1|x)
+
+= X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1) X
+
+> z∈Zdm
+
+pt|0(z|x0)q(z, x )p1|t(x1|x) − q(x, z )p1|t(x1|z)pt|0(x|x0)
+
+= X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1) X 
+
+> z̸=x
+
+pt|0(z|x0)q(z, x )p1|t(x1|x) − q(x, z )p1|t(x1|z)pt|0(x|x0)
+
+= X 
+
+> z̸=x
+
+pI
+
+> t
+
+(z)qM 
+
+> t
+
+(z, x ) − pI
+
+> t
+
+(x) X 
+
+> z̸=x
+
+qM 
+
+> t
+
+(x, z )
+
+| {z } 
+
+> −qM
+> t(x,x )
+
+= X
+
+> z∈Zdm
+
+pI
+
+> t
+
+(z)qM 
+
+> t
+
+(z, x ) .
+
+Thus, the process (XM 
+
+> t
+
+)t∈[0 ,1] induced by qM matches the marginals of the mixture bridge (XI 
+
+> t
+
+)t∈[0 ,1] .Since (XM 
+
+> t
+
+)t∈[0 ,1] is Markovian by construction, and given that the linearity of the Kolmogorov forward equation ensures the uniqueness of the generator qM within the support of the marginals, the Markovian projection is unique in law. This concludes the proof of the results in Theorem 1. 15 B.3 Proof of Lemma 1: Stability of the Score 
+
+Recall that for any x̸ = y and t ∈ [0 , 1 − η],
+
+uM 
+
+> t
+
+(x, y ) = E
+
+h
+
+u(XI1) 
+
+> t
+
+(x, y ) XI 
+
+> t
+
+= x
+
+i
+
+,
+
+where u(x1) 
+
+> t
+
+denotes the bridge score and admits the following formula 
+
+u(x1) 
+
+> t
+
+(x, y ) = p1|t(x1|y)
+
+p1|t(x1|x) .
+
+Therefore, it suffices to bound u(x1) 
+
+> t
+
+(x, y ) to get the uniform bound of the score uM 
+
+> t
+
+(x, y ). As 
+
+q(x, y ) = 0 for y / ∈ { x, σ (x) : σ ∈ M} , it suffices to focus on the case y = σ(x) with σ ∈ M . We now evaluate the NNRW and URW cases individually to establish their respective bounds. 
+
+Nearest-Neighbor Random Walk. We begin by recalling 
+
+u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) = p1|t(x1|σℓ
+
+> ±
+
+(x)) 
+
+p1|t(x1|x)
+
+> (4)
+
+= p(1) 1|t (xℓ
+
+> 1
+
+|xℓ ± 1) 
+
+p(1) 1|t (xℓ
+
+> 1
+
+|xℓ) =
+
+P 
+
+> k∈Z
+
+I|∆±1+ km |(1 − t)
+
+P 
+
+> k∈Z
+
+I|∆+ km |(1 − t) ,
+
+where ∆ := xℓ 
+
+> 1
+
+− xℓ. Let us investigate P 
+
+> k∈Z
+
+I|a+km |(t) for a ∈ Z, t ∈ [0 , 1 − η] to derive the bound on the interpolated score u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) . Let 
+
+˜a = min  
+
+> k∈Z
+
+|a + km | ≤ min  
+
+> k∈Z
+
+(|a| + |k|m) ≤ min  
+
+> k∈Z
+
+(1 + |k|)m − 1 = m − 1 .
+
+We write 
+
+X
+
+> k∈Z
+
+I|a+km |(t) = I˜a(t) X
+
+> k∈Z
+
+I|a+km |(t)
+
+I˜a(t) . (19) For |a + km | − ˜a ≥ 1, we have 
+
+I|a+km |(t)
+
+I˜a(t) =
+
+> |a+km |− ˜a−1
+
+Y
+
+> j=0
+
+I˜a+j+1 (t)
+
+I˜a+j (t) = I˜a+1 (t)
+
+I˜a(t)
+
+> |a+km |− ˜a−1
+
+Y
+
+> j=1
+
+I˜a+j+1 (t)
+
+I˜a+j (t) .
+
+Note that Ib(t) is decreasing in b ∈ Z+ for fixed t ∈ [0 , 1 − η], thus I˜a+1 (t) ≤ I˜a(t) and 
+
+I|a+km |(t)
+
+I˜a(t) ≤
+
+> |a+km |− ˜a−1
+
+Y
+
+> j=1
+
+I˜a+j+1 (t)
+
+I˜a+j (t) =
+
+> |a+km |− ˜a−1
+
+Y
+
+> j=1
+
+R+˜a+j (t) ,
+
+where 
+
+R+ 
+
+> b
+
+(t) := Ib+1 (t)
+
+Ib(t) for b ∈ Z+ .
+
+By Amos inequality [Amo74, Equation (9)], we have 
+
+R+˜a+j (t) ≤ t
+
+˜a + j + pt2 + (˜ a + j)2 ≤ t
+
+2(˜ a + j)
+
+> j≥1
+
+≤ t
+
+2(˜ a + 1) .
+
+Hence for |a + km | − ˜a ≥ 1,
+
+I|a+km |(t)
+
+I˜a(t) ≤
+
+> |a+km |− ˜a−1
+
+Y
+
+> j=1
+
+t
+
+2(˜ a + 1) =
+
+ t
+
+2(˜ a + 1) 
+
+|a+km |− ˜a−1
+
+.
+
+16 Plugging it into (19) gives 
+
+X
+
+> k∈Z
+
+I|a+km |(t) ≤I˜a(t)
+
+1 + X
+
+> k∈Z
+> |a+km |− ˜a≥1
+
+ t
+
+2(˜ a + 1) 
+
+|a+km |− ˜a−1
+
+
+
+≤I˜a(t)
+
+"
+
+1 + 2 
+
+> ∞
+
+X
+
+> k=0
+
+ t
+
+2(˜ a + 1) 
+
+k#
+
+= I˜a(t)
+
+"
+
+1 + 21 − t
+
+> 2(˜ a+1)
+
+#
+
+≤I˜a(t)
+
+h
+
+1 + 4(˜ a + 1) 2(˜ a + 1) − 1
+
+| {z }
+
+> ≤4
+
+i
+
+≤ 5I˜a(t) .
+
+This together with the lower bound P 
+
+> k∈Z
+
+I|a+km |(t) ≥ I˜a(t) imply 
+
+I˜a(t) ≤ X
+
+> k∈Z
+
+I|a+km |(t) ≲ I˜a(t) .
+
+As a result, 
+
+Imin k |∆+ km ±1|(1 − t)
+
+Imin k |∆+ km |(1 − t)
+
+| {z }
+
+> R
+
+≲
+
+P 
+
+> k∈Z
+
+I|∆±1+ km |(1 − t)
+
+P 
+
+> k∈Z
+
+I|∆+ km |(1 − t)
+
+| {z } 
+
+> =u(x1)
+> t(x,σ ℓ
+> ±(x))
+
+≲ Imin k |∆+ km ±1|(1 − t)
+
+Imin k |∆+ km |(1 − t)
+
+We evaluate the ratio R by leveraging the decreasing property of Ib(1 − t) in b ∈ Z+ for fixed 
+
+t ∈ [0 , 1] as follows 
+
+R ≥ Imin k |∆+ km |+1 (1 − t)
+
+Imin k |∆+ km |(1 − t) = R+min k |∆+ km |(1 − t)
+
+≥ 1 − t
+
+min k |∆ + km | + 1 + p(1 − t)2 + (min k |∆ + km | + 1) 2
+
+≥ 1 − tm + p(1 − t)2 + m2 ≥ 1 − t
+
+2m + 1 ≳ 1 − tm ,
+
+where we used Amos inequality [ Amo74 , Equation (9)] in the second line. Analogously, we can obtain the upper bound of R:
+
+R ≤ Imin k |∆+ km ±1|(1 − t)
+
+Imin k |∆+ km ±1|+1 (1 − t) = 1
+
+R+min k |∆+ km ±1|(1 − t) ≲ m
+
+1 − t .
+
+Altogether yields the final bound on u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) :
+
+1 − tm ≲ u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) ≲ m
+
+1 − t .
+
+By taking the conditional expectation, we deduce the same uniform bound on uM 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) :
+
+1 − tm ≲ uM 
+
+> t
+
+(x, σ ℓ
+
+> ±
+
+(x)) ≲ m
+
+1 − t .
+
+Moreover, the bound of the bridge score also implies 
+
+X
+
+> σ∈M
+
+u(x1) 
+
+> t
+
+(x, σ (x)) = 
+
+> d
+
+X
+
+> ℓ=1
+
+u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> +
+
+(x)) + 
+
+> d
+
+X
+
+> ℓ=1
+
+u(x1) 
+
+> t
+
+(x, σ ℓ
+
+> −
+
+(x)) ≲ dm 
+
+1 − t .
+
+Taking the conditional expectation leads to an identical bound for P 
+
+> σ∈M
+
+uM 
+
+> t
+
+(x, σ (x)) .17 Uniform Random Walk. We begin by recalling 
+
+u(x1) 
+
+> t
+
+(x, y ) = p1|t(x1|y)
+
+p1|t(x1|x)
+
+> (6)
+
+= αdH(y,x 1)1−t
+
+αdH(x,x 1)1−t
+
+= αdH(y,x 1)−dH(x,x 1)1−t . (20) By triangle inequality, we get that 
+
+dH(x, x 1) − dH(y, x ) ≤ dH(y, x 1) ≤ dH(x, x 1) + dH(x, y ) ,
+
+which implies the following estimate since αt < 1 for any t ∈ [0 , 1 − η]:
+
+α−dH(y,x )1−t ≥ u(x1) 
+
+> t
+
+(x, y ) ≥ αdH(y,x )1−t . (21) For y = σℓn(x) with ℓ ∈ [d], n ∈ [m − 1] , this estimate reduces to 
+
+α−11−t ≥ u(x1) 
+
+> t
+
+(x, σ ℓn(x)) ≥ α1−t ,
+
+which yields the same bound on uM 
+
+> t
+
+(x, σ ℓn(x)) . Note that α−11−t admits the following upper bound 
+
+α−11−t = 1 + ( m − 1)e −(1 −t)
+
+1 − e−(1 −t) = e1−t + m − 1e1−t − 1 ≤ e + m − 11 − t ≲ m
+
+1 − t , (22) where we used the inequality ex ≥ x + 1 for any x ∈ R together with the fact m ≥ 2. Thus 
+
+1 − tm ≲ uM 
+
+> t
+
+(x, σ ℓn(x)) ≲ m
+
+1 − t .
+
+Furthermore, (20) implies 
+
+X
+
+> σ∈M
+
+u(x1) 
+
+> t
+
+(x, σ (x)) = 
+
+> d
+
+X
+
+> ℓ=1
+> m−1
+
+X
+
+> n=1
+
+αdH(x1,σ ℓn(x)) −dH(x1,x )1−t
+
+=
+
+> d
+
+X
+
+> ℓ=1
+> m−1
+
+X
+
+> n=1
+
+
+
+α1−t
+
+| {z } 
+
+> ≤1
+
+1xℓ 
+
+> 1=xℓ
+
++ α−11−t1xℓ 
+
+> 1=( σℓn(x)) ℓ
+
++ 1xℓ 
+
+> 1/∈{ xℓ,(σℓn(x)) ℓ}
+
+
+
+≤
+
+> d
+
+X
+
+> ℓ=1
+
+α−11−t +
+
+> m−1
+
+X
+
+> n=1
+
+1xℓ 
+
+> 1̸=( σℓn(x)) ℓ
+
+!
+
+> (22)
+
+≲
+
+> d
+
+X
+
+> ℓ=1
+
+ m
+
+1 − t + m − 1
+
+
+
+≲ dm 
+
+1 − t .
+
+Taking the conditional expectation leads to an identical bound for P 
+
+> σ∈M
+
+uM 
+
+> t
+
+(x, σ (x)) . The proof of Lemma 1 is complete. 
+
+B.4 Proof of Lemma 2 
+
+Fix σ ∈ M and recall the following formula of the discrete score uM for x ∈ Zdm, t ∈ [0 , 1 − η]:
+
+uM 
+
+> t
+
+(x, σ (x)) = 
+
+P 
+
+> x0,x 1∈Zdm
+
+pt|0(x|x0)p1|t(x1|y)˜ π(x0, x 1)
+
+pI
+
+> t
+
+(x) , . 
+
+By quotient rule, we get that 
+
+∂tuM 
+
+> t
+
+(x, σ (x)) = X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1)
+
+pI
+
+> t
+
+(x)
+
+p1|t(x1|σ(x)) ∂tpt|0(x|x0) + pt|0(x|x0)∂tp1|t(x1|σ(x)) 
+
+− X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1)(pI
+
+> t
+
+(x)) 2 pt|0(x|x0)p1|t(x1|σ(x)) ∂tpI
+
+> t
+
+(x) .
+
+18 Employing the Kolmogorov forward and backward equations (17) , (18) satisfied by pt|0, p1|t and pI
+
+> t
+
+,we arrive at 
+
+∂tuM 
+
+> t
+
+(x, σ (x)) = λ(m) X
+
+> σ′∈M
+
+X
+
+> x0,x 1∈Zdm
+
+˜π(x0, x 1)
+
+pI
+
+> t
+
+(x)
+
+"
+
+p1|t(x1|σ(x)) pt|0(σ′(x)|x0) − p1|t(x1|σ(x)) pt|0(x|x0)
+
+− pt|0(x|x0)p1|t(x1|σ′(σ(x))) + p1|t(x1|σ(x)) pt|0(x|x0)+ pt|0(x|x0)p1|t(x1|σ(x)) 
+
+
+
+uM 
+
+> t
+
+(x, σ ′(x)) − pI
+
+> t
+
+(σ′(x)) 
+
+pI
+
+> t
+
+(x) uM 
+
+> t
+
+(σ′(x), x )
+
+ #
+
+= λ(m) X
+
+> σ′∈M
+
+(
+
+uM 
+
+> t
+
+(x, σ ′(x)) uM 
+
+> t
+
+(x, σ (x)) − uM 
+
+> t
+
+(x, σ ′(σ(x))) + pI
+
+> t
+
+(σ′(x)) 
+
+pI
+
+> t
+
+(x)
+
+uM 
+
+> t
+
+(σ′(x), σ (x)) − uM 
+
+> t
+
+(σ′(x), x )uM 
+
+> t
+
+(x, σ (x))  )
+
+,
+
+where λ(m) represents the fixed jump rate, taking the value 1/2 in the case of NNRW and 1/m for URW. Denoting the operator AM as in Lemma 2 concludes the proof. 
+
+B.5 Proof of Lemma 3: Score and Entropy Evolution Score Evolution. Fixing σ ∈ M , we apply Itô’s formula to the process f σ (t, X M 
+
+> t
+
+), where 
+
+f σ (t, x ) := uM 
+
+> t
+
+(x, σ (x)) . Observing that XM 
+
+> t
+
+= XM 
+
+> t−
+
+for Lebesgue-almost every t ∈ [0 , 1 − η], we find that 
+
+f σ (t, X M 
+
+> t
+
+) − f σ (s, X M 
+
+> s
+
+) −
+
+Z ts
+
+∂r f σ (r, X M 
+
+> r
+
+) + ( qMf σ )( r, X M 
+
+> r
+
+) dr
+
+is a local martingale on 0 ≤ s < t ≤ 1 − η. In view of the finite state space and the fact that uM
+
+> t
+
+is uniformly bounded for all t ∈ [0 , 1 − η] (as shown in Lemma 1), we conclude that this local martingale is integrable and thus a true martingale. Denoting by bσr (XM 
+
+> r
+
+) the integrand above, we have 
+
+bσr (x) = ∂r uM 
+
+> r
+
+(x, σ (x)) + λ(m) X
+
+> σ′∈M
+
+uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) − uM 
+
+> r
+
+(x, σ (x))  uM 
+
+> r
+
+(x, σ ′(x)) 
+
+> (14)
+
+= λ(m) X
+
+> σ′∈M
+
+(
+
+uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(x, σ ′(x)) − uM 
+
+> r
+
+(x, σ ′(σ(x))) + pI 
+
+> r
+
+(σ′(x)) 
+
+pI 
+
+> r
+
+(x)
+
+uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x )
+
++ uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) − uM 
+
+> r
+
+(x, σ (x))  uM 
+
+> r
+
+(x, σ ′(x)) 
+
+)
+
+= λ(m) X
+
+> σ′∈M
+
+(
+
+uM 
+
+> r
+
+(x, σ ′(x)) uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) − uM 
+
+> r
+
+(x, σ ′(σ(x))) + pI 
+
+> r
+
+(σ′(x)) 
+
+pI 
+
+> r
+
+(x)
+
+uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x ) )
+
+.
+
+Consequently, we obtain the desired conclusion: for 0 ≤ s < t ≤ 1 − η,
+
+E uM 
+
+> t
+
+(σ) Fs
+
+ − uM 
+
+> s
+
+(σ) = λ(m)
+
+Z ts
+
+E
+
+" X
+
+> σ′∈M
+
+BM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′) Fs
+
+#
+
+dr , 
+
+where (Ft)t∈[0 ,1−η] denotes the filtration of (XM 
+
+> t
+
+)t∈[0 ,1−η] and the operator BM defined as in Lemma 3. 19 Entropy Score Evolution. Next, we investigate the evolution of P 
+
+> σ∈M
+
+φ(uM 
+
+> t
+
+(σ)) -a central component in the convergence derivation, where φ(a) := a log( a) − a + 1 . Analogously as before, by Itô’s formula, the following process 
+
+φ(uM 
+
+> t
+
+(σ)) − φ(uM 
+
+> s
+
+(σ)) −
+
+Z ts
+
+∂r φ(uM 
+
+> r
+
+(σ)) + ( qM 
+
+> r
+
+φ(uM 
+
+> r
+
+))( XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+))  dr
+
+is a local martingale for 0 ≤ s < t ≤ 1−η. The finiteness of the state space, coupled with the uniform bound on uM 
+
+> t
+
+provided in Lemma 1, ensures that the local martingale is integrable. Consequently, it becomes a true martingale throughout [0 , 1 − η]. Denoting by cσr (XM 
+
+> r
+
+) the above integrand, we have 
+
+cσr (x)= ∂r φ(uM 
+
+> r
+
+(x, σ (x))) + λ(m) X
+
+> σ′∈M
+
+φ(uM 
+
+> r
+
+(σ′(x), σ (σ′(x)))) − φ(uM 
+
+> r
+
+(x, σ (x)))  uM 
+
+> r
+
+(x, σ ′(x)) = log uM 
+
+> r
+
+(x, σ (x)) ∂r uM 
+
+> r
+
+(x, σ (x)) + λ(m) X
+
+> σ′∈M
+
+uM 
+
+> r
+
+(x, σ ′(x)) 
+
+(uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( σ′(x), σ (σ′(x))) − (uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( x, σ (x))  .
+
+Substituting the equation (14) into the above yields 
+
+cσr (x)= λ(m) log uM 
+
+> r
+
+(x, σ (x)) X
+
+> σ′∈M
+
+(
+
+uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(x, σ ′(x)) − uM 
+
+> r
+
+(x, σ ′(σ(x))) + pI 
+
+> r
+
+(σ′(x)) 
+
+pI 
+
+> r
+
+(x)
+
+uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x ) )
+
++ λ(m) X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(x, σ ′(x)) (uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( σ′(x), σ (σ′(x))) − (uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( x, σ (x)) 
+
+= λ(m) X
+
+> σ′∈M
+
+(
+
+pI 
+
+> r
+
+(σ′(x)) 
+
+pI 
+
+> r
+
+(x) log uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x )
+
++ uM 
+
+> r
+
+(x, σ ′(x)) (uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( σ′(x), σ (σ′(x))) + uM 
+
+> r
+
+(x, σ (x)) 
+
+− uM 
+
+> r
+
+(x, σ ′(σ(x))) log uM 
+
+> r
+
+(x, σ (x)) 
+
+)
+
+.
+
+Taking expectation and noting that XM
+
+> t
+> dist
+
+= XI 
+
+> t
+
+, we arrive at 
+
+E cσr (XM 
+
+> r
+
+)
+
+= λ(m) X
+
+> σ′∈M
+
+X
+
+> x∈Zdm
+
+(
+
+pI 
+
+> r
+
+(σ′(x)) log uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x )
+
++ pI 
+
+> r
+
+(x)uM 
+
+> r
+
+(x, σ ′(x)) (uM 
+
+> r
+
+log uM 
+
+> r
+
+− uM 
+
+> r
+
+)( σ′(x), σ (σ′(x))) + uM 
+
+> r
+
+(x, σ (x)) 
+
+− pI 
+
+> r
+
+(x)uM 
+
+> r
+
+(x, σ ′(σ(x))) log uM 
+
+> r
+
+(x, σ (x)) 
+
+)
+
+.
+
+20 A change of variables in the first summation yields 
+
+E cσr (XM 
+
+> r
+
+) = λ(m) X
+
+> σ′∈M
+
+X
+
+> x∈Zdm
+
+pI 
+
+> r
+
+(x)
+
+(
+
+uM 
+
+> r
+
+(x, σ (σ′(x))) log uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) − uM 
+
+> r
+
+(x, σ ′(σ(x))) log uM 
+
+> r
+
+(x, σ (x)) + uM 
+
+> r
+
+(x, σ ′(x)) uM 
+
+> r
+
+(x, σ (x)) − uM 
+
+> r
+
+(σ′(x), σ (σ′(x)))  )
+
+= λ(m)E
+
+" X
+
+> σ′∈M
+
+(
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (σ′(XM 
+
+> r
+
+))) log uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+− uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) log uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) + uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) − uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+)))  )# 
+
+As a result, for 0 ≤ s < t ≤ 1 − η, we obtain the desired equation: 
+
+E φ(uM 
+
+> t
+
+(σ))  − E φ(uM 
+
+> s
+
+(σ))  = λ(m)
+
+Z ts
+
+X
+
+> σ′∈M
+
+E CM 
+
+> r
+
+(XM 
+
+> r
+
+, u M; σ, σ ′) dr , 
+
+where the operator CM defined as in Lemma 3. 
+
+B.6 Proof of main result: Theorem 2 
+
+We are now prepared to demonstrate our main convergence results. Let {tk}Kk=0 be a partition of 
+
+[0 , 1 − η] with mesh size hk+1 = tk+1 − tk. By combining the data processing inequality [ Nut21 ,Lemma 1.6] with the Girsanov theorem for jump processes [CDPR25, Theorem G.0.1], we have 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) 
+
+≤KL(Law( XM[0 ,1−η])|Law( Xθ⋆
+
+> [0 ,1−η]
+
+)) =
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+qM 
+
+> t
+
+log qM
+
+> t
+
+qM,θ ⋆
+
+> t
+
+− qM 
+
+> t
+
++ qM,θ ⋆
+
+> t
+
+!
+
+(XM 
+
+> t
+
+, σ (XM 
+
+> t
+
+)) 
+
+#
+
+dt . 
+
+Plugging the formula of estimated generator: qM,θ ⋆ 
+
+> t
+
+(x, σ (x)) = qM,θ ⋆ 
+
+> tk
+
+(XM 
+
+> tk
+
+, σ (XM 
+
+> tk
+
+)) for t ∈
+
+[tk, t k+1 ) given XM 
+
+> tk
+
+and using the shorthand qM 
+
+> t
+
+(σ) = qM 
+
+> t
+
+(XM 
+
+> t
+
+, σ (XM 
+
+> t
+
+)) (and similarly for 
+
+qM 
+
+> tk
+
+(σ), q M,θ ⋆ 
+
+> tk
+
+(σ)), we get that 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) 
+
+≤
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+qM 
+
+> t
+
+log qM
+
+> t
+
+qM,θ ⋆
+
+> tk
+
+− qM 
+
+> t
+
++ qM,θ ⋆
+
+> tk
+
+!
+
+(σ)
+
+#
+
+dt
+
+≤
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+qM 
+
+> t
+
+log qM
+
+> t
+
+qM
+
+> tk
+
+− qM 
+
+> t
+
++ qM 
+
+> tk
+
++ qM,θ ⋆ 
+
+> tk
+
+− qM 
+
+> tk
+
++ qM 
+
+> t
+
+log qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+!
+
+(σ)
+
+#
+
+dt . 
+
+21 We decompose this expression into the score approximation error and a residual discretization term: 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) 
+
+≤ λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+φ(uM 
+
+> t
+
+) − φ(uM 
+
+> tk
+
+) + log uM 
+
+> tk
+
+(uM 
+
+> tk
+
+− uM 
+
+> t
+
+)
+
+!
+
+(σ)
+
+#
+
+dt
+
+| {z }
+
+> Edisc
+
++
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+qM,θ ⋆ 
+
+> tk
+
+(σ) − qM 
+
+> tk
+
+(σ)
+
+#
+
++
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+qM
+
+> t
+
+qM
+
+> tk
+
+qM 
+
+> tk
+
+log qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+(σ)
+
+#
+
+dt
+
+| {z }
+
+> Eapprox
+
+,
+
+where λ(m) = q(x, σ (x)) denotes the fixed jump rate taking 1/2 for NNRW and 1/m for URW, and the nonnegative function φ defined by φ(a) = a log( a) − a + 1 for a ≥ 0. To handle the approximation error Eapprox , we first note that M1 is indeed equivalent to 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+(
+
+qM,θ tk φ qM
+
+> tk
+
+qM,θ tk
+
+!
+
++
+
+
+
+qM,θ tk − qM
+
+> tk
+
+2
+
+)
+
+(XM 
+
+> tk
+
+, σ (XM 
+
+> tk
+
+)) 
+
+#
+
+≤ ˜ε2 , (23) since XM
+
+> t
+> dist
+
+= XI 
+
+> t
+
+for all t ∈ [0 , 1] . Now we address the second term of Eapprox by using the uniform bound of the score established in Lemma 1, together with the note 
+
+qM 
+
+> tk
+
+log qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+(σ) ≤ (qM 
+
+> tk
+
+log qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+− qM 
+
+> tk
+
++ qM,θ ⋆ 
+
+> tk
+
+)( σ) + (qM 
+
+> tk
+
+− qM,θ ⋆ 
+
+> tk
+
+)( σ)
+
+= qM,θ ⋆ 
+
+> tk
+
+φ qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+!
+
+(σ) + qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ) ,
+
+where we used triangle inequality in the first estimate. Thereby 
+
+Eapprox ≲ m2
+
+η2
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ)
+
+#
+
++ m2
+
+η2
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+qM,θ ⋆ 
+
+> tk
+
+φ qM
+
+> tk
+
+qM,θ ⋆
+
+> tk
+
+!
+
+(σ)
+
+#| {z } 
+
+> ≤˜ε2by (23)
+
+.
+
+We first employ Cauchy-Schwarz inequality and second apply twice the Jensen inequality for concave functions to control the remaining term of Eapprox :
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ)
+
+#
+
+≤
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 E
+
+p|M| 
+
+s X
+
+> σ∈M
+
+(qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ)) 2
+
+
+
+≤p|M| 
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 
+
+vuutE
+
+" X
+
+> σ∈M
+
+(qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ)) 2
+
+#
+
+≤p|M| 
+
+vuutK−1X
+
+> k=0
+
+hk+1 E
+
+" X
+
+> σ∈M
+
+(qM 
+
+> tk
+
+(σ) − qM,θ ⋆ 
+
+> tk
+
+(σ)) 2
+
+# (23) 
+
+≤ p|M| ˜ε . 
+
+Thus we obtain the following upper bound on Eapprox :
+
+Eapprox ≲ m2η−2p|M| ˜ε + m2η−2 ˜ε2 = m2η−2(p|M| ˜ε + ˜ ε2) .
+
+22 It remains to control the time-discretization error Edisc to finish the proof. We write 
+
+Edisc = λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+log uM 
+
+> tk
+
+(uM 
+
+> tk
+
+− uM 
+
+> t
+
+)( σ)
+
+#
+
+dt
+
+| {z }
+
+> E1
+
++ λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+φ(uM 
+
+> t
+
+(σ)) − φ(uM 
+
+> tk
+
+(σ)) 
+
+#
+
+dt
+
+| {z }
+
+> E2
+
+,
+
+To analyze the term E2, we use the evolution of the entropy-like score established in Lemma 3: 
+
+E2 =
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ∈M
+
+φ(uM 
+
+> t
+
+(σ)) − φ(uM 
+
+> tk
+
+(σ)) 
+
+#
+
+dt
+
+= λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z ttk
+
+E
+
+" X
+
+> σ,σ ′
+
+(
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (σ′(XM 
+
+> r
+
+))) log uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) + uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) 
+
+
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) − uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+)# 
+
+drdt
+
+≤ λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) 
+
+#
+
+drdt
+
+| {z }
+
+> E2.1
+
++ λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (σ′(XM 
+
+> r
+
+))) log uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) 
+
+#
+
+drdt
+
+| {z }
+
+> E2.2
+
+.
+
+We address E2.1 by the upper bound shown in (13): 
+
+E2.1 =
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ′∈M
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) X
+
+> σ∈M
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) 
+
+#
+
+drdt
+
+≲
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+d2m2
+
+(1 − r)(1 − tk+1 ) dr . 
+
+Let us choose tk = 1 − (1 + h)−k with h > 0, then hk+1 = h(1 − tk+1 ), thus 
+
+E2.1 ≲ d2m2h
+
+Z 1−η
+
+> 0
+
+11 − r dr = d2m2h log( η−1) . (24) Next we invoke Lemma 1 to control the logarithmic term of E2.2: for any x, x ′ ∈ Zdm, t, t k ∈ [0 , 1−η]
+
+and σ ∈ M ,
+
+log uM 
+
+> t
+
+(x, σ (x)) 
+
+uM 
+
+> tk
+
+(x′, σ (x′)) ≲ log 
+
+ m
+
+1 − t
+
+
+
++ log 
+
+ m
+
+1 − tk
+
+
+
+≲ log 
+
+ mη
+
+
+
+.
+
+In addition, Lemma 1 further implies for any x ∈ Zdm and r ∈ [tk, t k+1 ],
+
+X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(x, σ (σ′(x))) = X
+
+> σ,σ ′
+
+E
+
+h
+
+uXI0→XI1 
+
+> r
+
+(x, σ (σ′(x))) XI 
+
+> r
+
+= x
+
+i
+
+= E
+
+" X
+
+> σ′∈M
+
+uXI0→XI1 
+
+> r
+
+(x, σ ′(x)) X
+
+> σ∈M
+
+uXI0→XI1 
+
+> r
+
+(σ′(x), σ (σ′(x))) XI 
+
+> r
+
+= x
+
+#
+
+> (13)
+
+≲ E
+
+ d2m2
+
+(1 − r)2 XI 
+
+> r
+
+= x
+
+
+
+≤ d2m2
+
+(1 − r)(1 − tk+1 ) ,
+
+23 where we employed the transitivity of the bridge score in the second equality: 
+
+u(x1) 
+
+> t
+
+(x, y )u(x1) 
+
+> t
+
+(y, z ) = p1|t(x1|y)
+
+p1|t(x1|x) · p1|t(x1|z)
+
+p1|t(x1|y) = p1|t(x1|z)
+
+p1|t(x1|x) = u(x1) 
+
+> t
+
+(x, z ) ,
+
+for any x, y, z ∈ Zdm and t ∈ [0 , 1 − η]. Therefore 
+
+E2.2 ≲ log( mη −1)
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+d2m2
+
+(1 − r)(1 − tk+1 ) dr
+
+= d2m2h log( mη −1)
+
+Z 1−η
+
+> 0
+
+11 − r dr = d2m2h log( η−1) log( mη −1) . (25) Combining (24) and (25) yields 
+
+E2 ≲ λ(m)d2m2h log( η−1) log( mη −1) . (26) To analyze E1, we employ the evolution of the score showed in Lemma 3 to get 
+
+E1 = λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+Z tk+1 
+
+> tk
+
+Z ttk
+
+E
+
+" X
+
+> σ,σ ′
+
+log uM 
+
+> tk
+
+(σ)
+
+n
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) − uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) + pI 
+
+> r
+
+(σ′(XM 
+
+> r
+
+)) 
+
+pI 
+
+> r
+
+(XM 
+
+> r
+
+)
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), X M 
+
+> r
+
+) − uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (XM 
+
+> r
+
+))  o#
+
+drdt
+
+≤λ(m)
+
+> K−1
+
+X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+E
+
+" X
+
+> σ,σ ′
+
+log uM 
+
+> tk
+
+(σ)
+
+n
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) − uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
++ pI 
+
+> r
+
+(σ′(XM 
+
+> r
+
+)) 
+
+pI 
+
+> r
+
+(XM 
+
+> r
+
+) uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), X M 
+
+> r
+
+) − uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (XM 
+
+> r
+
+)) 
+
+o#
+
+dr . 
+
+Then we employ the uniform bound of the score established in Lemma 1 to control | log uM 
+
+> tk
+
+(σ)|:
+
+E1≲λ(m) log  mη −1 K−1X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+E
+
+X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) − uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+
+
++ E
+
+X
+
+> σ,σ ′
+
+pI 
+
+> r
+
+(σ′(XM 
+
+> r
+
+)) 
+
+pI 
+
+> r
+
+(XM 
+
+> r
+
+) uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ (XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), X M 
+
+> r
+
+) − uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (XM 
+
+> r
+
+)) 
+
+| {z }
+
+> E1.1
+
+dr . 
+
+The addend E1.1 can be controlled by changing variables as follows 
+
+E1.1 = X
+
+> σ,σ ′
+
+X
+
+> x∈Zdm
+
+pI 
+
+> r
+
+(σ′(x)) uM 
+
+> r
+
+(σ′(x), σ (x)) − uM 
+
+> r
+
+(x, σ (x)) uM 
+
+> r
+
+(σ′(x), x )
+
+= X
+
+> σ,σ ′
+
+X
+
+> x∈Zdm
+
+pI 
+
+> r
+
+(x) uM 
+
+> r
+
+(x, σ (σ′(x))) − uM 
+
+> r
+
+(σ′(x), σ (σ′(x))) uM 
+
+> r
+
+(x, σ ′(x)) 
+
+= X
+
+> σ,σ ′
+
+E  uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) − uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+)))  ,
+
+24 where we leveraged the commutative property of the set of jumps M (σ ◦ σ′ = σ′ ◦ σ) in the last equality. Substituting back into E1 leads to: 
+
+E1 ≲ λ(m) log  mη −1 K−1X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+E
+
+X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) − uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) 
+
+ dr
+
+≲ λ(m) log  mη −1 K−1X
+
+> k=0
+
+hk+1 
+
+Z tk+1 
+
+> tk
+
+E
+
+X
+
+> σ,σ ′
+
+uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(σ(XM 
+
+> r
+
+))) + uM 
+
+> r
+
+(XM 
+
+> r
+
+, σ ′(XM 
+
+> r
+
+)) uM 
+
+> r
+
+(σ′(XM 
+
+> r
+
+), σ (σ′(XM 
+
+> r
+
+))) 
+
+ dr . 
+
+Arguing similarly as E2, we obtain 
+
+E1 ≲ λ(m) log  mη −1 K−1X
+
+> k=0
+
+d2m2 hk+1 
+
+1 − tk+1 
+
+Z tk+1 
+
+> tk
+
+11 − r dr . 
+
+Recall that hk+1 = h(1 − tk+1 ), we arrive at 
+
+E1 ≲ λ(m) log  mη −1 d2m2h
+
+Z 1−η
+
+> 0
+
+11 − r dr
+
+= λ(m)d2m2h log  mη −1 log  η−1 . (27) Plugging the estimates for E1 and E2 in (26), (27) into the universal Edisc yields 
+
+Edisc ≲ (λ(m)) 2d2m2h log  mη −1 log  η−1 .
+
+Putting pieces together implies the final error bound 
+
+KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) ≲ m2η−2(p|M| ˜ε + ˜ ε2) + ( λ(m)) 2d2m2h log  mη −1 log  η−1 ,
+
+and we complete the proof of Theorem 2. 
+
+B.7 Proof of Corollary 1: Error in TV distance 
+
+We start by applying triangle inequality: 
+
+∥Law( Xθ⋆ 
+
+> 1−η
+
+) − μ1∥TV ≤∥ Law( Xθ⋆ 
+
+> 1−η
+
+) − μ1−η ∥TV + ∥μ1−η − μ1∥TV . (28) The first addend can be bounded by leveraging Pinsker’s inequality and Theorem 2: 
+
+∥Law( Xθ⋆ 
+
+> 1−η
+
+) − μ1−η ∥TV ≤
+
+q
+
+2KL( μ1−η |Law( Xθ⋆ 
+
+> 1−η
+
+)) 
+
+≲ mη −1
+
+qp|M| ˜ε + ˜ ε2 + λ(m)dm ph log ( mη −1) log( η−1) .
+
+where we used inequality √a + b ≤ √a + √b for non-negative numbers a, b in last estimate. To conclude the proof, it remains to control the approximation error ∥μ1−η − μ1∥TV arising from the early-stopping procedure. This term represents the discrepancy between the regularized flow and the true target distribution; its analysis depends on the specific choice of base dynamics as follows. 
+
+Nearest-Neighbor Random Walk. We have 
+
+∥μ1−η − μ1∥TV ≤P  XI1−η̸ = XI1
+
+ = 1 − P(XI1−η = XI1)= 1 − X
+
+> x0,x 1
+
+π(x0, x 1) p1−η|0(x1|x0)p1|1−η (x1|x1)
+
+p1|0(x1|x0) .
+
+25 Thanks to the rigorous formula of transition density provided in (4), we get that 
+
+p1|1−η (x1|x1) = 
+
+> d
+
+Y
+
+> ℓ=1
+
+p(1) 1|1−η (xℓ
+
+> 1
+
+|xℓ
+
+> 1
+
+) = e−η X
+
+> k∈Z
+
+I|km |(η)
+
+!d
+
+≥ e−dη Id 
+
+> 0
+
+(η) ≥ e−dη , (29) since 
+
+I0(η) = 
+
+> ∞
+
+X
+
+> n=0
+
+1(n!) 2
+
+ η
+
+2
+
+2n
+
+≥ 1(0!) 2
+
+ η
+
+2
+
+0
+
+= 1 .
+
+The tricky part is to manage the ratio yη = p1−η|0(x1|x0)/p 1|0(x1|x0). By Kolmogorov backward equation and homogeneity of the base process, we have 
+
+y′ 
+
+> s
+
+= ∂sp1|s(x1|x0)
+
+p1|0(x1|x0) = − X
+
+> x∈Zdm
+
+q(x0, x ) p1|s(x1|x)
+
+p1|0(x1|x0)= d p1|s(x1|x0)
+
+p1|0(x1|x0) − 12
+
+X
+
+> σ∈M
+
+p1|s(x1|σ(x0)) 
+
+p1|0(x1|x0)= dy s − 12 ys
+
+X
+
+> σ∈M
+
+p1|s(x1|σ(x0)) 
+
+p1|s(x1|x0)
+
+| {z } 
+
+> ux0→x1
+> s(x0,σ (x0))
+
+.
+
+Thanks to the precise upper bound of the bridge score derived in the proof of Lemma 1, we get that 
+
+y′ 
+
+> s
+
+≥ dy s − 12 ys
+
+X
+
+> σ∈M
+
+5(2 m + 1) 1 − s = dy s
+
+
+
+1 − 5(2 m + 1) 1 − s
+
+
+
+.
+
+Therefore 
+
+y′
+
+> s
+
+ys
+
+≥ d
+
+
+
+1 − 5(2 m + 1) 1 − s
+
+
+
+.
+
+Integrating from 0 to η gives 
+
+log( yη ) − log( y0) ≥ d
+
+Z η
+
+> 0
+
+
+
+1 − 5(2 m + 1) 1 − s
+
+
+
+ds = d[η + 5(2 m + 1) log(1 − η)] .
+
+As y0 = 1 , we deduce that 
+
+yη ≥ edη (1 − η)5d(2 m+1) . (30) Plugging (29) and (30) into the total variation distance yields 
+
+∥μ1−η − μ1∥TV ≤ 1 − (1 − η)5d(2 m+1) X
+
+> x0,x 1
+
+π(x0, x 1) = 1 − (1 − η)5d(2 m+1) .
+
+Using the Bernoulli’s inequality (1 + x)r ≥ 1 + rx for x ≥ − 1 and r ≥ 1, we get 
+
+∥μ1−η − μ1∥TV ≤ 1 − (1 − 5d(2 m + 1) η) = 5 d(2 m + 1) η ≲ dmη . 
+
+Uniform Random Walk. Similarly as before, 
+
+∥μ1−η − μ1∥TV ≤P  XI1−η̸ = XI1
+
+ = 1 − P  XI1−η = XI1
+
+
+
+= 1 − X
+
+> x0,x 1∈Zdm
+
+π(x0, x 1)P(X1−η = x1|X0 = x0, X 1 = x1) . (31) Thanks to the rigorous formula of the transition density provided in (6), we have for x0, x 1 ∈ Zdm:
+
+P(X1−η = x1|X0 = x0, X 1 = x1)= p1−η|0(x1|x0)p1|1−η (x1|x1)
+
+p1|0(x1|x0)=
+
+ 1 − e−(1 −η)
+
+1 − e−1
+
+dH(x0,x 1)  1 + ( m − 1)e −η
+
+m
+
+d  1 + ( m − 1)e −(1 −η)
+
+1 + ( m − 1)e −1
+
+d−dH(x0,x 1)
+
+.
+
+26 Since 1 + ( m − 1)e −(1 −η) ≥ 1 + ( m − 1)e −1 and d − dH(x0, x 1) ≥ 0, the last term above larger than 1 and we deduce that 
+
+P(X1−η = x1|X0 = x0, X 1 = x1) ≥
+
+ 1 − e−(1 −η)
+
+1 − e−1
+
+dH(x0,x 1)  1 + ( m − 1)e −η
+
+m
+
+d
+
+.
+
+Now note that 1−e−(1 −η) 
+
+> 1−e−1
+
+≤ 1 and dH(x0, x 1) ≤ d and apply elementary inequality xd ≥ 1 − d(1 − x)
+
+for x ∈ [0 , 1] , we obtain 
+
+P(X1−η = x1|X0 = x0, X 1 = x1) ≥
+
+ (1 − e−(1 −η))(1 + ( m − 1)e −η )(1 − e−1)m
+
+d
+
+≥ 1 − d
+
+
+
+1 − (1 − e−(1 −η))(1 + ( m − 1)e −η )(1 − e−1)m
+
+
+
+= 1 − d(1 − e−η )( m − 1 + e −1+ η )(1 − e−1)m
+
+≥ 1 − d(1 − e−η )1 − e−1 ≥ 1 − dη 
+
+1 − e−1 ,
+
+where we used inequality e−η ≥ 1 − η in the last estimate. Substituting it into (31) gives 
+
+∥μ1−η − μ1∥TV ≤ 1 −
+
+
+
+1 − dη 
+
+1 − e−1
+
+ X
+
+> x0,x 1∈Zdm
+
+π(x0, x 1) = dη 
+
+1 − e−1 ≲ dη . 
+
+To conclude, we plug the early-stopping error in each case into (28), yielding 
+
+∥Law( Xθ⋆ 
+
+> 1−η
+
+) − μ1∥TV ≲ C( m)dη + mη −1
+
+qp|M| ˜ε + ˜ ε2 + λ(m)dm ph log ( mη −1) log( η−1),
+
+where the coefficient C( m) taking value m for NNRW and 1 for URW. We complete the proof of Corollary 1. 27

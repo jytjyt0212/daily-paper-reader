@@ -6,130 +6,98 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-03
-- 运行时间：2026-06-03 23:24:05 UTC
+- 最新运行日期：2026-06-04
+- 运行时间：2026-06-04 21:50:57 UTC
 - 运行状态：成功
-- 本次总论文数：36
-- 精读区：22
+- 本次总论文数：26
+- 精读区：12
 - 速读区：14
 
 ### 今日简报（AI）
-今日36篇论文中世界模型综述与多模态行动扩散获满分，生成模型与自动驾驶成焦点。
-最值得看世界模型的全面架构方法论综述，以及鲁棒端到端自动驾驶的多模态行动扩散方法。
-建议优先精读两篇满分论文，速读列表中改进流模型与保守流等新范式也值得跟进。
-- 详情：[/202606/03/README](/202606/03/README)
+今日精读两篇满分论文，聚焦NVIDIA闭环自动驾驶生成世界模型及世界模型与语言模型的互补性。方向：生成式世界模型与语言模型的融合，是近期最值得关注的研究热点。下一步，建议深入探索这类模型在仿真和推理中的协同潜力。
+- 详情：[/202606/04/README](/202606/04/README)
 
 ### 精读区论文标签
-1. [World Models: A Comprehensive Survey of Architectures, Methodologies, Reasoning Paradigms, and Applications](/202606/03/2606.00133v1-world-models-a-comprehensive-survey-of-architectures-methodologies-reasoning-paradigms-and-applications)  
-   标签：评分：10.0/10、query:world-models
-   evidence：关于世界模型架构与应用的全面综述
-2. [Multimodal Action Diffusion for Robust End-to-End Autonomous Driving](/202606/03/2606.02105v1-multimodal-action-diffusion-for-robust-end-to-end-autonomous-driving)  
+1. [NVIDIA OmniDreams: Real-Time Generative World Model for Closed-Loop Autonomous Vehicle Simulation](/202606/04/2606.03159v1-nvidia-omnidreams-real-time-generative-world-model-for-closed-loop-autonomous-vehicle-simulation)  
    标签：评分：10.0/10、query:self-driving
-   evidence：端到端自动驾驶动作扩散Transformer
-3. [CORE-MTL: Rethinking Gradient Balancing via Causal Orthogonal Representations](/202606/03/2606.02221v1-core-mtl-rethinking-gradient-balancing-via-causal-orthogonal-representations)  
-   标签：评分：10.0/10、query:causal-rep
-   evidence：因果正交表示用于多任务学习
-4. [Semantic Flow Regularization: Teaching LLMs to Generate Diverse Yet Coherent Responses](/202606/03/2605.27971v1-semantic-flow-regularization-teaching-llms-to-generate-diverse-yet-coherent-responses)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：用于LLM多样性的条件流匹配
-5. [Bayesian Gated Non-Negative Contrastive Learning](/202606/03/2605.28441v1-bayesian-gated-non-negative-contrastive-learning)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：贝叶斯门控非负对比学习用于解耦
-6. [Compositional Text-to-Image Generation Via Region-aware Bimodal Direct Preference Optimization](/202606/03/2605.28615v1-compositional-text-to-image-generation-via-region-aware-bimodal-direct-preference-optimization)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：扩散DPO用于文本到图像生成
-7. [Test Time Training for Supervised Causal Learning](/202606/03/2605.30015v1-test-time-training-for-supervised-causal-learning)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：基于测试时训练的监督因果学习方法，提升泛化能力
-8. [Equivariant Latent Alignment via Flow Matching under Group Symmetries](/202606/03/2605.30705v1-equivariant-latent-alignment-via-flow-matching-under-group-symmetries)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：等变流匹配用于潜在对齐
-9. [Can BEV Perception Gracefully Degrade under Sensor Failures?](/202606/03/2605.30983v1-can-bev-perception-gracefully-degrade-under-sensor-failures)  
+   evidence：NVIDIA提出的实时生成世界模型，用于自动驾驶闭环仿真
+2. [World Models Meet Language Models: On the Complementarity of Concrete and Abstract Reasoning](/202606/04/2606.03603v1-world-models-meet-language-models-on-the-complementarity-of-concrete-and-abstract-reasoning)  
+   标签：评分：10.0/10、query:world-models
+   evidence：世界模型与多模态大语言模型的互补推理
+3. [CLAW: Learning Continuous Latent Action World Models via Adversarial Latent Regularization](/202606/04/2606.04130v1-claw-learning-continuous-latent-action-world-models-via-adversarial-latent-regularization)  
+   标签：评分：10.0/10、query:world-models
+   evidence：从视频中联合学习世界模型与潜在动作
+4. [Multi-Resolution End-to-End Deep Neural Network for Optimizing Latency-Accuracy Tradeoff in Autonomous Driving](/202606/04/2605.29138v1-multi-resolution-end-to-end-deep-neural-network-for-optimizing-latency-accuracy-tradeoff-in-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：多模态BEV感知在传感器故障下的优雅降级
-10. [Subspace-Decomposed JEPAs: Disentangling Progression and Content in Latent World Models](/202606/03/2605.31111v1-subspace-decomposed-jepas-disentangling-progression-and-content-in-latent-world-models)  
+   evidence：多分辨率端到端深度神经网络用于自动驾驶，优化延迟-精度权衡
+5. [Equivariant Latent Alignment via Flow Matching under Group Symmetries](/202606/04/2605.30705v2-equivariant-latent-alignment-via-flow-matching-under-group-symmetries)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：流匹配用于群对称下的等变潜空间对齐
+6. [Physical Object Understanding with a Physically Controllable World Model](/202606/04/2606.00439v1-physical-object-understanding-with-a-physically-controllable-world-model)  
    标签：评分：9.0/10、query:world-models
-   evidence：具有解耦进展与内容潜空间的世界模型
-11. [Physical Object Understanding with a Physically Controllable World Model](/202606/03/2606.00439v1-physical-object-understanding-with-a-physically-controllable-world-model)  
-   标签：评分：9.0/10、query:world-models
-   evidence：用于物理对象理解的概率世界模型
-12. [DriveAnchor: Progressive Anchor-based Flow Learning for Autonomous Driving Planning](/202606/03/2606.00519v1-driveanchor-progressive-anchor-based-flow-learning-for-autonomous-driving-planning)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：自动驾驶规划使用流匹配
-13. [MBench: A Comprehensive Benchmark on Memory Capability for Video World Models](/202606/03/2606.00793v1-mbench-a-comprehensive-benchmark-on-memory-capability-for-video-world-models)  
+   evidence：物理可控的世界模型
+7. [MBench: A Comprehensive Benchmark on Memory Capability for Video World Models](/202606/04/2606.00793v1-mbench-a-comprehensive-benchmark-on-memory-capability-for-video-world-models)  
    标签：评分：9.0/10、query:world-models
    evidence：视频世界模型记忆能力基准
-14. [Decoupled Residual Denoising Diffusion Models for Unified and Data Efficient Image-to-Image Translation](/202606/03/2606.01048v1-decoupled-residual-denoising-diffusion-models-for-unified-and-data-efficient-image-to-image-translation)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：用于图像翻译的新型解耦残差去噪扩散模型
-15. [Beyond Task Success: Behavioral and Representational Diagnostics for WAM and VLA](/202606/03/2606.01095v1-beyond-task-success-behavioral-and-representational-diagnostics-for-wam-and-vla)  
+8. [ImagineUAV: Aerial Vision-Language Navigation via World-Action Modeling and Kinodynamic Planning](/202606/04/2606.01205v1-imagineuav-aerial-vision-language-navigation-via-world-action-modeling-and-kinodynamic-planning)  
    标签：评分：9.0/10、query:world-models
-   evidence：世界动作模型和VLA策略的诊断方法
-16. [Towards Interactive Video World Modeling: Frontiers, Challenges, Benchmarks, and Future Trends](/202606/03/2606.01164v1-towards-interactive-video-world-modeling-frontiers-challenges-benchmarks-and-future-trends)  
-   标签：评分：9.0/10、query:world-models
-   evidence：交互式视频世界建模综述
-17. [DeepIPCv3: Event-Aware Multi-Modal Sensor Fusion for Sudden Pedestrian Crossing Avoidance](/202606/03/2606.01277v1-deepipcv3-event-aware-multi-modal-sensor-fusion-for-sudden-pedestrian-crossing-avoidance)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：多模态融合（LiDAR+事件相机）用于自动驾驶
-18. [Unified Driving Tokens: Representation- and Geometry-Guided Discrete Tokenizer for Driving World Models and Planning](/202606/03/2606.01935v1-unified-driving-tokens-representation--and-geometry-guided-discrete-tokenizer-for-driving-world-models-and-planning)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：用于驾驶世界模型的表示引导离散分词器
-19. [FocusDiT: Masking Queries in Diffusion Transformers for Fine-grained Image Generation](/202606/03/2606.02090v1-focusdit-masking-queries-in-diffusion-transformers-for-fine-grained-image-generation)  
+   evidence：用于无人机导航的世界-动作建模，使用潜在视频扩散模型
+9. [Low-Pass Flow Matching](/202606/04/2606.02177v1-low-pass-flow-matching)  
    标签：评分：9.0/10、query:gen-models
-   evidence：使用扩散变压器进行细粒度图像生成
-20. [EvoDrive: Pareto Evolution for Safety-Critical Autonomous Driving via Self-Improving LLM Agents](/202606/03/2606.03678v1-evodrive-pareto-evolution-for-safety-critical-autonomous-driving-via-self-improving-llm-agents)  
+   evidence：用于生成建模的低通流匹配变体
+10. [Towards Compact Autonomous Driving Perception with Balanced Learning and Multi-sensor Fusion](/202606/04/2606.02979v1-towards-compact-autonomous-driving-perception-with-balanced-learning-and-multi-sensor-fusion)  
    标签：评分：9.0/10、query:self-driving
-   evidence：基于LLM智能体和帕累托演进的自动驾驶场景生成
-21. [A Quantitative Approximation Framework for Flow Distillation in Diffusion Models](/202606/03/2606.03820v1-a-quantitative-approximation-framework-for-flow-distillation-in-diffusion-models)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：扩散模型流蒸馏的定量框架
-22. [Bootstrap Your Generator: Unpaired Visual Editing with Flow Matching](/202606/03/2606.03911v1-bootstrap-your-generator-unpaired-visual-editing-with-flow-matching)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：流匹配模型的无配对训练用于编辑
+   evidence：紧凑多任务感知模型与多传感器融合
+11. [D$^3$-MoE:Dual Disentangled Diffusion Mixture-of-Experts for Style-Controllable End-to-End Autonomous Driving](/202606/04/2606.04884v1-d3-moedual-disentangled-diffusion-mixture-of-experts-for-style-controllable-end-to-end-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：基于扩散模型的端到端自动驾驶轨迹生成
+12. [Potential-Guided Flow Matching for Vision-Language-Action Policy Improvement](/202606/04/2606.04968v1-potential-guided-flow-matching-for-vision-language-action-policy-improvement)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：用于自动驾驶VLA策略改进的流匹配方法
 
 ### 速读区论文标签
-1. [Improved techniques for fine-tuning flow models via adjoint matching: a deterministic control pipeline](/202606/03/2605.06583v1-improved-techniques-for-fine-tuning-flow-models-via-adjoint-matching-a-deterministic-control-pipeline)  
+1. [STARFlow2: Bridging Language Models and Normalizing Flows for Unified Multimodal Generation](/202606/04/2605.08029v1-starflow2-bridging-language-models-and-normalizing-flows-for-unified-multimodal-generation)  
    标签：评分：8.0/10、query:gen-models
-   evidence：通过伴随匹配微调流模型
-2. [Conservative Flows: A New Paradigm of Generative Models](/202606/03/2605.06905v1-conservative-flows-a-new-paradigm-of-generative-models)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：新生成范式保守流
-3. [Tessellations of Semi-Discrete Flow Matching](/202606/03/2605.07513v1-tessellations-of-semi-discrete-flow-matching)  
+   evidence：统一语言模型与归一化流实现多模态生成
+2. [Flow-OPD: On-Policy Distillation for Flow Matching Models](/202606/04/2605.08063v3-flow-opd-on-policy-distillation-for-flow-matching-models)  
    标签：评分：8.0/10、query:gen-models
    evidence：流匹配生成建模方法
-4. [Statistical Convergence of Spherical First Hitting Diffusion Models](/202606/03/2605.07625v1-statistical-convergence-of-spherical-first-hitting-diffusion-models)  
+3. [Generalized Wasserstein Flow Matching: Transport Plans, Everywhere, All at Once](/202606/04/2605.08424v1-generalized-wasserstein-flow-matching-transport-plans-everywhere-all-at-once)  
    标签：评分：8.0/10、query:gen-models
-   evidence：首次击中扩散模型的理论分析
-5. [TextLDM: Language Modeling with Continuous Latent Diffusion](/202606/03/2605.07748v1-textldm-language-modeling-with-continuous-latent-diffusion)  
+   evidence：广义Wasserstein流匹配方法
+4. [Discrete Flow Matching: Convergence Guarantees Under Minimal Assumptions](/202606/04/2605.08882v1-discrete-flow-matching-convergence-guarantees-under-minimal-assumptions)  
    标签：评分：8.0/10、query:gen-models
-   evidence：大语言模型文本生成
-6. [Learning a directed acyclic graph with additive heteroscedastic errors](/202606/03/2605.26515v1-learning-a-directed-acyclic-graph-with-additive-heteroscedastic-errors)  
-   标签：评分：7.0/10、query:causal-rep
-   evidence：利用异方差性进行因果发现与DAG学习
-7. [Time Series Causal Discovery via Context-Conditioned and Causality-Augmented Pretraining](/202606/03/2605.26759v1-time-series-causal-discovery-via-context-conditioned-and-causality-augmented-pretraining)  
-   标签：评分：7.0/10、query:causal-rep
-   evidence：时间序列因果发现预训练
-8. [SAM-Enhanced Segmentation on Road Datasets: Balancing Critical Classes in Autonomous Driving](/202606/03/2605.28136v1-sam-enhanced-segmentation-on-road-datasets-balancing-critical-classes-in-autonomous-driving)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：自动驾驶感知中基于SAM的语义分割标注方法
-9. [Conf-Gen: Conformal Uncertainty Quantification for Generative Models](/202606/03/2605.28920v1-conf-gen-conformal-uncertainty-quantification-for-generative-models)  
+   evidence：离散流匹配的理论与收敛性保证
+5. [Latency Analysis and Optimization of Alpamayo 1 via Efficient Trajectory Generation](/202606/04/2605.08975v1-latency-analysis-and-optimization-of-alpamayo-1-via-efficient-trajectory-generation)  
+   标签：评分：8.0/10、query:self-driving
+   evidence：端到端自动驾驶轨迹生成优化
+6. [Latent Diffusion for Missing Data](/202606/04/2605.28427v1-latent-diffusion-for-missing-data)  
    标签：评分：7.0/10、query:gen-models
-   evidence：面向生成模型的共形不确定性量化框架
-10. [SAFE-Pruner: Semantic Attention-Guided Future-Aware Token Pruning for Efficient Vision-Language-Action Manipulation](/202606/03/2605.29662v1-safe-pruner-semantic-attention-guided-future-aware-token-pruning-for-efficient-vision-language-action-manipulation)  
+   evidence：用于缺失数据插补的潜在扩散模型结合VAE与扩散
+7. [Moment Matching Q-Learning](/202606/04/2605.29033v1-moment-matching-q-learning)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：利用最大均值差异匹配分布，受生成模型启发
+8. [V2XCrafter: Learning to Generate Driving Scene Across Agents](/202606/04/2605.29471v1-v2xcrafter-learning-to-generate-driving-scene-across-agents)  
    标签：评分：7.0/10、query:self-driving
-   evidence：针对VLA模型的高效令牌剪枝方法，利用未来层注意力
-11. [Moment Matching Q-Learning](/202606/03/2605.29033v1-moment-matching-q-learning)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：基于得分和流的生成模型应用于Q学习
-12. [Before Parc Fermé: RL-Time Pruning for Efficient Embodied LLMs in Autonomous Driving](/202606/03/2605.31256v1-before-parc-ferm-rl-time-pruning-for-efficient-embodied-llms-in-autonomous-driving)  
+   evidence：驾驶场景生成用于自动驾驶，潜在世界模型应用
+9. [Mitigating State Aliasing in Vision-Language-Action Models via Inverse Dynamics Learning](/202606/04/2605.29577v1-mitigating-state-aliasing-in-vision-language-action-models-via-inverse-dynamics-learning)  
+   标签：评分：7.0/10、query:self-driving
+   evidence：VLA模型结合逆动力学学习解决状态混淆，可迁移至自动驾驶VLA场景
+10. [Guidance for Low-Level Perceptual Editing in Unconditional Diffusion Models](/202606/04/2605.31162v1-guidance-for-low-level-perceptual-editing-in-unconditional-diffusion-models)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：无条件扩散模型用于图像编辑
+11. [DRIFT: Driving Risk Inference via Field Transmission for Human-like Autonomous Driving](/202606/04/2605.27964v1-drift-driving-risk-inference-via-field-transmission-for-human-like-autonomous-driving)  
    标签：评分：6.0/10、query:self-driving
-   evidence：自动驾驶中嵌入式LLM的强化学习时剪枝方法
-13. [Context-Conditioned Generative Models Enable Subnational Refinement of Sparse Humanitarian Surveys](/202606/03/2605.31489v1-context-conditioned-generative-models-enable-subnational-refinement-of-sparse-humanitarian-surveys)  
+   evidence：自动驾驶风险场建模
+12. [DebFilter: Eradicating Biases Stashed in Value](/202606/04/2605.28167v1-debfilter-eradicating-biases-stashed-in-value)  
    标签：评分：6.0/10、query:gen-models
-   evidence：流匹配生成模型用于调查细化
-14. [Where to Refine, When to Stop: Rethinking Redundancy via Latent Discrepancy for Efficient Visual Autoregressive Generation](/202606/03/2606.00310v1-where-to-refine-when-to-stop-rethinking-redundancy-via-latent-discrepancy-for-efficient-visual-autoregressive-generation)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：通过修剪冗余token实现高效视觉自回归生成
+   evidence：基于分数的扩散模型的去偏方法
+13. [Deformable Gaussian Occupancy: Decoupling Rigid and Nonrigid Motion with Factorized Distillation](/202606/04/2605.28587v1-deformable-gaussian-occupancy-decoupling-rigid-and-nonrigid-motion-with-factorized-distillation)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：用于自动驾驶动态3D理解的可变形高斯占用框架
+14. [MIC: Maximizing Informational Capacity in Adaptive Representations via Isotropic Subspace Alignment](/202606/04/2605.29987v1-mic-maximizing-informational-capacity-in-adaptive-representations-via-isotropic-subspace-alignment)  
+   标签：评分：6.0/10、query:causal-rep
+   evidence：优化多粒度嵌入的几何结构以降低冗余并提升判别力
 
 
 <div class="dpr-home-promo-card">
