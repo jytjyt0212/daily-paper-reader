@@ -1,0 +1,417 @@
+Title: PairedGTA: Generating Driving Datasets for Controlled Photometric Shift Analysis
+
+URL Source: https://arxiv.org/pdf/2606.01192v1
+
+Published Time: Tue, 02 Jun 2026 01:51:10 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# PairedGTA : Generating Driving Datasets for Controlled Photometric Shift Analysis 
+
+Andrea Chianese 1, Giulio Rossolini 1, Alessandro Biondi 1,Marco Cococcioni 2, Giorgio Buttazzo 11Scuola Superiore Sant’Anna, Pisa, Italy, Department of Excellence in Robotics & AI, {name.surname}@santannapisa.it 
+
+> 2
+
+University of Pisa, DII, Pisa, Italy, marco.cococcioni@unipi.it 
+
+Abstract 
+
+Evaluating the performance of visual perception systems for autonomous driving is essential to ensure reliable operation across diverse environmental scenarios. Ideally, a balanced and fair analysis across different adverse conditions would require perfectly paired images of the same scene under different weather or illumination changes. This would allow evaluating the effect of photometric shifts independently of geometry and semantic changes. Unfortunately, real-world datasets rarely provide images of the same scene under different environmental conditions, because, normally, camera pose, traffic, and locations of dynamic objects (vehicles, pedestrians, etc.) vary over time, thus yielding only coarsely paired data. To address this challenge, this work introduces a data generation framework based on a high-fidelity game engine for extracting perfectly paired images. By leveraging software APIs that communicate with the GTA game engine, the framework modifies illumination and weather conditions while preserving scene geometry, camera pose, and the identity and placement of dynamic objects. For each sampled location, it procedurally instantiates dynamic entities and renders pixel-aligned images under diverse adverse conditions. The benefit of the proposed generation framework in driving scenarios is demonstrated through a systematic analysis of semantic segmentation models, whose output degradation can be attributed more directly to photometric shifts rather than to uncontrolled semantic or geometric factors. 
+
+# 1 Introduction 
+
+In autonomous driving, reliable deployment of visual perception systems, such as semantic segmentation models, requires not only high average accuracy, but also a precise understanding of how and why performance degrades under adverse environmental conditions, such as nighttime, rain, or fog [ 41 , 25 ]. Among driving benchmarks, particular attention has been paid to paired datasets, where the same scenes are observed under different conditions [ 30 ]. In this setting, perfect pairing across conditions is essential for a reliable self-supervised analysis, where ground truth is often scarce. In fact, without ground truth, two serious issues emerge. First, imperfect pairing limits the possibility of leveraging output correspondences across conditions, which are crucial for learning and testing without pixel-level labels. Second, the observed performance gap may reflect not only changes in photometric conditions, such as illumination or weather, but also geometric and semantic differences in scene geometry, traffic composition, object presence, and occlusions. In practice, real-world datasets rarely provide exact correspondence across conditions, since scenes inevitably change over time [ 35 , 3]. Generative approaches attempt to address this limitation through image-to-image translation across weather or illumination conditions [ 1, 13 ], but they may introduce artifacts, unintended texture changes, or fail to guarantee pixel-level correspondence between pairs. Open simulators allow a much better control over rendering conditions [ 15 , 11 , 33 , 9]; however, building complex photorealistic environments often requires substantial effort and costly design to achieve realism. Inspired by the extensive use of game engines in driving vision tasks [ 27 , 26 , 8, 22 , 23 , 4], this work introduces 
+
+PairedGTA , a dataset generation framework based on GTA V [ 19 ] for generating paired data. As illustrated in Figure 1, the framework intervenes on illumination and weather while preserving scene geometry, camera pose, and the identity and placement of dynamic objects across all generated variants. Starting from a canonical scene configuration, it procedurally instantiates dynamic entities, including vehicles, pedestrians, and other traffic participants, and renders multiple photometric variants from the same viewpoint. This enables pixel-aligned comparisons in which non-photometric factors remain fixed, allowing model behavior to be analyzed under controlled environmental changes. 1
+
+> arXiv:2606.01192v1 [cs.CV] 31 May 2026
+
+Sunny 
+
+> Sunset Night
+
+Rain Foggy 
+
+> Day
+
+Figure 1: Examples of paired images produced by the proposed framework. Dynamic objects are generated once and consistently preserved across multiple photometric conditions, enabling pixel-aligned comparisons under controlled environmental changes. The benefit and efficiency of the framework are demonstrated through a set of experiments aimed at testing the reliability of different models across diverse conditions using self-consistency metrics. We further show that such paired data provide a stronger understanding of cross-condition consistency than real-world adverse-condition datasets, where weather and illumination changes are entangled with variations in traffic composition, object positions, and scene content. We believe this framework can support a large-scale generation of paired data and advance the use of self-supervised analysis for both training and testing models for visual perception in autonomous driving. The code of the framework, experimental analysis, and dataset are publicly available at [ 1]. 
+
+Paper contributions. In summary, this work provides the following contributions: 
+
+• It introduces a deterministic game-engine-based framework for generating pixel-aligned driving scenes under controlled illumination and weather conditions. 
+
+• It proposes a counterfactual photometric robustness analysis that preserves geometry, camera pose, and dynamic object identity across all generated variants. 
+
+• It presents a set of experimental results showing that controlled photometric datasets provide clearer insights for an output-comparative testing of segmentation models than real-world adverse-condition datasets, where photometric, semantic, and geometric factors are entangled. 
+
+Paper organization. The remainder of the paper is organized as follows. Section 2 reviews the related literature and discusses the motivation behind this work. Section 3 introduces the proposed framework, describing the generation pipeline and its constraints. Section 4 reports the experimental results on semantic segmentation models. Finally, Section 5 states the conclusions. 
+
+# 2 Related work 
+
+This section reviews prior work on driving datasets and data generation frameworks, then discusses the role of paired images for controlled robustness analysis, and finally positions our contribution with respect to real-world, simulation-based, and generative approaches. 
+
+Driving datasets and generation frameworks. Driving datasets are crucial for the development and evaluation of visual perception models in autonomous driving. Real-world benchmarks such as Cityscapes [ 7], Mapillary Vistas [ 25 ], and BDD100K [ 40 ] provide diverse urban scenes and dense annotations for tasks such as semantic segmentation, object detection, and scene understanding. However, models trained and evaluated on standard driving datasets may still suffer significant degradation under adverse environmental conditions, 
+
+> 1https://github.com/Spearton/PairedGTA
+
+2such as nighttime, rain, fog, or snow. This has motivated the introduction of adverse-condition and corruption-oriented benchmarks [ 30 , 29 , 28 ], and broader robustness benchmarks based on synthetic corruptions and natural distribution shifts [16, 24, 34]. In parallel, synthetic and simulation-based frameworks have been widely adopted to generate annotated driving data with controllable conditions. Datasets and simulators such as SYNTHIA [ 15 ], Virtual KITTI [ 12 ], CARLA [ 11 ], and SHIFT [ 33 ] enable the creation of driving scenes under different weather, illumination, and domain configurations. These platforms provide strong control over scene content and annotations, but generating large-scale data in complex and realistic environments may require substantial effort, especially when detailed urban layouts, dynamic actors, and diverse traffic situations must be manually designed or scripted. To alleviate part of this effort while preserving a high level of visual realism, commercial game engines have been extensively exploited to obtain large-scale photorealistic driving data. Some GTA-based works [ 27 , 26 ] demonstrated the potential of game environments for generating realistic annotated data at scale. These synthetic datasets have been valuable for both training and evaluating perception models, including domain adaptation from synthetic to real driving scenes [ 17 , 36 , 31 ]. Nevertheless, most existing datasets and generation frameworks are primarily designed to increase data diversity, coverage, or realism, rather than enforcing balanced adverse-condition variants or strict correspondence between the same scene rendered under multiple environmental conditions. 
+
+Paired images for controlled robustness analysis. The above limitation is particularly relevant when the goal is to evaluate the robustness of a model in tolerating adverse conditions due to illumination and weather changes. In this case, paired images are essential for a precise robustness analysis, since they allow comparing the model behavior across different environmental conditions while preserving the underlying scene semantics. In an ideal paired setting, the same objects, geometry, camera pose, and spatial layout are observed under different photometric conditions. This allows understanding whether prediction changes are caused by the environmental shift itself or by a different scene content. The consistency of the two outputs produced on the paired images can serve as an unsupervised measure of the model’s robustness, especially when dense annotations are unavailable for every condition. However, obtaining perfectly paired images in real-world scenarios is challenging. Even when the same location is revisited, variations in camera pose, traffic composition, object placement, occlusions, and pedestrian or vehicle presence can alter the scene. As a result, the observed performance gap may not be caused only by photometric changes, but also by semantic and geometric differences. Real-world paired datasets such as ACDC [ 30 ] and Dark Zurich [ 29 ] provide a significant step toward cross-condition analysis, but they cannot fully guarantee counterfactual correspondence across conditions for the above reasons. To address these challenges, generative approaches have been explored to obtain paired or condition-translated images. Image-to-image translation and recent diffusion-based methods can synthesize adverse weather or illumination changes from a given input image [ 1 , 13 , 2, 14 , 21 ]. These approaches are useful for data augmentation, domain adaptation, and domain generalization. However, generative models may still behave unpredictably and introduce artifacts, modify textures, alter object boundaries, or change local structures, as commonly observed in image-to-image translation pipelines [ 20 , 42 ]. These effects limit their suitability for strict pixel-level comparative analysis, where even small structural changes may confound the interpretation of model behavior. 
+
+Positioning of this work. This work addresses the need for controlled paired data specifically designed for photometric shift analysis. It builds on game engines for generating deterministic multi-condition variants of the same scene. Unlike generative translation methods, it does not synthesize adverse conditions through stochastic image manipulation, but renders each condition directly from the same scene configuration. This provides a deterministic form of paired generation, where camera pose, scene geometry, and identity and placement of dynamic objects are preserved across conditions. 
+
+# 3 Methodology 
+
+This section introduces the proposed data generation methodology. The main objective is to generate groups of images representing the same underlying driving scene under different environmental conditions, while preserving camera pose, scene geometry, and dynamic object configuration. From an implementation perspective, the framework relies on a client-server interface to GTA V that enables scene initialization, environmental control, dynamic object manipulation, and repeated rendering of the same scene under different photometric conditions. 
+
+3.1 Definition of a photometric-shifted dataset 
+
+We formalize a photometric-shifted dataset as a collection of image groups, where each group contains multiple renderings of the same scene under different illumination or weather conditions. Let Cphoto = {ci}Ni=1 be the 3d dFigure 2: Example of a daytime sunny image and a corresponding sunset sunny variant generated by the framework, highlighting object poses and placement constraints. 
+
+set of photometric conditions considered in the dataset. Each condition ci specifies environmental rendering parameters, such as time of day, illumination, rain, fog, or cloud coverage. For each scene k, the framework first constructs an internal scene descriptor Sk. This descriptor specifies all non-photometric properties that must remain fixed across conditions, including the camera pose, the static scene layout, and the configuration of dynamic objects. The descriptor is not part of the final dataset, but it is used by the framework to render the aligned image variants. Let R denote the rendering function that generates an image from a scene descriptor and a photometric condition. The image associated with scene k and condition ci is therefore given by Xk,i = R(Sk, c i). The group of images generated from the same scene descriptor is defined as Xk = {Xk,i }Ni=1 . The complete dataset is then defined as D = {X k}Kk=1 . Thus, each dataset element Xk contains multiple photometric variants of the same scene. Since all images in Xk are generated from the same descriptor Sk, differences among them are induced only by changes in the photometric conditions. Note that, in our setting, the game-based environment is used to generate controlled visual variants of the same scene, but it does not provide direct access to ground-truth labels. This is a practical limitation of several game-based data generation pipelines [ 27 , 8, 22 ], where the simulator can be controlled and queried through external APIs, while the internal semantic labels of the rendered scene are not directly exposed. A more detailed discussion of this aspect is provided in Section 5. For this reason, the experimental analysis in Section 4 does not rely on absolute performance measured against simulator-provided ground truth. Instead, we use pseudo-labels obtained from high-confidence predictions of the most reliable model in the non-adverse scenario, corresponding to sunny daytime, as the reference. 
+
+3.2 Data generation 
+
+The data generation process consists of three stages, which are summarized in Algorithm 1: (i) location sampling and scene initialization; (ii) semantic scene construction; and (iii) condition-wise rendering. These stages are described below and define how each image group Xk is generated. 
+
+Algorithm 1: Data Generation                           
+
+> D ← ∅
+> Initialize Cphoto
+> for k←1to Kdo
+> Location sampling and scene initialization
+> Sample a valid location pk
+> Initialize vehicle and camera pose at pk
+> Semantic scene construction
+> Instantiate dynamic objects Okaround pk
+> Build scene descriptor Sk
+> Condition-wise rendering
+> Xk← ∅
+> foreach ci∈ C photo do
+> Initialize scene from Sk
+> Apply photometric condition ci
+> Xk,i ←CaptureScene (Sk, c i)
+> Xk← X k∪ { Xk,i }D ← D ∪ {X k}
+> return D
+
+Location sampling and scene initialization. A lo-cation identifies the spatial position in the virtual world around which a driving scene is generated. For each scene k, the framework samples a location pk = ( xk, y k),
+
+corresponding to the ego-vehicle’s position on the virtual world’s ground plane. Locations are sampled from a pre-defined valid region covering the metropolitan area and some selected peripheral zones, while excluding invalid areas such as bodies of water or non-navigable regions. After selecting a location pk, the simulator is ini-tialized at the corresponding position. In this context, initialization means setting the ego vehicle and camera pose, clearing the local simulation state, and preparing the environment before dynamic objects are instantiated. The first photometric condition c1 ∈ C photo (which is sunny day) is used as the default rendering condition for scene construction. 
+
+Semantic scene construction. After initialization, the framework constructs the semantic scene associ-ated with scene k. A set of dynamic objects Ok =
+
+4{ok, 1, . . . , o k,M k } is instantiated around the sampled lo-cation pk. Each object ok,j is drawn from a predefined category set, such as car, motorcycle, or pedestrian, and assigned a position qk,j . To avoid physically implausible overlaps, objects cannot be placed at a distance less than dmin , that is, their positions satisfy the constraint ∥qk,j − qk,l ∥2 ≥ dmin , ∀j̸ = l. Object positions are not sampled over the entire virtual world. Instead, they are drawn from a bounded region Rk centered around the ego vehicle and constrained to valid road or sidewalk regions, depending on the object category. This favors plausible object placement with respect to the ego-vehicle orientation and camera field of view, while maintaining variability across generated scenes. An illustration of this placement process is shown in Figure 2. Once the dynamic objects have been instantiated, the full non-photometric configuration is stored in the scene descriptor Sk. This descriptor includes the camera pose, the static scene layout, and the complete dynamic object configuration, including object categories, identities, and positions. 
+
+Condition-wise rendering. For each of the photometric condition ci ∈ C photo , the simulator uses the same scene descriptor Sk, re-initializes the scene at the same location pk and camera pose, applies the selected condition ci, adds dynamic objects, and captures the corresponding image Xk,i . Repeating this process for all conditions in Cphoto yields the aligned image group Xk = {Xk,i }Ni=1 . By construction, all images in Xk share the same geometry, camera pose, and dynamic object layout, while differing only in illumination and weather. 
+
+3.3 Software details and APIs 
+
+The proposed data generation pipeline is built on top of the DeepGTAV framework [ 10 ], which provides a communication layer between the GTA V game engine and an external client. As illustrated in Figure 3, the generation process is orchestrated by a Python client, which is responsible for location sampling, scenario initialization, adverse-condition configuration, and dynamic object instantiation. Location sampling Scenario initialization Adverse condition setting 
+
+> DeepGTA Server
+> GTA V Game Engine
+> Weather/Daytime
+> Scenario state
+> Static/Dynamic Objects
+> In game scenario manipulation Start / Config / Commands Python Interface
+> Frame sampling (GTA screenshot) Simulation and Rendering
+> ScriptHookV VPilot
+> Python Client
+> Object instantiation
+
+Figure 3: Communication pipeline between the proposed framework (blue block), other third-party software tools, and the GTA game engine. 
+
+The interaction with the game engine is mediated by VPilot [ 37 ], which provides a Python interface for client-side communication and scenario orchestration. VPilot communicates with the DeepGTAV server, exposed by the game plugin through a TCP connection on port 8000, by default. Through this interface, the client can send Start and Config messages to initialize the environment and define the desired acquisition settings, 
+
+Commands messages to control the ego vehicle when required, and Stop messages to terminate the simulation session and return to normal gameplay. Once the environment has been initialized, DeepGTAV streams the requested data back to the client in JSON format. Depending on the selected configuration, this information may include rendered frames, environmental parameters, surrounding vehicles and pedestrians, and additional metadata required for dataset generation. The framework uses these data streams to acquire condition-specific views of the same underlying scene, while preserving the desired camera pose, geometry, and semantic layout. At a lower level, the pipeline relies on Script Hook V [ 32 ], which exposes GTA V native scripting functions to custom .asi plugins. This component enables fine-grained manipulation of the game state, including static and dynamic objects, weather and time settings, and scenario-related parameters. These low-level controls allow the framework to modify the simulated environment beyond the default DeepGTAV configuration options, supporting the controlled generation of paired photometric variants. 
+
+# 4 Experiments 
+
+This section evaluates the proposed generation framework using semantic segmentation by analyzing the consistency of model predictions under controlled photometric shifts. 54.1 Experimental setup 
+
+Figure 4: Dataset-level distribution of pseudo-labels gen-erated with SegFormer-B5. The bottom panels show an example of a reference image and the segmentation map. 
+
+Dataset. The evaluation is conducted on a dataset generated using the pipeline described in Section 3. The dataset contains more than 100 unique spatial lo-cations. For each location k, we generate nine spatially aligned images corresponding to all combinations of three illumination conditions, namely Day , Sunset , and 
+
+Night , and three weather conditions, namely Sunny ,
+
+Rain , and Foggy . For each location, we additionally insert a random number of dynamic objects between 0 and 3. As mentioned in Section 3, the game-based environment does not provide direct access to dense semantic ground-truth annotations. Therefore, for each image group Xk = {Xk,i }Ni=1 , pseudo-labels are derived by segmenting the Day–Sunny image Xk, 0 by the SegFormer-B5 model [ 38 ]. Only pixels predicted with a confidence higher than a threshold τ = 0 .6 are retained as valid pseudo-labels. Pixels with confidence below this threshold are assigned to a void class and are excluded from the evaluation metrics. This produces a high-confidence pseudo-label map ˜yk. Figure 4 reports the distribution of pixel mass across the generated dataset and shows an example of the pseudo-labels extracted from a reference scenario. 
+
+Models. The experiments consider a diverse set of semantic segmentation architectures trained on Cityscapes [ 7], covering both transformer-based and convolutional designs. In particular, the evaluation includes SegFormer variants B0, B2, and B5 [ 38 ], Mask2Former with Swin-S and Swin-L backbones [ 6], DeepLabV3+ with a ResNet-101 backbone [ 5], PIDNet-M [ 39 ], and DDRNet-23 [ 18 ]. These models provide a representative comparison across high-capacity transformer-based methods, encoder–decoder convolutional networks, and efficient real-time segmentation architectures. 
+
+Evaluation protocol and metrics. Since the simulator does not provide dense ground truth, the consistency of model predictions is evaluated with respect to the pseudo-labels extracted by semantic segmentation. For a given image group k, let ˜y(u) 
+
+> k
+
+denote the pseudo-label assigned to pixel location u in the clean reference image. Pixels whose confidence is below the threshold τ are mapped to the void class ∅ and are excluded from the evaluation. Given a segmentation model f , let ˆy(u) 
+
+> k,i
+
+= f (Xk,i )(u) be the predicted class at pixel location u for the image generated at location k under condition i, where i = 0 corresponds to the clean Day–Sunny reference condition. For each semantic class c̸ = ∅, the set of valid reference pixels is defined as Ωk,c =
+
+n
+
+u : ˜ y(u) 
+
+> k
+
+= c
+
+o
+
+.
+
+Then, the class-wise reference consistency score is computed as 
+
+ξc(i) = 
+
+P
+
+> k
+
+P 
+
+> u∈Ωk,c
+
+1
+
+h
+
+ˆy(u) 
+
+> k,i
+
+= c
+
+iP 
+
+> k
+
+|Ωk,c | . (1) where 1[·] denotes the indicator function, which is equal to 1 when the condition inside brackets is true and 0
+
+otherwise. When ξc(i) is close to 1 indicates that pixels assigned to class c in the clean reference condition are still predicted as class c under the shifted condition. Conversely, lower values indicate that the photometric shift induces prediction changes on pixels that were confidently assigned to class c in the reference image. Since the metric is computed with respect to pseudo-labels extracted from the clean reference image, it should be interpreted as a reference-based consistency score rather than as absolute segmentation accuracy. 
+
+4.2 Evaluating photometric shifts on segmentation models 
+
+Table 1 reports class-wise reference consistency scores under three environmental shifts, using pseudo-labels extracted from SegFormer-B5 on the Day–Sunny reference condition, as discussed above. For the Day–Sunny → Day–Rain shift, most models preserve stable predictions for large scene classes such as road, building, vegetation, sky, and car. SegFormer-B5 achieves the highest mean score, although this result may be partially biased by the use of pseudo-labels extracted from the same model. It is followed closely by SegFormer-B0, SegFormer-B2, and Mask2Former Swin-L. However, smaller or less frequent classes, such as traffic light, truck, and bicycle, show larger variability across models. Under the stronger illumination shift Day–Sunny → Sunset–Sunny , the models still follow a similar trend. This is expected, as the GTA sunset scenario remains relatively close to the Cityscapes training distribution of 6(a) Day-Sunny → Day-Rain.                                                                                                                                                                   
+
+> Model road sidewalk building wall fence pole T. light T. sign vegetation terrain sky person rider car truck motor. bicycle Mean DDRNet-23 56.3 13.8 93.8 0.5 0.6 27.0 12.1 9.9 84.8 0.2 66.2 62.3 75.2 74.4 0.0 53.0 0.0 37.1 DeepLabV3+ R101 97.2 50.7 82.8 38.3 58.0 52.4 5.4 47.6 90.0 42.0 96.0 85.6 68.0 87.8 0.0 75.7 0.0 57.5 Mask2Former Swin-L 96.8 51.6 82.4 44.6 75.7 59.5 12.2 71.9 88.8 84.0 98.2 87.3 75.1 85.6 26.8 88.5 0.0 66.4 Mask2Former Swin-S 95.5 40.0 83.3 24.0 66.5 61.7 18.5 28.7 88.1 76.2 97.7 83.2 81.1 87.6 75.0 58.3 0.0 62.7 PIDNet-M 93.7 18.4 74.5 50.8 41.2 40.9 10.0 53.7 86.9 9.4 83.7 83.5 63.6 62.3 4.4 65.1 0.0 49.5 SegFormer-B0 97.3 43.8 81.7 62.3 69.2 52.8 8.3 70.1 90.3 40.1 97.8 57.7 78.2 83.8 14.9 57.5 0.0 59.2 SegFormer-B2 97.4 49.8 85.3 69.6 70.4 66.3 13.4 72.4 88.2 68.2 96.8 72.1 88.2 92.6 14.1 22.7 0.0 62.8 SegFormer-B5 97.0 62.2 90.6 85.4 88.7 79.7 25.3 88.0 93.9 45.3 98.8 88.2 84.0 91.9 52.7 89.9 96.0 79.9
+
+(b) Day-Sunny → Sunset-Sunny.                                                                                                                                                                   
+
+> Model road sidewalk building wall fence pole T. light T. sign vegetation terrain sky person rider car truck motor. bicycle Mean DDRNet-23 10.9 1.4 92.5 0.0 19.2 16.4 49.1 24.6 73.9 0.5 0.6 36.4 65.8 92.5 22.0 0.0 0.0 29.8 DeepLabV3+ R101 97.9 55.6 75.5 25.6 32.6 71.5 53.3 56.1 93.6 4.5 96.6 71.7 36.0 85.8 38.2 0.0 18.7 53.7 Mask2Former Swin-L 98.0 61.7 80.3 67.0 52.8 69.6 45.3 43.2 90.9 40.7 97.1 60.1 95.2 93.9 92.9 0.0 68.3 68.1 Mask2Former Swin-S 97.0 42.0 83.4 41.8 46.6 63.6 67.8 44.7 86.9 64.7 96.3 47.9 0.0 92.6 96.0 0.0 71.3 61.3 PIDNet-M 83.1 14.9 72.8 39.5 25.9 56.3 58.4 18.0 94.0 3.1 35.3 69.1 36.0 77.5 83.8 0.0 0.0 45.2 SegFormer-B0 96.2 52.7 78.6 61.6 34.3 50.7 32.8 5.0 87.5 6.0 82.1 10.8 0.9 95.0 0.0 0.0 79.9 45.5 SegFormer-B2 97.0 53.2 78.5 72.6 41.1 67.1 55.7 44.8 91.7 9.5 93.9 41.9 93.3 96.0 0.0 0.0 77.3 59.6 SegFormer-B5 97.5 87.4 90.1 60.5 58.5 84.9 73.6 72.9 96.3 31.3 98.5 77.3 93.5 97.8 99.6 0.0 78.9 76.4
+
+(c) Day-Sunny → Night-Sunny.                                                                                                                                                                   
+
+> Model road sidewalk building wall fence pole T. light T. sign vegetation terrain sky person rider car truck motor. bicycle Mean DDRNet-23 34.2 4.9 78.8 11.9 4.2 14.6 1.0 0.2 75.2 1.7 0.0 46.1 0.0 27.6 0.0 0.0 0.0 17.7 DeepLabV3+ R101 96.7 39.4 83.9 34.1 37.9 50.2 59.8 10.6 85.6 16.8 62.6 86.7 0.0 72.3 0.0 0.0 0.0 43.3 Mask2Former Swin-L 96.6 53.4 88.4 67.5 11.0 56.3 45.4 5.0 82.2 65.1 90.5 83.9 0.0 28.2 0.3 99.2 0.0 51.4 Mask2Former Swin-S 93.9 65.8 85.8 58.3 63.0 50.4 34.0 6.1 68.2 51.8 70.1 76.6 0.0 52.9 2.8 0.0 0.0 45.9 PIDNet-M 78.4 40.5 73.8 15.4 10.4 32.0 34.7 2.1 72.8 2.4 6.4 78.8 0.0 17.1 6.5 0.0 0.0 27.7 SegFormer-B0 81.5 38.2 85.8 47.2 27.7 36.1 27.4 1.4 83.4 22.4 29.3 51.5 0.0 56.0 0.0 0.0 0.0 34.6 SegFormer-B2 97.1 52.3 86.7 38.4 59.4 50.6 5.1 0.0 79.9 29.2 39.7 72.7 0.0 51.9 0.0 0.0 0.0 39.0 SegFormer-B5 95.7 67.8 94.4 87.4 78.5 64.6 35.1 13.5 87.6 47.3 41.4 89.0 0.0 84.7 17.7 0.0 0.0 53.2
+
+Table 1: class-wise reference consistency across environmental conditions and multiple models. The last column reports the class-wise mean, and the best values are shown in bold. 
+
+the evaluated models. However, convolutional and lightweight models are more affected. While dominant classes remain relatively stable, categories such as terrain, rider, motorcycle, and bicycle are less consistently preserved, indicating that illumination changes affect fine-scale and dynamic objects more severely. As expected, the most challenging setting is Day–Sunny → Night–Sunny , where all models exhibit a clear drop in mean consistency. SegFormer-B5 performs best on average, followed by Mask2Former Swin-L, Mask2Former Swin-S, and SegFormer-B2. The qualitative examples in Figure 5 further support these observations. Across different scenarios, SegFormer and Mask2Former preserve segmentation for large static regions, such as road, building, vegetation, and sky, under moderate changes from day to sunset. However, the night condition introduces substantial losses in visibility and local contrast, leading to less stable segmentation around small objects, boundaries, and distant scene elements. 
+
+4.3 Analysis of photometric disentanglement 
+
+To further highlight the importance of isolating photometric shifts during evaluation, we compare our dataset with ACDC [ 30 ], a coarsely paired real-world adverse-condition dataset commonly used for unsupervised domain adaptation and curriculum learning. In our dataset, each adverse sample is generated from the same reference scene, preserving camera pose, geometry, and object layout. As a result, changes in the model predictions can be more directly attributed to illumination and weather variations. Conversely, real-world paired datasets may also contain changes in dynamic objects, scene composition, and spatial arrangement, which can confound the analysis of photometric robustness. To quantify this effect across the entire dataset, Figure 6 analyzes the stability of the high-confidence prediction mass for two dynamic classes, person and car . We consider a sunny image as the clean reference condition and a night-sunny image as the adverse condition, both for ACDC and for our dataset. For a generic image Xk,i and class c, we count the number of pixels predicted as class c with high confidence, using the threshold τ = 0 .9:
+
+ϕc(Xk,i ) = X
+
+u
+
+1
+
+h
+
+ˆy(u)
+
+k,i = c ∧ P (u)
+
+k,i (c) ≥ τ
+
+i
+
+, (2) where ˆy(u)
+
+k,i is the predicted label at pixel location u for image Xk,i , and P (u)
+
+k,i (c) is the predicted probability assigned to class c at the same pixel. Ideally, for a model invariant to photometric shifts and evaluated on perfectly paired images, the high-confidence prediction mass should be largely preserved between the clean and adverse conditions, leading to limited differences between ϕc(Xk, 1) and ϕc(Xk,i ). In practice, however, a variation in this quantity may indicate either poor model generalization to the photometric shift or imperfect correspondence between the paired images. In a fully paired dataset, the latter factor is minimized, making prediction differences more directly interpretable as model sensitivity to the adverse condition. In contrast, in coarsely paired real-world datasets, changes in object presence, object scale, or camera alignment may also alter the prediction mass independently of the photometric degradation. 7SegFormer-B5 
+
+> Mask2Former-Swin-L
+
+Figure 5: Illustration of photometric shifts across three sunny scenarios under different illumination conditions: day, sunset, and night. 
+
+In Figure 6, frames k are sorted according to the reference count ϕc(Xk, 1) for visualization purposes. The same frame ordering is then used to inspect the corresponding adverse counts in the lower part of the heatmap. Since many frames may contain no, or only very few, high-confidence predictions for a given class c, computing the correlation over all frames could artificially increase the consistency score due to uninformative zero-count samples. Therefore, we compute the ranking consistency only on the subset of frames that are most relevant for class c. In particular, let Dc 
+
+> valid
+
+⊂ D denote the set of the top-M frames with the largest reference counts 
+
+ϕc(Xk, 1), with M = 25 . We then define the valid-frame Spearman correlation as 
+
+ρc 
+
+> valid
+
+= corr Spearman 
+
+
+
+{ϕc(Xk, 1)}Xk ∈D c
+
+> valid
+
+, {ϕc(Xk,a )}Xk ∈D c
+
+> valid
+
+
+
+, (3) where Xk, 1 is the clean reference image for location k, and Xk,a is the corresponding adverse version. This score measures whether the frames that contain many confident predictions for class c in the clean condition preserve a similar relative ordering under the adverse condition. In addition, the plots below the heatmaps report the image-wise clean–adverse difference (blue line) and its average trend (orange line). The results in Figure 6 show that, in our dataset, the clean and adverse distributions remain largely aligned, particularly for the car class. For this class, SegFormer-B5 reaches ρc 
+
+> valid
+
+= 0 .991 , while Mask2Former Swin-L reaches ρc 
+
+> valid
+
+= 0 .824 . This indicates that frames containing many confident predictions in the reference condition tend to remain informative after the photometric shift. The person class is less stable, as expected for a smaller and more visibility-sensitive category. Nevertheless, the correspondence between clean and adverse profiles remains substantially clearer than in ACDC. Indeed, in ACDC, the same analysis leads to markedly lower correlations. For instance, for the person class, the correlation drops to ρc 
+
+> valid
+
+= 0 .300 for SegFormer-B5 and ρc 
+
+> valid
+
+= 0 .259 for Mask2Former Swin-L, while the car class also shows reduced consistency. These larger clean–adverse deviations suggest that the paired samples are affected not only by photometric degradation, but also by changes in object presence, scale, and spatial layout. This supports the observation that uncontrolled real-world pairing can make it difficult to disentangle true photometric robustness from broader scene-level variability. By contrast, our dataset provides a cleaner setting for evaluating robustness to illumination and weather shifts. Since geometry and scene content are preserved, prediction changes can be interpreted primarily as the effect of photometric perturbations, rather than as a consequence of uncontrolled semantic or spatial differences. The analysis also reveals different behaviors across the two segmentation models. SegFormer generally preserves a more consistent clean–adverse ranking, whereas Mask2Former exhibits larger deviations under adverse conditions. This suggests that the proposed evaluation protocol can expose model-specific robustness profiles, complementing the aggregate class-level consistency analysis reported in Table 1. This interpretation is further supported by Figure 7, where we inspect image pairs associated with low clean–adverse consistency for the person class. In ACDC, the predictions may differ substantially not only because of the adverse condition, but also because the paired images contain different dynamic objects and are not perfectly aligned. Even small differences in camera position can prevent reliable pixel-wise correspondence between the clean and adverse samples. In contrast, in our GTA-based pairs, the scene geometry and object layout are preserved, so discrepancies in the output can be more directly associated with model behavior under the photometric shift. 8(a) Our dataset. Clean                             
+
+> Adverse
+> SegFormer-B5 valid = 0.868
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Person Clean
+> Adverse
+> Mask2Former-Swin-L valid = 0.519
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Person Clean
+> Adverse
+> SegFormer-B5 valid = 0.991
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Car Clean
+> Adverse
+> Mask2Former-Swin-L valid = 0.824
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Car
+
+(b) ACDC dataset. Clean                             
+
+> Adverse
+> SegFormer-B5 valid = 0.300
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Person Clean
+> Adverse
+> Mask2Former-Swin-L valid = 0.259
+> 020 40 60 80 100
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Person Clean
+> Adverse
+> SegFormer-B5 valid = 0.509
+> 020 40 60 80 100
+> Clean-count rank percentile
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Car Clean
+> Adverse
+> Mask2Former-Swin-L valid = 0.497
+> 020 40 60 80 100
+> Clean-count rank percentile
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> Adverse  Clean
+> Car
+
+Figure 6: Consistency analysis on our dataset and ACDC [ 30 ], using SegFormer (left) and MaskFormer (right). Frames are ranked according to the number of high-confidence predictions in clean scenarios for each class. Higher ρvalid indicates stronger preservation of the clean-to-adverse ranking. 
+
+4.4 Cost analysis of the generation steps 
+
+This section reports a computational cost analysis for generating paired images with the proposed framework. The experiments were conducted on a workstation equipped with an NVIDIA GeForce RTX 2080 GPU, 32 GB of RAM, and Windows 10, to evaluate the computational cost without relying on expensive GPUs or dedicated servers. In particular, the generation procedure described in Algorithm 1 was tested across 100 scenarios. For each scenario, we produced nine versions, considering the weather and environmental conditions discussed in Section 3. Figure 8 reports the execution time analysis. The left plot shows the distribution of the computational time across the 100 scenarios, distinguishing between the time required by the proposed pipeline, the external overhead introduced by connection and debugging functions, and the resulting total time. On average, the pipeline requires 29.8 s per scenario, while the external overhead accounts for only 4.0 s. The average total execution time is therefore 33.8 s. The boxplots also show that the execution time remains relatively stable across scenarios, with limited variability for both the pipeline and the total time. A few outliers are present, mainly in the overhead and total time, but they do not substantially affect the overall trend. The right plot further decomposes the average pipeline time into the different phases discussed in Section 3. Phase 1 has a negligible computational impact, while Phase 2 requires 6.1 s, corresponding to 20.5% of the pipeline time. As expected, Phase 3 is the most computationally demanding step, requiring 23.7 s and accounting for 79.5% of the pipeline time. This is because Phase 3 includes the generation of all adverse conditions considered in our experiments. However, if only a limited subset of conditions is required, the computational cost can be significantly reduced. 
+
+# 5 Conclusions 
+
+In this work, we presented PairedGTA , a framework for generating paired images under controlled photometric shifts. By leveraging a simulated environment, the proposed pipeline renders the same underlying scene across different illumination and weather conditions while preserving camera pose, geometry, and scene composition. 9Figure 7: Low-consistency examples for the person class from our dataset, on the left, and ACDC, on the right, with segmentation outputs produced by SegFormer-B5. Pipeline Overhead Total         
+
+> 10
+> 20
+> 30
+> 40
+> Time [s]
+> 29.8s
+> 4.0s
+> 33.8s
+> 0510 15 20 25 30
+> Average time [s]
+> Phase 1 | 0.0s (0.0%)
+> Phase 2 | 6.1s (20.5%)
+> Phase 3 | 23.7s (79.5%)
+
+Figure 8: Computational cost analysis of the proposed framework. Left: execution time over 100 scenarios for the pipeline, external overhead, and total process. Right: average pipeline-time decomposition across phases. 
+
+This enables the effect of photometric changes to be studied in isolation, reducing the confounding factors that typically affect real-world adverse-condition datasets. We used the generated data to evaluate semantic segmentation models under different environmental conditions. The results show that photometric shifts alone can affect model predictions, with degradation patterns varying across models, conditions, and classes, while at the same time avoiding inconsistency drop due to the semantic variations. Overall, the proposed framework provides a controlled testbed that complements real-world benchmarks. We believe that the proposed technique for constructing synthetic datasets can contribute to the development and improvement of autonomous driving systems, particularly when combined with real-world data and sim-to-real approaches. 
+
+5.1 Limitations and Future Directions 
+
+The proposed framework enables the generation of paired images under controlled photometric shifts, but it also presents some limitations. First, the interaction with the simulation environment is inherently indirect. We do not have access to the source code of the GTA V game engine or to the internal values of its native function calls. Instead, the framework relies on third-party tools, such as DeepGTAV, VPilot, and Script Hook V, which expose a game-level interface to control and query the environment. While this abstraction makes the pipeline feasible, it limits the degree of control over scene elements, environmental parameters, and the range of modifications that can be applied. As a result, some information useful for dataset generation, such as exact spatial measurements, object dimensions, and distances, is only partially accessible and may require indirect estimation. Although our pipeline mitigates these issues through heuristic strategies, including approximate geometric reasoning and distance estimation, game-based environments can still introduce variability. For example, objects may occasionally appear in unexpected positions, stochastic events may occur within the game engine or the communication server, and additional inconsistencies may arise from bugs or unintended behaviors in the external tools. For this reason, a manual verification step is still suggested to identify and discard potential anomalous samples. A further limitation is the lack of direct access to perfect semantic ground truth, as discussed in Section 3. Unlike simulation platforms specifically designed for autonomous-driving research, the game environment used in this work does not provide dense semantic labels. Therefore, our analysis focuses on output consistency and prediction changes with respect to clean sunny reference images, which could be considered as weak ground truth, rather than on absolute performance against simulator-provided annotations. This choice is also aligned with recent game-based works that rely on pseudo-labels or model-based references when ground truth is not 10 directly available. In our case, the clean reference condition provides a meaningful comparison point to study how model outputs change when only photometric conditions are modified. Future work will focus on improving the automatic validation of generated samples, extending the framework to additional perception tasks, and studying the sim-to-real relevance of the observed robustness trends. We also plan to investigate the integration of generative AI models with game-based simulation, using them to support anomaly detection, scene refinement, and the generation of richer environmental variations. 
+
+# Acknowledgements 
+
+> This work was partially supported by project SERICS (PE00000014) under the MUR (Ministero dell’Università e della Ricerca) National Recovery and Resilience Plan funded by the European Union - NextGenerationEU.
+
+# References 
+
+[1] A. Anoosheh, T. Sattler, R. Timofte, M. Pollefeys, and L. Van Gool. Night-to-day image translation for retrieval-based localization. arXiv preprint arXiv:1809.09767 , 2018. [2] S. Baik, S. Kim, and E. Kim. Weatherflux: Universal weather translation with diffusion models. ICLR ,2025. [3] S. Ben-David, J. Blitzer, K. Crammer, and F. Pereira. A theory of learning from different domains. Machine Learning , 79(1–2):151–175, 2010. [4] M. Cao and R. Ramezani. Data generation using simulation technology to improve perception mechanism of autonomous vehicles, 2022. [5] L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, and H. Adam. Encoder-decoder with atrous separable convolution for semantic image segmentation. In ECCV , 2018. [6] B. Cheng, I. Misra, A. G. Schwing, A. Kirillov, and R. Girdhar. Masked-attention mask transformer for universal image segmentation. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 1290–1299, 2022. [7] M. Cordts, M. Omran, S. Ramos, T. Rehfeld, M. Enzweiler, R. Benenson, U. Franke, S. Roth, and B. Schiele. The cityscapes dataset for semantic urban scene understanding. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2016. [8] B. H. K. Czarnecki and S. Waslander. Precise synthetic image and lidar (presil) dataset for autonomous vehicle perception. Computer Vision and Pattern Recognition , arXiv:1905.00160, 2019. [9] G. D’Amico, F. Nesti, G. Rossolini, M. Marinoni, S. Sabina, and G. Buttazzo. Syndra: Synthetic dataset for railway applications. In Proceedings of the Winter Conference on Applications of Computer Vision (WACV) , pages 3437–3446, February 2025. [10] aitorzip: https://github.com/aitorzip/DeepGTAV. [11] A. Dosovitskiy, G. Ros, F. Codevilla, A. Lopez, and V. Koltun. Carla: An open urban driving simulator. 
+
+CoRL , 2017. [12] A. Gaidon, Q. Wang, Y. Cabon, and E. Vig. Virtual worlds as proxy for multi-object tracking analysis. In 
+
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2016. [13] B. Gella, H. Zhang, R. Upadhyay, T. Chang, M. Waliman, Y. Ba, A. Wong, and A. Kadambi. Weatherproof: A paired-dataset approach to semantic segmentation in adverse weather. arXiv preprint arXiv:2312.09534 ,2023. [14] U. Gurbindo, A. Brando, J. Abella, and C. König. Object detection in adverse weather conditions for autonomous vehicles using instruct pix2pix. In 2025 International Joint Conference on Neural Networks (IJCNN) , pages 1–8. IEEE, 2025. [15] H. Ha, X. Jin, J. Kim, J. Liu, Z. Wang, K. D. Nguyen, A. Blume, N. Peng, K.-W. Chang, and H. Ji. Synthia: Novel concept design with affordance composition. CVPR , 2021. [16] Hendrycks and Dietterich. Benchmarking neural network robustness to common corruptions. In ICLR ,2019. [17] J. Hoffman, D. Wang, F. Yu, and T. Darrell. FCNs in the wild: Pixel-level adversarial and constraint-based adaptation. arXiv:1612.02649 , 2016. [18] Y. Hong, H. Pan, W. Sun, and Y. Jia. Deep dual-resolution networks for real-time and accurate semantic segmentation of road scenes. In CVPR , 2021. [19] Rockstar Games: Policy on posting copyrighted Rockstar Games material: http:// tinyurl.com/pjfoqo5r. 11 [20] P. Isola, J.-Y. Zhu, T. Zhou, and A. A. Efros. Image-to-image translation with conditional adversarial networks. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) ,pages 1125–1134, 2017. [21] Y. Jia, L. Hoyer, S. Huang, T. Wang, L. Van Gool, K. Schindler, and A. Obukhov. Dginstyle: Domain-generalizable semantic segmentation with image diffusion models and stylized semantic control. In European Conference on Computer Vision (ECCV) , 2024. [22] B. Kiefer, D. Ott, and A. Zell. Leveraging synthetic data in object detection on unmanned aerial vehicles, 2021. [23] M. Martinez, C. Sitawarin, K. Finch, L. Meincke, A. Yablonski, and A. Kornhauser. Beyond grand theft auto v for training, testing and enhancing deep learning in self driving cars, 2017. [24] C. Michaelis, B. Mitzkus, R. Geirhos, E. Rusak, O. Bringmann, A. S. Ecker, M. Bethge, and W. Brendel. Benchmarking robustness in object detection: Autonomous driving when winter is coming. In NeurIPS Workshop on Machine Learning for Autonomous Driving , 2019. [25] G. Neuhold, T. Ollmann, S. Rota Bulò, and P. Kontschieder. The mapillary vistas dataset for semantic understanding of street scenes. In ICCV , 2017. [26] S. R. Richter, Z. Hayder, and V. Koltun. Playing for benchmarks. In Proceedings of the IEEE International Conference on Computer Vision (ICCV) , 2017. [27] S. R. Richter, V. Vineet, S. Roth, and V. Koltun. Playing for data: Ground truth from computer games. In 
+
+Proceedings of the European Conference on Computer Vision (ECCV) , pages 102–118, 2016. [28] C. Sakaridis, D. Dai, and L. Van Gool. Semantic foggy scene understanding with synthetic data. International Journal of Computer Vision , 126(9):973–992, 2018. [29] C. Sakaridis, D. Dai, and L. Van Gool. Guided curriculum model adaptation and uncertainty-aware evaluation for semantic nighttime image segmentation. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2019. [30] C. Sakaridis, D. Dai, and L. Van Gool. Acdc: The adverse conditions dataset with correspondences for semantic driving scene understanding. In ICCV , 2021. [31] S. Sankaranarayanan, Y. Balaji, A. Jain, S. Nam Lim, and R. Chellappa. Learning from synthetic data: Addressing domain shift for semantic segmentation. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , pages 3752–3761, 2018. [32] Alexander Blade: http://www.dev-c.com/gtav/scripthookv/. [33] T. Sun, M. Segu, J. Postels, Y. Wang, L. Van Gool, B. Schiele, F. Tombari, and F. Yu. Shift: A synthetic driving dataset for continuous multi-task domain adaptation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 21371–21382, 2022. [34] R. Taori et al. Measuring robustness to natural distribution shifts in image classification. In NeurIPS , 2020. [35] A. Torralba and A. A. Efros. Unbiased look at dataset bias. In CVPR , 2011. [36] Y.-H. Tsai, W.-C. Hung, S. Schulter, K. Sohn, M.-H. Yang, and M. Chandraker. Learning to adapt structured output space for semantic segmentation. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2018. [37] aitorzip: https://github.com/aitorzip/VPilot. [38] E. Xie, W. Wang, Z. Yu, A. Anandkumar, J. M. Alvarez, and P. Luo. Segformer: Simple and efficient design for semantic segmentation with transformers. Advances in neural information processing systems ,34:12077–12090, 2021. [39] J. Xu, E. Xie, X. Liu, W. Chen, D. Liang, and P. Luo. Pidnet: A real-time semantic segmentation network inspired from pid controller. In CVPR , 2023. [40] F. Yu, H. Chen, X. Wang, W. Xian, Y. Chen, F. Liu, V. Madhavan, and T. Darrell. BDD100K: A diverse driving dataset for heterogeneous multitask learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. [41] O. Zendel, M. Murschitz, M. Zeilinger, D. Steininger, and C. Beleznai. Analyzing computer vision data -the good, the bad and the ugly. In CVPR Workshops , 2018. [42] J.-Y. Zhu, T. Park, P. Isola, and A. A. Efros. Unpaired image-to-image translation using cycle-consistent adversarial networks. In Proceedings of the IEEE International Conference on Computer Vision (ICCV) ,2017. 12

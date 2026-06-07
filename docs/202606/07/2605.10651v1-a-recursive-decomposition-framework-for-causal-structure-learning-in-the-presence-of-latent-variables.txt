@@ -1,0 +1,3691 @@
+Title: A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables
+
+URL Source: https://arxiv.org/pdf/2605.10651v1
+
+Published Time: Tue, 12 May 2026 03:13:07 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Zheng Li 1 2 3 Feng Xie 2 Shenglan Nie 2 Xichen Guo 2 Ruxin Wang 1 Hao Zhang 1
+
+Abstract 
+
+Constraint-based causal discovery is widely used for learning causal structures, but heavy reliance on conditional independence (CI) testing makes it computationally expensive in high-dimensional settings. To mitigate this limitation, many divide-and-conquer frameworks have been proposed, but most assume causal sufficiency, i.e., no latent vari-ables. In this paper, we show that divide-and-conquer strategies can be theoretically general-ized beyond causal sufficiency to settings with latent variables. Specifically, we propose a recur-sive decomposition framework, termed D ICOLA,that enables divide-and-conquer causal discov-ery in the presence of latent variables. It recur-sively decomposes the global learning task into smaller subproblems and integrates their solutions through a principled reconstruction step to recover the global structure. We theoretically establish the soundness and completeness of the proposed framework. Extensive experiments on synthetic data demonstrate that our approach significantly improves computational efficiency across a range of causal discovery algorithms, while experiments on a real-world dataset further illustrate its practi-cal effectiveness. Our source code is available at github.com/zhengli0060/DiCoLa-ICML2026. 
+
+1. Introduction 
+
+Causal discovery, i.e., inferring causal relations from data, is a fundamental problem across many disciplines, including computer science (Jonas et al., 2017; Pearl, 2018; Sch ¨olkopf, 2022), social science (Spirtes et al., 2000), epidemiology (Hern ´an & Robins, 2010), biology (Glymour et al., 2019), 
+
+> 1
+
+Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences, Shenzhen, China 2Department of Applied Statistics, Beijing Technology and Business University, Beijing, China 3College of Computer Science and Artificial Intelligence, Fudan University, Shanghai, China. Correspondence to: Feng Xie 
+
+<fengxie@btbu.edu.cn >, Ruxin Wang <rx.wang@siat.ac.cn >,Hao Zhang <h.zhang10@siat.ac.cn >.
+
+Preprint. May 12, 2026. 
+
+and neuroscience (Smith et al., 2011; Sanchez-Romero et al., 2019). The resulting causal relationships are essential for predicting how a system would respond to external inter-ventions, which is central to both understanding and ma-nipulating complex systems (Pearl, 2009). For instance, in medical diagnosis, understanding the causal relationships between symptoms and diseases enables clinicians to iden-tify root causes more efficiently and deliver more targeted interventions. However, learning such relationships from purely observational data is inherently challenging, and the presence of latent variables further exacerbates this diffi-culty by inducing complex dependencies among observed variables (Spirtes & Zhang, 2016). The seminal FCI (Fast Causal Inference) algorithm, pro-posed by Spirtes et al. (1995), can recover causal structures in the presence of latent variables by leveraging conditional independence (CI) relations derived from observational data. Subsequent work has focused on improving its efficiency by reducing the number of required CI tests. For exam-ple, RFCI (Colombo et al., 2012) accelerates learning by relaxing certain CI search steps, making it more suitable for sparse, high-dimensional systems. Rohekar et al. (2021) proposed the ICD algorithm, which restricts CI condition-ing sets based on the topological distance between tested variables, thereby reducing the number of CI tests. Addi-tionally, Akbari et al. (2021) introduced L-MARVEL, which identifies and recursively removes a specific class of vari-ables to further reduce CI testing complexity. Other related developments include (Pellet & Elisseeff, 2008a; Claassen & Heskes, 2011; Claassen et al., 2013; Mokhtarian et al., 2023; 2025). Despite these algorithmic improvements, the computational cost of CI testing remains prohibitively high, especially in large-scale systems. Divide-and-conquer frameworks provide an effective strat-egy for reducing the cost of CI testing, particularly in high-dimensional settings. A series of such approaches (Xie et al., 2006; Xie & Geng, 2008; Cai et al., 2013; 2017a) and their variants (Liu et al., 2017; Cai et al., 2017b; Zhang et al., 2019; 2020; Rahman et al., 2021; Zhang et al., 2024a) have been developed. At a high level, as illustrated in Fig-ure 1, these methods decompose the global causal structure learning task over the full variable set V into subproblems defined on smaller subsets V1, V2, . . . , Vm. Each sub-1
+
+> arXiv:2605.10651v1 [cs.LG] 11 May 2026 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables
+
+V      
+
+> Global Learning
+> on
+> V
+> Causal
+> Structure
+> Decompose
+> Local Learning on
+> 𝑽 1,𝑽 2, … 𝑽 m
+> 𝑽 1𝑽 2𝑽 m
+
+…  
+
+> ℒ1ℒ2ℒm
+
+…  
+
+> Merge
+> Figure 1. The divide-and-conquer for the full variable set V.
+
+problem is solved independently using existing learners such as IC (Verma & Pearl, 1990) or PC (Spirtes & Gly-mour, 1991), and the resulting substructures are then merged into a global solution. By replacing exhaustive CI testing over V with localized tests on subsets Vi, these methods significantly shrink the search space and avoid redundant computations (Xie & Geng, 2008; Zhang et al., 2024a). However, all existing divide-and-conquer approaches rely critically on the assumption of causal sufficiency —that no latent variable is a common cause of two or more observed variables—which fundamentally limits their applicability in real-world systems where latent variables are often present. This naturally leads to an important theoretical question: 
+
+Can divide-and-conquer strategies for causal structure learning be theoretically generalized beyond causal sufficiency to settings with latent variables? 
+
+In this paper, inspired by the recursive divide-and-conquer framework of Xie & Geng (2008) under causal sufficiency, we provide a positive answer to this question. Our main contributions are summarized as follows: • We establish the first theoretical foundation for divide-and-conquer causal structure learning in the presence of latent variables. Notably, our theoretical results (Theo-rems 1 to 3) naturally reduce to those of Xie & Geng (2008) under causal sufficiency. • We propose a novel recursive decomposition framework, termed DICOLA, which improves the computational efficiency of causal structure learning in the presence of latent variables. We further prove that D ICOLA is sound and complete. • We conduct extensive experiments on random and benchmark structures, showing that our framework substantially accelerates FCI (Spirtes et al., 1995), RFCI (Colombo et al., 2012), FCI + (Claassen et al., 2013), L-MARVEL (Akbari et al., 2021), and ICD (Ro-hekar et al., 2021). Experiments on real-world datasets further demonstrate its practical effectiveness. 
+
+2. Related Work 
+
+We briefly review constraint-based causal structure learning methods most relevant to our work. For comprehensive surveys, we refer the reader to Spirtes & Zhang (2016); Heinze-Deml et al. (2018); Glymour et al. (2019); Kitson et al. (2023); Mokhtarian et al. (2025). 
+
+In the absence of latent variables. Classical constraint-based methods such as the IC algorithm (Verma & Pearl, 1990) and the PC algorithm (Spirtes & Glymour, 1991) recover causal structures by testing conditional indepen-dences. A number of extensions have been proposed to improve efficiency and robustness (Harris & Drton, 2013; Colombo et al., 2014; Le et al., 2016; Rohekar et al., 2018; Mokhtarian et al., 2021; 2022; Shiragur et al., 2024; Zhang et al., 2024b). To address scalability in high-dimensional systems, a significant line of work develops divide-and-conquer frameworks (Xie et al., 2006; Xie & Geng, 2008; Cai et al., 2013; 2017a), which decompose the global learn-ing problem into smaller subproblems. Subsequent variants further refine the decomposition strategy to improve effi-ciency and accuracy (Liu et al., 2017; Cai et al., 2017b; Zhang et al., 2019; 2020; Rahman et al., 2021; Zhang et al., 2024a). However, all these methods rely on the assumption of causal sufficiency, i.e., that no latent variable acts as a common cause of multiple observed variables—an assump-tion not required by our framework. 
+
+In the presence of latent variables. When latent con-founders may be present, the seminal FCI algorithm (Spirtes et al., 1995; Zhang, 2008b) extends PC to this setting and is sound and complete under standard assumptions. Building on FCI, several algorithms aim to improve efficiency. For example, RFCI (Colombo et al., 2012) reduces the number of CI tests by relaxing certain search steps, making it more suitable for high-dimensional sparse graphs. Other develop-ments include logical, hybrid, and local approaches (Pellet & Elisseeff, 2008a; Claassen & Heskes, 2011; Claassen et al., 2013; Ogarrio et al., 2016; Tsirlis et al., 2018; Chen et al., 2023), as well as more recent iterative and recursive techniques (Rohekar et al., 2021; 2023; Akbari et al., 2021; Mokhtarian et al., 2025). While these algorithms can handle latent variables, they still suffer from the high computational cost of CI testing, particularly in high-dimensional settings, as also reflected in the number of CI tests reported in our experiments. 
+
+Gap to our work. To the best of our knowledge, no prior work has established a theoretically justified divide-and-conquer framework for causal structure learning in the pres-ence of latent confounders. 
+
+3. Preliminaries 
+
+3.1. Terminology 
+
+We adopt standard terminology from causal graphical mod-els with latent variables (Pearl, 2009; Richardson & Spirtes, 2002; Zhang, 2008a). Individual variables (vertices) are denoted by uppercase letters (e.g., V ), and sets of variables by bold uppercase letters (e.g., V). We use standard notions 2A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+of adjacency, parents, children, spouses, ancestors, descen-dants, and colliders. Below we introduce several frequently used definitions; additional terminology and formal defini-tions are provided in Appendix A, and a summary of the main symbols is provided in Table 1. 
+
+Mixed graph. A directed mixed graph contains directed (→) and bi-directed ( ↔) edges. An undirected graph con-tains only undirected edges ( −). A directed path from X to 
+
+Y is a path composed of directed edges pointing towards Y ,i.e., X → . . . → Y . A non-endpoint vertex V on a path is a 
+
+collider if the edges preceding and succeeding V on the path both have arrowheads into V ; otherwise, it is a non-collider .A path is a collider path if every non-endpoint vertex on it is a collider along the path, e.g. , X → A ↔ . . . ↔ B ← Y .Two vertices X and Y are collider connected if there exists a collider path between X and Y , including the case where 
+
+X and Y are adjacent. An almost directed cycle occurs when X is a spouse of Y , and there exists a directed path from X to Y . A directed cycle occurs when X is a child of 
+
+Y , and there exists a directed path from X to Y .
+
+M-separation. In a directed mixed graph, a path between vertices X and Y is said to be m-connecting (active) relative to a set of vertices Z (X, Y /∈ Z) if (i) every non-collider on the path is not in Z, and (ii) every collider on the path has a descendant in Z. Vertices X and Y are m-separated by Z
+
+if there is no m-connecting path between any X ∈ X and 
+
+Y ∈ Y relative to Z, and Z called a separating set for X
+
+and Y. The notion of m-separation generalizes the classical d-separation criterion for DAGs to directed mixed graphs. In an undirected graph, vertices X are said to be separated 
+
+from vertices Y by a set of vertices Z if every path between 
+
+X and Y contains at least one vertex in Z.
+
+Ancestral Graph. A directed mixed graph is ancestral if it doesn’t contain a directed or almost directed cycle. An ancestral graph is called maximal (MAG, denoted by M)if for any two non-adjacent vertices, there exists a set of vertices that m-separates them. A MAG is a directed acyclic graph (DAG) if it has only directed edges. Two MAGs are 
+
+Markov equivalent if they share the same m-separations. A class of Markov equivalent MAGs [M] can be represented as a partially ancestral graph (PAG), where a tail ‘ −’ or arrowhead ‘ >’ occurs if the corresponding mark is tail or arrowhead in every M ∈ [M], and a circle ‘ ◦’ occurs if the corresponding mark is not invariant in every M ∈ [M].
+
+Local skeleton. Given a MAG M and a vertex subset K,the local skeleton over K, denoted by LK, is the undirected graph that connects X and Y if and only if no subset of 
+
+K m-separates X and Y in G. When K = O, the local skeleton coincides with the skeleton of M. A tripartition of a set K is a collection (A, B, C) of three pairwise disjoint subsets whose union is K.
+
+Conditional independence. For three disjoint variable sets 
+
+X, Y, and Z, we write X ⊥⊥ Y | Z to denote that X is statistically independent of Y given Z, and X̸ ⊥⊥ Y | Z
+
+otherwise. 
+
+Markov blanket. Given a variable set V, the Markov blan-ket (MB) of a variable X ∈ V, denoted by MB V(X), is the minimal subset of V \ { X} such that X is conditionally independent of all other variables given MB V(X).
+
+3.2. Problem Setup 
+
+We consider a causal graphical model in which the full variable set V consists of observed variables O and latent variables L. The underlying causal structure is represented by a DAG over V, and we assume no selection bias. We further assume the standard causal Markov and Faithfulness conditions, under which conditional independences in the observed distribution are equivalent to m-separations in the underlying structure (Pearl, 2009; Zhang, 2008a). 
+
+Goal. Given data over O, our goal is to develop a divide-and-conquer framework that improves the computational efficiency of causal structure learning while correctly re-covering the partial ancestral graph (PAG) representing the Markov equivalence class of the underlying MAG. 
+
+4. Foundations of Recursive Decomposition 
+
+In this section, we establish the theoretical foundations that justify divide-and-conquer causal structure learning in the presence of latent variables. Specifically, we address the following fundamental question: 
+
+Under what structural conditions can global causal structure learning be decomposed into smaller sub-problems while preserving m-separation relations? 
+
+Before formalizing the answer, we first outline the recur-sive decomposition procedure. Intuitively, given a set of observed variables O, the procedure identifies a tripartition 
+
+(A, B, C) such that A ⊥⊥ B | C (we describe how to iden-tify such tripartitions in detail in Section 5.1). The global learning problem on O is then decomposed into two smaller subproblems defined on A ∪ C and B ∪ C. This process is applied recursively until no further decomposition is possi-ble, yielding a hierarchical structure that can be represented as a binary decomposition tree (see Figure 2(d)). We now answer the fundamental question by establishing the following results on the behavior of m-separation in a MAG (Theorems 1 and 2). These results reveal a form of 
+
+top-down transitivity of m-separation relations across the decomposition tree. 
+
+Theorem 1. Let A, B, and C be three disjoint subsets of vertices in a MAG M such that A ⊥⊥ B | C. For any 
+
+3A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+X ∈ A and Y ∈ A ∪ C, X and Y are m-separated by a subset of A ∪ B ∪ C if and only if they are m-separated by a subset of A ∪ C.
+
+Theorem 1 formalizes the intuition that, once a valid tripar-tition (A, B, C) is identified with A ⊥⊥ B | C, variables in 
+
+B become irrelevant when determining separating sets for pairs (X, Y ) with X ∈ A and Y ∈ A ∪ C. If a separating set exists in the full set O, one must also exist within A ∪ C,and conversely. 
+
+Theorem 2. Let A, B, and C be three disjoint subsets of vertices in a MAG M such that A ⊥⊥ B | C. For any distinct vertices X, Y ∈ C, they are m-separated by a subset of A ∪ B ∪ C if and only if they are m-separated by a subset of A ∪ C or by a subset of B ∪ C.
+
+Theorem 2 addresses pairs of vertices within C. For any distinct X, Y ∈ C, if a separating set exists in the full variable set O, then one can always be found within either 
+
+A ∪ C or B ∪ C. Conversely, if neither subset contains a separating set, then X and Y remain m-connected given any subset of O.
+
+Remark 1. It is worth emphasizing that if A ∪ B ∪ C ⊆ O,the conclusions of Theorems 1 and 2 still hold. This flexibil-ity enables the recursive application of the decomposition scheme while preserving the transitivity of m-separation relations. 
+
+Based on Theorems 1 and 2, we obtain a unified charac-terization for any subset K ⊆ O that admits a tripartition 
+
+(A, B, C) with A ⊥⊥ B | C: for any distinct variables 
+
+X, Y ∈ K, the pair (X, Y ) is m-separated by a subset of K
+
+if and only if it is m-separated by a subset of A∪C or B∪C.This characterization directly leads to a reconstruction prin-ciple: the skeleton of the MAG over O can be recovered by recursively merging the local skeletons obtained from its subproblems, which we formalize in the following theorem. 
+
+Theorem 3. Let A, B, and C be three disjoint subsets of 
+
+O such that A ⊥⊥ B | C, and let K = A ∪ B ∪ C. Let 
+
+LK denote the local skeleton over K, and let LA∪C and 
+
+LB∪C denote the local skeletons over A ∪ C and B ∪ C,respectively. Then, the local skeleton LK can be constructed by merging LA∪C and LB∪C through the following steps: Step 1: Initialize the edge set of LK as the union of the edge sets of LA∪C and LB∪C.Step 2: For any pair of distinct vertices X, Y ∈ C, remove the edge ⟨X, Y ⟩ from LK if it is absent from either 
+
+LA∪C or LB∪C.
+
+Theorem 3 provides a constructive rule for recovering the global skeleton from the local skeletons of its subproblems. Edges between variables outside the separator set C are in-herited directly from the corresponding subproblems, while edges within C are retained only when supported by both sides of the decomposition. Taken together, the above results (Theorems 1–3) reveal the following intuition. M-separation relations propagate in a top-down manner during decomposition: any separat-ing relation that holds globally can be captured within an appropriate subproblem. Conversely, during the merging phase, m-connection relations exhibit a bottom-up consis-tency: if two variables cannot be separated in the relevant subproblems, they remain connected in the global structure. This dual behavior underlies the correctness of our recursive decomposition framework. 
+
+5. Implementation of Recursive Decomposition 
+
+In this section, we describe how to operationalize the recur-sive decomposition framework. We first present a practical method for identifying valid decompositions in Section 5.1, based on structural properties of certain undirected graphs. We then formalize the D ICOLA framework in Section 5.2. 
+
+5.1. Identifying Valid Decompositions 
+
+While Section 4 establishes the theoretical foundation for recursive decomposition, its success hinges on the ability to find a valid decomposition —that is, a tripartition (A, B, C)
+
+of a variable set K satisfying A ⊥⊥ B | C. This raises a practical question: 
+
+How can such a tripartition be efficiently constructed from observational data? 
+
+To address this, we introduce the notion of an undirected independence graph (UIG), adapted from Lauritzen (1996); Xie & Geng (2008). While their formulation is defined for DAGs under causal sufficiency, we extend this concept to MAGs to accommodate latent variables. The UIG serves as a convenient surrogate structure for identifying valid tripartitions of a given variable set. 
+
+Definition 1 (Undirected Independence Graph ). Let M
+
+be a MAG over O. An undirected independence graph (UIG) 
+
+of M relative to a subset K ⊆ O, denoted by GK, is an undirected graph with vertex set K such that for any disjoint sets X, Y, Z ⊆ K, if Z separates X and Y in GK, then X
+
+and Y are m-separated by Z in M.
+
+This definition leads to a key observation: vertex separation in the UIG provides a sufficient condition for m-separation in the underlying MAG. Consequently, identifying a valid tripartition (A, B, C) reduces to constructing an appropri-ate UIG GK of M. To this end, we introduce the augmented graph , which we show to be a particular UIG relative to O,as established in Propositions 1 and 2. 
+
+Definition 2 (Augmented Graph ). Let M be a MAG. The 
+
+augmented graph of M, denoted by (M)a, is the undirected 
+
+4A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 𝑋 1𝐿 1  
+
+> 𝑋 2
+> 𝑋 3
+> 𝑋 4𝑋 5
+> 𝑋 6𝑋 7𝑋 8
+> 𝐿 2
+
+(a) DAG 
+
+(d) The decomposition tree  (e) Merged result from local skeletons 
+
+(b) MAG    
+
+> 𝑋 3𝑋 1
+> 𝑋 6𝑋 7𝑋 8
+> 𝑋 4𝑋 2𝑋 5
+
+(c) PAG                          
+
+> 𝑋 3𝑋 1
+> 𝑋 6𝑋 7𝑋 8
+> 𝑋 4𝑋 2𝑋 5
+> 𝒢 1
+> 𝑋 3𝑋 1
+> 𝑋 6𝑋 7𝑋 8
+> 𝑋 4𝑋 2𝑋 5
+> 𝒢 3
+> 𝑋 4
+> 𝑋 7
+> 𝑋 5
+> 𝑋 6𝑋 8
+> 𝒢 2
+> 𝑋 3
+> 𝑋 2
+> 𝑋 1
+> 𝑋 4𝑋 5
+> 𝒢 5
+> 𝑋 3𝑋 1
+> 𝑋 4𝑋 5
+> 𝒢 6
+> 𝑋 4𝑋 5
+> 𝑋 7𝑋 6
+> 𝒢 7
+> 𝑋 6𝑋 8
+> 𝒢 4
+> 𝑋 2𝑋 3
+> ℒ1
+> 𝑋 3𝑋 1
+> 𝑋 6𝑋 7𝑋 8
+> 𝑋 4𝑋 2𝑋 5
+> ℒ2
+> 𝑋 3
+> 𝑋 2
+> 𝑋 1
+> 𝑋 4𝑋 5
+> ℒ3
+> 𝑋 4
+> 𝑋 7
+> 𝑋 5
+> 𝑋 6𝑋 8
+> ℒ4
+> 𝑋 2𝑋 3
+> ℒ5
+> 𝑋 3𝑋 1
+> 𝑋 4𝑋 5
+> ℒ6
+> 𝑋 4𝑋 5
+> 𝑋 7𝑋 6
+> ℒ7
+> 𝑋 6𝑋 8
+
+Figure 2. (a) An underlying causal structure (adapted from MILDEW network (Jensen & Jensen, 1996)), where L1 and L2 are latent variables. (b) The MAG characterizes the causal relations over the observed variables in (a). (c) The inferred PAG from observed variables. (d) The decomposition tree generated by D ICOLA, where each node Gi represents a sub-problem. (e) Merging process of local skeletons. 
+
+graph over the same vertex set as M in which two vertices are adjacent if and only if they are collider connected in M.
+
+Two vertices X and Y are collider connected if there exists a collider path connecting them, including the degenerate case where X and Y are adjacent in M. As illustrated in Figure 2(b), G1 corresponds to the augmented graph of the MAG shown there. 
+
+Proposition 1. Let M be a MAG over O. The augmented graph (M)a is a UIG of M relative to O. Moreover, (M)a
+
+is minimal in the sense that removing any edge from (M)a
+
+would introduce a separation relation that does not corre-spond to any m-separation in M.
+
+Proposition 1 establishes that (M)a is the sparsest UIG, which exposes more separation opportunities. Intuitively, 
+
+(M)a captures the maximum number of admissible de-compositions among all possible UIGs relative to O. Im-portantly, the structure of the augmented graph is inti-mately linked to the statistical properties of the variables via Markov blankets, as shown below Proposition 2. 
+
+Proposition 2. For any two distinct vertices X, Y ∈ O, X
+
+and Y are adjacent in (M)a if and only if Y belongs to the Markov blanket of X relative to O.
+
+Proposition 2 yields a direct way to construct the minimal UIG over O: by learning the MB of each variable relative to O, we can reconstruct the augmented graph (M)a. The resulting procedure is summarized in Algorithm 1. It is worth noting that when K = O, Algorithm 1 exactly recovers the augmented graph (M)a. Furthermore, when applied to any subset K ⊂ O during recursion, the Markov-blanket-based construction still yields a valid and minimal 
+
+Algorithm 1: CONSTRUCT UIG 
+
+Input: Observed variable set K
+
+Output: The undirected independence graph GK 
+
+> 1
+
+Initialize GK with vertice set K and no edges;  
+
+> 2
+
+for X ∈ K do  
+
+> 3
+
+▷ Learn MB of X relative to K 
+
+> 4
+
+MB K(X) ← MBL EARN (K, X ); 
+
+> 5
+
+Add edges {⟨ X, Y ⟩ : Y ∈ MB K(X)} to GK; 
+
+> 6
+
+return GK
+
+UIG, as formalized in Proposition 3. 
+
+Proposition 3. Let M be a MAG over O, and let GK be the UIG constructed by Algorithm 1 over K ⊂ O. Then, 
+
+GK is an UIG of M relative to K. Furthermore, GK is a minimal UIG of M relative to K.
+
+Proposition 3 guarantees that the decomposition procedure remains valid when applied recursively to subproblems. Moreover, GK preserves the maximal separation informa-tion available within K.
+
+Remark 2. Based on Propositions 1 to 3, a valid tripartition of any subset K ⊆ O can be identified through Markov blan-ket learning. The FIND DECOMPOSITION procedure (Algo-rithm 2) works in two steps. It first calls CONSTRUCT UIG 
+
+to build the minimal UIG GK. It then applies an undirected graph partitioning method (e.g., junction trees (Jensen & Jensen, 1994)) to find a vertex separator C, which partitions 
+
+K into (A, B, C) with no edges between A and B in the UIG. 
+
+When multiple valid tripartitions are available for a ver-5A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Algorithm 2: FIND DECOMPOSITION 
+
+Input: Observed variable set K
+
+Output: (A, B, C, flag ) 
+
+> 1
+
+GK ← CONSTRUCT UIG (K); 
+
+> 2
+
+(A, B, C) ← VertexCut (GK); 
+
+> 3
+
+flag ← whether GK has a tripartition (A, B, C); 
+
+> 4
+
+return (A, B, C, flag )
+
+tex set K, we follow the selection strategy of Zhang et al. (2024a). In particular, we choose the tripartition that mini-mizes the following balancing score: score = |C|
+
+min  |A ∪ C|, |B ∪ C| .
+
+This criterion favors balanced subproblems while keeping the separator set C small. 
+
+5.2. The DiCoLa Framework 
+
+The D ICOLA framework, formalized in Algorithm 3, fol-lows a systematic “divide-learn-merge” paradigm. It first applies a top-down recursive decomposition to break the global problem into smaller subproblems, then uses a base structure learning algorithm to solve each subproblem, and finally performs a bottom-up merging step to reconstruct the global causal skeleton. For clarity, we illustrate the workflow with an example in Example 1. 
+
+Example 1 (Illustration of D ICOLA). Consider the graphs shown in Figure 2. The underlying system contains eight observed variables {X1, . . . , X 8} and two latent variables 
+
+{L1, L 2}, as illustrated by the ground-truth DAG in Fig-ure 2(a). The corresponding MAG after marginalizing out the latent variables is shown in Figure 2(b). D ICOLA pro-ceeds through the following phases to recover the final PAG (Figure 2(c)): • Phase 1: Top-down decomposition. DICOLA starts from the full variable set O. The procedure F IND DE- 
+
+> COMPOSITION
+
+(Algorithm 2) first calls C ONSTRUCT UIG (Algorithm 1) to learn the UIG G1 over O, and then iden-tifies a vertex separator that yields a valid tripartition 
+
+(A, B, C). In this example, C = {X4, X 5} (highlighted in red in Figure 2(d)) disconnects the graph, producing two subproblems {X1, . . . , X 5} and {X4, . . . , X 8}. The process continues recursively: {X1, . . . , X 5} is further decomposed into {X1, X 3, X 4, X 5} and {X2, X 3} us-ing X3 as the separator, while {X4, . . . , X 8} is split into 
+
+{X4, X 5, X 6, X 7} and {X6, X 8} via X6. This produces the decomposition tree shown in Figure 2(d). • Phase 2: Local skeleton learning. Once the decomposi-tion reaches leaf subproblems that admit no further tripar-tition ( G4, G5, G6, G7), D ICOLA applies a base structure 
+
+Algorithm 3: DICOLA
+
+Input: Observed variable set O
+
+Output: The PAG P over O 
+
+> 1
+
+Function RECURSIVE LEARN (K) 
+
+> 2
+
+(A, B, C, flag ) ← FIND DECOMPOSITION (K); 
+
+> 3
+
+▷ flag indicates whether the valid decomposition is found  
+
+> 4
+
+if flag = FALSE then  
+
+> 5
+
+LK ← STRUCTURE LEARNING (K); 
+
+> 6
+
+return LK; 
+
+> 7
+
+LA∪C ← RECURSIVE LEARN (A ∪ C); 
+
+> 8
+
+LB∪C ← RECURSIVE LEARN (B ∪ C); 
+
+> 9
+
+LK ← MERGE SKELETONS (LA∪C, LB∪C); 
+
+> 10
+
+return LK; 
+
+> 11
+
+Function MERGE SKELETONS (LA∪C, LB∪C) 
+
+> 12
+
+LA∪B∪C ← L A∪C ∪ L B∪C; 
+
+> 13
+
+foreach pair (X, Y ) ∈ C do  
+
+> 14
+
+if ⟨X, Y ⟩ /∈ L A∪C or ⟨X, Y ⟩ /∈ L B∪C then  
+
+> 15
+
+Remove edge ⟨X, Y ⟩ from LA∪B∪C; 
+
+> 16
+
+return LA∪B∪C; 
+
+> 17
+
+▷ Main procedure  
+
+> 18
+
+LO ← RECURSIVE LEARN (O); 
+
+> 19
+
+P ← orient LO using V-structures and the orientation rules of Zhang (2008b);  
+
+> 20
+
+return P
+
+learning algorithm (e.g., FCI) on each subset to obtain the corresponding local skeletons L4, L5, L6, L7.• Phase 3: Bottom-up merging. The local skeletons are merged in a bottom-up manner using M ERGE SKELE - 
+
+> TONS
+
+(illustrated in Figure 2(e)). Specifically, L4 and L5
+
+are merged into L2, with no edge removal since |C| = 1 
+
+for G2. Similarly, L6 and L7 are merged to form L3. Fi-nally, L2 and L3 are merged into the global skeleton L1.Because the separator of G1 is C = {X4, X 5} and the edge ⟨X4, X 5⟩ appears in both L2 and L3, it is retained in L1.Applying the orientation rules for v-structures and the orien-tation rules in Zhang (2008b) to the resulting skeleton L1,DICOLA produces the PAG shown in Figure 2(c). 
+
+Theorem 4 (Soundness and Completeness) . Assume ac-cess to an oracle for conditional independence tests. If the base structure learning algorithm is sound and complete (e.g., FCI), then DICOLA is also sound and complete; that is, it correctly recovers the PAG representing the Markov equivalence class of the underlying MAG. 
+
+Complexity Analysis. Let n = |O| denote the number of observed variables. The complexity of D ICOLA consists of two components: (1) the cost of identifying decompositions 6A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+via Markov blanket learning, and (2) the cost of learning local skeletons. For the first component, using an MB dis-covery algorithm such as TC (Pellet & Elisseeff, 2008b), the cost of learning the Markov blanket of one variable among k
+
+variables is O(k). For the second component, if FCI is used as the base learner, the worst-case complexity for a subset of size k is O(k22k). Suppose the problem is recursively decomposed into m leaf problems, and let kmax be the size of the largest leaf problem. The total cost of UIG construc-tion across all recursion levels is bounded by O(mn 2), since each step involves MB learning. Hence, the overall complex-ity is bounded by O(mk 2max 2kmax ). Because kmax ≪ n for decomposable graphs, the exponential term is considerably reduced compared to the global complexity O(n22n).
+
+6. Experiments 
+
+6.1. Synthetic Data 
+
+In this section, we present empirical results on synthetic data generated from both random graph structures and real-world Bayesian networks drawn from the Bayesian Network Repository 1, a benchmark for causal structure learning. We consider five causal discovery algorithms that allow latent variables: • FCI : The foundational algorithm for causal discovery in the presence of latent confounders (Spirtes et al., 1995). Implementations are taken from causal-learn (Zheng et al., 2024). • RFCI : A computationally more efficient variant of FCI proposed by Colombo et al. (2012). We adopt its from the pcalg R package (Kalisch et al., 2012). • FCI +: An optimized variant of FCI specifically de-signed to reduce the number of CI tests, proposed by Claassen et al. (2013). We adopt its implementation from the pcalg R package (Kalisch et al., 2012). • ICD : The iterative causal discovery algorithm intro-duced by Rohekar et al. (2021). Source code is ob-tained from the official GitHub repository ( https:// github.com/IntelLabs/causality-lab ). • L-MARVEL : The recursive causal discovery method of Akbari et al. (2021), designed to handle latent confound-ing. We use the implementation in the Python package 
+
+rcd (Mokhtarian et al., 2025). For each base algorithm, we compare its standalone per-formance with its integration within the proposed D I-COLA framework, denoted as D ICOLA+Method (e.g., D I-COLA+FCI) 2.
+
+> 1https://www.bnlearn.com/bnrepository/
+> 2Implementation details and full experimental settings are pro-vided in Appendix C.
+
+Experimental setup and metrics. Following the conven-tion in Colombo et al. (2012); Akbari et al. (2021); Rohekar et al. (2021), the underlying causal structures are parame-terized as linear Gaussian structural causal models. Causal coefficients are sampled uniformly from ±(0 .5, 1) , and all noise terms are independently drawn from a standard Gaus-sian distribution. We evaluate structural accuracy using Precision, Recall, and F1-score of the recovered edges, fol-lowing Akbari et al. (2021); Mokhtarian et al. (2025). To assess computational efficiency, we record both the number of conditional independence (CI) tests and the execution time (in seconds) required by each method on each dataset. For all methods, the maximum runtime is capped at ten times the number of observed variables, after which exe-cution is automatically terminated. All reported results are averaged over 50 independently generated datasets to ensure statistical reliability. For each dataset, latent variables are randomly selected from vertices in the underlying causal graph that have at least two children. 
+
+Random structures. We simulate random under-lying causal structures from the Erd ˝os–R ´enyi model ER (n, d ) (Erd ˝os & R ´enyi, 1960), where n denotes the num-ber of variables in V and d specifies the expected average degree of each variable. To evaluate the performance of different methods under varying graph sizes, sparsity lev-els, and degrees of latent confounding, we consider four settings: • For graphs with 30 vertices, we use ER(30 , 3) and 
+
+ER(30 , 5) and randomly designate 3 variables as latent. • For larger graphs, we use ER(50 , 3) and consider two levels of latent variables, with 5 and 7 latent variables, respectively. 
+
+Benchmark structures. We further evaluate the compared methods on four benchmark Bayesian networks with vary-ing dimensionality: • MILDEW: 35 vertices and 3 latent variables; • BARLEY: 48 vertices and 4 latent variables; • ANDES: 223 vertices and 10 latent variables; • LINK: 724 vertices and 50 latent variables. 
+
+Results. Due to space limitations, we present results for three metrics under one representative random-structure set-ting and one benchmark structure in Figure 3, with complete results provided in Appendix C. Note that certain methods are excluded from some plots due to excessive runtime. As expected, across all settings, D ICOLA significantly reduces the number of CI tests and runtime for all base methods. Regarding structural accuracy, our framework generally im-proves or matches the F1-scores of the base methods. It is noteworthy that while D ICOLA+L-MARVEL shows a slight accuracy trade-off on simpler graphs (e.g., ER (50 , 3) 
+
+with 5 latent variables; see Figure 3(a)), this trend is re-7A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+0.8 
+
+1.0 
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+5
+
+6
+
+7
+
+×10 3 RFCI 
+
+2000 3000 4000 
+
+1.2 
+
+1.4 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+2.5 
+
+5.0 
+
+7.5 
+
+×10 5 L-MARVEL 
+
+2000 3000 4000 
+
+2.5 
+
+3.0 
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+−0.25 
+
+0.00 
+
+0.25 
+
+> ln(Time)
+
+2000 3000 4000 
+
+−0.5 
+
+0.0 
+
+2000 3000 4000 
+
+−0.4 
+
+−0.2 
+
+2000 3000 4000 
+
+5
+
+6
+
+2000 3000 4000 
+
+3
+
+4
+
+2000 3000 4000 
+
+Sample Size 
+
+0.60 
+
+0.62 
+
+0.64 
+
+> F1 Score
+
+2000 3000 4000 
+
+Sample Size 
+
+0.60 
+
+0.62 
+
+0.64 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.59 
+
+0.60 
+
+0.61 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.62 
+
+0.63 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.62 
+
+0.64 
+
+0.66 
+
+(a) Performance on ER(30, 5) graphs with 3 latent variables. 2000 3000 4000 
+
+1
+
+2
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+6
+
+7
+
+8 ×10 3 RFCI 
+
+2000 3000 4000 
+
+1.0 
+
+1.5 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+2
+
+3
+
+4
+
+×10 4 L-MARVEL 
+
+2000 3000 4000 
+
+3
+
+4
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+1.2 
+
+1.4 
+
+1.6 
+
+> ln(Time)
+
+2000 3000 4000 
+
+0.75 
+
+1.00 
+
+1.25 
+
+2000 3000 4000 
+
+−0.5 
+
+0.0 
+
+2000 3000 4000 
+
+3.0 
+
+3.5 
+
+4.0 
+
+2000 3000 4000 
+
+5
+
+6
+
+2000 3000 4000 
+
+Sample Size 
+
+0.87 
+
+0.88 
+
+0.89 
+
+0.90 
+
+> F1 Score
+
+2000 3000 4000 
+
+Sample Size 
+
+0.87 
+
+0.88 
+
+0.89 
+
+0.90 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.88 
+
+0.89 
+
+0.90 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.90 
+
+0.92 
+
+0.94 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.86 
+
+0.88 
+
+(b) Performance on ER(50, 3) graphs with 5 latent variables. 2000 3000 4000 
+
+1
+
+2
+
+3
+
+> Number of CI Tests
+
+×10 5 FCI 
+
+2000 3000 4000 
+
+1.0 
+
+1.5 
+
+×10 5 RFCI 
+
+2000 3000 4000 
+
+2
+
+4
+
+×10 5 FCI +
+
+2000 3000 4000 
+
+1
+
+2
+
+×10 6 L-MARVEL 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+4.5 ×10 4 ICD 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+> ln(Time)
+
+2000 3000 4000 
+
+3.25 
+
+3.50 
+
+3.75 
+
+4.00 
+
+2000 3000 4000 
+
+1.5 
+
+2.0 
+
+2.5 
+
+2000 3000 4000 
+
+6
+
+7
+
+2000 3000 4000 
+
+7.1 
+
+7.2 
+
+7.3 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.82 
+
+0.84 
+
+> F1 Score
+
+2000 3000 4000 
+
+Sample Size 
+
+0.81 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.81 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.88 
+
+0.92 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.74 
+
+0.76 
+
+0.78 
+
+0.80 
+
+(c) Performance on ANDES network with 10 latent variables. 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 3. Performance comparison on ER(30 , 5) graphs, ER(50 , 3) graphs, and the real-world ANDES network. Panels (a)–(c) correspond to these three settings, respectively. 
+
+8A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+versed or mitigated in more challenging settings with higher dimensionality, denser connectivity, or increased latent con-founding (e.g., the ANDES network with 10 latent variables; see Figure 3(b)). 
+
+6.2. Application to Arabidopsis thaliana Gene Expression Data 
+
+In this section, we apply D ICOLA in conjunction with the seminal FCI algorithm (D ICOLA+FCI) to the gene expres-sion dataset from Wille et al. (2004). This dataset com-prises gene expression measurements from the Arabidopsis thaliana collected under 118 different experimental condi-tions, including variations in light, darkness, and exposure to growth hormones. In Arabidopsis thaliana , isoprenoids are synthesized via two distinct pathways located in differ-ent cellular compartments: the mevalonate (MVA) pathway in the cytoplasm and the non-mevalonate (MEP) pathway in the chloroplast We focus on 33 genes involved in these pathways or localized in the mitochondrion. While the true causal graph is unknown, biological literature and previous statistical analyses suggest a modular structure where genes within the MEP and MVA pathways are densely connected, with specific loci acting as bridges for cross-talk (Laule et al., 2003; Rodri ´eguez-Concepcio ´en et al., 2004; Wille et al., 2004; Frot et al., 2019). 
+
+Results. Figure 4 shows the adjacency matrix of the PAG recovered by D ICOLA+FCI. Comparing our results with the known metabolic pathways and the graphical models reported in Wille et al. (2004, Figure 3), we observe several biologically consistent patterns: • (1) Modular Recovery: DICOLA+FCI successfully re-covers the block-diagonal structure characteristic of the two distinct biosynthesis pathways. We observe dense connectivity among genes in the plastidial MEP pathway (e.g., DXR , MCT , CMK , MECPS ), shown in the upper-left quadrant of the adjacency matrix. Similarly, genes associated with the cytosolic MVA pathway (e.g., MK ,
+
+MPDC1 , MPDC2 , IPPI2 ) form a coherent cluster in the lower-right section. This aligns with the findings of Wille et al. (2004), who reported modules of closely connected genes within each pathway. • (2) Inter-pathway Connections: While the pathways op-erate in distinct compartments, D ICOLA+FCI identi-fies sparse potential interactions between them. These findings corroborate that while intra-pathway regulation involves tight co-expression modules, cross-talk is re-stricted to specific loci, as previously suggested by Wille et al. (2004); Laule et al. (2003). 
+
+7. Conclusions and Discussions 
+
+In this work, we established the theoretical foundations for divide-and-conquer causal structure learning in the presence DXPS1   
+
+> DXPS3
+> DXPS2
+> DXR
+> MCT
+> CMK
+> MECPS
+> HDS
+> HDR
+> IPPI1
+> GPPS
+> PPDS1
+> PPDS2
+> UPPS1
+> DPPS2
+> GGPPS1
+> GGPPS5
+> GGPPS9
+> AACT1
+> AACT2
+> HMGS
+> HMGR1
+> HMGR2
+> MK
+> MPDC1
+> MPDC2
+> IPPI2
+> FPPS1
+> FPPS2
+> DPPS1
+> DPPS3
+> GGPPS3
+> GGPPS4
+> DXPS1
+> DXPS3
+> DXPS2
+> DXR
+> MCT
+> CMK
+> MECPS
+> HDS
+> HDR
+> IPPI1
+> GPPS
+> PPDS1
+> PPDS2
+> UPPS1
+> DPPS2
+> GGPPS1
+> GGPPS5
+> GGPPS9
+> AACT1
+> AACT2
+> HMGS
+> HMGR1
+> HMGR2
+> MK
+> MPDC1
+> MPDC2
+> IPPI2
+> FPPS1
+> FPPS2
+> DPPS1
+> DPPS3
+> GGPPS3
+> GGPPS4
+> MEP Mit. MVA
+
+Figure 4. Estimated PAG obtained by applying D ICOLA+FCI to the Arabidopsis thaliana dataset. The adjacency matrix visualizes the edge marks directed from the gene labelled by the i-th row to the gene labelled by the j-th column: black squares indicate arrowheads, blue squares indicate tails, and red squares indicate circles. 
+
+of latent variables by leveraging m-separation properties of maximal ancestral graphs. Building on those theories, we proposed D ICOLA, a recursive decomposition framework designed to improve the efficiency of existing causal struc-ture learning methods. We further proved that D ICOLA is sound and complete whenever the base structure learning algorithm is sound and complete. Extensive experiments demonstrate that D ICOLA substantially improves computa-tional efficiency while preserving structural accuracy. While D ICOLA provides substantial computational gains on sparse and well-decomposable graphs, its acceleration natu-rally becomes less pronounced as graph density increases. We provide a more detailed discussion of this limitation, together with additional experiments on denser graphs, com-parisons with local causal structure learning methods, and relations to methods for learning causal models with latent variables, in Appendix D. Several directions remain for fu-ture work. First, developing more effective strategies for identifying valid decompositions, especially in dense graphs where sparse separators may be difficult to find. Second, ex-tending the framework to settings with selection bias. Third, integrating D ICOLA with score-based and hybrid causal dis-covery methods, and establishing theoretical guarantees for the soundness and correctness of the resulting procedures, could further broaden its applicability. 9A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Acknowledgements 
+
+We appreciate the comments from anonymous review-ers, which greatly helped to improve the paper. This re-search was supported by the National Key R&D Program of China (2022YFA1008300), the National Natural Sci-ence Foundation of China (62306019, 62472415), and the GuangDong Basic and Applied Basic Research Founda-tion (2025A1515010103, 2026B1515020017). Feng Xie was supported by the China Scholarship Council (CSC), the Beijing Key Laboratory of Applied Statistics and Dig-ital Regulation, and the BTBU Digital Business Platform Project by BMEC. 
+
+Impact Statement 
+
+This paper presents methodological advancements in the field of Causal Inference, specifically focusing on struc-ture learning in the presence of latent variables. While the broader application of causal discovery has significant po-tential to impact domains such as healthcare, economics, and policy-making, the contributions of this work are pri-marily theoretical and algorithmic. We do not foresee any immediate negative societal consequences or specific ethical concerns that require highlighting beyond standard consid-erations in data science. 
+
+References 
+
+Akbari, S., Mokhtarian, E., Ghassami, A., and Kiyavash, N. Recursive causal structure learning in the presence of latent variables and selection bias. Advances in Neural Information Processing Systems , 34:10119–10130, 2021. Aliferis, C. F., Tsamardinos, I., and Statnikov, A. Hiton: a novel markov blanket algorithm for optimal variable se-lection. In AMIA annual symposium proceedings , volume 2003, pp. 21. American Medical Informatics Association, 2003. Aliferis, C. F., Statnikov, A., Tsamardinos, I., Mani, S., and Koutsoukos, X. D. Local causal and markov blanket induction for causal discovery and feature selection for classification part i: algorithms and empirical evaluation. 
+
+Journal of Machine Learning Research , 11(1), 2010. Cai, R., Zhang, Z., and Hao, Z. Sada: A general framework to support robust causation discovery. In International Conference on Machine Learning , pp. 208–216. PMLR, 2013. Cai, R., Zhang, Z., and Hao, Z. Sada: A general framework to support robust causation discovery with theoretical guarantee. arXiv preprint arXiv:1707.01283 , 2017a. Cai, R., Zhang, Z., Hao, Z., and Winslett, M. Sophisticated merging over random partitions: a scalable and robust causal discovery approach. IEEE Transactions on Neu-ral Networks and Learning Systems , 29(8):3623–3635, 2017b. Chen, W., Drton, M., and Shojaie, A. Causal structural learning via local graphs. SIAM journal on mathematics of data science , 5(2):280–305, 2023. Claassen, T. and Heskes, T. A logical characterization of constraint-based causal discovery. In Proceedings of the Twenty-Seventh Conference on Uncertainty in Artificial Intelligence , pp. 135–144, 2011. Claassen, T., Mooij, J. M., and Heskes, T. Learning sparse causal models is not np-hard. In Proceedings of the Twenty-Ninth Conference on Uncertainty in Artificial In-telligence (UAI) , pp. 172. Citeseer, 2013. Colombo, D., Maathuis, M. H., Kalisch, M., and Richard-son, T. S. Learning high-dimensional directed acyclic graphs with latent and selection variables. The Annals of Statistics , pp. 294–321, 2012. Colombo, D., Maathuis, M. H., et al. Order-independent constraint-based causal structure learning. Journal of Machine Learning Research , 15(1):3741–3782, 2014. Dong, X., Huang, B., Ng, I., Song, X., Zheng, Y., Jin, S., Legaspi, R., Spirtes, P., and Zhang, K. A versatile causal discovery framework to allow causally-related hidden variables. In International Conference on Learning Rep-resentations , volume 2024, pp. 43084–43118, 2024. Erd ˝os, P. and R ´enyi, A. On the evolution of random graphs. 
+
+Publications of the Mathematical Institute of the Hungar-ian Academy of Sciences, , 5:17–61, 1960. Fisher, R. A. Frequency distribution of the values of the correlation coefficient in samples from an indefinitely large population. Biometrika , 10(4):507–521, 1915. Frot, B., Nandy, P., and Maathuis, M. H. Robust causal structure learning with some hidden variables. Journal of the Royal Statistical Society Series B: Statistical Method-ology , 81(3):459–487, 2019. Gao, T. and Ji, Q. Efficient markov blanket discovery and its application. IEEE transactions on Cybernetics , 47(5): 1169–1179, 2016. Glymour, C., Zhang, K., and Spirtes, P. Review of causal discovery methods based on graphical models. Frontiers in genetics , 10:524, 2019. Guo, X., Yu, K., Cao, F., Li, P., and Wang, H. Error-aware markov blanket learning for causal feature selection. In-formation Sciences , 589:849–877, 2022. 10 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Guyon, I. and Elisseeff, A. An introduction to variable and feature selection. Journal of machine learning research ,3(Mar):1157–1182, 2003. Hagberg, A. A., Schult, D. A., and Swart, P. J. Exploring net-work structure, dynamics, and function using networkx. In Proceedings of the 7th Python in Science Conference ,pp. 11 – 15, Pasadena, CA USA, 2008. Harris, N. and Drton, M. Pc algorithm for nonparanormal graphical models. Journal of Machine Learning Research ,14(1):3365–3383, 2013. Heinze-Deml, C., Maathuis, M. H., and Meinshausen, N. Causal structure learning. Annual Review of Statistics and Its Application , 5:371–391, 2018. Hern´ an, M. A. and Robins, J. M. Causal inference, 2010. Jensen, A. L. and Jensen, F. V. Midas-an influence dia-gram for management of mildew in winter wheat. In 
+
+Proceedings of the Twelfth international conference on Uncertainty in artificial intelligence , pp. 349–356, 1996. Jensen, F. V. and Jensen, F. Optimal junction trees. In 
+
+Uncertainty in Artificial Intelligence , pp. 360–366, 1994. Jonas, P., Dominik, J., and Sch ¨olkopf, B. Elements of Causal Inference . MIT Press, 2017. Kalisch, M., M ¨achler, M., Colombo, D., Maathuis, M. H., and B ¨uhlmann, P. Causal inference using graphical mod-els with the r package pcalg. Journal of statistical soft-ware , 47:1–26, 2012. Kitson, N. K., Constantinou, A. C., Guo, Z., Liu, Y., and Chobtham, K. A survey of bayesian network structure learning. Artificial Intelligence Review , pp. 1–94, 2023. Laule, O., F ¨urholz, A., Chang, H.-S., Zhu, T., Wang, X., Heifetz, P. B., Gruissem, W., and Lange, M. Crosstalk be-tween cytosolic and plastidial pathways of isoprenoid biosynthesis in arabidopsis thaliana. Proceedings of the National Academy of Sciences , 100(11):6866–6871, 2003. Lauritzen, S. L. Graphical models . Oxford University Press, 1996. Le, T. D., Hoang, T., Li, J., Liu, L., Liu, H., and Hu, S. A fast pc algorithm for high dimensional causal discovery with multi-core pcs. IEEE/ACM transactions on compu-tational biology and bioinformatics , 16(5):1483–1495, 2016. Ling, Z., Li, Y., Zhang, Y., Yu, K., Zhou, P., Li, B., and Wu, X. A light causal feature selection approach to high-dimensional data. IEEE Transactions on Knowledge and Data Engineering , 35(8):7639–7650, 2022. Liu, H., Zhou, S., Lam, W., and Guan, J. A new hybrid method for learning bayesian networks: Separation and reunion. Knowledge-Based Systems , 121:185–197, 2017. Mokhtarian, E., Akbari, S., Ghassami, A., and Kiyavash, N. A recursive markov boundary-based approach to causal structure learning. In The KDD’21 Workshop on Causal Discovery , pp. 26–54. PMLR, 2021. Mokhtarian, E., Akbari, S., Jamshidi, F., Etesami, J., and Kiyavash, N. Learning bayesian networks in the presence of structural side information. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 36, pp. 7814–7822, 2022. Mokhtarian, E., Khorasani, M., Etesami, J., and Kiyavash, N. Novel ordering-based approaches for causal struc-ture learning in the presence of unobserved variables. In 
+
+Proceedings of the AAAI Conference on Artificial Intelli-gence , volume 37, pp. 12260–12268, 2023. Mokhtarian, E., Elahi, S., Akbari, S., and Kiyavash, N. Recursive causal discovery. Journal of Machine Learning Research , 26(61):1–65, 2025. Ogarrio, J. M., Spirtes, P., and Ramsey, J. A hybrid causal search algorithm for latent variable models. In Confer-ence on probabilistic graphical models , pp. 368–379. PMLR, 2016. Pearl, J. Probabilistic reasoning in intelligent systems: net-works of plausible inference . Morgan Kaufmann Publish-ers Inc., San Francisco, CA, USA, 1988. Pearl, J. Causality: Models, Reasoning, and Inference .Cambridge University Press, 2000. Pearl, J. Causality: Models, Reasoning, and Inference . Cam-bridge University Press, New York, 2nd edition, 2009. Pearl, J. Theoretical impediments to machine learning with seven sparks from the causal revolution. In Proceedings of the Eleventh ACM International Conference on Web Search and Data Mining , pp. 3–3, 2018. Pellet, J.-P. and Elisseeff, A. Finding latent causes in causal networks: an efficient approach based on markov blankets. 
+
+Advances in Neural Information Processing Systems , 21, 2008a. Pellet, J.-P. and Elisseeff, A. Using markov blankets for causal structure learning. Journal of Machine Learning Research , 9(7), 2008b. Rahman, M. M., Rasheed, A., Khan, M. M., Javidian, M. A., Jamshidi, P., and Mamun-Or-Rashid, M. Accelerating recursive partition-based causal structure learning. In 
+
+Proceedings of the 20th International Conference on 
+
+11 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Autonomous Agents and MultiAgent Systems , pp. 1028– 1036, 2021. Richardson, T. Markov properties for acyclic directed mixed graphs. Scandinavian Journal of Statistics , 30(1):145– 157, 2003. Richardson, T. and Spirtes, P. Ancestral graph markov models. The Annals of Statistics , 30(4):962–1030, 2002. Rodri ´eguez-Concepcio ´en, M., Fore ´es, O., Marti ´enez-Garci ´ea, J. F., Gonza ´elez, V., Phillips, M. A., Ferrer, A., and Boronat, A. Distinct light-mediated pathways regulate the biosynthesis and exchange of isoprenoid pre-cursors during arabidopsis seedling development. The Plant Cell , 16(1):144–156, 2004. Rohekar, R. Y., Gurwicz, Y., Nisimov, S., Koren, G., and Novik, G. Bayesian structure learning by recursive boot-strap. Advances in Neural Information Processing Sys-tems , 31, 2018. Rohekar, R. Y., Nisimov, S., Gurwicz, Y., and Novik, G. Iterative causal discovery in the possible presence of la-tent confounders and selection bias. Advances in Neural Information Processing Systems , 34:2454–2465, 2021. Rohekar, R. Y., Nisimov, S., Gurwicz, Y., and Novik, G. From temporal to contemporaneous iterative causal dis-covery in the presence of latent confounders. In Inter-national Conference on Machine Learning , pp. 39939– 39950. PMLR, 2023. Sanchez-Romero, R., Ramsey, J. D., Zhang, K., Glymour, M. R., Huang, B., and Glymour, C. Estimating feed-forward and feedback effective connections from fmri time series: Assessments of statistical methods. Network Neuroscience , 3(2):274–306, 2019. Sch ¨olkopf, B. Causality for machine learning. In Proba-bilistic and Causal Inference: The Works of Judea Pearl ,pp. 765–804. 2022. Shiragur, K., Zhang, J., and Uhler, C. Causal discovery with fewer conditional independence tests. In Inter-national Conference on Machine Learning , pp. 45060– 45078. PMLR, 2024. Smith, S. M., Miller, K. L., Salimi-Khorshidi, G., Webster, M., Beckmann, C. F., Nichols, T. E., Ramsey, J. D., and Woolrich, M. W. Network modelling methods for fmri. 
+
+Neuroimage , 54(2):875–891, 2011. Spirtes, P. and Glymour, C. An algorithm for fast recovery of sparse causal graphs. Social science computer review ,9(1):62–72, 1991. Spirtes, P. and Zhang, K. Causal discovery and inference: concepts and recent methodological advances. Applied Informatics , 3(1):1–28, 2016. Spirtes, P., Meek, C., and Richardson, T. Causal inference in the presence of latent variables and selection bias. In 
+
+Proceedings of the Eleventh conference on Uncertainty in artificial intelligence (UAI) , pp. 499–506, 1995. Spirtes, P., Glymour, C., and Scheines, R. Causation, Pre-diction, and Search . MIT press, 2000. Squires, C., Yun, A., Nichani, E., Agrawal, R., and Uh-ler, C. Causal structure discovery between clusters of nodes induced by latent factors. In Conference on Causal Learning and Reasoning , pp. 669–687. PMLR, 2022. Tsamardinos, I., Aliferis, C. F., and Statnikov, A. Time and sample efficient discovery of markov blankets and direct causal relations. In Proceedings of the ninth ACM SIGKDD international conference on Knowledge discov-ery and data mining , pp. 673–678, 2003. Tsirlis, K., Lagani, V., Triantafillou, S., and Tsamardinos, I. On scoring maximal ancestral graphs with the max– min hill climbing algorithm. International Journal of Approximate Reasoning , 102:74–85, 2018. Verma, T. and Pearl, J. Equivalence and synthesis of causal models. In Proceedings of the Sixth Annual Conference on Uncertainty in Artificial Intelligence , pp. 255–270, 1990. Wille, A., Zimmermann, P., Vranov ´a, E., F ¨urholz, A., Laule, O., Bleuler, S., Hennig, L., Preli ´c, A., von Rohr, P., Thiele, L., et al. Sparse graphical gaussian modeling of the isoprenoid gene network in arabidopsis thaliana. Genome biology , 5(11):1–13, 2004. Xie, F., Cai, R., Huang, B., Glymour, C., Hao, Z., and Zhang, K. Generalized independent noise condition for estimating latent variable causal graphs. Advances in neural information processing systems , 33:14891–14902, 2020. Xie, F., Huang, B., Chen, Z., Cai, R., Glymour, C., Geng, Z., and Zhang, K. Generalized independent noise condi-tion for estimating causal structure with latent variables. 
+
+Journal of Machine Learning Research , 25(191):1–61, 2024a. Xie, F., Li, Z., Wu, P., Zeng, Y., Liu, C., and Geng, Z. Local causal structure learning in the presence of latent vari-ables. In International Conference on Machine Learning ,pp. 54511–54530. PMLR, 2024b. Xie, X. and Geng, Z. A recursive method for structural learning of directed acyclic graphs. Journal of Machine Learning Research , 9:459–483, 2008. 12 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Xie, X., Geng, Z., and Zhao, Q. Decomposition of struc-tural learning about directed acyclic graphs. Artificial Intelligence , 170:422–439, 4 2006. Zhang, H., Zhou, S., Yan, C., Guan, J., and Wang, X. Recur-sively learning causal structures using regression-based conditional independence test. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 33, pp. 3108–3115, 2019. Zhang, H., Zhou, S., Yan, C., Guan, J., Wang, X., Zhang, J., and Huan, J. Learning causal structures based on divide and conquer. IEEE Transactions on Cybernetics , 52(5): 3232–3243, 2020. Zhang, H., Ren, Y., Xia, Y., Zhou, S., and Guan, J. Towards effective causal partitioning by edge cutting of adjoint graph. IEEE Transactions on Pattern Analysis and Ma-chine Intelligence , 2024a. Zhang, J. Causal reasoning with ancestral graphs. Journal of Machine Learning Research , 9(7), 2008a. Zhang, J. On the completeness of orientation rules for causal discovery in the presence of latent confounders and selection bias. Artificial Intelligence , 172(16-17): 1873–1896, 2008b. Zhang, J., Shiragur, K., and Uhler, C. Membership testing in markov equivalence classes via independence queries. In International Conference on Artificial Intelligence and Statistics , pp. 3925–3933. PMLR, 2024b. Zheng, Y., Huang, B., Chen, W., Ramsey, J., Gong, M., Cai, R., Shimizu, S., Spirtes, P., and Zhang, K. Causal-learn: Causal discovery in python. Journal of Machine Learning Research , 25(60):1–8, 2024. 13 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Appendix Contents 
+
+A Supplementary Preliminaries . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+A.1 Supplementary Terminology . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+A.2 Markov blanket . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+B Proofs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+B.1 Preliminary Lemmas . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 
+
+B.2 Proof of Theorem 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 
+
+B.3 Proof of Theorem 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 
+
+B.4 Proof of Theorem 3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19 
+
+B.5 Proof of Propositions 1 to 3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .19 
+
+B.6 Proof of Theorem 4 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 
+
+C Supplementary Experiments . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 
+
+D Limitations and Discussion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30 
+
+D.1 Limitations under Dense Structures . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30 
+
+D.2 Relation to Local Causal Structure Learning-Based Methods . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31 
+
+D.3 Relation to Learning Causal Models with Latent Variables . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31 14 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+A. Detailed Preliminaries                                            
+
+> Table 1. The list of main symbols used in this paper
+> Symbol Description
+> DA directed acyclic graph (DAG)
+> MA maximal ancestral graph (MAG)
+> PA partial ancestral graph (PAG)
+> GKAn undirected independence graph of Mrelative to K
+> LKThe local skeleton over Krelative to M
+> VThe set of all variables
+> OThe set of observed variables
+> LThe set of latent variables
+> |K|The number of variables in K
+> Pa( X, G)The set of parents of Xin the graph G.
+> MB V(X)The Markov blanket of Xrelative to the variable set V.
+> An( X, G)The set of ancestors of Xin the graph G.
+> An +(X, G)The set of ancestors of X, including Xitself, in the graph G.
+> G[W]The induced subgraph of Gon W
+
+A.1. Supplementary Terminology Graphs. A graph G = ( V, E) consists of a set of vertices V = {V1, . . . , V n} and a set of edges E. We consider simple graphs, meaning no self-loops or multiple edges between two vertices. The two ends of an edge are called marks , which can be a tail (‘ −’), an arrowhead (‘ >’), or a circle (‘ ◦’). For convenience, we use an asterisk (‘ ∗’) to denote any allowed edge mark. An edge is into (out of ) Vi if it has an arrowhead (tail) at Vi. Given a graph G = ( V, E) and a subset W ⊆ V, the 
+
+induced subgraph of G on W, denoted by G[W], is the graph whose vertex set is W and whose edge set consists of all edges in G with both endpoints in W. A graph G′ = ( V′, E′) is a subgraph of G if V′ ⊆ V and E′ ⊆ E. For two vertices 
+
+X and Y in G, X and Y are adjacent if there is an edge between them. If X → Y /X ← Y /X ↔ Y in G, then X is a 
+
+parent/child/spouse of Y .
+
+Paths. A path π from X to Y in G is a sequence of distinct variables π = ⟨X = V0, . . . , Y = Vn⟩ such that for 
+
+0 ≤ i ≤ n − 1, Vi and Vi+1 are adjacent in G. The length of a path equals the number of edges on the path. Given a path π = ⟨V0, V 1, . . . , V k⟩, the subpath of π between vertices Vi and Vj (0 ≤ i < j ≤ k) is defined as the sequence of consecutive vertices from Vi to Vj along π, denoted by π(Vi, V j ). For example, if π = ⟨V1, V 2, V 3, V 4, V 5⟩, then 
+
+π(V2, V 4) = ⟨V2, V 3, V 4⟩.
+
+Undirected Graph. A graph is called an undirected graph if all of its edges are undirected ( −). In an undirected graph, a vertex X is said to be separated from a vertex Y by a set of vertices Z if every path between X and Y contains at least one vertex in Z. More generally, two vertex sets X and Y are said to be separated by Z if, for every pair (X, Y ) with X ∈ X
+
+and Y ∈ Y, the vertices X and Y are separated by Z. Given a MAG M and a vertex set K, the (local) skeleton LK is the undirected graph over K that contains an edge between X and Y if and only if no subset Z ⊆ K m-separates X and Y in 
+
+M. When K = O, the local skeleton coincides with the skeleton of M.
+
+Set. A tripartition of a set V is a collection (V1, V2, V3) of three pairwise disjoint subsets whose union is V. If there exists a directed path from X to Y , then X is an ancestor of Y and Y is a descendant of X. For a vertex X in a MAG M,let An( X, M) denote the set of ancestors of X in M, and define An +(X, M) = An( X, M) ∪ { X}. For a vertex set X,we similarly denote its set of ancestors by An( X, M), and define An +(X, M) = An( X, M) ∪ X.
+
+Definition 3 (Causal Markov Condition (Spirtes et al., 2000)) . Let G be a causal graph with vertex set V, and let P (V)
+
+denote a probability distribution over V generated by the causal structure represented by G. We say that P (V) satisfies the Causal Markov Condition with respect to G if, for any triplet of disjoint subsets X, Y, Z ⊆ V, whenever X and Y are m-separated by Z in G, then X and Y are conditionally independent given Z in P (V).
+
+Definition 4 (Causal Faithfulness Condition (Spirtes et al., 2000)) . Let G be a causal graph with vertex set V, and let 
+
+15 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+P (V) denote a probability distribution over V generated by the causal structure represented by G. We say that P (V)
+
+satisfies the Causal Faithfulness Condition with respect to G if, for any triplet of disjoint subsets X, Y, Z ⊆ V, whenever X
+
+and Y are conditionally independent given Z in P (V), then X and Y are m-separated by Z in G.
+
+Under these two conditions, the conditional independence relations among the observed variables correspond exactly to m-separation relations in the causal graph. Accordingly, throughout this work we use the notation ⊥⊥ interchangeably to denote conditional independence in the distribution and m-separation in MAGs. 
+
+A.2. Markov Blanket 
+
+The concept of the Markov blanket was first coined by Pearl (1988) and has become a widely used technique for reducing the number of variables or features, thereby enabling more efficient and robust model construction (Guyon & Elisseeff, 2003; Pellet & Elisseeff, 2008b; Gao & Ji, 2016). Intuitively, the Markov blanket of a variable X consists of all variables that contain information about X that cannot be obtained from any other variable (Aliferis et al., 2010). Throughout this work, we adopt the convention that the term Markov blanket refers to the minimal such set 3. The formal definition of a Markov blanket is given below. 
+
+Definition 5 (Markov Blanket ). The Markov blanket of a variable X relative to a set of variables V, denoted by MB V(X),is the minimal subset of V \ { X} such that X is conditionally independent of all remaining variables given MB V(X),formally, 
+
+X ⊥⊥ V | MB V(X), ∀ V ∈ V \  MB V(X) ∪ { X}.
+
+Under the causal Faithfulness assumption, the Markov blanket admits a graphical characterization that depends on the underlying causal graph. 
+
+Property 1 (Markov Blanket in DAGs (Pearl, 1988; 2000; 2009)) . Assuming faithfulness, in a directed acyclic graph (DAG), the Markov blanket of a vertex X is unique and consists of the parents of X, the children of X, and the parents of the children of X.
+
+Property 2 (Markov Blanket in MAGs (Richardson, 2003; Pellet & Elisseeff, 2008a)) . Assuming faithfulness, in a maximal ancestral graph (MAG), the Markov blanket of a vertex X consists of the parents, children, and parents of the children of X,together with the district of X and the districts of the children of X, as well as the parents of all vertices in these districts. Here, the district of a vertex V is defined as the set of vertices reachable from V using only bidirected edges. 
+
+B. Proofs 
+
+In this section, we provide detailed proofs for the theoretical results presented in the main text. We begin by establishing several fundamental lemmas, followed by the proofs of the main theorems and propositions. 
+
+B.1. Preliminary Lemmas Lemma 1. Let M be a MAG over O. For any three disjoint sets of vertices X, Y, Z ⊆ O, and let S = X ∪ Y ∪ Z,
+
+(M[An +(S, M)]) a be the augmented graph of the induced subgraph M[An +(S, M)] . Then, X and Y are m-separated by Z in M if and only if X and Y are separated by Z in (M[An +(S, M)]) a.Proof of Lemma 1. This is a direct consequence of Theorem 3.18 in Richardson & Spirtes (2002). 
+
+Lemma 2. Let S be a subset of vertices in a MAG M. For any two vertices X and Y in S, X and Y are m-separated by a subset of S \ { X, Y } in M if and only if they are m-separated by An( {X, Y }, M) ∩ S.Proof of Lemma 2. Let 
+
+S′ = An( {X, Y }, M) ∩ S.
+
+Suppose X and Y are not m-separated by S′ in M. Since 
+
+An +({X, Y } ∪ S′, M) = An +({X, Y }, M) ∪ An +(S′, M) = An +({X, Y }, M),
+
+> 3Some authors use the term “Markov blanket” without minimality and reserve “Markov boundary” for the minimal set.
+
+16 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Lemma 1 implies that X and Y are not separated by S′ in (M[An +({X, Y }, M)]) a. Thus, there exists a path π between 
+
+X and Y in (M[An +({X, Y }, M)]) a such that no non-endpoint vertex of π lies in S′. Every non-endpoint vertex of π is contained in An( {X, Y }, M), and S′ = An( {X, Y }, M) ∩ S. Hence, no non-endpoint vertex of π lies in S.Now consider an arbitrary subset Z ⊆ S \ { X, Y }. Because the same path π also exists in each augmented graph 
+
+(M[An +({X, Y } ∪ Z, M)]) a, the vertices X and Y are not separated by Z in any such graph. Applying Lemma 1 again, we conclude that X and Y are not m-separated by Z in M. The other direction is straightforward. This completes the proof. 
+
+Lemma 3. If π is a path m-connecting X and Y given Z in a MAG M, then every vertex on π is in An +({X, Y } ∪ Z, M).Proof of Lemma 3. This is a direct consequence of Lemma 3.13 in Richardson & Spirtes (2002) 
+
+Lemma 4. Suppose that π is a path that connects two non-adjacent vertices X and Y in a MAG M. If π is not contained completely in An +({X, Y }, M), then π is m-separated by any subset of An( {X, Y }, M).Proof of Lemma 4. Since π is not contained completely in An +({X, Y }, M) and has length |π| > 1, there exists a vertex 
+
+V on π such that 
+
+V /∈ An +({X, Y }, M).
+
+Let Z ⊆ An( {X, Y }, M) be arbitrary. We will show that π is not m-connecting X and Y given Z.First note that in a MAG M, An( ·, M) is closed under taking ancestors, so in particular 
+
+An(An( {X, Y }, M), M) = An( {X, Y }, M).
+
+Because Z ⊆ An( {X, Y }, M), monotonicity of An( ·, M) implies 
+
+An( Z, M) ⊆ An(An( {X, Y }, M), M) = An( {X, Y }, M).
+
+Therefore, 
+
+An +({X, Y } ∪ Z, M) = An +({X, Y }, M).
+
+By construction, the vertex V satisfies 
+
+V /∈ An +({X, Y }, M) = An +({X, Y } ∪ Z, M).
+
+Consequently, by Lemma 3, π cannot be m-connecting X and Y given Z. Thus, π is m-separated by any subset of 
+
+An( {X, Y }, M).
+
+B.2. Proof of Theorem 1 
+
+Proof of Theorem 1. Suppose X and Y are m-separated by a subset of A ∪ B ∪ C. By Lemma 2, they are m-separated by 
+
+Z = An( {X, Y }, M) ∩ (A ∪ B ∪ C).
+
+Define 
+
+S = An( {X, Y }, M) ∩ (A ∪ C).
+
+We will show that X and Y are m-separated by S. Consider an arbitrary path π between X and Y .
+
+Case 1: If π is not contained completely in An +({X, Y }, M), then by Lemma 4, π is m-separated by any subset of 
+
+An( {X, Y }, M), including S.
+
+Case 2: Then all vertices on π lie in An +({X, Y }, M). Suppose π is not m-separated by S. Since Z m-separates π
+
+and S ⊆ Z, there must be at least one vertex V ∈ { π ∩ (Z \ S)} ⊆ B. Let V be the closest such vertex to X along 
+
+π. Then the subpath π(X, V ) is also not m-separated by S. Since all non-endpoint vertices on π(X, V ) are not in B,by π(X, V ) ⊆ π ⊆ An( {X, Y }, M) and the definition of S, all non-endpoint vertices on π(X, V ) belong to S. Thus 
+
+π(X, V ) m-connects X and V given S, and therefore also given C ∪ S. However, the condition A ⊥⊥ B | C, implies 
+
+{X} ∪ (S ∩ A) ⊥⊥ B | C for any B ∈ B. Furthermore, we have X ⊥⊥ V | C ∪ (S ∩ A), since S ∩ A ⊆ S, then 17 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+X ⊥⊥ V | C ∪ S. Which contradicts the existence of the m-connecting subpath π(X, V ) given C ∪ S. Hence π must be m-separated by S.In conclusion, there is a subset of A ∪ C that m-separates X and Y . The other direction is straightforward. The proof is complete. 
+
+B.3. Proof of Theorem 2 Lemma 5. Let X and Y be two non-adjacent vertices in a MAG. Then X and Y are m-separated by a vertex set Z if and only if every sequence p = ⟨X, . . . , Y ⟩ connecting X and Y satisfies at least one of the following conditions: (i) p contains a non-collider that is in Z; or (ii) p contains a collider that is not in Z and whose descendants are also not in Z.Proof of Lemma 5. Suppose there exists a sequence connecting X and Y that violates both conditions (i) and (ii). Consider a shortest such sequence. It is straightforward to show that this sequence is a path. By construction, this path is not blocked by Z and therefore is not m-separated. Hence, X and Y are not m-separated by Z. The converse direction follows directly from the definition of m-separation. 
+
+Proof of Theorem 2. If X and Y are m-separated by a subset of A ∪ C or by a subset of B ∪ C, then they are m-separated by a subset of A ∪ B ∪ C. We prove the other direction. Suppose X and Y are m-separated by a subset of A ∪ B ∪ C. By Lemma 2, they are m-separated by Z = An( {X, Y }, M) ∩{A ∪ B ∪ C}. Without loss of generality, assume that X is not an ancestor of Y in M, otherwise we can swap the roles of 
+
+X and Y in the following proof. Let S1 = An( {X, Y }, M) ∩ { A ∪ C} and S2 = An( {X, Y }, M) ∩ { B ∪ C}. We will show that X and Y are m-separated by either S1 or S2. That is, there is not a path π1 connecting X and Y in {A ∪ C} not m-separated by S1 and not a path π2 connecting X and Y in {B ∪ C} not m-separated by S2.If πi is not contained completely in An +({X, Y }, M), then by Lemma 4, πi is m-separated by any subset of 
+
+An( {X, Y }, M), including S1 and S2.If all vertices on πi lie in An +({X, Y }, M), suppose that π1 cannot be m-separated by S1 and π2 cannot be m-separated by S2. Since Z = S1 ∪ S2 can m-separate π1 and π2, there must be one vertex V1 ∈ { π1 ∩ (Z \ S1)} ⊆ B and one vertex 
+
+V2 ∈ { π2 ∩ (Z \ S2)} ⊆ A. Let V1 and V2 be the closest such vertices to X along π1 and π2, respectively. Then the subpaths π1(X, V 1) and π2(X, V 2) are also not m-separated by S1 and S2, respectively. Connecting these two paths at X,forms a sequence p = ⟨V1, . . . , X, . . . , V 2⟩ between V1 ∈ B and V2 ∈ A.For any non-collider vertex on p, since S1 not m-separates π(X, V 1), thus this vertex cannot be in S1 and therefore not in C.Similarly, the non-collider vertices on π(X, V 2) cannot be in C. Hence, no non-collider vertex on p is in C. For any collider vertex on π(X, V 1)/π(X, V 2), since S1/S2 not m-separates π(X, V 1)/π(X, V 2), thus this vertex or its descendant must be in 
+
+S1/S2. Since these vertices are in An( {X, Y }, M), then every such vertex’s descendants must include X or Y , which are in C. Hence, all collider vertcies on π(X, V 1)/π(X, V 2) itself or its descendants are in C.Now we show that vertex X is also a collider on p. Let Q1 be the vertex adjacent to X on π1(X, V 1) and Q2 be the vertex adjacent to X on π2(X, V 2). And Q1/Q2 must be an ancestor of X or Y , since π1(X, V 1)/π2(X, V 2) is contained completely in An +({X, Y }, M). If the edge between X and Q1 is out of X, by assuming no selection bias, it will be 
+
+X → Q1, then Q1 must be an ancestor of Y . Which contradicts the assumption that X is not an ancestor of Y . Thus, the edge between X and Q1 must be into X. Similarly, the edge between X and Q2 must be into X. Therefore, X is a collider on p. And since X ∈ C, then X or its descendants are in C. Hence, all collider vertcies on p itself or its descendants are in C but no non-collider vertex on p is in C. By Lemma 5, V1 and V2 are not m-separated by C, which contradicts the condition A ⊥⊥ B | C. Thus, either π1 is m-separated by S1 or π2 is m-separated by S2. This completes the proof. 18 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+B.4. Proof of Theorem 3 
+
+Proof of Theorem 3. Suppose (X, Y ) is non-adjacent in LK. Then by definition, X and Y are m-separated by a subset of 
+
+K. If X ∈ A/X ∈ B, and Y ∈ A ∪ C/Y ∈ B ∪ C, by Theorem 1, X and Y are m-separated by a subset of A ∪ C/B ∪ C.If X, Y ∈ C, by Theorem 2, X and Y are m-separated by a subset of A ∪ C or by a subset of B ∪ C. Therefore, (X, Y ) is non-adjacent in either LA∪C or LB∪C. Suppose that (X, Y ) are adjacent in LK. Then, by Theorems 1 and 2, they are also adjacent in either LA∪C or LB∪C, or in both. This completes the proof. 
+
+B.5. Proof of Propositions 1 to 3 Lemma 6. Let G = ( V, E) be an undirected graph with vertex set V and edge set E. Let G′ = ( S, E′) be a subgraph of G, where S ⊆ V, E′ ⊆ E, and every edge in E′ has both endpoints in S. For any three pairwise disjoint vertex sets 
+
+X, Y, Z ⊆ S, if X and Y are separated by Z in G, then X and Y are also separated by Z in G′.Proof of Lemma 6. Suppose that X and Y are not separated by Z in the subgraph G′. Then there exists a path π in G′
+
+connecting a vertex in X to a vertex in Y such that no vertex on π belongs to Z. Since G′ is a subgraph of G, the same path 
+
+π also exists in G. This contradicts the assumption that X and Y are separated by Z in G. Therefore, X and Y must be separated by Z in the subgraph G′.
+
+Lemma 7. Let M be a MAG over O, and let S ⊆ O be a subset of vertices. Denote by (M[S]) a the augmented graph of the induced subgraph M[S], and by (M)a[S] the induced subgraph of the global augmented graph (M)a restricted to S.Then, 
+
+(M[S]) a ⊆ (M)a[S].
+
+That is, every edge in (M[S]) a is also present in (M)a[S].Proof. Suppose that there exists an edge ⟨X, Y ⟩ in (M[S]) a. By the definition of the augmented graph, in the induced subgraph M[S], the vertices X and Y are either (i) adjacent, or (ii) connected by a collider path π = ⟨X = V0, V 1, . . . , V n =
+
+Y ⟩, where Vi ∈ S for all 0 ≤ i ≤ n.• If X and Y are adjacent in M[S], then they are also adjacent in the global graph M.• If X and Y are connected by a collider path π in M[S], then the same collider path π also exists in the global graph 
+
+M.In both cases, X and Y are collider-connected in M, which implies that the edge ⟨X, Y ⟩ is present in the global augmented graph (M)a. Since X, Y ∈ S, this edge is preserved in the induced subgraph (M)a[S]. Hence, (M[S]) a ⊆ (M)a[S].
+
+Remark 3. It is important to note that the converse of Lemma 7 does not generally hold, i.e., 
+
+(M)a[S]̸ ⊆ (M[S]) a.
+
+To see this, consider the simple MAG M = X → Z ← Y and let S = {X, Y }. The global augmented graph (M)a
+
+contains the undirected edges X − Z − Y as well as X − Y , and hence (M)a[S] consists of the single edge X − Y . In contrast, the induced subgraph M[S] contains no edges, and therefore its augmented graph (M[S]) a also has no edges. Thus, the edge X − Y appears in (M)a[S] but not in (M[S]) a, implying that 
+
+(M)a[S]̸ = ( M[S]) a.
+
+Nevertheless, this discrepancy does not affect our subsequent results. Proof of Proposition 1. We first show that (M)a is an undirected independence graph of M. Let X, Y, Z ⊆ O be three pairwise disjoint vertex sets such that X and Y are separated by Z in (M)a. Define S = X ∪ Y ∪ Z. By Lemma 7, the augmented graph (M[An +(S, M)]) a is a subgraph of (M)a. Applying Lemma 6, it follows that X and Y are also separated by Z in (M[An +(S, M)]) a. Then, by Lemma 1, X and Y are m-separated by Z in M. Therefore, (M)a is an undirected independence graph of M.19 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Next, we establish the minimality of (M)a. Suppose that removing an edge from (M)a yields a graph that is still an undirected independence graph of M. Let ⟨X, Y ⟩ denote the removed edge, and let Z = O \ { X, Y }. Since X and Y are collider-connected in M, they are not m-separated given Z. However, after removing the edge ⟨X, Y ⟩, the vertices X and 
+
+Y become separated by Z in the resulting undirected graph, which contradicts the assumption that the graph remains an undirected independence graph of M. Hence, (M)a is the minimal undirected independence graph of M.
+
+Proof of Proposition 2. By definition of the augmented graph, Y is adjacent to X in (M)a if and only if X and Y are collider-connected in M. By Property 2, collider-connectedness between X and Y is equivalent to Y belonging to the Markov blanket of X in M. The claim therefore follows. 
+
+Lemma 8. (Mokhtarian et al., 2025; Richardson & Spirtes, 2002) Let M be a MAG over O, and let S ⊆ O, and MS be the marginal MAG over S. For any three disjoint sets of vertices X, Y, Z ⊆ S, X and Y are m-separated by Z in MS if and only if X and Y are m-separated by Z in M.Proof of Proposition 3. By construction, the output GK of Algorithm 1 is derived from the Markov blankets of variables within K. Thus, we have GK = ( MK)a by Proposition 2. We first prove that (MK)a is an undirected independence graph of M relative to K. For any three disjoint sets of vertices X, Y, Z ⊆ K, if X and Y are separated by Z in (MK)a, then 
+
+X and Y are m-separated by Z in MK by Proposition 1. By Lemma 8, X and Y are also m-separated by Z in M. Thus, 
+
+(MK)a is an undirected independence graph of M relative to K.Then, we prove that (MK)a is a minimal undirected independence graph of M relative to K. Assume the resulting graph that removed an edge ⟨X, Y ⟩ in (MK)a is still an undirected independence graph of M relative to K. Let Z = K \ { X, Y }.In the resulting graph, X and Y are separated by Z. However, in MK, X and Y are not m-separated by Z since X is in the Markov blanket of Y in MK by Proposition 2, i.e., they are collider connected in MK. By Lemma 8, X and Y are also not m-separated by Z in M. This contradicts the assumption that the resulting graph is still an undirected independence graph of M relative to K. Therefore, (MK)a is a minimal undirected independence graph of M relative to K.
+
+B.6. Proof of Theorem 4 
+
+Proof of Theorem 4. The proof proceeds in two steps: (1) we show that D ICOLA recovers the correct global skeleton over 
+
+O, and (2) we show that the subsequent orientation phase yields the correct PAG representing the Markov equivalence class of the underlying MAG. 
+
+Soundness and Completeness of the Skeleton. We establish the soundness and completeness of the skeleton by analyzing each stage of D ICOLA.
+
+Top-down decomposition. By Proposition 3, all tripartitions (A, B, C) returned by F IND DECOMPOSITION across the decomposition tree satisfy A ⊥⊥ B | C in the underlying MAG. Therefore, each recursive decomposition performed by DICOLA is sound. 
+
+Local skeleton learning. Consider a leaf problem of the decomposition tree corresponding to a subset K ⊆ O. By construction, no valid tripartition exists for K, and D ICOLA directly invokes the base structure learning algorithm (e.g., FCI) on K. Since the base algorithm is assumed to be sound and complete, it correctly recovers the local skeleton over K.That is, an undirected edge between X, Y ∈ K is present in the local skeleton if and only if there exists no subset Z ⊆ K
+
+such that X ⊥⊥ Y | Z.
+
+Bottom-up merging. Since the local skeletons at the leaf problems are correct, it follows from Theorem 3 that the merged skeleton at each internal problem is also correct. In particular, for a parent problem with variable set A ∪ B ∪ C, the merged skeleton LA∪B∪C contains an undirected edge between X and Y if and only if there exists no subset Z ⊆ A ∪ B ∪ C such that X ⊥⊥ Y | Z.By merging the local skeletons at the leaf problems, the final merged skeleton at the root O coincides with the true skeleton of the underlying MAG. 
+
+Soundness and Completeness of Orientation. After the skeleton recovery phase, D ICOLA has obtained the correct global skeleton LO. Moreover, by Theorems 1 to 3, all non-adjacent vertex pairs identified during local skeleton learning are associated with correct separating sets. In addition, by Proposition 3, all non-adjacent vertex pairs identified during the decomposition phase also have correct separating sets. 20 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+Given that (i) the global skeleton LO is correct, and (ii) every non-adjacent pair of vertices in LO is associated with a correct separating set, the standard orientation rules for PAGs (Zhang, 2008b) are guaranteed to correctly identify all invariant edge marks. Consequently, D ICOLA outputs the PAG corresponding to the Markov equivalence class of the underlying MAG. 
+
+C. Supplementary Experiments 
+
+All experiments are conducted on a machine equipped with an Intel Core i9–14900K CPU and 64 GB of RAM. For Markov Blanket discovery, we employ the Total Conditioning (TC) algorithm (Pellet & Elisseeff, 2008b) as implemented in the rcd 
+
+package (Mokhtarian et al., 2025) 4. Subsequently, to identify vertex separators within the UIG, we utilize the junction tree routines provided by the NetworkX library (Hagberg et al., 2008). For conditional independence testing, we apply the Fisher Z-transformation (Fisher, 1915) with a significance level of α = 0 .01 across all methods. Our source code is included in the supplementary materials. All experimental results are summarized in Table 2, with corresponding figures presented below. Marginalizing latent variables may substantially densify the induced MAGs relative to the underlying generating DAGs (Richardson & Spirtes, 2002; Zhang, 2008b); therefore, we also report the average degrees of the induced MAGs in Table 2. More details of those real-world structures can be found at https://www.bnlearn.com/bnrepository/ . 
+
+> Table 2. Summary of experimental settings and corresponding results.
+
+Random Structures Underlying Structure |V| |L| Avg. Degree in DAGs Avg. Degree in Induced MAGs Corresponding Results 
+
+ER (30 , 3) graphs 30 3 3.00 3.81 Figure 5 ER (30 , 5) graphs 30 3 5.00 7.28 Figure 6 ER (50 , 3) graphs 50 5 3.00 3.83 Figure 7 ER (50 , 3) graphs 50 7 3.00 4.31 Figure 8 
+
+Real-World Structures Underlying Structure |V| |L| Avg. Degree in DAGs Avg. Degree in Induced MAGs Corresponding Results 
+
+MILDEW network 36 3 2.63 2.73 Figure 9 BARLEY network 48 4 3.50 4.03 Figure 10 ANDES network 223 10 3.03 3.53 Figure 11 LINK network 724 50 3.11 3.21 Figure 12 
+
+> 4The framework can also be combined with more recent MB discovery methods designed for high-dimensional settings, such as STMB (Gao & Ji, 2016), EAMB (Guo et al., 2022), and CFS-MI (Ling et al., 2022), as well as methods that use smaller conditioning sets, such as MMMB (Tsamardinos et al., 2003) and HITON-MB (Aliferis et al., 2003).
+
+21 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+3
+
+4
+
+5
+
+> Number of CI Tests
+
+×10 3 FCI 
+
+2000 3000 4000 
+
+2.5 
+
+3.0 
+
+×10 3 RFCI 
+
+2000 3000 4000 
+
+5
+
+6
+
+×10 3 FCI +
+
+2000 3000 4000 
+
+6
+
+8
+
+×10 3 L-MARVEL 
+
+2000 3000 4000 
+
+1.0 
+
+1.2 
+
+1.4 
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+0.2 
+
+0.4 
+
+0.6 
+
+> ln(Time)
+
+2000 3000 4000 
+
+−1.5 
+
+−1.0 
+
+−0.5 
+
+2000 3000 4000 
+
+−1.0 
+
+−0.8 
+
+−0.6 
+
+−0.4 
+
+2000 3000 4000 
+
+1.5 
+
+2.0 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+4.5 
+
+5.0 
+
+2000 3000 4000 
+
+0.86 
+
+0.87 
+
+0.88 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.86 
+
+0.87 
+
+0.88 
+
+0.89 
+
+2000 3000 4000 
+
+0.86 
+
+0.87 
+
+0.88 
+
+2000 3000 4000 
+
+0.87 
+
+0.88 
+
+0.89 
+
+0.90 
+
+0.91 
+
+2000 3000 4000 
+
+0.83 
+
+0.84 
+
+0.85 
+
+0.86 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+> Precision
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.80 
+
+0.82 
+
+0.84 
+
+0.86 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.78 
+
+0.80 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.78 
+
+0.80 
+
+0.82 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.78 
+
+0.80 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.86 
+
+0.88 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 5. Performance on ER(30, 3) graphs with 3 latent variables. 
+
+22 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+0.7 
+
+0.8 
+
+0.9 
+
+1.0 
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+5
+
+6
+
+7
+
+×10 3 RFCI 
+
+2000 3000 4000 
+
+1.2 
+
+1.4 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+2.5 
+
+5.0 
+
+7.5 
+
+×10 5 L-MARVEL 
+
+2000 3000 4000 
+
+2.50 
+
+2.75 
+
+3.00 
+
+3.25 
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+−0.25 
+
+0.00 
+
+0.25 
+
+> ln(Time)
+
+2000 3000 4000 
+
+−0.75 
+
+−0.50 
+
+−0.25 
+
+0.00 
+
+2000 3000 4000 
+
+−0.4 
+
+−0.2 
+
+2000 3000 4000 
+
+5.0 
+
+5.5 
+
+6.0 
+
+6.5 
+
+2000 3000 4000 
+
+3
+
+4
+
+2000 3000 4000 
+
+0.60 
+
+0.62 
+
+0.64 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.60 
+
+0.62 
+
+0.64 
+
+2000 3000 4000 
+
+0.59 
+
+0.60 
+
+0.61 
+
+2000 3000 4000 
+
+0.62 
+
+0.63 
+
+2000 3000 4000 
+
+0.62 
+
+0.64 
+
+0.66 
+
+2000 3000 4000 
+
+0.88 
+
+0.90 
+
+0.92 
+
+0.94 
+
+> Precision
+
+2000 3000 4000 
+
+0.88 
+
+0.90 
+
+0.92 
+
+0.94 
+
+2000 3000 4000 
+
+0.88 
+
+0.90 
+
+0.92 
+
+0.94 
+
+2000 3000 4000 
+
+0.96 
+
+0.98 
+
+1.00 
+
+2000 3000 4000 
+
+0.55 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.44 
+
+0.46 
+
+0.48 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.46 
+
+0.48 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.44 
+
+0.45 
+
+0.46 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.46 
+
+0.47 
+
+0.48 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.64 
+
+0.66 
+
+0.68 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 6. Performance on ER(30, 5) graphs with 3 latent variables. 
+
+23 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+1.0 
+
+1.5 
+
+2.0 
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+6
+
+7
+
+8 ×10 3 RFCI 
+
+2000 3000 4000 
+
+1.0 
+
+1.5 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+2
+
+3
+
+4
+
+×10 4 L-MARVEL 
+
+2000 3000 4000 
+
+3
+
+4
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+1.2 
+
+1.4 
+
+1.6 
+
+> ln(Time)
+
+2000 3000 4000 
+
+0.8 
+
+1.0 
+
+1.2 
+
+2000 3000 4000 
+
+−0.50 
+
+−0.25 
+
+0.00 
+
+0.25 
+
+2000 3000 4000 
+
+3.0 
+
+3.5 
+
+4.0 
+
+2000 3000 4000 
+
+5.0 
+
+5.5 
+
+6.0 
+
+2000 3000 4000 
+
+0.87 
+
+0.88 
+
+0.89 
+
+0.90 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.87 
+
+0.88 
+
+0.89 
+
+0.90 
+
+2000 3000 4000 
+
+0.88 
+
+0.89 
+
+0.90 
+
+2000 3000 4000 
+
+0.90 
+
+0.92 
+
+0.94 
+
+2000 3000 4000 
+
+0.84 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+> Precision
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.80 
+
+0.82 
+
+0.84 
+
+0.86 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.80 
+
+0.81 
+
+0.82 
+
+0.83 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.81 
+
+0.82 
+
+0.83 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.80 
+
+0.81 
+
+0.82 
+
+0.83 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.85 
+
+0.86 
+
+0.87 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.88 
+
+0.90 
+
+0.92 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 7. Performance on ER(50, 3) graphs with 5 latent variables. 
+
+24 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+1
+
+2
+
+3
+
+4
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+6
+
+8
+
+×10 3 RFCI 
+
+2000 3000 4000 
+
+0.5 
+
+1.0 
+
+1.5 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+0.5 
+
+1.0 
+
+×10 5 L-MARVEL 
+
+2000 3000 4000 
+
+2
+
+3
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+0
+
+1
+
+2
+
+> ln(Time)
+
+2000 3000 4000 
+
+−0.5 
+
+0.0 
+
+0.5 
+
+1.0 
+
+2000 3000 4000 
+
+0.0 
+
+0.2 
+
+0.4 
+
+2000 3000 4000 
+
+3
+
+4
+
+5
+
+2000 3000 4000 
+
+6.0 
+
+6.5 
+
+2000 3000 4000 
+
+0.85 
+
+0.86 
+
+0.87 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.85 
+
+0.86 
+
+0.87 
+
+2000 3000 4000 
+
+0.85 
+
+0.86 
+
+0.87 
+
+0.88 
+
+2000 3000 4000 
+
+0.86 
+
+0.88 
+
+0.90 
+
+2000 3000 4000 
+
+0.83 
+
+0.84 
+
+0.85 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+> Precision
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.78 
+
+0.81 
+
+0.84 
+
+0.87 
+
+0.90 
+
+0.93 
+
+0.96 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.76 
+
+0.78 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.76 
+
+0.78 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.76 
+
+0.78 
+
+0.80 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.79 
+
+0.80 
+
+0.81 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.80 
+
+0.82 
+
+0.84 
+
+0.86 
+
+0.88 
+
+0.90 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 8. Performance on ER(50, 3) graphs with 7 latent variables. 
+
+25 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+3
+
+4
+
+5
+
+6
+
+> Number of CI Tests
+
+×10 3 FCI 
+
+2000 3000 4000 
+
+3
+
+4
+
+×10 3 RFCI 
+
+2000 3000 4000 
+
+0.6 
+
+0.8 
+
+1.0 
+
+×10 4 FCI +
+
+2000 3000 4000 
+
+0.6 
+
+0.8 
+
+1.0 
+
+×10 3 L-MARVEL 
+
+2000 3000 4000 
+
+2.0 
+
+2.5 
+
+3.0 
+
+×10 3 ICD 
+
+2000 3000 4000 
+
+−1.0 
+
+−0.8 
+
+−0.6 
+
+> ln(Time)
+
+2000 3000 4000 
+
+−1.5 
+
+−1.0 
+
+2000 3000 4000 
+
+−1.0 
+
+−0.5 
+
+2000 3000 4000 
+
+−1.25 
+
+−1.00 
+
+−0.75 
+
+2000 3000 4000 
+
+4
+
+6
+
+2000 3000 4000 
+
+0.88 
+
+0.90 
+
+0.92 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.88 
+
+0.90 
+
+0.92 
+
+2000 3000 4000 
+
+0.89 
+
+0.90 
+
+0.91 
+
+2000 3000 4000 
+
+0.90 
+
+0.92 
+
+0.94 
+
+0.96 
+
+0.98 
+
+1.00 
+
+2000 3000 4000 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+2000 3000 4000 
+
+0.87 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+> Precision
+
+2000 3000 4000 
+
+0.87 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.87 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.87 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.5 
+
+0.6 
+
+0.7 
+
+0.8 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.86 
+
+0.88 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.96 
+
+0.98 
+
+1.00 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.90 
+
+0.91 
+
+0.92 
+
+0.93 
+
+0.94 
+
+0.95 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 9. Performance on MILDEW network with 3 latent variables. 
+
+26 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+0.75 
+
+1.00 
+
+1.25 
+
+1.50 
+
+> Number of CI Tests
+
+×10 4 FCI 
+
+2000 3000 4000 
+
+0.8 
+
+1.0 
+
+1.2 
+
+×10 4 RFCI 
+
+2000 3000 4000 
+
+1.5 
+
+2.0 
+
+2.5 
+
+3.0 ×10 4 FCI +
+
+2000 3000 4000 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+×10 4 L-MARVEL 
+
+2000 3000 4000 
+
+4
+
+5
+
+6
+
+7 ×10 3 ICD 
+
+2000 3000 4000 
+
+0.2 
+
+0.4 
+
+> ln(Time)
+
+2000 3000 4000 
+
+0.0 
+
+0.2 
+
+2000 3000 4000 
+
+−0.5 
+
+0.0 
+
+0.5 
+
+2000 3000 4000 
+
+1.5 
+
+2.0 
+
+2.5 
+
+2000 3000 4000 
+
+4.5 
+
+5.0 
+
+5.5 
+
+2000 3000 4000 
+
+0.74 
+
+0.75 
+
+0.76 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.74 
+
+0.75 
+
+0.76 
+
+2000 3000 4000 
+
+0.75 
+
+0.76 
+
+2000 3000 4000 
+
+0.90 
+
+0.91 
+
+0.92 
+
+2000 3000 4000 
+
+0.50 
+
+0.55 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+2000 3000 4000 
+
+0.80 
+
+0.84 
+
+0.88 
+
+0.92 
+
+0.96 
+
+1.00 
+
+> Precision
+
+2000 3000 4000 
+
+0.80 
+
+0.84 
+
+0.88 
+
+0.92 
+
+0.96 
+
+1.00 
+
+2000 3000 4000 
+
+0.80 
+
+0.84 
+
+0.88 
+
+0.92 
+
+0.96 
+
+1.00 
+
+2000 3000 4000 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00 
+
+2000 3000 4000 
+
+0.4 
+
+0.5 
+
+0.6 
+
+0.7 
+
+0.8 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.64 
+
+0.66 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.66 
+
+0.68 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.64 
+
+0.65 
+
+0.66 
+
+0.67 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.84 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.80 
+
+0.82 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 10. Performance on BARLEY network with 4 latent variables. 
+
+27 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+1
+
+2
+
+3
+
+> Number of CI Tests
+
+×10 5 FCI 
+
+2000 3000 4000 
+
+1.0 
+
+1.5 
+
+×10 5 RFCI 
+
+2000 3000 4000 
+
+2
+
+4
+
+×10 5 FCI +
+
+2000 3000 4000 
+
+1
+
+2
+
+×10 6 L-MARVEL 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+4.5 ×10 4 ICD 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+> ln(Time)
+
+2000 3000 4000 
+
+3.25 
+
+3.50 
+
+3.75 
+
+4.00 
+
+2000 3000 4000 
+
+1.5 
+
+2.0 
+
+2.5 
+
+2000 3000 4000 
+
+6
+
+7
+
+2000 3000 4000 
+
+7.1 
+
+7.2 
+
+7.3 
+
+2000 3000 4000 
+
+0.82 
+
+0.84 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.81 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+0.81 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+0.84 
+
+0.88 
+
+0.92 
+
+2000 3000 4000 
+
+0.74 
+
+0.76 
+
+0.78 
+
+0.80 
+
+2000 3000 4000 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+> Precision
+
+2000 3000 4000 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.90 
+
+0.93 
+
+0.96 
+
+0.99 
+
+2000 3000 4000 
+
+0.69 
+
+0.72 
+
+0.75 
+
+0.78 
+
+0.81 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.74 
+
+0.76 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.74 
+
+0.76 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.74 
+
+0.76 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.80 
+
+0.85 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.82 
+
+0.84 
+
+0.86 
+
+0.88 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 11. Performance on ANDES network with 10 latent variables. 
+
+28 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 2000 3000 4000 
+
+1
+
+2
+
+> Number of CI Tests
+
+×10 6 FCI 
+
+2000 3000 4000 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 
+
+×10 6 RFCI 
+
+2000 3000 4000 
+
+2
+
+4
+
+×10 6 FCI +
+
+2000 3000 4000 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 ×10 5 L-MARVEL 
+
+2000 3000 4000 
+
+0.0 
+
+0.5 
+
+1.0 
+
+1.5 
+
+2.0 ×10 5 ICD 
+
+2000 3000 4000 
+
+5.6 
+
+5.8 
+
+6.0 
+
+> ln(Time)
+
+2000 3000 4000 
+
+4.5 
+
+5.0 
+
+5.5 
+
+2000 3000 4000 
+
+3.5 
+
+4.0 
+
+4.5 
+
+5.0 
+
+2000 3000 4000 
+
+4.0 
+
+4.5 
+
+5.0 
+
+5.5 
+
+6.0 
+
+2000 3000 4000 
+
+6.0 
+
+6.5 
+
+7.0 
+
+7.5 
+
+8.0 
+
+2000 3000 4000 
+
+0.80 
+
+0.85 
+
+0.90 
+
+> F1 Score
+
+2000 3000 4000 
+
+0.78 
+
+0.80 
+
+0.82 
+
+0.84 
+
+2000 3000 4000 
+
+0.82 
+
+0.84 
+
+0.86 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+2000 3000 4000 
+
+0.82 
+
+0.84 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+> Precision
+
+2000 3000 4000 
+
+0.75 
+
+0.80 
+
+2000 3000 4000 
+
+0.84 
+
+0.86 
+
+0.88 
+
+2000 3000 4000 
+
+0.95 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+1.00 
+
+2000 3000 4000 
+
+0.75 
+
+0.78 
+
+0.81 
+
+0.84 
+
+0.87 
+
+0.90 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.82 
+
+0.84 
+
+0.86 
+
+0.88 
+
+> Recall
+
+2000 3000 4000 
+
+Sample Size 
+
+0.82 
+
+0.84 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.81 
+
+0.82 
+
+0.83 
+
+0.84 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.96 
+
+0.97 
+
+0.98 
+
+0.99 
+
+2000 3000 4000 
+
+Sample Size 
+
+0.92 
+
+0.93 
+
+0.94 
+
+0.95 
+
+DiCoLa+FCI 
+
+FCI 
+
+DiCoLa+RFCI 
+
+RFCI 
+
+DiCoLa+FCI +
+
+FCI +
+
+DiCoLa+L-MARVEL 
+
+L-MARVEL 
+
+DiCoLa+ICD 
+
+ICD 
+
+Figure 12. Performance on LINK network with 50 latent variables. 
+
+29 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+D. Limitations and Discussion 
+
+We discuss the scope and limitations of D ICOLA from three perspectives. First, Appendix D.1 examines its performance on dense graphs. Second, Appendix D.2 discusses its relation to local causal structure learning-based methods, which address a different task. Third, Appendix D.3 clarifies its connection to methods for learning causal models with latent variables under additional assumptions. 
+
+D.1. Limitations under Dense Structures 
+
+The efficiency gain of D ICOLA is most pronounced on sparse or well-decomposable graphs. As discussed in the complexity analysis in Section 5.2, this gain stems from reducing the size of the largest leaf subproblem, denoted by kmax , relative to the full variable set size n. When useful separators exist, recursive decomposition splits the original problem into substantially smaller subproblems, leading to fewer conditional independence tests and lower runtime. In denser graphs, such separators become harder to identify, and the resulting subproblems become larger, making kmax closer to n. Thus, the computational benefit of D ICOLA gradually decreases, and in the extreme case where no valid tripartition can be found, D ICOLA simply falls back to the base structure learning algorithm on the full variable set. 
+
+Table 3. Average degrees of the induced MAGs for ER(40 , d ) graphs with 2 latent variables. 
+
+Underlying Structure |V| |L| Avg. Degree in DAGs Avg. Degree in Induced MAGs 
+
+ER (40 , 3) graphs 40 2 3.00 3.33 ER (40 , 4) graphs 40 2 4.00 4.83 ER (40 , 5) graphs 40 2 5.00 6.20 ER (40 , 6) graphs 40 2 6.00 7.83 3 4 5 6                             
+
+> Degree
+> 0.5
+> 1.0
+> 1.5
+> Number of CI Tests
+> ×10 4
+> 3456
+> Degree
+> −1.0
+> −0.5
+> 0.0
+> 0.5
+> ln(Time)
+> 3456
+> Degree
+> 0.80
+> 0.84
+> 0.88
+> 0.92
+> 0.96
+> 1.00
+> Precision
+> 3456
+> Degree
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Recall
+> 3456
+> Degree
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> F1 Score
+> FCI DiCoLa+FCI 3456
+> Degree
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> Number of CI Tests
+> ×10 4
+> 3456
+> Degree
+> −1.5
+> −1.0
+> −0.5
+> 0.0
+> ln(Time)
+> 3456
+> Degree
+> 0.80
+> 0.84
+> 0.88
+> 0.92
+> 0.96
+> 1.00
+> Precision
+> 3456
+> Degree
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Recall
+> 3456
+> Degree
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> F1 Score
+> RFCI DiCoLa+RFCI
+
+Figure 13. Performance on ER(40 , d ) graphs with 2 latent variables. 
+
+Importantly, this limitation affects the efficiency gain rather than the correctness of the framework. The soundness and completeness guarantees of D ICOLA remain valid whenever the guarantees of the base learner hold. To empirically examine this behavior, we conduct additional experiments using two classical constraint-based methods, FCI and RFCI, as base learners. Specifically, we evaluate them on ER(40 , d ) graphs with 2 latent variables and sample size 2000, where the average degree d of the underlying DAG varies from 3 to 6. Notably, marginalizing latent variables can make the induced MAGs noticeably denser than the generating DAGs (Richardson & Spirtes, 2002); the average degrees of the induced MAGs are reported in Table 3. The results in Figure 13 show a clear trend: as the induced MAG becomes denser, the computational gain of D ICOLA gradually decreases, while its structural accuracy remains comparable to that 30 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+of the corresponding base learner. For example, when using FCI as the base learner, the reduction in the number of CI tests decreases from 70% to 0.4% as d increases from 3 to 6. Similarly, when using RFCI as the base learner, the reduction decreases from 69% to 2.7% . These results confirm that D ICOLA is most beneficial on sparse or decomposable graphs and gradually approaches the behavior of the base learner on denser graphs. 
+
+D.2. Relation to Local Causal Structure Learning-Based Methods 
+
+We further discuss the relation between D ICOLA and local causal structure learning methods in the presence of latent variables. Local methods, such as MMB-by-MMB (Xie et al., 2024b), are designed to identify the local causal structure around a given target variable, e.g., its direct causes and direct effects. In contrast, D ICOLA is a recursive decomposition framework for global causal structure learning: it aims to recover the causal structure over the full observed variable set by decomposing the original problem into smaller subproblems and then integrating their outputs. Therefore, although the learned global structure can be used to extract the local structure of a target variable, D ICOLA is not specifically optimized for the local discovery task. To empirically examine this difference, we compare D ICOLA+FCI with FCI and MMB-by-MMB on the task of identifying the direct causes and direct effects of a target variable. The experiments are conducted on ER(50 , 3) graphs with 5 latent variables under different sample sizes. For each graph, we randomly choose target variables among vertices with relatively large adjacency sets. As shown in Table 4, D ICOLA+FCI substantially reduces the number of conditional independence tests and runtime compared with FCI, while maintaining comparable or slightly better structural accuracy. MMB-by-MMB achieves the best performance in this local discovery task, which is expected since it is specifically designed for local causal structure learning. In contrast, D ICOLA targets global structure learning and uses recursive decomposition to accelerate global constraint-based causal discovery. These results suggest that local methods are preferable when only the neighborhood of a prespecified target variable is needed, while adapting the decomposition principle of D ICOLA more directly to local causal structure learning is an interesting direction for future work.     
+
+> Table 4. Comparison with local causal structure learning on ER(50 ,3) graphs with 5 latent variables.
+
+Sample Size Algorithm CI Tests ↓ Time ↓ Precision ↑ Recall ↑ F1 ↑
+
+2000 DICOLA+FCI 2664.46 0.25 0.71 0.73 0.72 MMB-by-MMB 909.48 0.07 0.76 0.77 0.76 
+
+FCI 8623.34 0.54 0.70 0.73 0.71 3000 DICOLA+FCI 3164.88 0.29 0.75 0.76 0.75 MMB-by-MMB 1311.88 0.10 0.77 0.78 0.77 
+
+FCI 10089.20 0.62 0.72 0.73 0.72 4000 DICOLA+FCI 3421.24 0.30 0.73 0.79 0.75 MMB-by-MMB 1763.56 0.14 0.78 0.79 0.78 
+
+FCI 11742.28 0.72 0.71 0.74 0.72     
+
+> Note: ↑indicates that a higher value is better, while ↓indicates that a lower value is better. The best result in each group is highlighted in bold.
+
+We also note that local-graph-based acceleration methods, such as lFCI (Chen et al., 2023), are related to D ICOLA in that both aim to improve the efficiency of causal structure learning in the presence of latent variables. However, the two approaches exploit different sources of efficiency. lFCI accelerates FCI by restricting the search for separating sets to local graphs induced by short paths between variable pairs. It relies on additional locality assumptions, such as the underlying graph admits small local separators and that the relevant conditional dependencies can be determined locally; for maximally informative PAG recovery, it further requires a local discriminating-path assumption. In contrast, D ICOLA improves efficiency through recursive decomposition of the global problem and does not impose such local-graph assumptions on the underlying MAG. 
+
+D.3. Relation to Learning Causal Models with Latent Variables 
+
+We further clarify the relation between D ICOLA and methods for learning causal models with latent variables. D ICOLA
+
+follows the standard nonparametric constraint-based setting with latent variables, where the goal is to learn the causal structure among observed variables. It does not aim to explicitly recover the latent variables themselves. 31 A Recursive Decomposition Framework for Causal Structure Learning in the Presence of Latent Variables 
+
+This setup differs from methods that explicitly model or identify latent structures, or causal structures involving latent variables, under additional assumptions. For example, Squires et al. (2022) focus on causal structure discovery between clusters induced by latent factors, under a parametric framework and additional structural assumptions, such as unique latent-parent clusters and a bipartite observed-latent graph. Xie et al. (2020; 2024a) consider latent variable causal discovery in linear non-Gaussian models via the generalized independent noise condition. Dong et al. (2024) further consider a rank-based framework for latent linear causal models with causally related hidden variables, relying on covariance-rank information together with assumptions such as linearity and rank faithfulness. These methods can handle richer latent-variable structures, but their guarantees rely on specialized assumptions. In contrast, DICOLA is designed for general causal structure learning among observed variables in the presence of latent variables, without relying on these assumptions. Combining recursive decomposition with additional latent-variable modeling assumptions is an interesting direction for future work. 32

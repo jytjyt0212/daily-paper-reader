@@ -1,0 +1,2152 @@
+Title: Neural Information Causality
+
+URL Source: https://arxiv.org/pdf/2605.09316v1
+
+Published Time: Tue, 12 May 2026 01:21:11 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# Neural Information Causality 
+
+Jeongho Bang 1, 2, ∗ and Marcin Pawłowski 3, 4, †
+
+> 1
+
+Institute for Convergence Research and Education in Advanced Technology, Yonsei University, Seoul 03722, Republic of Korea 
+
+> 2
+
+Department of Quantum Information, Yonsei University, Incheon 21983, Republic of Korea 
+
+> 3
+
+International Centre for Theory of Quantum Technologies, University of Gda´ nsk, 80-308 Gda´ nsk, Poland 
+
+> 4
+
+Institute of Theoretical Physics and Astrophysics, Faculty of Mathematics, Physics and Informatics, University of Gda´ nsk, 80-308 Gda´ nsk, Poland 
+
+(Dated: May 12, 2026) Query-separated computation forces a representation to play an operational role: data are encoded before a query is known, and a later decoder can answer only through the intermediate interface. In this regime the representation functions as a message rather than merely as a feature map. We formalize this observation by em-bedding information causality (IC) into representation learning, obtaining a framework called neural information causality (Neural-IC). The revised formulation separates two logically distinct statements. First, every query-separated architecture induces a random-access communication experiment and obeys the embedding inequality 
+
+IN-RAC ≤ I(⃗a : H, B ). Second, any independently certified physical capacity bound on the interface, such as a hard m-bit alphabet, a finite-precision register, or a power-constrained noisy channel, implies IN-RAC ≤ CH .This separation avoids treating capacity as a post hoc definition and makes Neural-IC an operational diagnostic for query leakage, precision leakage, and episode-specific memory. We also provide an exact one-bit classical RAC benchmark, showing explicitly that the relevant quantum enhancement is not total information beyond the bottleneck, but fair query-conditioned access. For CHSH-type correlation layers, nested Neural-RAC protocols multiply correlation biases across depth; requiring stability of a one-bit bottleneck for arbitrary depth selects the Tsirelson threshold. We extend the analysis to asymmetric seed biases, to multi-capacity finite-depth phase diagrams, and to correlated data via a conditional information score. Controlled simulations, including straight-through binary bottlenecks and deliberately leaky ablations, verify that apparent violations are accounted for by broken query separation or undercounted capacity. 
+
+I. INTRODUCTION 
+
+Modern machine learning is built on representations: in-termediate variables that stand between raw data and task-specific decisions. Yet, in many of the most consequential architectures, representations are not merely features—they are interfaces constrained by causality. Whenever a system must commit to an internal code before a query is revealed and answer after the query is supplied, the representation be-comes the only causal conduit from past data to future an-swers. This “query-separated” regime is ubiquitous: it un-derlies memory-augmented networks and differentiable exter-nal memories, retrieval-augmented generation, and encoder– decoder pipelines where the query arrives at inference time rather than training time [1–4]. It is also the regime in which a hidden layer most literally behaves like a message. A remarkably similar causal structure appears in the foun-dations of quantum theory. Bell nonlocality shows that dis-tant parties can exhibit correlations that defy any local hidden-variable model [5, 6]. Quantum correlations, however, are not arbitrarily strong: for the CHSH scenario, they are capped by Tsirelson’s bound [7]. This numerical frontier has moti-vated a long search for physical principles that carve out the quantum set from the larger no-signaling polytope—a pro-gram now equipped with mature tools such as semidefinite relaxations and device-independent characterizations [8–10]. Among these principles, information causality (IC) is espe-  
+
+> ∗jbang@yonsei.ac.kr
+> †marcin.pawlowski@ug.edu.pl
+
+cially operational: it states that if Alice communicates m clas-sical bits to Bob, then Bob’s total information gain about Al-ice’s previously unknown data cannot exceed m [11]. IC is respected by classical and quantum physics, yet it is violated by post-quantum no-signaling correlations such as Popescu– Rohrlich boxes [12], whose existence would trivialize com-munication complexity [13, 14]. IC has also seen a recent revival as a computational tool for deriving nontrivial poly-nomial constraints that approximate quantum correlation sets beyond CHSH [15]. The goal of this study is to show that IC is not merely a principle about spacelike-separated parties. It can be internal-ized as a principle about representations in machine learning systems, provided the architecture is query-separated. In that regime an encoder and a decoder play the operational roles of Alice and Bob, while the representation is the only data-dependent causal carrier between them (see Fig. 1). The core question is therefore: how much information about a large database can a decoder access, across all possible random-access queries, through a finite-capacity interface? This ques-tion resonates with information-theoretic approaches to repre-sentation learning, most notably the information bottleneck principle and its variational instantiations [16–18]. At the same time, mutual-information narratives about deep net-works are subtle and sometimes contentious [19, 20]. Neural-IC is complementary: it does not aim to explain training dy-namics, but gives a task-conditional accounting rule dictated by causal separation. Our contribution is best understood as an operational em-bedding theorem rather than as a new proof of IC itself. We show that every query-separated representation-learning ar-chitecture induces a random-access communication experi-
+
+> arXiv:2605.09316v1 [quant-ph] 10 May 2026
+
+2(a) Information Causality      
+
+> (b) Deep Learning: Representation Learning
+> FIG. 1. Information causality (IC) and representation learning share a similar causal skeleton. (a) In the IC/RAC communication game, Alice compresses her data into a finite message of mbits; af-ter the message is sent, Bob can combine it with his (later-supplied) query to form an estimate. (b) A standard encoder–decoder pipeline has the identical structure inside a single model: the encoder com-mits to a bottleneck (hidden) representation of limited capacity be-fore the downstream query/task is revealed, and the decoder must answer using only that representation. This side-by-side view mo-tivates treating a hidden layer as a literal message: a representation is useful precisely insofar as it enables reliable random-access–style answers under a strict bottleneck.
+
+ment whose observable score is bounded by the informa-tion capacity of the representation. This turns IC into a di-agnostic principle for bottlenecked learning systems: if a small representation appears to support uniformly strong ran-dom access to a large database, then either the capacity has been undercounted, the query separation has been broken, or the assumed correlation resource is beyond ordinary classi-cal/quantum physics. Concretely, we introduce a framework of neural informa-tion causality (Neural-IC) with five ingredients: (i) a for-mal query-separated primitive, neural random access cod-ing (Neural-RAC); (ii) a theory-independent score IN-RAC 
+
+and an accuracy-to-information lower bound; (iii) a capacity-general bound IN-RAC ≤ CH , with the hard m-bit statement 
+
+IN-RAC ≤ m as a special case; (iv) a CHSH correlation layer whose nested composition yields the familiar IC amplifica-tion mechanism; and (v) a quantum realization showing that entanglement attains the maximal stable correlation strength allowed by this bottleneck accounting. We supplement the theory with closed-form numerical probes and finite-capacity sanity checks that visualize the subcritical, critical, and super-critical regimes. The broader significance of this formulation is that it re-frames IC from a constraint on nonlocal correlations alone into an operational stability criterion for query-separated rep-resentations. The same random-access primitive links three settings that are usually discussed separately: foundational limits on physical correlations, communication-complexity style access to distributed data, and capacity-controlled learn-ing architectures. In this sense, Neural-IC is not a new proof of the original IC principle; it is an embedding that makes IC testable inside representation-learning pipelines once the in-terface capacity is specified independently. This also clarifies the relation to the information bottleneck literature. Information bottleneck methods constrain or regu-larize representations statistically, often with the goal of un-derstanding generalization or training dynamics. Neural-IC instead asks a more operational question: after the representa-tion has been fixed before the query arrives, how much query-conditioned random access can the decoder certify from it? The answer depends on a physical or architectural capacity certificate for the interface, not on a post hoc interpretation of the observed score. This perspective is directly relevant to correlation-enhanced learning architectures. Quantum entanglement and other non-classical resources can be viewed as physically admissible correlation layers that change which queries a fixed bottle-neck can answer accurately [21–24]. Neural-IC then supplies a stress test: any claimed advantage that effectively turns a fi-nite representation into an oracle must be accounted for by an explicit capacity budget, an explicit relaxation of the causal architecture, or an explicitly post-quantum resource.  
+
+> II. PRELIMINARIES: INFORMATION CAUSALITY AND CHSH
+
+We recall only the ingredients needed later: the random-access communication task underlying information causality (IC), the minimal information-calculus assumptions used in the IC proof, and the CHSH game that supplies the correla-tion parameter. Throughout the paper, log denotes log 2 unless the natural logarithm is explicitly written as ln ; all informa-tion quantities are measured in bits, and ⊕ denotes addition modulo two.  
+
+> A. Distributed random access coding and information causality
+
+Definition 1 (Distributed random access coding (RAC)) . Fix 
+
+N ≥ 2 and a message length m ≥ 0. Alice receives N inde-pendent unbiased bits ⃗a := ( a 0, a 1, . . . , a N −1)T , ak ∈ { 0, 1}, (1) 
+
+and Bob receives an independent uniformly random index b ∈{0, . . . , N − 1}. Alice may send a classical message ⃗x ∈{0, 1}m, possibly using local randomness and pre-established correlations with Bob. Bob then outputs β ∈ { 0, 1} as a guess for ab. The conditional success probability for the Kth bit is 
+
+PK := Pr[ β = aK | b = K]. (2) 3
+
+Definition 2 (Theory-independent information score) . The RAC information score is the observable Shannon-mutual-information quantity 
+
+IRAC :=  
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : β | b = K). (3) 
+
+It depends only on the classical variables (⃗a, b, β ) and is therefore insensitive to whether the pre-established resource is classical, quantum, or more general. 
+
+Lemma 1 (Success probability lower-bounds mutual informa-tion) . Let A ∈ { 0, 1} be unbiased and let bA ∈ { 0, 1} be any estimate. If P := Pr[ bA = A], then 
+
+I(A : bA) ≥ 1 − h(P ), (4) 
+
+where h(p) := −p log p − (1 − p) log(1 − p) is the binary entropy. Proof. —Let E = A ⊕ bA be the error bit. Since A = bA ⊕ E,one has H(A | bA) ≤ H(E | bA) ≤ H(E) = h(P ). Because 
+
+A is unbiased, I(A : bA) = 1 − H(A | bA) ≥ 1 − h(P ).
+
+Theorem 1 (From RAC accuracy to information) . For inde-pendent unbiased database bits, every RAC protocol satisfies 
+
+IRAC ≥ N − 
+
+> N−1
+
+X
+
+> K=0
+
+h(PK ). (5) 
+
+Proof. —Condition on b = K and apply Lemma 1 to the bi-nary channel aK 7 → β. Summing over K gives Eq. (5). To state IC without committing to a particular physical the-ory, we use the standard axiomatic information calculus of Ref. [11], with two classical normalizations made explicit be-cause they will also be used in the neural proof. 
+
+Assumption 1 (Information calculus) . For every bipartite state of systems U, V admitted by the underlying theory, there is a symmetric nonnegative quantity I(U : V ) satisfying: • (i) Consistency: if U, V are classical registers, I(U :
+
+V ) is Shannon mutual information; • (ii) Product-state normalization: independently pre-pared systems satisfy I(U : V ) = 0 ;• (iii) Data processing: any local transformation V →
+
+V ′ obeys I(U : V ) ≥ I(U : V ′);• (iv) Chain rule: there is a nonnegative conditional mu-tual information such that 
+
+I(U : V W ) = I(U : W ) + I(U : V | W ); (6) 
+
+• (v) Classical self-conditioning: for a classical register 
+
+X, I(X : Y | X) = 0 and hence I(X : XY ) = H(X).
+
+Theorem 2 (Information causality as a necessary condi-tion) . Consider the RAC task of Definition 1, and assume the database ⃗a is independent of any pre-established resource. If Assumption 1 holds, then every protocol with an m-bit classi-cal message satisfies 
+
+IRAC ≤ m. (7) 
+
+Proof. —Let B be Bob’s share of the pre-established resource and ⃗x ∈ { 0, 1} m Alice’s message. By product-state normal-ization and the chain rule, 
+
+I(⃗a :⃗x, B ) = I(⃗a :⃗x | B)= I(⃗x :⃗a, B ) − I(⃗x : B) ≤ I(⃗x :⃗a, B ). (8) Data processing and classical self-conditioning give I(⃗x :⃗a, B ) ≤ I(⃗x :⃗x,⃗ a, B ) = H(⃗x) ≤ m. Hence I(⃗a :⃗x, B ) ≤
+
+m. Conversely, expanding I(⃗a :⃗x, B ) by the chain rule over the independent bits aK , discarding previous bits by data pro-cessing, and then applying Bob’s local decoding map for the branch b = K yields 
+
+I(⃗a :⃗x, B ) ≥ 
+
+> N−1
+
+X
+
+> K=0
+
+I(aK :⃗x, B )
+
+≥ 
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : β | b = K) = IRAC . (9) Combining the two inequalities proves Eq. (7).  
+
+> B. No-signaling correlations and the CHSH game
+
+Definition 3 (No-signaling box and CHSH functional) . Abinary-input/binary-output bipartite box is a conditional dis-tribution P (A, B | s, t ) with s, t, A, B ∈ { 0, 1}. It is no-signaling when Alice’s marginal is independent of t and Bob’s marginal is independent of s. The CHSH winning predicate is 
+
+A ⊕ B = st , and we use 
+
+SCHSH := X
+
+> s,t ∈{ 0,1}
+
+Pr[ A ⊕ B = st | s, t ] (10) 
+
+so that the uniform-input winning probability is SCHSH /4.
+
+Lemma 2 (Correlation form) . Let α = ( −1) A, eβ = ( −1) B ,and Est := E[α eβ | s, t ]. Then 
+
+SCHSH = 2 + 12 (E00 + E01 + E10 − E11 ) . (11) 
+
+Proof. —The win indicator is 12 [1 + ( −1) st α eβ]. Tak-ing conditional expectations and summing over (s, t ) gives Eq. (11). 
+
+Theorem 3 (Classical and quantum CHSH bounds) . Local hidden-variable models satisfy SCHSH ≤ 3. Quantum theory satisfies Tsirelson’s bound 
+
+SCHSH ≤ 2 + √2, (12) 
+
+equivalently E00 + E01 + E10 − E11 ≤ 2√2 for ±1 observ-ables. 4
+
+Proof. —For the local bound, it suffices to check determinis-tic assignments: the four equations A0 ⊕ B0 = 0 , A0 ⊕ B1 =0, A1 ⊕ B0 = 0 , A1 ⊕ B1 = 1 cannot all hold simulta-neously, so at most three CHSH clauses are won; convex-ity gives the result. For the quantum bound, define bB =
+
+bA0 ⊗ ( bB0 + bB1) + bA1 ⊗ ( bB0 − bB1). For ±1 observables, 
+
+bB 2 = 4 11 − [ bA0, bA1] ⊗ [ bB0, bB1], hence ∥ bB∥ ≤ 2√2, proving the correlator bound and Eq. (12). We shall often use the isotropic one-parameter family 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + E
+
+2 (0 ≤ E ≤ 1) , (13) for which SCHSH = 2(1 + E). The classical and quantum bounds become E ≤ 1/2 and E ≤ 1/√2, respectively.  
+
+> C. The minimal RAC instance and its relation to CHSH
+
+The smallest nontrivial RAC instance, (N, m ) = (2 , 1) , re-alizes the CHSH predicate directly. Alice holds (a0, a 1) and Bob holds b ∈ { 0, 1}. Alice inputs s = a0 ⊕ a1 into the box, receives A, and sends 
+
+x := a0 ⊕ A. (14) Bob inputs t = b, receives B, and outputs 
+
+β := x ⊕ B = a0 ⊕ A ⊕ B. (15) 
+
+Lemma 3 (CHSH equals the seed RAC success aggregation) .
+
+For the above protocol, if P0 = Pr[ β = a0 | b = 0] and 
+
+P1 = Pr[ β = a1 | b = 1] , then 
+
+SCHSH = 2( P0 + P1). (16) 
+
+Proof. —For b = 0 , correctness is A ⊕ B = 0 = st . For 
+
+b = 1 , correctness is a0 ⊕ A ⊕ B = a1, equivalently A ⊕ B =
+
+a0 ⊕ a1 = s = st . Averaging over the unbiased input s gives 
+
+P0 + P1 = 12 SCHSH .Thus CHSH is not merely an external Bell parameter: in the seed RAC it is exactly the aggregate query-conditioned success. This bridge is the starting point for the IC amplifica-tion mechanism used below.  
+
+> III. NEURAL INFORMATION CAUSALITY FRAMEWORK
+
+We now transplant the RAC/IC structure into representation learning. The important restriction is not that the computation is literally distributed between two laboratories, but that it is causally separated into an encoding stage and a later query-conditioned decoding stage. In that setting the representation is the only data-dependent interface between past data and fu-ture answers.           
+
+> FIG. 2. Neural-RAC as a query-separated bottleneck. The en-coder commits to a data-dependent representation Hbefore the query arrives. The decoder later receives (H, b )and outputs βas a guess for ab. Trainable parameters are fixed before the episode; the bottleneck, not the weights, is the only data-dependent causal carrier from the sampled database to the answer.
+
+In a query-separated architecture with a finite-capacity interface, the representation functions operationally as a message. 
+
+This section proves a representation-theoretic version of IC while keeping two notions distinct. The embedding state-ment is purely causal: any query-separated architecture in-duces a RAC experiment, and the observable Neural-RAC score is bounded by the information about the fresh database that reaches the decoder through the bottleneck and its al-lowed side resource. A capacity statement is then obtained only after one supplies an independent physical certificate for the interface—for example a finite alphabet, finite precision, or a noisy-channel capacity. This separation is important: without a precision, noise, bandwidth, or energy constraint, an ideal real-valued interface need not have any finite infor-mation capacity.  
+
+> A. Query-separated computation and the Neural-RAC primitive
+
+Definition 4 (Query-separated computation) . Let ⃗a be a data register and b a query register. A computation producing β
+
+is query-separated if there is an intermediate system H and maps 
+
+H ← Enc( ⃗a; W ), β ← Dec( H, b ; W ), (17) 
+
+such that the encoding is executed before b is supplied, and the decoding has access to ⃗a only through H. The parameters W
+
+are fixed before the episode and are independent of the freshly sampled database. We call H the bottleneck representation. 
+
+The independence of W from the episode is essential. A trained model may of course store information about its training distribution, but in the Neural-RAC experiment the database ⃗a is freshly sampled after the protocol is fixed. Oth-erwise the weights themselves would be an uncounted data-dependent memory. 5
+
+Definition 5 (Neural random access coding (Neural-RAC)) .
+
+A Neural-RAC instance consists of N independent unbiased database bits ⃗a = ( a 0, . . . , a N −1)T and a uniformly random query b ∈ { 0, . . . , N − 1}. An admissible protocol is a query-separated computation 
+
+H ← Enc( ⃗a; R A, W ), β ← Dec( H, b ; RB , W ), (18) 
+
+where RA, R B are local shares of a pre-established resource 
+
+R and W denotes all fixed trainable parameters. The resource and the weights are independent of (⃗a, b ). The goal is to out-put β ∈ { 0, 1} approximating ab, with 
+
+PK := Pr[ β = aK | b = K]. (19) 
+
+Definition 6 (Effective bottleneck capacity as a physical cer-tificate) . Let B denote the decoder-side share of the allowed pre-established resource, and let H denote a specified physi-cal model of the interface H together with its admissible en-coders. The effective capacity of that interface for the Neural-RAC experiment is an a priori certificate 
+
+CH (H) := sup  
+
+> p(⃗a),Enc ∈H
+
+I(⃗a : H | B), (20) 
+
+where the supremum is taken over fresh databases indepen-dent of the resource and over all admissible encoders obeying the physical constraints of H. Since ⃗a is independent of B,this is equivalently a bound on I(⃗a : H, B ). In a concrete episode, saying that H has effective capacity CH means that the physical model has already certified 
+
+I(⃗a : H, B ) ≤ C H . (21) 
+
+Thus CH is not inferred from the observed Neural-RAC score. It is supplied by the interface model. A hard classical al-phabet H ∈ { 0, 1}m gives CH ≤ m; a d-coordinate q-bit quantized vector gives CH ≤ dq ; and a real-valued AWGN interface with an average power constraint gives the corre-sponding Shannon capacity. By contrast, an unconstrained ideal real-valued register has no finite CH in this sense.  
+
+> B. A theory-independent information score for Neural-RAC
+
+Definition 7 (Neural-RAC information score) . The observ-able Neural-RAC score is 
+
+IN-RAC :=  
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : β | b = K), (22) 
+
+where the mutual information is Shannon mutual information between the classical variables observed in the experiment. 
+
+Theorem 4 (Accuracy implies information) . For independent unbiased database bits, every Neural-RAC protocol satisfies 
+
+IN-RAC ≥ N − 
+
+> N−1
+
+X
+
+> K=0
+
+h(PK ), (23) 
+
+and, in the query-symmetric case PK ≡ P ,
+
+IN-RAC ≥ N [1 − h(P )] . (24) 
+
+Proof. —Condition on b = K and apply Lemma 1 to the bi-nary estimate β of aK , then sum over K. 
+
+> C. Neural information causality: an embedding and capacity theorem
+
+Definition 8 (Neural information causality (Neural-IC)) .
+
+Neural-IC is the requirement that a query-separated Neural-RAC architecture obey the capacity accounting rule 
+
+IN-RAC ≤ CH . (25) 
+
+For a hard m-bit classical bottleneck this becomes 
+
+IN-RAC ≤ m. (26) 
+
+Theorem 5 (Neural-IC embedding and capacity theorem) .
+
+Consider the Neural-RAC task of Definition 5, with the database independent of the pre-established resource and of the fixed parameters. If Assumption 1 holds for the resource theory, then the following two-step statement holds. 1. Embedding. Independently of how the interface capac-ity is later certified, 
+
+IN-RAC ≤ I(⃗a : H, B ). (27) 
+
+2. Capacity consequence. If the physical interface model supplies the independent certificate I(⃗a : H, B ) ≤ C H ,then 
+
+IN-RAC ≤ CH . (28) 
+
+3. Hard bottleneck. In particular, if H ≡⃗ h ∈ { 0, 1}m is a hard classical bottleneck, then 
+
+IN-RAC ≤ m. (29) 
+
+Proof. —First prove the embedding inequality, which is the substantive part of the result. Let ⃗a <K := ( a0, . . . , a K−1)T .By the chain rule and independence of the database bits, 
+
+I(⃗a : H, B ) =  
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : H, B |⃗a <K )= 
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : H, B,⃗ a <K ). (30) Discarding ⃗a <K from the second system is local, so data pro-cessing gives I(aK : H, B,⃗ a <K ) ≥ I(aK : H, B ). Condi-tioned on b = K, the output β is obtained by a local decoding transformation of (H, B ), hence 
+
+I(aK : H, B ) ≥ I(aK : β | b = K). (31) Summing over K yields Eq. (27). If the independently spec-ified interface model supplies I(⃗a : H, B ) ≤ C H , Eq. (28) follows immediately. Finally, for a hard classical bottleneck 
+
+H =⃗ h, product-state normalization gives I(⃗a : B) = 0 , and the same chain-rule/data-processing argument used in Theo-rem 2 gives 
+
+I(⃗a :⃗ h, B ) ≤ I(⃗h :⃗ h,⃗ a, B ) = H(⃗ h) ≤ m, (32) where the equality uses classical self-conditioning. Com-bining this with Eq. (27) proves the hard-bottleneck state-ment. 6
+
+Proposition 1 (Useful interface-capacity certificates) . The certificate in Definition 6 can be evaluated before running the Neural-RAC experiment in several standard interface models. 1. If H takes values in a finite alphabet H, then CH ≤
+
+log |H| .2. If H is a d-coordinate register quantized to q bits per coordinate, then CH ≤ dq .3. If H is the output of a memoryless real AWGN interface 
+
+H = U + Z with Z ∼ N (0 , σ 2Id) and an average power constraint E∥U ∥2 ≤ dP , then 
+
+CH ≤ d
+
+2 log(1 + P/σ 2). (33) 
+
+4. If no alphabet, precision, noise, bandwidth, or energy constraint is specified, then no finite capacity certificate follows from the symbol “real-valued representation” alone. Proof. —For a finite alphabet, I(⃗a : H | B) ≤ H(H | B) ≤
+
+H(H) ≤ log |H| , and the quantized-vector statement is the special case |H| ≤ 2dq . For the AWGN model, data process-ing gives I(⃗a : H | B) ≤ I(U : H | B); maximizing the latter under the stated conditional power constraint gives the usual real Gaussian-channel capacity per channel use. The fi-nal statement is the contrapositive lesson: without a physical constraint, arbitrarily fine encodings of the database can be hidden in an ideal real value. Theorem 5 is the point at which the neural formulation be-comes more than an analogy. It says that a query-separated architecture does not merely resemble a communication ex-periment; it induces one operationally. Proposition 1 then explains how a particular physical representation model sup-plies the capacity number that must upper-bound the observ-able random-access information score.  
+
+> D. Consequences: capacity–accuracy tradeoffs and oracle-memory diagnostics
+
+Corollary 1 (Capacity required for random-access accuracy) .
+
+In Neural-RAC with effective capacity CH , independent unbi-ased database bits satisfy 
+
+N − 
+
+> N−1
+
+X
+
+> K=0
+
+h(PK ) ≤ CH . (34) 
+
+For a hard m-bit bottleneck, the right-hand side may be re-placed by m. In the query-symmetric case PK ≡ P ,
+
+CH ≥ N [1 − h(P )] . (35) 
+
+Proof. —Combine Theorem 4 with Theorem 5. Corollary 1 gives a practical diagnostic. If a model appears to retrieve many independently sampled targets with high uni-form accuracy through a tiny representation, then at least one assumption has failed: the representation capacity has been undercounted (for example by ignoring finite-precision leak-age), the query has leaked into the encoding stage, the weights have stored the episode, or the assumed correlation resource is not classical/quantum. 
+
+Example 1 (A baseline strategy saturating Neural-IC) . For a hard m-bit bottleneck, the encoder may copy ⃗ h =(a0, . . . , a m−1) and the decoder may output hb for b < m ,while guessing randomly otherwise. Then PK = 1 for K < m 
+
+and PK = 1 /2 for K ≥ m, so IN-RAC = m. The bound is therefore an accounting law, not a prohibition on using the transmitted bits.  
+
+> E. Classical one-bit benchmarks and fair-access metrics
+
+The bound IN-RAC ≤ m is an accounting law, not by itself a claim of quantum advantage. A classical one-bit encoder can concentrate its information on one target bit and saturate the total score, as Example 1 shows. The meaningful com-parison for correlation-assisted random access is therefore a fair-access metric: average or query-symmetric performance over all possible queries. The following theorem gives the ex-act optimal classical one-bit average success probability. 
+
+Theorem 6 (Optimal classical one-bit average RAC) . For 
+
+N independent unbiased database bits and a single classical message bit, the optimal classical average success probability under a uniformly random query is 
+
+P cl avg (N, 1) = 12 + 2 −N
+
+ N − 1
+
+⌊(N − 1) /2⌋
+
+
+
+. (36) 
+
+It is achieved by majority encoding, and asymptotically 
+
+P cl avg (N, 1) = 12 + 1
+
+√2πN + O(N −3/2). (37) 
+
+Proof. —It suffices to consider deterministic encoders and de-coders because the average success probability is affine in the protocol. Write the database in ±1 variables Xi = ( −1) ai
+
+and let the one-bit message be M = f (X) ∈ {± 1}. For a fixed query i, any deterministic decoder is either constant or equal to ±M ; the constant choice has zero bias because Xi is unbiased. Hence, the optimal bias for query i is |E[Xif (X)] |.The average success probability for a fixed encoder is there-fore 
+
+Pavg (f ) = 12 + 12N
+
+> N
+
+X
+
+> i=1
+
+| bfi|, bfi := E[Xif (X)] . (38) Choose signs σi = sgn( bfi) and define Yi = σiXi and g(Y ) = 
+
+f (X). Then 
+
+> N
+
+X
+
+> i=1
+
+| bfi| = E
+
+"
+
+g(Y )
+
+> N
+
+X
+
+> i=1
+
+Yi
+
+#
+
+≤ E
+
+> N
+
+X
+
+> i=1
+
+Yi . (39) 7Equality is achieved by the majority encoder g(Y ) =sgn( P 
+
+> i
+
+Yi), with any fixed tie-breaking convention when N
+
+is even. Finally, for SN = P 
+
+> i
+
+Yi,
+
+E|SN | = N 2−N +1 
+
+ N − 1
+
+⌊(N − 1) /2⌋
+
+
+
+, (40) which gives Eq. (36). Stirling’s formula gives Eq. (37). For N = 2n, the majority benchmark has success bias 
+
+O(2 −n/ 2), the same scaling as the nested quantum protocol at E = 1 /√2 but with a smaller constant. In information-score units, the majority code approaches 1/(π ln 2) ≃
+
+0.459 , whereas the Tsirelson nested protocol approaches 
+
+1/(2 ln 2) ≃ 0.721 . Thus the quantum correlation layer im-proves fair query-conditioned access while remaining below the one-bit Neural-IC limit.  
+
+> IV. NEURAL-CHSH CORRELATION LAYER AND A TSIRELSON-TYPE BOUND
+
+The previous section established Neural-IC as a resource accounting rule: in a query-separated architecture, the total information the answer stage can extract about an a priori un-known database cannot exceed the information volume of the bottleneck. Here we show how that accounting becomes sharp when the encoder and decoder are endowed with a correlation resource whose strength is quantified by the CHSH value. The resulting phenomenon is best understood as an amplification instability :
+
+If correlations are too strong, a one-bit bottleneck becomes an oracle memory. 
+
+We formalize this statement by (i) introducing an isotropic family of no-signaling CHSH-type “cells” parameterized by a correlation bias E, (ii) constructing a correlation-enhanced Neural-RAC protocol by nesting these cells in a pyramid, and (iii) showing that Neural-IC forces the threshold E ≤ 1/√2.In this way, the Tsirelson bound emerges as a representation-theoretic stability condition.  
+
+> A. A CHSH correlation cell as a neural resource layer
+
+We model the shared correlation resource as a bank of in-dependent binary-input/binary-output no-signaling boxes, i.e., CHSH correlation cells. The no-signaling requirement en-sures that the boxes do not provide an additional communi-cation channel beyond the designated bottleneck, exactly as in the original IC scenario [11]. 
+
+Definition 9 (Isotropic CHSH cell) . An isotropic CHSH cell is a no-signaling box with binary inputs (s, t ) ∈ { 0, 1}2 and bi-nary outputs (A, B ) ∈ { 0, 1}2 such that: (i) the local outputs are uniform, i.e., Pr[ A = 0 | s, t ] = Pr[ B = 0 | s, t ] = 1 /2
+
+for all s, t , and (ii) the CHSH winning predicate holds with probability 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + E
+
+2 (∀s, t ), (41) 
+
+for some E ∈ [0 , 1] , called the correlation bias .
+
+From Eqs. (10) and (41), the CHSH winning functional of an isotropic cell satisfies 
+
+SCHSH = X
+
+> s,t
+
+Pr[ A ⊕ B = st | s, t ] = 2(1 + E), (42) so that E > 1/2 corresponds to CHSH violation beyond clas-sical locality and E = 1 /√2 corresponds to the Tsirelson limit in quantum theory [11]. In the neural picture, each use of the cell is a single call to a shared correlation layer accessible to the encoder and de-coder. Crucially, we assume that Alice and Bob can access many independent copies of the same cell, reflecting the abil-ity to repeatedly query the resource without signaling. This is the analogue of allowing multiple independent shared entan-gled pairs or multiple independent shared random seeds.     
+
+> B. The (N, m ) = (2 ,1) seed protocol revisited
+
+The smallest nontrivial Neural-RAC instance, (N, m ) = (2 , 1) , already exposes the key mechanism. It is governed by the CHSH predicate through van Dam’s protocol, which we briefly reinterpret in the present notation. Let Alice hold 
+
+(a0, a 1) and let Bob hold b ∈ { 0, 1}. Alice inputs s = a0 ⊕ a1
+
+into a CHSH cell and receives A; she sends the single bottle-neck bit 
+
+x := a0 ⊕ A. (43) Bob inputs t = b and receives B; he outputs 
+
+β := x ⊕ B = a0 ⊕ A ⊕ B. (44) For an isotropic cell, the probability that β = ab is exactly 
+
+(1 + E)/2. This follows because β = ab holds if and only if the CHSH winning condition A ⊕ B = st holds (Lemma 3) and the latter holds with probability (1 + E)/2 by Eq. (41). 
+
+Proposition 2 (Seed retrieval accuracy) . In the (2 , 1) Neural-RAC instance implemented by Eq. (43) and Eq. (44) using an isotropic CHSH cell of bias E, the per-query success proba-bilities satisfy 
+
+P0 = P1 = 1 + E
+
+2 . (45) 
+
+Proof. —As shown in Sec. II, β = ab if and only if A ⊕ B =
+
+st with s = a0 ⊕ a1 and t = b. By Eq. (41), the latter event has probability (1 + E)/2 for every input pair (s, t ), hence for both b = 0 and b = 1 .The seed protocol is the atom of the construction. The question now becomes: what happens when we compose this primitive recursively to retrieve one out of N = 2 n bits while keeping the bottleneck fixed at m = 1 ?8
+
+FIG. 3. Classical one-bit benchmark against nested correlation protocols. The optimal classical majority code has a nonzero large-N
+
+information-score limit below the Tsirelson nested protocol, while the nested classical CHSH-cell strategy with E = 1 /2 decays to zero. All curves remain below the one-bit Neural-IC bound. 
+
+FIG. 4. The minimal case N = 2 , m = 1 reduces to a sin-gle CHSH cell. For two input bits (a0, a 1) and a one-bit message budget, the Neural-RAC protocol can be represented by a bipartite CHSH/correlation cell with inputs s = a0 ⊕a1 and t = b and outputs 
+
+(A, B ). Alice transmits x = a0 ⊕A and Bob outputs β = x⊕B, tar-geting ab. This diagram serves as the entry point for relating Neural-RAC performance to CHSH correlators and Tsirelson-type bounds. 
+
+C. Nesting as depth: a pyramid protocol for N = 2 n with 
+
+m = 1 
+
+We now describe the correlation-enhanced protocol intro-duced in Ref. [11], phrased in the Neural-RAC language. Al-ice holds a database ⃗a = ( a 0, . . . , a 2n−1) and Bob holds an index b ∈ { 0, . . . , 2n − 1}. Write the binary expansion of b as 
+
+b =
+
+> n−1
+
+X
+
+> k=0
+
+bk2k,  bk ∈ { 0, 1}. (46) Bob’s query thus consists of the n bits (bn−1, . . . , b 0).The protocol uses a full binary tree (pyramid) of 2n − 1
+
+independent isotropic CHSH cells arranged in n levels. We index the levels by ℓ = 0 , 1, . . . , n − 1, where ℓ = 0 is the bottom level (closest to the raw database bits) and ℓ = n − 1
+
+is the top level (closest to the transmitted bottleneck bit). 
+
+Encoding. At the bottom level ℓ = 0 , Alice groups the database into pairs (a2j , a 2j+1 ). For each j ∈ { 0, . . . , 2n−1 −
+
+1} she runs the seed protocol on the pair to produce an inter-mediate message 
+
+x0,j := a2j ⊕ A0,j , (47) where A0,j is Alice’s output on the corresponding bottom-level cell with input s0,j := a2j ⊕ a2j+1 .At a higher level ℓ ≥ 1, each node aggregates two messages from level ℓ − 1. Specifically, for each j ∈ { 0, . . . , 2n−ℓ−1 −
+
+1}, Alice inputs 
+
+sℓ,j := xℓ−1,2j ⊕ xℓ−1,2j+1 (48) into the level-ℓ cell and receives output Aℓ,j . Alice then de-fines the aggregated message 
+
+xℓ,j := xℓ−1,2j ⊕ Aℓ,j . (49) At the top level, the single bit 
+
+x := xn−1,0 (50) is transmitted to Bob as the unique bottleneck bit ( m = 1 ). 
+
+Decoding. Bob descends the tree according to the bits 
+
+(bn−1, . . . , b 0). At level ℓ = n−1 (top), Bob inputs tn−1,0 := 
+
+bn−1 to the top cell and receives Bn−1,0. As in the seed pro-tocol, this allows Bob to recover either xn−2,0 (if bn−1 = 0 )or xn−2,1 (if bn−1 = 1 ), up to a possible error. He repeats this procedure at level ℓ = n − 2 using tn−2,j := bn−2 at the ap-propriate node j, and so on, until level ℓ = 0 , where he finally recovers the desired database bit ab.Operationally, one may write Bob’s final output in a com-pact form: 
+
+β = x ⊕
+
+"n−1M
+
+> ℓ=0
+
+Bℓ,j (ℓ)
+
+#
+
+, (51) 9
+
+FIG. 5. Nesting (pyramid) protocol for N = 2 n via depth n. A depth-n nesting of CHSH/correlation cells implements the m = 1 random access strategy for N = 2 n inputs by recursively forming intermediate messages and producing a final one-bit message x. Bob uses the query bits b = ( bn−1 . . . b 1b0) together with the correlation outputs to recover β, schematically β = x ⊕  L n−1 
+
+> k=0
+
+Bk
+
+. The nesting viewpoint makes the IC amplification mechanism and its CHSH/Tsirelson interpretation transparent [11]. 
+
+where j(ℓ) denotes the index of the node selected by the query path at level ℓ (determined by the higher bits bn−1, . . . , b ℓ+1 ). Eq. (51) is the natural generalization of Eq. (44). The following theorem states the key quantitative prop-erty: nesting multiplies biases. It is the analytic core of the Tsirelson-type instability. 
+
+Lemma 4 (Parity of independent biased errors) . Let 
+
+e1, . . . , e n ∈ { 0, 1} be independent Bernoulli variables such that 
+
+Pr[ ei = 0] = 1 + E
+
+2 , Pr[ ei = 1] = 1 − E
+
+2 (52) 
+
+for some E ∈ [−1, 1] and all i. Let E⊕ := e1 ⊕ · · · ⊕ en be their parity. Then, 
+
+Pr[ E⊕ = 0] = 1 + En
+
+2 , Pr[ E⊕ = 1] = 1 − En
+
+2 . (53) 
+
+Proof. —Define ξi := ( −1) ei ∈ { +1 , −1}. Then, 
+
+E[ξi] = Pr[ ei = 0] − Pr[ ei = 1] = E. (54) Moreover, 
+
+(−1) E⊕ = ( −1) e1⊕···⊕ en =
+
+> n
+
+Y
+
+> i=1
+
+(−1) ei =
+
+> n
+
+Y
+
+> i=1
+
+ξi. (55) By independence, 
+
+E(−1) E⊕  =
+
+> n
+
+Y
+
+> i=1
+
+E[ξi] = En. (56) On the other hand, 
+
+E(−1) E⊕  = Pr[ E⊕ = 0] − Pr[ E⊕ = 1] = 2 Pr[ E⊕ = 0] − 1. (57) Solving gives Pr[ E⊕ = 0] = (1 + En)/2, completing the proof of Eq. (53). We can now state the performance of the pyramid protocol. 
+
+Theorem 7 (Nested CHSH cells implement ( N = 2 n, m = 1 )Neural-RAC with success P = (1 + En)/2). Assume that Al-ice and Bob share 2n − 1 independent copies of an isotropic CHSH cell of bias E. Consider the pyramid protocol de-scribed above for Neural-RAC with N = 2 n and m = 1 .Then for every database index K ∈ { 0, . . . , 2n − 1} the per-query success probability is 
+
+PK = Pr[ β = aK | b = K] = 1 + En
+
+2 . (58) 
+
+In particular, the protocol is query-symmetric: PK does not depend on K.10 
+
+Proof. —Fix an index K and let b be its binary expansion in Eq. (46). Along the query path from the top level to the bot-tom level, Bob applies the seed decoding rule at each of the n
+
+selected cells. At each such cell, define the local error variable 
+
+eℓ ∈ { 0, 1} at level ℓ as follows: eℓ = 0 if the cell satisfies the CHSH predicate Aℓ,j (ℓ) ⊕ Bℓ,j (ℓ) = sℓ,j (ℓ)tℓ,j (ℓ) on the actual inputs used by the protocol, and eℓ = 1 otherwise. By Definition 9, for every possible input pair (s, t ), we have 
+
+Pr[ eℓ = 0] = 1 + E
+
+2 , Pr[ eℓ = 1] = 1 − E
+
+2 . (59) Because the 2n − 1 cells are independent and each selected cell is used once, the errors e0, . . . , e n−1 along the path are independent. We first show that the final output satisfies 
+
+β = aK ⊕ (e0 ⊕ e1 ⊕ · · · ⊕ en−1). (60) This identity is proven by induction on n. For n = 1 it is exactly the seed protocol: β = ab if and only if the CHSH predicate holds, i.e., if e0 = 0 . Assume the identity holds for depth n − 1. At depth n, Bob first uses the top cell to de-cide which of the two submessages (left or right) to recover, introducing an error en−1 if the CHSH predicate fails at the top cell. Conditioned on this choice, the remaining decoding within the chosen subtree is a depth-(n − 1) instance and in-troduces the parity of errors (e0 ⊕· · ·⊕ en−2) by the induction hypothesis. Since the decoder combines the outputs by XOR (cf. Eq. (51)), the total error is the XOR of all level errors, proving Eq. (60). It follows from Eq. (60) that β = aK if and only if the parity 
+
+e0 ⊕· · ·⊕ en−1 equals 0. By Lemma 4 and Eq. (59), this event has probability (1 + En)/2. This proves Eq. (58). Theorem 7 is the essential bridge between CHSH strength and query-separated access. The bias E does not merely add; it multiplies with depth. In a world of strong correlations, a modest advantage at the level of a single CHSH cell becomes an exponentially amplified advantage for large databases.  
+
+> D. Information amplification and the IC-induced threshold
+
+We now confront the nested construction with Neural-IC. Because the protocol is symmetric, Theorem 4 gives a lower bound on the Neural-RAC information score in terms of the common success probability 
+
+P := 1 + En
+
+2 . (61) The resulting bound grows with n if E is too large. To make this precise, we require a quantitative inequality relating the entropy deficit 1 − h(P ) to the bias En.
+
+Lemma 5 (Quadratic lower bound on entropy deficit) . For any p ∈ [0 , 1] ,
+
+1 − h(p) ≥ 2ln 2 
+
+
+
+p − 12
+
+2
+
+. (62) 
+
+Equivalently, for any δ ∈ [−1, 1] ,
+
+1 − h
+
+ 1 + δ
+
+2
+
+
+
+≥ δ2
+
+2 ln 2 . (63) 
+
+Proof. —We work with natural logarithms in the interme-diate steps. Let D(Bern( p)∥Bern(1 /2)) denote the binary Kullback–Leibler divergence: 
+
+D(p∥1/2) := p ln p
+
+1/2 + (1 − p) ln 1 − p
+
+1/2= p ln(2 p) + (1 − p) ln  2(1 − p). (64) A direct computation shows that Shannon entropy in bits sat-isfies 
+
+1 − h(p) = 1ln 2 D(p∥1/2) . (65) Define the function 
+
+g(p) := D(p∥1/2) − 2
+
+
+
+p − 12
+
+2
+
+. (66) We claim g(p) ≥ 0 for all p ∈ [0 , 1] . Indeed, g(1 /2) = 0 and a straightforward derivative calculation gives 
+
+g′(p) = ln p
+
+1 − p − 4
+
+
+
+p − 12
+
+
+
+,g′′ (p) = 1
+
+p(1 − p) − 4 = (2 p − 1) 2
+
+p(1 − p) ≥ 0. (67) Hence g is convex on (0 , 1) and attains its global minimum at 
+
+p = 1 /2 where g′(1 /2) = 0 . Therefore, g(p) ≥ g(1 /2) = 0 
+
+for all p ∈ (0 , 1) , and by continuity also for p ∈ [0 , 1] .Combining D(p∥1/2) ≥ 2( p − 1/2) 2 with Eq. (65) yields Eq. (62). The equivalent form of Eq. (63) follows by substi-tuting p = (1 + δ)/2.We are now ready to derive the Tsirelson-type threshold from Neural-IC. 
+
+Theorem 8 (IC-induced Tsirelson-type bound for isotropic correlations) . Assume Neural-IC holds for the Neural-RAC task with message length m = 1 , i.e., 
+
+IN-RAC ≤ 1 for all N . (68) 
+
+Let E ∈ [0 , 1] be the bias of an isotropic CHSH cell as in Definition 9. If E > 1/√2, then there exists n such that the pyramid protocol of Theorem 7 violates Neural-IC: 
+
+IN-RAC > 1. (69) 
+
+Consequently, a necessary condition for Eq. (68) to hold in the presence of isotropic CHSH correlations is 
+
+E ≤ 1
+
+√2 . (70) 11 
+
+Proof. —Fix n and consider the pyramid protocol for N = 2 n
+
+and m = 1 . By Theorem 7, the success probability is query-symmetric: PK = P for all K, with P = (1 + En)/2. The symmetric form of Theorem 4 yields 
+
+IN-RAC ≥ N  1 − h(P ) = 2 n
+
+
+
+1 − h
+
+ 1 + En
+
+2
+
+ 
+
+. (71) Applying Lemma 5 with δ = En gives 
+
+1 − h
+
+ 1 + En
+
+2
+
+
+
+≥ E2n
+
+2 ln 2 . (72) By substituting into Eq. (71), we have the explicit growth lower bound 
+
+IN-RAC ≥ 12 ln 2 (2 E2)n. (73) If 2E2 > 1, i.e., E > 1/√2, the right-hand side grows ex-ponentially with n and hence exceeds 1 for all sufficiently large n. Therefore, the protocol violates IN-RAC ≤ 1 for large enough n, contradicting Eq. (68). Thus, to avoid violation for arbitrarily large n, one must have 2E2 ≤ 1, i.e., Eq. (70). 
+
+Remark 1 (From CHSH to Tsirelson, without Hilbert spaces) .
+
+Theorem 8 is, in essence, an information-theoretic proof of the Tsirelson threshold: the value E = 1 /√2 appears not because we postulated a Hilbert space model, but because it is the unique point at which the amplification factor 2E2
+
+crosses 1. Below this threshold, the bias amplification in the nested protocol is too weak to overcome the growth of the query space ( N = 2 n), and the total information score can remain bounded by a single communicated bit. Above it, the protocol turns a one-bit bottleneck into an ever more pow-erful random-access interface, thereby violating information causality [11]. 
+
+Remark 2 (Neural interpretation: oracle memories and insta-bility) . In the language of representations, the parameter E
+
+measures how well a single correlation cell can serve as a query-conditioned router: a small bias E yields only a small advantage in the (2 , 1) task, but nesting composes routers and multiplies biases. When E > 1/√2, depth acts as an ampli-fier whose gain eventually overwhelms the one-bit bottleneck, producing what is effectively an oracle memory: a represen-tation of size m = 1 from which the decoder can access an unbounded family of targets {aK } with nontrivial total infor-mation. Neural-IC forbids such an instability, and Tsirelson’s value is precisely the critical point at which the instability would begin.  
+
+> E. Beyond isotropy: asymmetric seed biases
+
+The isotropic family is the cleanest setting, but the ampli-fication mechanism does not require identical branch biases. Suppose the seed (2 , 1) cell has query-branch success proba-bilities 
+
+Pt = 1 + Et
+
+2 , t ∈ { 0, 1}, (74) where Et ∈ [0 , 1] denotes the correctness bias when Bob’s local seed query is t. Assume independent copies of the same asymmetric cell are used at every node of the nesting tree and that local errors remain independent along each conditioned path, as in the no-signaling cell model. 
+
+Theorem 9 (Asymmetric bias multiplication and IC viola-tion) . For a depth-n nested protocol and query string b =(b1, . . . , b n) ∈ { 0, 1}n, the success probability is 
+
+Pb = 1 + Qnℓ=1 Ebℓ
+
+2 . (75) 
+
+When the induced conditional channels are binary symmetric, the exact score is 
+
+Iasym N-RAC (n; E0, E 1) = X
+
+> b∈{ 0,1}n
+
+
+
+1 − h
+
+ 1 + Qnℓ=1 Ebℓ
+
+2
+
+ 
+
+.
+
+(76) 
+
+Moreover, if 
+
+E20 + E21 > 1, (77) 
+
+then the one-bit Neural-IC bound is violated for sufficiently large n.Proof. —Along a fixed query path, each level contributes an independent error bit whose zero-probability is (1 + Ebℓ )/2.Repeating the parity argument of Lemma 4 with nonidentical biases gives 
+
+Pr[even parity | b] = 1 + Qnℓ=1 Ebℓ
+
+2 , (78) which proves Eq. (75). The exact score Eq. (76) follows when each conditional channel is binary symmetric. Applying Lemma 5 term by term gives 
+
+Iasym N-RAC ≥ 12 ln 2 
+
+X
+
+> b∈{ 0,1}n
+> n
+
+Y
+
+> ℓ=1
+
+E2 
+
+> bℓ
+
+= (E20 + E21 )n
+
+2 ln 2 . (79) If E20 + E21 > 1, the right-hand side eventually exceeds one, so the one-bit bound is violated. The isotropic threshold is recovered by setting E0 = E1 =
+
+E, for which Eq. (77) becomes 2E2 > 1. The asymmetric formulation is useful because raw correlation layers need not be perfectly isotropic. CHSH twirling can reduce a general box to an isotropic representative with the same CHSH value, but task-specific asymmetric performance is more precisely described by Eq. (76).  
+
+> V. THE ROLE OF QUANTUM MECHANICS
+
+Sec. IV showed that isotropic correlations with E > 1/√2
+
+destabilize a one-bit bottleneck under nesting. Quantum me-chanics is special in two complementary ways. First, it sup-plies the information calculus required by Theorem 5, so Neural-IC holds for quantum resources. Second, it attains the isotropic bias E = 1/√2 and no larger value, so the quantum boundary coincides with the stable frontier of query-conditioned access. 12  
+
+> A. Quantum mutual information as a consistent information calculus
+
+Definition 10 (Quantum mutual information and conditional mutual information) . For a bipartite state ˆρU V , define the von Neumann entropy in bits by S(ˆ σ) := − Tr(ˆ σ log ˆ σ) and 
+
+Iq (U : V )ˆρ := S(ˆ ρU ) + S(ˆ ρV ) − S(ˆ ρU V ). (80) 
+
+For a tripartite state, define 
+
+Iq (U : V | W )ˆρ := S(ˆ ρU W ) + S(ˆ ρV W )
+
+−S(ˆ ρW ) − S(ˆ ρU V W ). (81) 
+
+Theorem 10 (Quantum theory satisfies the information-calcu-lus axioms) . Quantum mutual information satisfies Assump-tion 1: it reduces to Shannon mutual information on clas-sical registers, vanishes on product states, obeys data pro-cessing under local CPTP maps, satisfies the chain rule with 
+
+Iq (U : V | W ) ≥ 0, and obeys classical self-conditioning for classical registers. Proof. —Consistency follows because a classical diagonal state has von Neumann entropies equal to the corresponding Shannon entropies. Product states obey S(U V ) = S(U ) + 
+
+S(V ), hence Iq (U : V ) = 0 . Data processing follows from the relative-entropy identity Iq (U : V ) = D(ˆ ρU V ∥ˆρU ⊗ ˆρV )
+
+and monotonicity of quantum relative entropy under CPTP maps. Expanding Eqs. (80)–(81) gives the chain rule 
+
+Iq (U : V W ) = Iq (U : W ) + Iq (U : V | W ), (82) and nonnegativity of Iq (U : V | W ) is strong subadditiv-ity [25]. Finally, if X is a classical register, conditioning on the classical register X makes a copy of X deterministic, giv-ing Iq (X : Y | X) = 0 and Iq (X : XY ) = H(X).
+
+Corollary 2 (Neural-IC holds for quantum correlation re-sources) . If the shared resource in Neural-RAC is a quantum state and the bottleneck is a classical hard m-bit message, then 
+
+IN-RAC ≤ m (83) 
+
+for every protocol. More generally, a quantum-assisted proto-col obeys the effective-capacity version IN-RAC ≤ CH when-ever its interface satisfies Eq. (21). Proof. —Instantiate Assumption 1 with I = Iq and apply Theorem 5.  
+
+> B. Quantum correlations saturate the stable threshold
+
+Theorem 11 (Quantum realization of the isotropic CHSH cell at E = 1 /√2). There exists a two-qubit state and local ±1
+
+observables whose induced binary-output box satisfies 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + 1 /√22 ∀s, t ∈ { 0, 1}. (84) 
+
+Thus quantum theory realizes the isotropic CHSH cell with bias E = 1 /√2 and SCHSH = 2 + √2.Proof. —Take ˆρ = |Φ+⟩⟨ Φ+| with |Φ+⟩ = ( |00 ⟩ + |11 ⟩)/√2,Alice observables ˆA0 = ˆ σz , ˆA1 = ˆ σx, and Bob observables 
+
+ˆB0 = ˆσz + ˆ σx
+
+√2 , ˆB1 = ˆσz − ˆσx
+
+√2 . (85) Using ⟨Φ+|ˆσu ⊗ ˆσv |Φ+⟩ = δuv for u, v ∈ { x, z }, one obtains 
+
+E00 = E01 = E10 = 1 /√2 and E11 = −1/√2. Therefore 
+
+(−1) st Est = 1 /√2 for every input pair. Lemma 2 then gives Eq. (84). Theorem 11 is the tightness complement to Theorem 8. Neural-IC rules out E > 1/√2 under arbitrary-depth nesting, while quantum mechanics attains E = 1 /√2. The boundary is therefore not merely a formal upper bound; it is a physically realized frontier.  
+
+> C. Classical communication semantics, dense coding, and Holevo limits
+
+IC is normally phrased for classical communication be-cause the capacity unit is then unambiguous. If the transmit-ted bottleneck is quantum and entanglement-assisted, dense coding can change the amount of recoverable classical infor-mation per transmitted system [26]. This does not contradict IC; it changes the resource being counted. 
+
+Proposition 3 (Holevo-limited information gain for an unen-tangled m-qubit bottleneck) . Let A be a classical variable en-coded into an m-qubit system H as an ensemble {p(a), ˆρa}.If Bob has no prior entanglement with H and performs any measurement producing Y , then 
+
+I(A : Y ) ≤ m. (86) 
+
+Proof. —The Holevo bound gives [27] 
+
+I(A : Y ) ≤ χ = S(X
+
+> a
+
+p(a)ˆ ρa) − X
+
+> a
+
+p(a)S(ˆ ρa)
+
+≤ S(X
+
+> a
+
+p(a)ˆ ρa) ≤ log(2 m) = m. (87) This completes the proof. Thus quantum bottlenecks can be accommodated, but only after specifying the correct capacity semantics. The present manuscript keeps the communicated bottleneck classical in the main theorems, while allowing quantum correlations as side resources that reshape decoding without becoming hid-den communication channels.  
+
+> D. Synthesis: quantum advantage without oracle-memory collapse
+
+Quantum resources occupy a balanced position in the Neural-IC picture. They can improve the seed RAC task be-yond the classical bias E = 1 /2 and, through nesting, main-tain nonvanishing large-N query-conditioned access. Yet they 13 still obey the information calculus that prevents a finite bottle-neck from becoming an oracle memory. Post-quantum no-signaling correlations with E > 1/√2 would cross that line: depth would convert a bounded interface into an unbounded random-access capability. The useful lesson for quantum neural networks is therefore not simply that “quantum is more expressive.” A quantum cor-relation layer supplies a physically admissible enhancement of query-conditioned access at fixed bottleneck capacity. Its advantage is real precisely because it remains accountable: it strengthens the architecture without dissolving the meaning of the interface. 
+
+VI. OPERATIONAL PROBES AND EVALUATION METRICS 
+
+We use the term “probe” in an operational sense: each test specifies the sampled database, the query distribution, the bottleneck model, the allowed correlation resource, and the statistic used to evaluate random-access performance. The numerical laboratory has three purposes. First, closed-form evaluations of the nested isotropic protocol visualize the sta-bility transition without estimator noise. Second, capacity-accounting probes test whether apparent random-access gains are explained by the capacity that is actually supplied to the decoder. Third, quantum-layer and sampling probes connect the CHSH bias used in the theory to tunable measurement an-gles, visibility loss, and finite-sample estimation. No hard-ware data are used in this section; the quantum-layer results are analytic and numerical feasibility probes. 
+
+A. Closed-form stability probes: depth, bias, and finite-depth criticality 
+
+For the nested protocol of Sec. IV, Alice holds N = 2 n in-dependent bits, Bob receives a uniformly random index, com-munication is restricted to one classical bit, and the shared isotropic CHSH cells have bias E. The query-symmetric suc-cess probability is 
+
+P (n, E ) = 1 + En
+
+2 . (88) Because the induced conditional channel aK 7 → β is a binary symmetric channel, the observable Neural-RAC score is ex-actly 
+
+IN-RAC (n, E ) = 2 n
+
+
+
+1 − h
+
+ 1 + En
+
+2
+
+ 
+
+. (89) This equation is the main calibration curve for the rest of the section: it isolates the effect of correlation strength from finite-sample and training effects. Representative numerical values from Eq. (89) are shown in Table I. The contrast between E = 1 /√2 and nearby su-percritical values is the central diagnostic: quantum corre-lations remain below the one-bit bound at all tested depths, E=0.5 (classical max )               
+
+> E=0.7 (sub -Tsirelson )
+> E=1/2(quantum )
+> E=0.72 (slightly post -quantum )
+> E=0.75 (post -quantum )
+> 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> nesting depth n (N=2^n )
+> IN-RAC  for  m = 1
+
+Neural -IC probe: IN-RAC vs nesting depth         
+
+> 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0
+> Nesting depth n
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> IN-RAC  for  m=1
+
+FIG. 6. Closed-form information score IN-RAC (n, E ) for the nested isotropic protocol. The dashed line marks the Neural-IC limit for a one-bit bottleneck. Sub-Tsirelson curves remain stable, the quan-tum curve approaches a constant below one, and supercritical curves eventually cross the IC boundary. 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> isotropic CHSH bias E
+> IN-RAC (n = 10 )
+
+Neural -IC probe: IN-RAC vs bias E (n = 10 )     
+
+> IN-RAC  (n=10)
+> 0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> Isotropic CHSH bias E
+> 00.2 0.4 0.6 0.8 1.0
+
+FIG. 7. Bias scan at fixed depth n = 10 (N = 1024 ). The ver-tical dashed line marks E = 1 /√2 and the horizontal dashed line marks the one-bit Neural-IC limit. Supercritical biases may look only slightly stronger at the seed level, but nesting exposes the vi-olation. 
+
+whereas E = 0 .72 and E = 0 .75 eventually violate it. Figs. 6 and 7 show the same transition from complementary view-points: scaling with depth at fixed E, and the finite-depth bias scan at fixed n.The critical value has a useful asymptotic normalization. 
+
+Theorem 12 (Critical regime at E = 1 /√2). For E = 1 /√2,
+
+lim  
+
+> n→∞
+
+IN-RAC 
+
+
+
+n, 1
+
+√2
+
+
+
+= 12 ln 2 ≃ 0.72135 . (90) 14                                           
+
+> nE= 0 .5E= 0 .7E= 1 /√2E= 0 .72 E= 0 .75 10.377 0.780 0.798 0.832 0.913 52.25 ×10 −20.655 0.725 0.870 1.312 10 7 .04 ×10 −40.589 0.721 1.036 2.344 20 6 .88 ×10 −70.482 0.721 1.486 7.607
+> TABLE I. Closed-form values of IN-RAC (n, E )for representative CHSH biases. The IC constraint for m= 1 is IN-RAC ≤1.
+
+Moreover, no Neural-IC violation occurs at this point for any finite n.Proof. — Let δn = 2 −n/ 2. Expanding the binary entropy around 1/2 gives 
+
+1 − h
+
+ 1 + δn
+
+2
+
+
+
+= δ2
+
+> n
+
+2 ln 2 + O(δ4
+
+> n
+
+). (91) Multiplying by 2n yields Eq. (90). The finite-n nonviolation follows independently from the fact that E = 1 /√2 is re-alized by quantum correlations (Theorem 11) and quantum resources obey Neural-IC (Corollary 2). The proof separates two statements that are sometimes con-flated. The limit calculation explains the constant 1/(2 ln 2) ;the claim that no finite depth violates IC is guaranteed by the quantum realization and the general Neural-IC theorem, not by the asymptotic limit alone. For finite-depth experiments, the relevant operational ques-tion is not only whether E > 1/√2 asymptotically, but how large E must be before a violation is visible at the available depth. We therefore define 
+
+Ecrit (n) := inf {E ∈ [0 , 1] : IN-RAC (n, E ) ≥ 1} , (92) with IN-RAC (n, E ) evaluated by Eq. (89). Fig. 8 shows the numerical root for 1 ≤ n ≤ 40 . The curve decreases mono-tonically toward 1/√2 from above, clarifying a finite-size ef-fect that is important for simulations: shallow protocols can tolerate apparently post-quantum biases without yet display-ing a violation, while increasing depth closes the gap to the asymptotic Tsirelson boundary. For example, the numerical scan gives Ecrit (10) ≃ 0.7187 and Ecrit (20) ≃ 0.7131 , al-ready close to 1/√2 ≃ 0.7071 . 
+
+> B. Capacity-accounting probes and leakage controls
+
+The depth and bias scans test the correlation resource. A complementary set of probes tests the interface semantics. Fig. 9 compares three explicit channels for N = 8 : a hard 
+
+m-bit interface that copies m target bits; two finite-precision coordinates that pack q bits each; and two noisy analog coor-dinates using BPSK over AWGN with signal-to-noise ratio ρ.These probes are not optimized neural architectures. They are accounting checks: lossless hard or packed finite-precision in-terfaces saturate the capacity that is explicitly counted, while noisy analog interfaces remain below the corresponding ca-pacity upper bound. Apparent oracle behavior appears only if the effective capacity of the interface is undercounted. The one-bit boundary in Fig. 8 is the special case CH =1 of a more general finite-depth capacity boundary. For the nested isotropic protocol, define 
+
+Ecrit (n; CH ) := inf 
+
+
+
+E ∈ [0 , 1] : 2 n
+
+
+
+1 − h
+
+ 1 + En
+
+2
+
+ 
+
+≥ CH
+
+
+
+. (93) The numerical roots in Fig. 10 show that larger capacity budgets shift the finite-depth crossing upward, but for any fixed finite CH the asymptotic instability threshold remains 
+
+E = 1 /√2. The large-n approximation 
+
+Ecrit (n; CH ) ≃ 1
+
+√2 (2 CH ln 2) 1/(2 n) (94) explains the slow convergence of finite-depth scans near criti-cality. Finally, the controlled Neural-RAC ablations in Fig. 11 test the diagnostic interpretation directly at N = 8 . The strict models use a straight-through binary bottleneck trained end-to-end with the encoder blind to the query, and they remain below their counted capacities. The leaky controls deliber-ately violate one assumption at a time: a query-leaky encoder sends ab, a finite-precision real coordinate packs the database bits, and episode-specific weights store the sampled database. These controls reach IN-RAC = 8 with a nominally tiny in-terface, but the apparent violation disappears once the failed assumption is identified. The query separation is broken, the precision capacity must be counted, or the weights must be treated as data-dependent memory.  
+
+> C. Quantum-layer visibility and empirical estimation
+
+Appendix D gives a one-parameter quantum CHSH family with effective isotropic bias 
+
+Eiso (φ) = cos φ + sin φ
+
+2 , 0 ≤ φ ≤ π
+
+4 . (95) To model imperfect Bell-pair preparation, measurement er-ror, or hardware noise, we introduce a visibility parameter 
+
+ν ∈ [0 , 1] and evaluate Eeff = νE iso (φ) in Eq. (89). Fig. 12 shows that the ideal Tsirelson endpoint remains below the IC limit, while visibility loss moves the curve deeper into the subcritical region. Thus visibility is not only an experimen-15 Tsirelson                   
+
+> 1510 15 20 25 30 35 40
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> nesting depth n (N = 2^n)
+> finite-depth critical bias Ecrit(n)
+> Ecrit(n): IC boundary 1/sqrt(2)
+> Tsirelson
+> 1510 15 20 25 30 35 40
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> nesting depth n (N = 2^n)
+> finite-depth critical bias Ecrit(n)
+> Ecrit(n): IC boundary 1/sqrt(2)
+
+FIG. 8. Finite-depth critical bias Ecrit (n) obtained by solving IN-RAC (n, E ) = 1 using Eq. (89). The dashed line marks the Tsirelson value 
+
+1/√2. The finite-depth boundary approaches the quantum threshold from above, clarifying why slightly supercritical correlations may require sufficiently large nesting depth before violating the one-bit Neural-IC bound. 
+
+FIG. 9. Capacity accounting checks for finite-precision and noisy interfaces. The diagonal is the ideal accounting line IN-RAC = CH . Lossless hard or packed finite-precision interfaces saturate the counted capacity, while noisy AWGN/BPSK coordinates fall below their capacity upper bound. 
+
+tal imperfection; it is a directly interpretable reduction of the effective CHSH bias entering the Neural-RAC score. For known protocols, Eq. (89) is preferable to Monte Carlo estimation because the per-query bias near the critical point can be exponentially small. A direct empirical estimate of 
+
+P = 1 /2 + En/2 at relative precision on the scale of En
+
+requires Ω( E−2n) samples. At the Tsirelson point this is 
+
+Ω(2 n) = Ω( N ), even though the total information score re-mains O(1) . For unknown trained models, Appendix B gives plug-in estimators and confidence intervals based on observed contingency tables. In reporting an empirical Neural-RAC ex-periment, the minimal reproducibility package should include the query-generation rule, the capacity certificate for H, the estimator for IN-RAC , confidence intervals or closed-form un-certainty, and explicit checks that the encoder is query-blind and that the weights are fixed before the episode. 
+
+VII. CONCLUSION AND DISCUSSION 
+
+This work develops Neural-IC as a capacity-accounting principle for episodic, query-separated computation. The cen-tral claim is deliberately narrow. When the data-dependent interface is fixed before the query arrives, the interface is op-erationally a message; therefore, the total query-conditioned information that can be harvested from a fresh database is bounded by the independently certified information capacity. This does not assert a finite-bit law for arbitrary real-valued hidden layers. It says that any such law requires a physical capacity certificate: finite alphabet, finite precision, channel noise, power, bandwidth, or another explicit constraint. 16 
+
+FIG. 10. Finite-depth phase boundaries for several effective capacities CH . Each curve solves Eq. (93). Larger capacity budgets require stronger finite-depth correlations before a violation is visible, but all fixed finite budgets approach the Tsirelson threshold asymptotically. 0 1 2 3 4 5 6 7 8  
+
+> bits
+> strict STE m=1
+> strict STE m=2
+> leaky STE m=1
+> leaky STE m=2
+> query leakage direct
+> precision packing
+> episode weights
+> episode weights fresh
+> corrected capacity/diagnosis
+> observed INRAC
+> nominal counted capacity
+
+FIG. 11. Controlled leakage and capacity-accounting simulations for N = 8 . Blue bars show the observed Neural-RAC score, orange bars show the nominally counted interface capacity, and diamond markers show the corrected capacity or diagnosis after identifying the missing resource. Query-separated straight-through binary bottlenecks stay below capacity; query leakage, precision packing, and episode-specific weights create apparent oracle behavior only under undercounted or invalid accounting. 
+
+A. What the framework establishes 
+
+The revised formulation separates the causal embedding from the capacity certificate. The embedding inequality 
+
+IN-RAC ≤ I(⃗a : H, B ) follows from query separation, data processing, and the chain rule. The bound IN-RAC ≤ CH fol-lows only after the interface model supplies I(⃗a : H, B ) ≤
+
+CH . This distinction is useful in practice because it turns Neural-IC into a diagnostic: if a small representation ap-pears to answer too many independent random-access queries too well, then either the capacity has been undercounted, the query has leaked into the encoder, the weights have become episode-specific memory, or the assumed correlation resource is not classical/quantum. The classical benchmark clarifies the meaning of quantum advantage. A classical one-bit message can saturate the total one-bit accounting law by storing one target bit, and majority encoding is the optimal one-bit strategy for average random access. Quantum CHSH correlations do not violate the in-formation budget; rather, they improve fair query-conditioned access at fixed capacity. In the nested isotropic protocol this improvement is governed by the bias multiplication law 
+
+E 7 → En. The point E = 1 /√2 is the critical frontier: quan-tum mechanics attains it, while any isotropic no-signaling re-source with E > 1/√2 eventually converts a one-bit interface into an oracle-like random-access memory. 17        
+
+> FIG. 12. Quantum correlation-layer sweep at n= 10 . The measurement angle φtunes the effective isotropic bias, while visibility νmodels noise. The ideal curve reaches the Tsirelson endpoint without crossing the Neural-IC limit; lower visibilities remain safely subcritical.
+> B. Implications for correlation-assisted learning
+
+For learning architectures, the message is not that every hidden layer should be analyzed as an IC game. The appro-priate regime is more specific: a fresh database, an encoder that commits before the query, a decoder that accesses the data only through the representation, and an explicit capac-ity model for that representation. Within this regime, Neural-RAC becomes a stress test for claims of memory, retrieval, or quantum-enhanced correlation. A QNN module can be inter-preted as a physically admissible correlation layer that shifts the accessible CHSH bias toward the Tsirelson frontier, while still respecting the bottleneck accounting guaranteed by quan-tum mutual information. The simulations reinforce this interpretation. The strict bi-nary bottlenecks stay below their counted capacities. The de-liberate violations are easy to manufacture, but they are di-agnostic rather than paradoxical: the query leakage, preci-sion packing, and episode-specific weights are precisely the side channels that the theorem says must be counted or ex-cluded. The multi-capacity phase diagram further shows that finite-depth experiments can look benign even slightly above the asymptotic threshold, so any empirical claim should re-port the tested depth, estimated correlation bias, and capacity certificate together.  
+
+> C. Scope and outlook
+
+Several extensions remain natural. The conditional score of Appendix C handles nonuniform or correlated databases with-out double-counting shared information. The asymmetric-bias theorem shows how non-isotropic correlation layers can be analyzed without forcing all performance into one scalar. A next experimental step would be to implement small-depth Neural-RAC correlation layers on actual quantum hardware and compare the measured visibility to the finite-depth phase boundary. In this precise sense, the Tsirelson bound can be read not only as a Bell inequality frontier, but also as a stabil-ity boundary for representation-mediated random access. 
+
+> ACKNOWLEDGMENTS
+
+JB thank Prof. Marek ˙Zukowski for supports. This work was supported by the Korean ARPA-H Project through the Korea Health Industry Development Institute (KHIDI), funded by the Ministry of Health & Welfare, Republic of Korea (RS-2025-25456722), the Ministry of Trade, Industry and Resources (MOTIR), Korea, under the project “Industrial Technology Infrastructure Program” (RS-2024-00466693), and the Ministry of Science, ICT and Future Planning (MSIP) by the National Research Foundation of Korea (RS-2024-00432214, RS-2025-03532992). This work is partially carried out under IRA Programme, project no. FENG.02.01-IP.05-0006/23, financed by the FENG program 2021-2027, Pri-ority FENG.02, Measure FENG.02.01., with the support of the FNP. M.P. acknowledges support from the NCN Poland, ChistEra2023/05/Y/ST2/00005 under the project Modern De-vice Independent Cryptography (MoDIC). We acknowledge the Yonsei University Quantum Computing Project Group for providing support and access to the Quantum System One (Eagle Processor), which is operated at Yonsei University. 
+
+> Appendix A: Nested CHSH Protocols and the Bias–Multiplication Law
+
+This appendix provides a self-contained and fully explicit derivation of the central combinatorial identity behind the “pyramid” (nested) protocols used in Secs. IV–VI. Concretely, we prove that if Alice and Bob share 2n − 1 independent isotropic CHSH 18 correlation cells of bias E, then there exists a (N, m ) = (2 n, 1) Neural-RAC protocol whose per-query success probability is 
+
+PK = Pr[ β = aK | b = K] = 1 + En
+
+2 , ∀K ∈ { 0, . . . , 2n − 1}. (A1) This is the precise content of Eq. (8) in Ref. [11], translated into the notation of our Neural-IC formulation. Because the main text emphasized the conceptual flow, we verify each step with full algebraic detail.  
+
+> 1. Isotropic CHSH cells as biased XOR constraints
+
+We recall the isotropic CHSH cell (Definition 9): it is a no-signaling box with inputs (s, t ) ∈ { 0, 1}2 and outputs (A, B ) ∈{0, 1}2 such that the local outcomes are uniformly random and 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + E
+
+2 , ∀s, t, (A2) where E ∈ [0 , 1] is the bias (correlation strength). The key to all subsequent calculations is that an isotropic cell admits an explicit generative representation in terms of an independent error bit. 
+
+Lemma 6 (Generative model for an isotropic CHSH cell) . A correlation box is isotropic with bias E if and only if there exist random variables U ∼ Bern(1 /2) and e ∼ Bern   1−E
+
+> 2
+
+, independent of each other and independent of (s, t ), such that the outputs can be generated as 
+
+A := U, B := U ⊕ st ⊕ e. (A3) 
+
+Equivalently, the CHSH error bit 
+
+e := ( A ⊕ B) ⊕ st (A4) 
+
+satisfies Pr[ e = 0] = 1+ E 
+
+> 2
+
+and is statistically independent of (s, t ).Proof. —The proof is as follows. (⇒) Assume Eq. (A3). Then, A = U is uniform. Moreover, B = U ⊕ st ⊕ e is also uniform because XOR with the uniform bit U randomizes B regardless of st and e. Finally, 
+
+A ⊕ B = U ⊕ (U ⊕ st ⊕ e) = st ⊕ e. (A5) Hence, A ⊕ B = st if and only if e = 0 , which occurs with probability Pr[ e = 0] = 1 − Pr[ e = 1] = 1 − 1−E 
+
+> 2
+
+= 1+ E 
+
+> 2
+
+. This yields Eq. (A2). (⇐) Conversely, assume the box is isotropic in the sense of Eq. (A2) and has uniform marginals. We fix (s, t ). There are exactly two output pairs with parity A ⊕ B = st and two with A ⊕ B̸ = st . The combination of uniform marginals and the symmetry of the isotropic family implies that the two “winning” pairs each occur with probability (1 + E)/4 and the two “losing” pairs each occur with probability (1 − E)/4. Now generate U ∼ Bern(1 /2) and e ∼ Bern( 1−E 
+
+> 2
+
+) independently and set (A, B ) by Eq. (A3). A direct enumeration shows that for any fixed (s, t ) this produces exactly the four probabilities above: 
+
+Pr[ A = u, B = u ⊕ st | s, t ] = Pr[ U = u, e = 0] = 1 + E
+
+4 ,
+
+Pr[ A = u, B = u ⊕ st ⊕ 1 | s, t ] = Pr[ U = u, e = 1] = 1 − E
+
+4 , (A6) for u ∈ { 0, 1}. Thus, the generative model reproduces the isotropic box exactly, proving the claim. Finally, Eq. (A4) follows by rearranging A ⊕ B = st ⊕ e, and independence of e from (s, t ) is immediate since e is sampled independently in the model. The utility of Lemma 6 is conceptual and technical: even if the inputs (s, t ) are chosen adaptively as functions of past outputs, the error bit e remains independent of those choices. This observation is what makes “nesting” analytically tractable. 
+
+Corollary 3 (Independent error bits under adaptive inputs) . Consider a collection of independent isotropic CHSH cells of common bias E. For each invocation i, let (si, t i) be any (possibly adaptive) rule for selecting inputs as functions of previously observed classical data, and let (Ai, B i) be the corresponding outputs. Define the error bits 
+
+ei := ( Ai ⊕ Bi) ⊕ siti. (A7) 
+
+Then {ei} are i.i.d. Bernoulli random variables with Pr[ ei = 0] = 1+ E 
+
+> 2
+
+, and they are independent of the entire sigma-algebra generated by the inputs {(sj , t j )}j≤i.Proof. —By Lemma 6, each cell can be sampled by first drawing an independent pair (Ui, e i) and then setting Ai = Ui,
+
+Bi = Ui ⊕ siti ⊕ ei. Because different cells are independent resources, the pairs (Ui, e i) are independent across i. In particular, 
+
+ei is drawn independently of (si, t i) and of all past randomness, hence the stated i.i.d. property follows. 19  
+
+> 2. Tree notation for the nested protocol
+
+We now define the nested (N, m ) = (2 n, 1) protocol in a form convenient for proofs. The pictorial “pyramid” of Fig. 3 in Ref. [11] is precisely a full binary tree of depth n whose internal nodes correspond to CHSH cells. 
+
+Indexing. Let {0, 1}≤n−1 denote the set of all binary strings (“words”) of length at most n − 1. Each word w labels an internal node of the tree, with children w0 and w1. Leaves are labeled by words of length n, and we identify Alice’s database bits with leaf labels: 
+
+{au}u∈{ 0,1}n . (A8) Bob’s query is a leaf label b ∈ { 0, 1}n (uniform), and the target bit is ab.
+
+Resources. For each internal node w ∈ { 0, 1}≤n−1, Alice and Bob share an independent isotropic CHSH cell (Lemma 6) with outputs (Aw, B w) and inputs (sw, t w). All cells are independent of the database bits. 
+
+Messages. The encoder associates to each node w a single classical bit xw. At leaves u ∈ { 0, 1}n we set 
+
+xu := au. (A9) At internal nodes, xw is computed recursively using the local cell output Aw. 
+
+> 3. Encoding and decoding rules
+
+Encoding (Alice). For each internal node w ∈ { 0, 1}≤n−1, once the children’s messages xw0 and xw1 are available, Alice sets 
+
+sw := xw0 ⊕ xw1, xw := xw0 ⊕ Aw. (A10) At the end of this upward recursion, Alice transmits the single-bit bottleneck message 
+
+x := xϵ, (A11) where ϵ denotes the empty word (the root). 
+
+Decoding (Bob). Bob receives x and the query b = b1b2 · · · bn ∈ { 0, 1}n. Bob traverses the tree from the root to the leaf b.At an internal node w whose depth equals w = r (so w = b1 · · · br ), Bob sets the input 
+
+tw := br+1 ∈ { 0, 1}, (A12) obtains the output Bw, and updates his current message estimate by 
+
+bxwt w := bxw ⊕ Bw, (A13) starting from bxϵ := x. After n steps, he reaches the leaf b and outputs 
+
+β := bxb. (A14) The decoding update Eq. (A13) is nothing but the seed rule β = x ⊕ B (Sec. II) applied repeatedly: at each level, Bob uses one cell to “choose” the appropriate child message. The crux is to show that each choice introduces an independent biased error, and that these errors XOR (add modulo 2) along the path.  
+
+> 4. One-step correctness identity and error propagation
+
+We begin with a single-node identity that expresses exactly what Bob recovers from w when he applies the update Eq. (A13). 
+
+Lemma 7 (One-step child recovery up to the local CHSH error) . Fix an internal node w. Let ew be the CHSH error bit of the cell at w,
+
+ew := ( Aw ⊕ Bw) ⊕ swtw. (A15) 
+
+Then, the encoding/decoding rules Eqs. (A10)–(A13) imply the identity 
+
+xw ⊕ Bw = xwt w ⊕ ew. (A16) 20 
+
+Proof. —By the encoding rule, xw = xw0 ⊕ Aw. Therefore, 
+
+xw ⊕ Bw = xw0 ⊕ Aw ⊕ Bw. (A17) By definition of the error bit Eq. (A15), we have 
+
+Aw ⊕ Bw = swtw ⊕ ew. (A18) Substituting Eq. (A18) into Eq. (A17) yields 
+
+xw ⊕ Bw = xw0 ⊕ swtw ⊕ ew. (A19) Recall sw = xw0 ⊕ xw1. If tw = 0 , then swtw = 0 and Eq. (A19) gives xw ⊕ Bw = xw0 ⊕ ew = xwt w ⊕ ew. If tw = 1 , then 
+
+swtw = sw, and 
+
+xw ⊕ Bw = xw0 ⊕ (xw0 ⊕ xw1) ⊕ ew = xw1 ⊕ ew = xwt w ⊕ ew. (A20) This proves Eq. (A16). Lemma 7 is the local engine of nesting. It says: given the parent message xw, one cell lets Bob recover the requested child message, but possibly flipped by a local error bit ew. Thus, the only remaining question is how these flips compose down the path. 
+
+Theorem 13 (Global parity structure of the nested protocol) . Run the nested protocol of Sec. A 2 and Sec. A 3 on N = 2 n
+
+database bits using independent isotropic CHSH cells. Let b ∈ { 0, 1}n be Bob’s query leaf. Let P(b) denote the set of internal nodes on the unique root-to-leaf path to b:
+
+P(b) = {ϵ, b 1, b 1b2, . . . , b 1b2 · · · bn−1}. (A21) 
+
+Then, Bob’s output satisfies the exact identity 
+
+β = ab ⊕
+
+ M
+
+> w∈P (b)
+
+ew
+
+ . (A22) 
+
+In particular, Bob is correct if and only if an even number of local errors occurs along the path. Proof. —We track Bob’s running message estimate. By definition, bxϵ = xϵ. At the root node ϵ, Bob updates using Eq. (A13): 
+
+bxb1 = bxϵ ⊕ Bϵ = xϵ ⊕ Bϵ. Applying Lemma 7 at w = ϵ gives 
+
+bxb1 = xb1 ⊕ eϵ. (A23) Now we assume inductively that after r steps ( 1 ≤ r ≤ n − 1), 
+
+bxb1··· br = xb1··· br ⊕
+
+
+
+> r−1
+
+M
+
+> j=0
+
+eb1··· bj
+
+ , (A24) where b1 · · · b0 is understood as ϵ. At the next node w = b1 · · · br , Bob applies the update rule: 
+
+bxb1··· br+1 = bxb1··· br ⊕ Bb1··· br . (A25) Substituting Eq. (A24) into Eq. (A25), 
+
+bxb1··· br+1 =
+
+xb1··· br ⊕
+
+> r−1
+
+M
+
+> j=0
+
+eb1··· bj
+
+ ⊕ Bb1··· br . (A26) Applying Lemma 7 at node w = b1 · · · br yields xb1··· br ⊕ Bb1··· br = xb1··· br+1 ⊕ eb1··· br . Therefore, 
+
+bxb1··· br+1 = xb1··· br+1 ⊕
+
+
+
+> r−1
+
+M
+
+> j=0
+
+eb1··· bj
+
+ ⊕ eb1··· br , (A27) 21 which is exactly the induction hypothesis with r replaced by r + 1 .By induction, after n steps we obtain 
+
+bxb = xb ⊕
+
+ M
+
+> w∈P (b)
+
+ew
+
+ . (A28) Finally, at the leaf b we have xb = ab by Eq. (A9), and Bob outputs β = bxb by Eq. (A14). This proves Eq. (A22). Theorem 13 reduces the entire nested protocol to a single clean statement: the only reason Bob fails is that the independent CHSH “error bits” have odd parity along his path. Once this is established, the success probability is a purely probabilistic computation.      
+
+> 5. Even-parity probability and the bias multiplication E7→En
+
+We now compute the probability that the parity in Eq. (A22) is zero. For completeness we prove the required identity in its most general form. 
+
+Lemma 8 (Parity of i.i.d. biased bits) . Let e1, . . . , e n ∈ { 0, 1} be i.i.d. such that 
+
+Pr[ ei = 0] = 1 + E
+
+2 , Pr[ ei = 1] = 1 − E
+
+2 , (A29) 
+
+where E ∈ [−1, 1] . Let E⊕ := e1 ⊕ · · · ⊕ en. Then, 
+
+Pr[ E⊕ = 0] = 1 + En
+
+2 , Pr[ E⊕ = 1] = 1 − En
+
+2 . (A30) 
+
+Proof. —Define ξi := ( −1) ei ∈ { +1 , −1}. Then, E[ξi] = Pr[ ei = 0] − Pr[ ei = 1] = E. Moreover, 
+
+(−1) E⊕ = ( −1) e1⊕···⊕ en =
+
+> n
+
+Y
+
+> i=1
+
+(−1) ei =
+
+> n
+
+Y
+
+> i=1
+
+ξi. (A31) By independence, E[( −1) E⊕ ] = Q 
+
+> i
+
+E[ξi] = En. But also 
+
+E[( −1) E⊕ ] = Pr[ E⊕ = 0] − Pr[ E⊕ = 1] = 2 Pr[ E⊕ = 0] − 1. (A32) Solving for Pr[ E⊕ = 0] gives Pr[ E⊕ = 0] = (1 + En)/2, and Pr[ E⊕ = 1] = 1 − Pr[ E⊕ = 0] = (1 − En)/2.We can now conclude the main identity Eq. (A1). 
+
+Theorem 14 (Success probability of the nested isotropic protocol) . Assume that for each internal node w ∈ { 0, 1}≤n−1, Alice and Bob share an independent isotropic CHSH cell of bias E. Run the nested protocol of Sec. A 2 and Sec. A 3 on an i.i.d. unbiased database {au}u∈{ 0,1}n . Then, for every query b ∈ { 0, 1}n,
+
+Pr[ β = ab | b] = 1 + En
+
+2 . (A33) 
+
+Equivalently, in the index notation K ∈ { 0, . . . , 2n − 1} obtained by identifying K with its length-n binary expansion, 
+
+PK = Pr[ β = aK | b = K] = 1 + En
+
+2 (∀K). (A34) 
+
+Proof. —Fix a query b. By Theorem 13, 
+
+β = ab ⊕ M
+
+> w∈P (b)
+
+ew. (A35) Thus, β = ab if and only if L 
+
+> w∈P (b)
+
+ew = 0 . By Corollary 3, the collection {ew}w∈P (b) is i.i.d. with Pr[ ew = 0] = 1+ E 
+
+> 2
+
+.There are exactly n nodes on the path P(b). Therefore, Lemma 8 applies and yields 
+
+Pr 
+
+ M
+
+> w∈P (b)
+
+ew = 0 
+
+ = 1 + En
+
+2 , (A36) which is Eq. (A33). 22 
+
+Remark 3 (Why the answer is independent of the queried index) . The right-hand side of Eq. (A33) depends only on the path length n and the bias E. This is not an accident: in the isotropic family, each local decision is corrupted by an error bit whose law is independent of the actual inputs, and each query traverses exactly one node per level. Thus, the protocol is query-symmetric by construction. 
+
+Remark 4 (Connection to the pyramid notation in the main text) . The word-based indexing used here is equivalent to the level-indexed pyramid notation (ℓ, j ) of Sec. IV. The internal nodes at depth r (i.e., w = r) correspond to level ℓ = n − 1 − r in the “bottom-to-top” convention, and the path P(b) corresponds to the unique selection j(ℓ) induced by the query bits. The parity identity Eq. (A22) is the algebraic content of the informal statement that “Bob is correct whenever he makes an even number of intermediate errors” [11]. 
+
+> Appendix B: Computing and Estimating the Neural-RAC Information Score
+
+This appendix complements Sec. VI by providing a rigorous and implementation-ready account of how to compute and estimate the Neural-RAC information score 
+
+IN-RAC :=  
+
+> N−1
+
+X
+
+> K=0
+
+I(aK : β | b = K) (B1) from either (i) closed-form protocol statistics or (ii) finite-sample experimental data. Although the main text focuses on the nested isotropic CHSH construction (where closed forms exist), the estimation methodology here is written to remain valid for general query-separated models, including trained neural encoder–decoder systems and their quantum-enhanced variants.  
+
+> 1. Mutual information of a binary channel: exact formulas
+
+In Neural-RAC the relevant object is the conditional channel aK → β given the event (b = K). Because aK and β are binary, mutual information can be written in closed form in terms of the (conditional) confusion matrix. This subsection records these formulas explicitly. 
+
+> B.1.1. General binary channel under an unbiased input
+
+Fix K and condition on b = K. Assume aK is unbiased (as in all RAC instances considered in this work), i.e., 
+
+Pr[ aK = 0 | b = K] = Pr[ aK = 1 | b = K] = 12 . (B2) Define the channel parameters 
+
+qK := Pr[ β = 1 | aK = 0 , b = K],rK := Pr[ β = 1 | aK = 1 , b = K]. (B3) Equivalently, qK is the false-positive rate and 1 − rK is the false-negative rate. 
+
+Proposition 4 (Mutual information of a general binary channel (unbiased input)) . Under Eq. (B3) with an unbiased input aK ,the mutual information satisfies 
+
+I(aK : β | b = K) = h
+
+ qK + rK
+
+2
+
+
+
+− 12 h(qK ) − 12 h(rK ). (B4) 
+
+Proof. —By definition, 
+
+I(aK : β | b = K) = H(β | b = K) − H(β | aK , b = K). (B5) First compute the marginal of β conditioned on b = K:
+
+Pr[ β = 1 | b = K] = X
+
+> a∈{ 0,1}
+
+Pr[ aK = a | b = K] Pr[ β = 1 | aK = a, b = K] = qK + rK
+
+2 . (B6) 23 Therefore, 
+
+H(β | b = K) = h
+
+ qK + rK
+
+2
+
+
+
+. (B7) Next, 
+
+H(β | aK , b = K) = X
+
+> a∈{ 0,1}
+
+Pr[ aK = a | b = K] H(β | aK = a, b = K)= 12 h(qK ) + 12 h(rK ), (B8) because conditioned on aK = 0 the output β is Bernoulli (qK ), and conditioned on aK = 1 it is Bernoulli (rK ). Substituting into Eq. (B5) gives Eq. (B4). 
+
+Remark 5 (Why success probability alone is not enough in general) . The per-query success probability PK = Pr[ β = aK |
+
+b = K] does not uniquely determine Eq. (B4) unless one further assumes symmetry of the conditional channel. Indeed, PK
+
+constrains only the average of the two conditional accuracies Pr[ β = 0 | aK = 0 , b = K] and Pr[ β = 1 | aK = 1 , b = K].Mutual information depends on the full confusion matrix. This is one reason the main text uses the robust inequality I(aK : β |
+
+b = K) ≥ 1 − h(PK ) when symmetry is not guaranteed. 
+
+> B.1.2. Binary symmetric channel (BSC) specialization
+
+A particularly important case arises when the conditional channel is symmetric: 
+
+Pr[ β̸ = aK | aK , b = K] = εK independent of aK , (B9) equivalently qK = 1 − PK and rK = PK with PK = 1 − εK .
+
+Corollary 4 (Exact information from success probability for a BSC) . If conditioned on b = K the relation β = aK ⊕ ε holds with ε independent of aK and Pr[ ε = 0] = PK , then 
+
+I(aK : β | b = K) = 1 − h(PK ). (B10) 
+
+Proof. —In Proposition 4, substitute qK = 1 −PK and rK = PK . Then, (qK +rK )/2 = 1 /2 so h(( qK +rK )/2) = h(1 /2) = 1 ,and h(qK ) = h(1 − PK ) = h(PK ). Eq. (B4) reduces to 1 − h(PK ).
+
+Remark 6 (Relevance to the nested isotropic protocol) . For the nested isotropic CHSH construction (Sec. IV and Sec. VI), the conditional channel is exactly a BSC: the output equals the target bit XOR the parity of independent CHSH error bits. Hence, Corollary 4 justifies the closed-form formula used in Sec. VI: 
+
+IN-RAC = N
+
+
+
+1 − h
+
+ 1 + En
+
+2
+
+ 
+
+(N = 2 n). (B11)   
+
+> 2. From data to IN-RAC : estimators and bias
+
+We now address the practical question: given empirical samples from a Neural-RAC device (classical neural model, QNN, or a simulator), how does one estimate IN-RAC ?
+
+> B.2.1. Two experimental designs
+
+There are two natural sampling designs. 
+
+Design A (per-query batching). For each K ∈ { 0, . . . , N − 1}, run TK trials with the query fixed at b = K. Record (aK , β )
+
+pairs. 
+
+Design B (random queries). Run T trials with b sampled uniformly each time. Record triples (b, a b, β ).Design A is statistically clean: each conditional channel is estimated from TK samples. Design B is operationally faithful: it emulates the “random access” usage pattern. Both are valid. In the symmetric settings considered in Sec. VI (where PK does not depend on K), Design B is often preferable because it concentrates all sampling power on a single scalar. 24 
+
+B.2.2. Plug-in estimators from contingency tables 
+
+Fix K. From Design A (or from Design B restricted to b = K), let n(K) 
+
+> uv
+
+denote the counts 
+
+n(K) 
+
+> uv
+
+:= # {trials with aK = u, β = v, b = K} (u, v ∈ { 0, 1}), (B12) and let TK := P 
+
+> u,v
+
+n(K) 
+
+> uv
+
+. Define the empirical joint distribution 
+
+bp(K) 
+
+> uv
+
+:= n(K)
+
+> uv
+
+TK
+
+, bp(K) 
+
+> u·
+
+:= X
+
+> v
+
+bp(K) 
+
+> uv
+
+, bp(K) 
+
+> ·v
+
+:= X
+
+> u
+
+bp(K) 
+
+> uv
+
+. (B13) The standard plug-in estimator of the conditional mutual information is 
+
+bIK := X
+
+> u,v ∈{ 0,1}
+
+bp(K) 
+
+> uv
+
+log bp(K)
+
+> uv
+
+bp(K) 
+
+> u·
+
+bp(K)
+
+> ·v
+
+, (B14) with the convention 0 log 0 := 0 . Then, the natural estimator of the total score is 
+
+bIN-RAC :=  
+
+> N−1
+
+X
+
+> K=0
+
+bIK . (B15) 
+
+Remark 7 (Finite-sample bias and regularization) . The plug-in estimator Eq. (B14) is consistent as TK → ∞ but is biased at finite samples. For binary variables this bias is usually mild at moderate TK , but it can become visible near the critical regime where I(aK : β | b = K) is very small. Two standard remedies are: (i) add a small pseudocount α > 0 (Laplace/Jeffreys smoothing), replacing n(K) 
+
+> uv
+
+by n(K) 
+
+> uv
+
++ α; (ii) apply an analytic bias correction (e.g., Miller–Madow corrections at the level of entropies; see Ref. [28]). In Sec. VI, we avoided this issue by using closed-form evaluation whenever the protocol structure guarantees a BSC. 
+
+B.2.3. Symmetric estimator via success probability 
+
+In many protocols of interest (including the nested isotropic one), PK is independent of K and the conditional channel is approximately symmetric. In that case, one can estimate P by the empirical accuracy and convert to mutual information via Corollary 4. Let 
+
+bP := 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+I{β(t) = a(t) 
+
+> b(t)
+
+}. (B16) Then, a symmetry-based estimator is 
+
+bI(sym) N-RAC := N
+
+
+
+1 − h( bP )
+
+
+
+. (B17) This estimator concentrates all sampling power into a single Bernoulli statistic and is therefore statistically efficient. 
+
+3. Confidence intervals and error propagation 
+
+A practical report of IN-RAC should include an uncertainty statement. Here we describe a simple and robust method. 
+
+B.3.1. Binomial confidence intervals for bP
+
+Under the symmetry design Eq. (B16), the number of successes S := PTt=1 1{β(t) = a(t) 
+
+> b(t)
+
+} is Binomial (T, P ). Hence, classical binomial confidence intervals apply. Let [P , P ] be any 1 − α confidence interval for P (e.g., Clopper–Pearson or Wilson score; see, e.g., Ref. [29]). Then, by monotonicity of f (p) := 1 − h(p) for p ∈ [1 /2, 1] ,
+
+IN-RAC := N  1 − h(P ) ≤ IN-RAC ≤ N  1 − h(P ) =: IN-RAC , (B18) is a conservative (1 − α) confidence interval for IN-RAC under the BSC assumption, provided the confidence interval lies inside 
+
+[1 /2, 1] .25 
+
+Remark 8 (Endpoint transformation) . Since 1 − h(p) increases with p on [1 /2, 1] , the information interval is obtained by applying the same monotone map to the two endpoints of the success-probability interval. If an empirical interval extends below 
+
+1/2, one should either report the clipped one-sided benchmark relevant to the protocol or compute the extrema of 1 − h(p)
+
+directly over the full interval.  
+
+> B.3.2 A simple analytical bound (Hoeffding)
+
+As an alternative to exact binomial intervals, Hoeffding’s inequality yields the explicit bound [30] 
+
+Pr | bP − P | ≥ ϵ ≤ 2e−2T ϵ 2
+
+. (B19) Thus, with probability at least 1 − α,
+
+P ∈
+
+"bP −
+
+r ln(2 /α )2T , bP +
+
+r ln(2 /α )2T
+
+#
+
+∩ [0 , 1] . (B20) By plugging this interval into Eq. (B18) again, we obtain an explicit interval for IN-RAC . 
+
+> 4. Critical-regime sample complexity: why Tsirelson is numerically delicate
+
+A subtle point arises near the Tsirelson threshold. Even when the total information score is O(1) , the per-query advantage can be exponentially small in the depth n. This section quantifies the phenomenon. 
+
+Lemma 9 (Small-bias expansion of 1 − h). Let δ ∈ [−1, 1] and set p = (1 + δ)/2. Then, 
+
+1 − h(p) = δ2
+
+2 ln 2 + O(δ4) (δ → 0) . (B21) 
+
+Proof. —Write p = 12 + δ 
+
+> 2
+
+and expand h(p) in a Taylor series around 1/2. Since h(1 /2) = 1 and h′(1 /2) = 0 by symmetry, the leading term comes from h′′ (1 /2) . A direct derivative computation gives h′′ (1 /2) = −4/ ln 2 . Hence, 
+
+h
+
+ 12 + δ
+
+2
+
+
+
+= 1 + 12 h′′ (1 /2) 
+
+ δ
+
+2
+
+2
+
++ O(δ4) = 1 − δ2
+
+2 ln 2 + O(δ4), (B22) which implies Eq. (B21). For the nested isotropic protocol, the success probability is P = (1 + En)/2, hence δ = En. Therefore, for large n,
+
+IN-RAC = N
+
+
+
+1 − h
+
+ 1 + En
+
+2
+
+ 
+
+≈ N E2n
+
+2 ln 2 . (B23) In the critical quantum case E = 1 /√2 and N = 2 n, one has E2n = 2 −n, hence the product N E 2n stays constant and IN-RAC 
+
+converges to 1/(2 ln 2) , consistent with Theorem 12 in the main text. 
+
+Remark 9 (Sampling implication) . Near criticality, δ = En becomes extremely small. To estimate P = 12 + δ 
+
+> 2
+
+with relative accuracy at the scale of δ, a binomial estimator requires T = Ω(1 /δ 2) = Ω( E−2n) samples. At E = 1 /√2 this becomes 
+
+T = Ω(2 n) = Ω( N ). Thus, purely empirical estimation of IN-RAC at large n is intrinsically sample-demanding, even though the closed-form value may be O(1) . This explains why Sec. VI prefers closed-form evaluation when the protocol structure is known, and reserves Monte Carlo emulation as a sanity check rather than the primary estimator. 
+
+> Appendix C: Non-uniform and Correlated Databases
+
+The main Neural-RAC score is intentionally matched to the standard IC task: independent unbiased database bits. If the database bits are correlated, the unconditioned sum P 
+
+> K
+
+I(AK : β | b = K) can double-count the same underlying information. For instance, if all AK are identical, one transmitted bit can answer every query, and the unconditioned sum would scale like 
+
+N even though the database contains only one bit of entropy. The correct extension is to account for each target only after conditioning on the previous targets. 26 
+
+Definition 11 (Conditional Neural-RAC score) . For an arbitrary binary database AN = ( A0, . . . , A N −1), define 
+
+IcN -RAC :=  
+
+> N−1
+
+X
+
+> K=0
+
+I(AK : β | b = K, A <K ), A<K := ( A0, . . . , A K−1). (C1) 
+
+Theorem 15 (Conditional Neural-IC for arbitrary binary databases) . Let AN be any binary database, not necessarily indepen-dent or unbiased, and let b be independent of AN and uniformly distributed over the query set. For every query-separated architecture satisfying Assumption 1, 
+
+IcN -RAC ≤ I(AN : H, B ). (C2) 
+
+Consequently, any physical capacity certificate I(AN : H, B ) ≤ CH implies IcN -RAC ≤ CH .Proof. —The chain rule gives, without any independence assumption among the database bits, 
+
+I(AN : H, B ) =  
+
+> N−1
+
+X
+
+> K=0
+
+I(AK : H, B | A<K ). (C3) For each K, condition on A<K and on the branch b = K. The decoder output β is a local transformation of (H, B ), so data processing gives 
+
+I(AK : H, B | A<K ) ≥ I(AK : β | A<K , b = K). (C4) Summing over K proves Eq. (C2); the capacity consequence is immediate. 
+
+Corollary 5 (Conditional accuracy-to-information bound) . Let Pe,K := Pr[ β̸ = AK | b = K]. Then 
+
+IcN -RAC ≥ 
+
+> N−1
+
+X
+
+> K=0
+
+H(AK | A<K ) − 
+
+> N−1
+
+X
+
+> K=0
+
+h(Pe,K ). (C5) 
+
+For independent unbiased bits, H(AK | A<K ) = 1 and Eq. (C5) reduces to Theorem 4. Proof. —For each branch K, Fano’s binary inequality gives H(AK | β, A <K , b = K) ≤ h(Pe,K ). Since b is independent of the database, H(AK | A<K , b = K) = H(AK | A<K ). Subtracting the conditional entropy after observing β and summing over K yields the result. This appendix is also a warning about applying the unconditioned Neural-RAC score to natural data. Real datasets often contain redundancy; in that setting the conditional score is the appropriate quantity if one wants a capacity law rather than a redundancy-counting statistic. 
+
+> Appendix D: Quantum Correlation Layers as Trainable Modules
+
+This appendix makes explicit a technical bridge that is conceptually central to the present work: how a physically admissible quantum resource (entanglement + local measurements) becomes an effective “correlation layer” characterized by a single scalar bias parameter E, and how that parameter then propagates through nesting into the Neural-RAC information score. We also provide a minimal simulation (and a schematic) that can be used as a sanity-check and as a template for QNN-style modules. Throughout this appendix, Alice and Bob’s CHSH inputs are denoted by (s, t ) ∈ { 0, 1}2 and outputs by (A, B ) ∈ { 0, 1}2
+
+(bit convention), consistent with the main text and with Ref. [11]. When using quantum observables, we employ the standard 
+
+±1 convention and relate it back to the bit version explicitly.    
+
+> 1. From ±1correlators to CHSH winning probabilities
+
+The CHSH game is most transparently described in the bit language: the winning predicate is 
+
+A ⊕ B = st. (D1) Quantum measurement outcomes, however, are naturally ±1 random variables. The conversion is elementary but worth stat-ing carefully because it is the algebraic hinge that connects quantum correlators to the isotropic-bias parameterization used throughout the paper. 27 
+
+Definition 12 (±1 lifts of bits) . Given a bit X ∈ { 0, 1} define its ±1 lift by X := ( −1) X ∈ { +1 , −1}. Conversely, given 
+
+α ∈ { +1 , −1} one recovers the bit X by X = 1−α 
+
+> 2
+
+.
+
+The key identity is that XOR becomes multiplication after the lift: 
+
+(−1) X⊕Y = ( −1) X (−1) Y = XY . (D2) 
+
+Lemma 10 (Winning probability in terms of correlators) . Let αs := ( −1) A and βt := ( −1) B be the ±1 lifts of the bit outputs on inputs (s, t ). Define the correlator 
+
+Est := E[αsβt | s, t ] ∈ [−1, 1] . (D3) 
+
+Then the CHSH winning probability satisfies 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + ( −1) st Est 
+
+2 . (D4) 
+
+Proof. —The event A ⊕ B = st is equivalent to (−1) A⊕B = ( −1) st . Using Eq. (D2), 
+
+(−1) A⊕B = ( −1) A(−1) B = αsβt. (D5) Therefore, the win event is αsβt = ( −1) st . Since αsβt ∈ {± 1},
+
+Pr[ αsβt = (+1) | s, t ] = 1 + E[αsβt | s, t ]2 (D6) and 
+
+Pr[ αsβt = ( −1) | s, t ] = 1 − E[αsβt | s, t ]2 . (D7) Substituting the target value (−1) st yields Eq. (D4). By summing Eq. (D4) over the four inputs, we obtain the relation between the CHSH functional (as used in Ref. [11]) and the correlator form: 
+
+SCHSH := X
+
+> s,t ∈{ 0,1}
+
+Pr[ A ⊕ B = st | s, t ] = 2 + 12
+
+ E00 + E01 + E10 − E11 
+
+. (D8)  
+
+> 2. CHSH twirling: reduction to an isotropic one-parameter family
+
+The nesting analysis in Appendix A assumes an isotropic CHSH cell: 
+
+Pr[ A ⊕ B = st | s, t ] = 1 + E
+
+2 ∀(s, t ), (D9) for some bias E ∈ [0 , 1] . A natural question is: what if the raw correlations are not isotropic? Ref. [11] emphasizes that one can apply a purely local randomization (no communication) that preserves the CHSH value while symmetrizing the box into the isotropic form. Because this reduction is exactly what allows us to represent a correlation layer by a single scalar parameter E,we give an explicit construction and proof. 
+
+Proposition 5 (Isotropization (CHSH twirl) preserving SCHSH ). Let P (A, B | s, t ) be an arbitrary no-signaling box with bit inputs/outputs. Define its CHSH winning probabilities pst := Pr[ A ⊕ B = st | s, t ] and its CHSH value SCHSH := P 
+
+> s,t
+
+pst . Then, there exists a local pre-/post-processing using only shared randomness (no communication) producing a new box P iso (A′, B ′ | s, t ), such that: (i) Isotropy. Pr[ A′ ⊕ B′ = st | s, t ] = SCHSH /4 for all (s, t ).(ii) CHSH preservation. The CHSH value is unchanged: SCHSH (P iso ) = SCHSH (P ).(iii) Uniform marginals. A′ and B′ are unbiased for every input (hence the result lies in the isotropic family Eq. (D9) with 
+
+E = SCHSH /2 − 1). 28 
+
+Proof. —Let u, v, w ∈ { 0, 1} be shared random bits, uniform and independent. Given the external inputs (s, t ), Alice and Bob feed the shifted inputs 
+
+s⋆ := s ⊕ u, t⋆ := t ⊕ v (D10) into the original box and obtain outputs (A, B ). They then define new outputs 
+
+A′ := A ⊕ w ⊕ (s ∧ v) ⊕ (u ∧ v), B′ := B ⊕ w ⊕ (u ∧ t). (D11) We claim the key parity identity 
+
+A′ ⊕ B′ ⊕ st = A ⊕ B ⊕ s⋆t⋆. (D12) To verify it, compute from Eq. (D11): 
+
+A′ ⊕ B′ =  A ⊕ w ⊕ (s ∧ v) ⊕ (u ∧ v) ⊕  B ⊕ w ⊕ (u ∧ t)
+
+= A ⊕ B ⊕ (u ∧ t) ⊕ (s ∧ v) ⊕ (u ∧ v). (D13) Thus, 
+
+A′ ⊕ B′ ⊕ st = A ⊕ B ⊕  st ⊕ (u ∧ t) ⊕ (s ∧ v) ⊕ (u ∧ v). (D14) On the other hand, since s⋆ = s ⊕ u and t⋆ = t ⊕ v,
+
+s⋆t⋆ = ( s ⊕ u)( t ⊕ v) = st ⊕ (u ∧ t) ⊕ (s ∧ v) ⊕ (u ∧ v), (D15) where we used distributivity in F2 and the fact that ∧ is multiplication. Substituting Eq. (D15) into Eq. (D14) yields Eq. (D12). Now, the CHSH win event for the transformed box on inputs (s, t ) is A′ ⊕ B′ = st , equivalently, A′ ⊕ B′ ⊕ st = 0 . By Eq. (D12), this is equivalent to A ⊕ B ⊕ s⋆t⋆ = 0 , i.e., the original win event at shifted inputs (s⋆, t ⋆):
+
+1{A′ ⊕ B′ = st } = 1{A ⊕ B = s⋆t⋆}. (D16) Therefore, 
+
+Pr[ A′ ⊕ B′ = st | s, t, u, v, w ] = Pr[ A ⊕ B = s⋆t⋆ | s⋆, t ⋆]. (D17) Averaging over (u, v, w ) (note w cancels from the win event) gives 
+
+Pr[ A′ ⊕ B′ = st | s, t ] = 14
+
+X
+
+> u,v ∈{ 0,1}
+
+Pr[ A ⊕ B = ( s ⊕ u)( t ⊕ v) | s ⊕ u, t ⊕ v]= 14
+
+X
+
+> s⋆,t ⋆∈{ 0,1}
+
+Pr[ A ⊕ B = s⋆t⋆ | s⋆, t ⋆]= SCHSH 
+
+4 , (D18) which proves isotropy (i). Summing over (s, t ) shows the CHSH value is preserved (ii). Finally, uniform marginals (iii) follow because w is uniform and is XORed into both outputs. For any fixed input, A′ is A
+
+XORed with a uniform bit and fixed local shifts, and B′ is B XORed with the same uniform bit and a local shift; both marginals are therefore unbiased. 
+
+Remark 10 (Effective isotropic bias from a general box) . Proposition 5 shows that, for the purpose of CHSH-structured tasks (and in particular for nesting analyses), one may reduce an arbitrary correlation resource to the isotropic family with the same 
+
+SCHSH . Thus it is natural to define the effective bias parameter 
+
+Eiso := 2 
+
+ SCHSH 
+
+4
+
+
+
+− 1 = SCHSH 
+
+2 − 1. (D19) 
+
+Using Eq. (D8), this is equivalently Eiso =  E00 + E01 + E10 − E11 
+
+/4. This is the scalar “correlation capacity” that feeds into the bias-multiplication law of Appendix A. 29    
+
+> 3. A one-parameter quantum family: tuning Eiso up to Tsirelson
+
+We now exhibit a simple quantum construction where a single angle parameter controls the effective isotropic bias Eiso . This is exactly the form one would like in a QNN module: a small set of trainable parameters controlling correlation strength. We use the Bell state |Φ+⟩ = ( |00 ⟩ + |11 ⟩)/√2. Let ˆσx, ˆσz be Pauli matrices. Alice’s CHSH settings are fixed as 
+
+ˆA0 := ˆ σz , ˆA1 := ˆ σx. (D20) Bob’s settings form a one-parameter family in the x-z plane: 
+
+ˆB0(φ) := cos φ ˆσz + sin φ ˆσx, ˆB1(φ) := cos φ ˆσz − sin φ ˆσx, (D21) where φ ∈ [0 , π/ 4] .
+
+Theorem 16 (Closed-form CHSH correlator and effective isotropic bias for the family Eq. (D21)) . Let Est (φ) := ⟨Φ+| ˆAs ⊗
+
+ˆBt(φ) |Φ+⟩. Then, 
+
+E00 (φ) = E01 (φ) = cos φ, E10 (φ) = sin φ, E11 (φ) = − sin φ, (D22) 
+
+and hence, 
+
+CHSHcorr( φ) := E00 + E01 + E10 − E11 = 2(cos φ + sin φ). (D23) 
+
+The corresponding effective isotropic bias (via Proposition 5) is 
+
+Eiso (φ) = CHSHcorr( φ)4 = cos φ + sin φ
+
+2 . (D24) 
+
+In particular, Eiso (0) = 1 /2 (classical edge) and Eiso (π/ 4) = 1 /√2 (Tsirelson saturation). Proof. —Using |Φ+⟩, one has the identity ⟨Φ+| ˆσu ⊗ ˆσv |Φ+⟩ = δuv for u, v ∈ { x, z } and mixed terms vanish. Then, 
+
+E00 (φ) = Φ+ ˆσz ⊗ (cos φ ˆσz + sin φ ˆσx) Φ+ = cos φ, E01 (φ) = Φ+ ˆσz ⊗ (cos φ ˆσz − sin φ ˆσx) Φ+ = cos φ, E10 (φ) = Φ+ ˆσx ⊗ (cos φ ˆσz + sin φ ˆσx) Φ+ = sin φ, E11 (φ) = Φ+ ˆσx ⊗ (cos φ ˆσz − sin φ ˆσx) Φ+ = − sin φ, (D25) proving Eq. (D22). Eq. (D23) follows by substitution, and Eq. (D24) is the definition Eiso = CHSHcorr /4. Finally, Eiso (φ) is maximized on [0 , π/ 4] at φ = π/ 4, giving Eiso (π/ 4) = ( √2) /2 = 1 /√2, the Tsirelson value. For the quantum family in Theorem 16, Eq. (D23) and Eq. (D24) provide a closed-form map φ 7 → Eiso (φ). This is plotted in Fig. 13: as φ increases from 0 to π/ 4, the effective isotropic bias rises smoothly from the classical edge 1/2 to the Tsirelson value 
+
+1/√2. Feeding this single scalar into the nested isotropic analysis of Appendix A immediately yields the predicted Neural-RAC behavior at depth n, namely, 
+
+P = 1 + Eiso (φ)n
+
+2 , (D26) and 
+
+IN-RAC (n, E iso (φ)) = 2 n
+
+
+
+1 − h
+
+ 1 + Eiso (φ)n
+
+2
+
+ 
+
+. (D27) Fig. 14 visualizes this dependence for representative angles φ = 0 , π/ 8, and π/ 4 against the Neural-IC limit m = 1 (dashed), showing that subcritical angles rapidly drive the information score to near zero with increasing depth, whereas near φ = π/ 4
+
+the curve approaches the critical O(1) regime discussed in Sec. VI without crossing the IC bound. Finally, Table II provides a coarse numerical scan that makes the same chain of dependencies explicit by listing (φ, E iso (φ), S CHSH (φ), I N-RAC (n = 10)) :increasing φ increases the attainable CHSH bias and therefore increases the query-conditioned information harvest under a fixed bottleneck, up to the Tsirelson frontier where the nested protocol becomes critical but remains causally accountable. 30 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.45 0.50 0.55 0.60 0.65 0.70 measurement angle φ (radians )
+
+> E iso  (φ)
+
+FIG. 13. Effective isotropic bias Eiso (φ) = (cos φ + sin φ)/2 for the one-parameter quantum family in Theorem 16. The curve interpolates from the classical edge 1/2 at φ = 0 to the Tsirelson value 1/√2 at φ = π/ 4.φ = 0 (classical edge )          
+
+> φ=π
+> 8(sub -quantum )
+> φ=π
+> 4(Tsirelson )
+> 0510 15 20 0.0 0.2 0.4 0.6 0.8 1.0 1.2
+
+nesting depth n (N = 2^n )
+
+> IN -RAC (n, E  iso  (φ))
+
+FIG. 14. Predicted Neural-RAC information score IN-RAC (n, E iso (φ)) for three representative angles: φ = 0 (classical edge), φ = π/ 8
+
+(sub-quantum), and φ = π/ 4 (Tsirelson saturation). The dashed line indicates the Neural-IC limit m = 1 . As φ approaches π/ 4, the score approaches the critical quantum behavior discussed in Sec. VI, without violating the IC limit. 
+
+Remark 11 (A QNN reading) . Although Theorem 16 gives a closed-form map φ 7 → Eiso (φ) and the maximum Eiso = 1 /√2
+
+occurs at the Tsirelson point φ = π/ 4, one should not automatically hard-code φ = π/ 4 in a learning setting: the value that maximizes Eiso need not be the value that minimizes the end-to-end loss function (or maximizes the downstream task score). The trainable objective depends on the data distribution and on how the correlation layer interacts with the surrounding classical encoder/decoder. Hence, the loss-optimal setting can be strictly sub-Tsirelson even when stronger correlations are available. From this viewpoint, φ can play the role of a trainable weight in a quantum correlation layer: varying the measurement angle changes how much of the shared entanglement is converted into CHSH-type correlation, i.e., it changes the conditional output distribution of a single CHSH module, and after isotropization this change is summarized by the scalar bias Eiso (φ). Tuning φ
+
+therefore provides a continuous “quantum knob” that sweeps a family of physically realizable output distributions, interpolating from the classical boundary ( Eiso = 1 /2) up to the quantum frontier ( Eiso = 1 /√2), and thereby enlarges the hypothesis class available under a fixed m-bit bottleneck. In our framework, this scalar Eiso (φ) is precisely what controls (after isotropization) the nested Neural-RAC success probability and, consequently, the Neural-IC information score. 
+
+As a minimal trainable-module sanity check, we also optimized a regularized scalar objective 
+
+Uλ(φ) = IN-RAC 
+
+ n, E iso (φ) − λ
+
+ φπ/ 4
+
+2
+
+, n = 10 , (D28) over 0 ≤ φ ≤ π/ 4. This is not a hardware experiment; it is a controlled illustration of the point made in Remark 11. When the downstream objective includes even a simple cost for using stronger correlations, the loss-optimal angle can be strictly sub-Tsirelson. 31                                     
+
+> φEiso (φ)SCHSH (φ)IN-RAC (n= 10) 00.5000 3.0000 7.04 ×10 −4
+> π/ 16 0.5879 3.1759 1.80 ×10 −2
+> π/ 80.6533 3.3066 1.48 ×10 −1
+> 3π/ 16 0.6935 3.3870 4.89 ×10 −1
+> π/ 40.7071 3.4142 7.21 ×10 −1
+> TABLE II. A coarse scan of the one-parameter quantum family. The Tsirelson point φ=π/ 4saturates Eiso = 1 /√2and exhibits the critical regime emphasized in Sec. VI.
+> FIG. 15. Regularized optimization of the quantum correlation-layer angle for the toy utility in Eq. (D28). With no penalty the optimum is the Tsirelson angle; increasing regularization moves the learned setting into the sub-Tsirelson region, illustrating why a trainable QNN layer need not always choose maximal CHSH bias.
+> Appendix E: Cryptographic sponge constructions as a queryless bottleneck analogue
+
+The cryptographic sponge constructions are a standard “absorb-then-squeeze” way to build variable-input/variable-output primitives, including modern hash and extendable-output functions (XOFs) based on Keccak/SHA-3. A sponge maintains a fixed-width internal state of b = r + c bits, split into a rate r (which interfaces with input/output) and a capacity c (which controls security). After absorbing an input string into the state, the construction can squeeze an output string of arbitrary length. The construction was introduced and analyzed by Bertoni et al. [31, 32]; practical Keccak parameters are specified in the Keccak implementation documentation [33], and a pedagogical overview is given in Ref. [34]. This appendix is not used in the proofs, but it helps delimit the scope of the bottleneck analogy. From the viewpoint of Neural-IC, sponges provide a useful queryless bottleneck analogy: regardless of how long the squeezed output is, it is generated solely from a bounded internal state, so one should not expect an increase of information-theoretic entropy beyond what was injected during absorption. This aligns with the main “bottleneck as message” intuition in our setting: downstream computation can only reuse and reformat what passes through a finite-capacity intermediate representation. At the same time, the analogy has sharp limitations that are essential for interpreting Neural-RAC/IC correctly. First, our setting is intrinsically query-separated : the decoder receives a later-supplied query register b and must answer the specific target indexed by b, whereas sponge squeezing is typically queryless. Second, the long output stream of a sponge/XOF is generally a collection of highly correlated deterministic functions of the same internal state (or seed), and therefore should not be interpreted as many independent random-access targets (contrast with the independent database bits {aK } in Neural-RAC). Third, sponge security is primarily a computational notion (e.g., pseudorandomness/indifferentiability), while Neural-IC is an 
+
+information-theoretic mutual-information accounting. Finally, the “oracle representation” pathology discussed in the main text concerns uniformly strong random-access performance through a vanishing bottleneck, whereas sponge constructions exemplify the opposite phenomenon: arbitrarily long outputs that nevertheless respect the underlying bottleneck constraint. 
+
+> [1] A. Graves, G. Wayne, and I. Danihelka, Neural turing machines (2014), arXiv:1410.5401 [cs.NE].
+
+32 
+
+[2] A. Graves, G. Wayne, M. Reynolds, T. Harley, I. Danihelka, A. Grabska-Barwinska, S. G. Colmenarejo, E. Grefenstette, T. Ramalho, J. Agapiou, et al. , Hybrid computing using a neural network with dynamic external memory, Nature 538 , 471 (2016). [3] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. K”uttler, M. Lewis, W.-t. Yih, T. Rockt”aschel, S. Riedel, and D. Kiela, Retrieval-augmented generation for knowledge-intensive nlp tasks, in Advances in Neural Information Processing Systems 
+
+(2020). [4] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, Attention is all you need, in 
+
+Advances in Neural Information Processing Systems (2017). [5] J. F. Clauser, M. A. Horne, A. Shimony, and R. A. Holt, Proposed experiment to test local hidden-variable theories, Physical Review Letters 23 , 880 (1969). [6] N. Brunner, D. Cavalcanti, S. Pironio, V. Scarani, and S. Wehner, Bell nonlocality, Reviews of Modern Physics 86 , 419 (2014). [7] B. S. Cirel’son, Quantum generalizations of bell’s inequality, Letters in Mathematical Physics 4, 93 (1980). [8] M. Navascu´ es, S. Pironio, and A. Ac´ ın, Bounding the set of quantum correlations, Physical Review Letters 98 , 010401 (2007). [9] A. Tavakoli, A. Pozas-Kerstjens, P. Brown, and M. Ara´ ujo, Semidefinite programming relaxations for quantum correlations, Reviews of Modern Physics 96 , 045006 (2024). [10] T. Fritz, A. B. Sainz, R. Augusiak, J. B. Brask, R. Chaves, A. Leverrier, and A. Ac´ ın, Local orthogonality as a multipartite principle for quantum correlations, Nature Communications 4, 2263 (2013). [11] M. Pawłowski, T. Paterek, D. Kaszlikowski, V. Scarani, A. Winter, and M. ˙ Zukowski, Information causality as a physical principle, Nature 461 , 1101 (2009). [12] S. Popescu and D. Rohrlich, Quantum nonlocality as an axiom, Foundations of Physics 24 , 379 (1994). [13] W. van Dam, Implausible consequences of superstrong nonlocality (2005), arXiv:quant-ph/0501159. [14] G. Brassard, H. Buhrman, N. Linden, A. A. M´ ethot, A. Tapp, and F. Unger, Limit on nonlocality in any world in which communication complexity is not trivial, Physical Review Letters 96 , 250401 (2006). [15] P. Jain, M. Gachechiladze, and N. Miklin, Information causality as a tool for bounding the set of quantum correlations, Physical Review Letters 133 , 160201 (2024). [16] N. Tishby, F. C. Pereira, and W. Bialek, The information bottleneck method (2000), arXiv:physics/0004057. [17] A. A. Alemi, I. Fischer, J. V. Dillon, and K. Murphy, Deep variational information bottleneck, in International Conference on Learning Representations (2017). [18] Y. Bengio, A. Courville, and P. Vincent, Representation learning: A review and new perspectives, IEEE Transactions on Pattern Analysis and Machine Intelligence 35 , 1798 (2013). [19] A. M. Saxe, Y. Bansal, J. Dapello, M. S. Advani, A. Kolchinsky, B. D. Tracey, and D. D. Cox, On the information bottleneck theory of deep learning, Journal of Statistical Mechanics: Theory and Experiment 2019 , 124020 (2019). [20] K. Kawaguchi, Z. Deng, X. Ji, and J. Huang, How does information bottleneck help deep learning?, in Proceedings of the 40th Interna-tional Conference on Machine Learning (2023). [21] J. Biamonte, P. Wittek, N. Pancotti, P. Rebentrost, N. Wiebe, and S. Lloyd, Quantum machine learning, Nature 549 , 195 (2017). [22] M. Cerezo, A. Arrasmith, R. Babbush, S. C. Benjamin, S. Endo, K. Fujii, J. R. McClean, K. Mitarai, X. Yuan, L. Cincio, and P. J. Coles, Variational quantum algorithms, Nature Reviews Physics 3, 625 (2021). [23] J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush, and H. Neven, Barren plateaus in quantum neural network training landscapes, Nature Communications 9, 4812 (2018). [24] M. Schuld and N. Killoran, Quantum machine learning in feature hilbert spaces, Physical Review Letters 122 , 040504 (2019). [25] E. H. Lieb and M. B. Ruskai, Proof of the strong subadditivity of quantum-mechanical entropy, Journal of Mathematical Physics 14 , 1938 (1973). [26] C. H. Bennett and S. J. Wiesner, Communication via one- and two-particle operators on einstein-podolsky-rosen states, Physical Review Letters 69 , 2881 (1992). [27] A. S. Holevo, Bounds for the quantity of information transmitted by a quantum communication channel, Problems of Information Trans-mission 9, 177 (1973). [28] L. Paninski, Estimation of entropy and mutual information, Neural Computation 15 , 1191 (2003). [29] L. D. Brown, T. T. Cai, and A. DasGupta, Interval estimation for a binomial proportion, Statistical Science 16 , 101 (2001). [30] S. Boucheron, G. Lugosi, and P. Massart, Concentration Inequalities: A Nonasymptotic Theory of Independence (Oxford University Press, 2013). [31] G. Bertoni, J. Daemen, M. Peeters, and G. Van Assche, Sponge functions, in ECRYPT Hash Workshop (2007). [32] G. Bertoni, J. Daemen, M. Peeters, and G. Van Assche, On the indifferentiability of the sponge construction, in Advances in Cryptology – EUROCRYPT 2008 , Lecture Notes in Computer Science, Vol. 4965 (Springer, 2008) pp. 181–197. [33] G. Bertoni, J. Daemen, M. Peeters, G. Van Assche, and R. Van Keer, Keccak implementation overview (2012), version 3.2. [34] J. Wetzels and W. Bokslag, Sponges and engines: An introduction to keccak and keyak (2015), arXiv:1510.02856 [cs.CR].
