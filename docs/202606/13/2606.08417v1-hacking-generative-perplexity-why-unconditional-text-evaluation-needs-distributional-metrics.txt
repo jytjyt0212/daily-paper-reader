@@ -1,0 +1,668 @@
+Title: Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics
+
+URL Source: https://arxiv.org/pdf/2606.08417v1
+
+Published Time: Tue, 09 Jun 2026 01:12:26 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Antonio Franca 1 Alexander Tong 1
+
+# Abstract 
+
+Diffusion and continuous flow-based language models have emerged as the leading non-autoregressive alternatives to language model-ing. Progress in both paradigms is overwhelm-ingly tracked by generative perplexity ( gen-PPL ): the per-token negative log-likelihood of sam-ples under a frozen autoregressive (AR) scorer such as gpt2-large , typically paired with an empirical-entropy guardrail to rule out low-entropy collapse. We argue that this metric is un-sound. By construction, gen-PPL measures only predictability under the scoring AR, not gram-maticality or semantic coherence—and the set of predictable but still low-quality sequences is com-binatorially large. To make this concrete, we con-struct a suite of zero-parameter , deliberately naive samplers that achieve state-of-the-art gen-PPL on LM1B and OpenWebText at non-degenerate en-tropy, surpassing recently published diffusion and continuous-flow models while producing text that is incoherent by construction. We recommend evaluation suites that directly quantify the distri-butional divergence between generated and refer-ence text, and use such a suite to re-benchmark recent non-autoregressive models, recovering a more faithful picture of the current state of the art. 
+
+# 1. Introduction 
+
+Modern language modeling is dominated by autoregres-sive (AR) next-token prediction (Bengio et al., 2003; Rad-ford et al., 2019). Trained with a single cross-entropy ob-jective and scaled aggressively in parameters, data, and compute (Vaswani et al., 2017; Brown et al., 2020; Kaplan et al., 2020), transformer-based AR models have become the backbone of contemporary generative AI, powering coding 
+
+Accepted to the Workshop on Structured Probabilistic Inference & Generative Modeling (SPIGM) at ICML 2026. 1AITHYRA Institute, Vienna, Austria. Correspondence to: Antonio Franca 
+
+<afranca@aithyra.ac.at >.
+
+agents, and conversational assistants. Yet a single structural property limits what this paradigm can deliver at inference time: the chain-rule factorization p(x) = QNi=1 p(xi | x<i )
+
+makes generation sequential . While promising methods like speculative decoding (Stern et al., 2018; Leviathan et al., 2023; Chen et al., 2023; Cai et al., 2024) exhibit sparks of parallelization, the underlying autoregressive approach makes fast inference natively challenging. This observation has fueled active research into non-autoregressive language modeling (Gu et al., 2018; Lee et al., 2018a; Ghazvininejad et al., 2019), where multiple tokens can in principle be emitted in parallel. Two directions have come to dominate. Discrete diffusion (Sohl-Dickstein et al., 2015; Austin et al., 2021; Hoogeboom et al., 2021; Campbell et al., 2022; Lou et al., 2024; Sahoo et al., 2024; Shi et al., 2024; Gat et al., 2024; Campbell et al., 2024) re-casts generation as iterative denoising over the token space 
+
+VN , generalizing AR decoding to arbitrary token orders and unmasking schedules. Continuous flow-based language modeling (Li et al., 2022; Dieleman et al., 2022; Han et al., 2022; Strudel et al., 2022; Lipman et al., 2023; Lee et al., 2026; Roos et al., 2026; Potaptchik et al., 2026) instead lifts text into a continuous space and learns a probability flow that transports a prior distribution to the data distribution, with the discrete sequence recovered by per-token decod-ing. However, one drawback to these new paradigms is that they are more difficult to evaluate, standard metrics like test negative log likelihood, or perplexity are computationally intractable to compute, especially under advanced inference strategies (Peng et al., 2025) To report performance advances in these new paradigms, re-searchers rely almost entirely on a single evaluation metric. Across this literature, generation quality is overwhelmingly reported as generative perplexity ( gen-PPL ): the per-token negative log-likelihood of generated samples under a frozen AR scorer, most commonly gpt2-large (Radford et al., 2019), often paired with the empirical unigram entropy of the same samples to rule out low-entropy collapse (Pynadath et al., 2026). Lower gen-PPL is read as better generation; higher entropy is read as better diversity. However, we argue that gen-PPL fundamentally is a measure of how pre-dictable a sequence is under the scoring AR model, and not 1
+
+> arXiv:2606.08417v1 [cs.CL] 7 Jun 2026 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics
+
+necessarily semantic quality. The underlying assumption is intuitively appealing: if a model trained on high-quality text confidently predicts a sequence, one might infer that the se-quence itself is of high quality. Yet, if we look carefully, one can see a critical failure mode: the set of sequences that are highly predictable to an arbitrary scorer, but meaningfully low in quality, is overwhelmingly large. To demonstrate this failure, we construct a set of naive samplers that produce incoherent text and show that they achieve “state-of-the-art” gen-PPL on LM1B and Open-WebText at non-degenerate empirical entropy, outperform-ing recently published diffusion-based and continuous-flow models. Because gen-PPL ranks these incoherent generators above higher-quality outputs, it is an unreliable indicator of generation quality. Consequently, we advocate for an evaluation that shifts the core proxy we measure to report performance in generation quality. Rather than asking, “how predictable is this sequence to an AR scorer?” we should ask: “statistically, how likely is it that this sequence was written by a human?” This question aligns closer with the goal of developing models capable of producing high-quality text, since quality is inherently defined by human subjective judg-ment. We then close by recommending an evaluation pro-tocol built around direct measures of statistical divergence between generated and reference distributions (Pillutla et al., 2021; Gretton et al., 2012; Sz ´ekely & Rizzo, 2013). We re-benchmark recent non-autoregressive models under this protocol, in order to recover a more faithful and accurate picture of the field’s progress. 
+
+# 2. Background 
+
+We formalize the dominant paradigms in language modeling that we discuss throughout this paper. 
+
+Autoregressive (AR) language modeling. Let x =(x1, . . . , x N ) ∈ V N be a token sequence over a finite vo-cabulary V of size V . AR models (Bengio et al., 2003; Vaswani et al., 2017; Radford et al., 2019; Brown et al., 2020) learn the next-token conditional pθ (xi | x<i ) as a softmax-parameterized point on the probability simplex 
+
+∆V −1, and the joint factorizes by the chain rule 
+
+pθ (x) = 
+
+> N
+
+Y
+
+> i=1
+
+pθ (xi | x<i ).
+
+Training minimizes the negative log-likelihood 
+
+LAR (θ) = −Ex∼pdata 
+
+" NX
+
+> i=1
+
+log pθ (xi | x<i )
+
+#
+
+,
+
+whose minimizer recovers the true data conditionals, p⋆θ (· | 
+
+x<i ) = pdata (· | x<i ) for every prefix. Generation is irre-ducibly sequential : drawing xi requires the prior realization of (x1, . . . , x i−1), and producing N tokens needs N se-quential network evaluations. 
+
+Discrete diffusion. Rather than relying on the autoregres-sive chain rule, discrete diffusion (Sohl-Dickstein et al., 2015; Hoogeboom et al., 2021; Austin et al., 2021; Camp-bell et al., 2022) defines a forward Markovian corruption process q(x(t) | x(0) ) on VN for t ∈ [0 , T ]. In the masked / absorbing instantiation that underlies most modern variants, an auxiliary mask token m /∈ V is introduced and the kernel acts position-wise, 
+
+q
+
+
+
+x(t) 
+
+> i
+
+x(0) 
+
+> i
+
+
+
+= (1 −αt) δx(0) 
+
+> i
+
++ αt δm,
+
+(
+
+α0 = 0 
+
+α1 = 1 
+
+so each token is independently replaced by m with probabil-ity αt. The learned object is a neural denoiser pθ (x(0) | x(t))
+
+that approximates the categorical posterior over clean se-quences given a corrupted state. Generation simulates the reverse Markov chain over K ≤ N steps, unmasking a sub-set S ⊆ [N ] of corrupted positions in parallel at each step. Across many standard parameterizations—D3PM (Austin et al., 2021), SEDD (Lou et al., 2024), MDLM (Sahoo et al., 2024), and MD4 (Shi et al., 2024)—the network out-puts an independent categorical distribution per position. Consequently, the joint denoiser is, by construction , fully factorized over S:
+
+pθ
+
+
+
+x(0)  
+
+> S
+
+| x(t)
+
+= Y
+
+> i∈S
+
+pθ
+
+
+
+x(0)  
+
+> i
+
+| x(t)
+
+. (1) Geometrically, the factorized denoiser confines predic-tions to the product simplex (∆ V −1)|S|, a strict lower-dimensional submanifold of the true joint posterior simplex 
+
+∆V |S|−1. Because this submanifold is fundamentally inca-pable of representing correlations among simultaneously unmasked tokens, sampling from (1) introduces error un-less the true posterior exhibits exact conditional indepen-dence (Gu et al., 2018; Ghazvininejad et al., 2019; Chang et al., 2022). To mitigate the resulting quality degrada-tion, practical samplers either restrict S to high-confidence positions per step (Chang et al., 2022; Nie et al., 2025), inter-leave corrector or remasking updates (Campbell et al., 2022; 2024; Wang et al., 2025; Arriola et al., 2025), or, in the limit, decode a single token per step ( |S| = 1 ), recovering exact any-order ancestral sampling (Hoogeboom et al., 2022; Shih et al., 2022) at full AR cost and effectively forfeiting the parallelization advantage over AR models. 
+
+Continuous flows over one-hot embeddings. Continu-ous formulations sidestep the discrete state space by lift-ing tokens to a continuous representation, with three domi-nant choices in the literature: one-hot vectors in RN ×V (Li et al., 2022; Strudel et al., 2022), learned token embed-dings (Dieleman et al., 2022; Han et al., 2022), and simplex-2Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+valued parameterizations via Dirichlet or Fisher geome-tries (Avdeyev et al., 2023; Stark et al., 2024; Davis et al., 2024). We develop the one-hot construction next, as it un-derpins the recent line of flow-map models for one- and few-step discrete generation that we evaluate in this work (Lee et al., 2026; Roos et al., 2026; Potaptchik et al., 2026). Let f : VN → {e1, . . . , e V }N ⊂ RN ×V denote per-position one-hot encoding, write x1 = f (x) for a clean sequence, and draw x0 ∼ N (0 , I ). A linear stochastic inter-polant (Lipman et al., 2023; Liu et al., 2023; Albergo et al., 2023) 
+
+It = (1 − t) x0 + t x 1, t ∈ [0 , 1] , (2) induces a probability path pt = Law( It) connecting Gaus-sian noise to the one-hot data distribution. The central learned object is the mean denoiser 
+
+Dt(xt) := E x1 It = xt
+
+ , (3) which, as the conditional expectation of a one-hot vector, lies position-wise on the probability simplex, Dlt(xt) ∈
+
+∆V −1 for each l ∈ [N ]. This admits a tokenwise softmax parameterization ˆDt and a cross-entropy training objective 
+
+LCE ( ˆD) = Et, x 0, x 1
+
+"
+
+−
+
+> N
+
+X
+
+> l=1
+
+(xl
+
+> 1
+
+)⊤ log ˆDlt(It)
+
+#
+
+, (4) that respects the simplex geometry of discrete data and whose minimizer recovers the true posterior. The drift of the probability-flow ODE (Song et al., 2021) is then fully determined by Dt,
+
+˙xt = bt(xt), bt(xt) = Dt(xt) − xt
+
+1 − t , (5) so generation amounts to integrating (5) from x0 ∼ N (0 , I )
+
+to x1 ∈ RN ×V and decoding via per-position categorical sampling. Although ˆDt is itself position-factorized, it is used only to define the local velocity at each xt, not to ancestrally sample a joint posterior at unmasking jumps: inter-token correlations are carried by the continuous state 
+
+xt and resolved progressively along the trajectory, which is why continuous flows escape the factorization gap that bottlenecks discrete diffusion in the few-step regime. 
+
+Flow maps for one- and few-step generation. Integrat-ing (5) still requires many network evaluations per sam-ple. Flow maps (Boffi et al., 2024), which generalize earlier distillation-based and consistency-style few-step samplers (Salimans & Ho, 2022; Song et al., 2023; Kim et al., 2024; Frans et al., 2024; Geng et al., 2025), com-press the entire trajectory into a single solution operator 
+
+Xs,t : RN ×V → RN ×V satisfying Xs,t (xs) = xt for any 
+
+(s, t ) ∈ [0 , 1] 2. The key observation of Lee et al. (2026); Roos et al. (2026); Potaptchik et al. (2026) is that on one-hot embeddings the flow map admits a reparameterization in terms of a two-time mean denoiser ψs,t : RN ×V →
+
+(∆ V −1)N ,
+
+Xs,t (x) = 1 − t
+
+1 − s x + t − s
+
+1 − s ψs,t (x), (6) where ψt,t = Dt recovers the instantaneous denoiser. Cru-cially, ψs,t is provably simplex-valued for all (s, t ) — it can be written as a time-averaged conditional expectation of one-hot data along the flow (Potaptchik et al., 2026) — so the same tokenwise softmax head and cross-entropy training extend directly to the two-time setting, augmented by a con-sistency loss (semigroup, Lagrangian, or Eulerian) (Song et al., 2023; Kim et al., 2024; Boffi et al., 2025) that en-forces Xs,t to be a valid solution operator. After training, sampling reduces to evaluating (6) on a coarse temporal grid; in the limit ˆx1 = X0,1(x0) produces a sample in a single forward pass, with the discrete sequence recovered by the same projection g.
+
+# 3. Methodology 
+
+This section lays out the metrics we use throughout the paper, the family of naive samplers we construct to stress-test them, and the set of recently released diffusion-based and continuous-flow language models we evaluate. 
+
+gen-PPL and entropy. For a generator G producing length-L token sequences s and a fixed scorer θ, generative perplexity is defined as gen-PPL (G; θ, L ) = exp   Es∼G
+
+ ¯NLL θ (s)  ,
+
+¯NLL θ (s) = 1
+
+L − 1
+
+> L
+
+X
+
+> i=2
+
+− log pθ (si | s<i ), (7) and its standard companion is the empirical unigram entropy of the sample (Lou et al., 2024; Sahoo et al., 2024), 
+
+Hemp (s) = − X
+
+> v∈V
+
+ˆps(v) log ˆ ps(v), (8) where ˆps is the token histogram of s. We use 
+
+gpt2-large (Radford et al., 2019) as our choice of AR scorer θ as many of the aforementioned models do so too. Equation (7) already exposes the failure mode raised in the introduction: gen-PPL rewards any form of pre-dictability under the AR scorer θ and not strict grammat-ical and semantic coherence. Coherent text is of course predictable, but so is a vast amount of text that carries no message at all. A simple case illustrates this point: consider the sequence apple table cloud river apple table cloud river . An AR scorer under-stands there is a pattern and predicts each subsequent 3Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+apple , table , cloud , river tokens with high prob-ability throughout the N tokens of a generated sequence, so a nonsensical sequence of length N built in this way would get an extremely good (low) gen-PPL while being extremely out of distribution. 
+
+3.1. Constructing naive samplers with low gen-PPL 
+
+We illustrate this vulnerability by constructing a family of zero-parameter naive samplers that exploit predictability without coherence. We identify two patterns to yield low gen-PPL under arbitrary scorers while remaining incoherent by construction: (i) using high-frequency tokens, which incur low average loss under θ in essentially any context, and (ii) temporal regularity, in the form of an easily detectable copy, cycle, or template in the prefix. Each sampler family targets a different combination of (i) and (ii). Figure 1 shows samples from each family on LM1B. 
+
+Restricted empirical marginal. Let ˆp(v) =#train (v)/|X train | be the relative frequency of token 
+
+v, and let Vk ⊂ V denote the k most frequent types. The 
+
+restricted marginal 
+
+ˆpk(v) = ˆp(v)
+
+P 
+
+> u∈V k
+
+ˆp(u) , v ∈ V k, (9) renormalizes corpus frequencies within the top-k. The four naive samplers are constructed as follows: 
+
+1. Top-k. Draw L tokens i.i.d. from ˆpk and concatenate them in order. The output is a bag of common tokens laid out in random order. 
+
+2. Mirror-k. Draw ⌊L/ 2⌋ tokens i.i.d. from ˆpk to form the first half x1, . . . , x ⌊L/ 2⌋, then set x⌊L/ 2⌋+i = xi for 
+
+i = 1 , . . . , L − ⌊ L/ 2⌋. The sequence is the concatenation of one random block and an exact copy of that block. 
+
+3. Periodic-k. Sort the vocabulary by ˆp in descending or-der and let v1, . . . , v k be the top-k tokens. The sequence is then constructed by reading off these k tokens in fixed order and looping back to v1 after vk, i.e. position i con-tains v(( i−1) mod k)+1 . Concretely for k = 4 the output is 
+
+v1v2v3v4v1v2v3v4 . . . truncated to length L.
+
+4. Phrase bank-m. Compute the frequency of every 5-gram in the training corpus, keep the top-m by count to form a bank Bm, and to generate a sample draw 5-grams uniformly 
+
+from Bm (not weighted by frequency) and concatenate until the sequence reaches length ≥ L, then truncate. Samples are random and non-periodic. 
+
+3.2. Constructing more faithful evaluation metrics 
+
+Having established the samplers to test gen-PPL ’s fail-ure mode, we turn to the evaluation suite we propose as a replacement. We advocate for distributional distance 
+
+evaluation: metrics that directly estimate a divergence 
+
+D(PG, P data ) between the generator’s output distribution and a held-out reference distribution of human-written text. Such metrics ask the question gen-PPL avoids: “would a hu-man plausibly have produced this?” (Hashimoto et al., 2019; Caccia et al., 2020). We instantiate the general distributional argument with three two-sample divergences operating in distinct representation spaces. We complement them with a hybrid metric that remains distributional in spirit but bor-rows from hypothesis testing. Finally we introduce a within-sample degeneracy diagnostic as a final sanity check. We define each metric in turn below. 
+
+MAUVE (Pillutla et al., 2021). Let ϕ : VL → Rd be a fixed text encoder (e.g. mean-pooled gpt2-large hidden states), and let P = ϕ♯PG and Q = ϕ♯Pdata denote the pushforward distributions of the generator and reference data in Rd. To make KL well-defined, the joint embedding cloud is quantized into K clusters and P, Q are reduced to categorical distributions over cluster ids. For mixture weight 
+
+λ ∈ (0 , 1) , define Rλ = λP + (1 − λ)Q and the divergence curve 
+
+C(P, Q ) = 
+
+n 
+
+exp   − c KL( Q ∥ Rλ),
+
+exp   − c KL( P ∥ Rλ)
+
+: λ ∈ (0 , 1) 
+
+o
+
+for a fixed scaling constant c. MAUVE is the area under this curve, 
+
+MAUVE( PG, P data ) = AUC( C(P, Q )) ∈ [0 , 1] ,
+
+with MAUVE = 1 iff P = Q. The two coordinates of 
+
+C trade off precision (mass of P outside Q) against recall (mass of Q missed by P ), so MAUVE penalizes both mode collapse and support drop. 
+
+Gradient Moment (GM). Hoogeboom et al. (2026) mea-sure the generator–data gap by the squared L2 distance between the expected log-likelihood gradients of a fixed reference LM pθ (we use gpt2-large ): 
+
+GM( PG, P data ) = Ex∼PG [∇θ log pθ (x)] 
+
+− Ex∼Pdata [∇θ log pθ (x)] 22
+
+.
+
+Equivalently, GM is a squared maximum mean discrep-ancy (Gretton et al., 2012) with the Fisher score feature map 
+
+x 7 → ∇ θ log pθ (x), and equals zero iff the two expected scores agree. GM thus probes a different geometry than MAUVE: rather than asking whether PG and Pdata overlap in a learned representation, it asks whether they would push a fixed LM in the same direction during training. 4Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Top-k=32 IID 
+
+> said the ” on on . on , to of a the of the for with , ” is his with of has has and for it andThe ” .. in the to the and of of in , froms was at in the ” in was a is are to , to for of in. . .
+
+Mirror k=5000 
+
+> s. for still aim Russia met Congress end Grandar can ,, a .Butst ” paid no to resolution has ” protect . started and he in candidates be urban use cost time for have tight and drawing despite saidThere. . .
+
+Periodic k=64 
+
+> the , . to of and a in ’-s ” that for. on is was withThe said as at it by from be he have has his are an not ) will who ( had” their – were they but been this more which or I its would about. . .
+
+Phrase bank m=1000      
+
+> the world ’s largest in the world ’s , ” she added . ” the statement said . the Obama administration ’s in the world , ” ( AP ) – The the third quarter of 2008 ) - U.S end of the year. . . Figure 1. Opening tokens of each zero-parameter sampler (LM1B, L=128 ,gpt2-large scorer). Full samples appear in Appendix A.
+
+Energy distance D2 
+
+> E
+
+. For a feature map ψ : VL → Rd,the two-sample energy distance (Sz ´ekely & Rizzo, 2013) between P = ψ♯PG and Q = ψ♯Pdata is 
+
+D2 
+
+> E
+
+(P, Q ) = 2 EX∼P, Y ∼Q[∥X − Y ∥]
+
+− EX,X ′∼P [∥X − X′∥]
+
+− EY,Y ′∼Q[∥Y − Y ′∥],
+
+with X, X ′ iid 
+
+∼ P , Y, Y ′ iid 
+
+∼ Q. D2 
+
+> E
+
+≥ 0 in general, with equality iff P = Q. We instantiate ψ as a fixed vector of handcrafted entity, discourse, and surface statistics—token-length distribution, type-token ratio, named-entity den-sity, discourse-connective frequency, and related features— standardized by the reference set’s mean and variance. Un-like MAUVE and GM, DE depends on no learned LM. It is the model-agnostic leg of the suite: any agreement among the three metrics cannot be reduced to a shared encoder bias. 
+
+Full-Mahalanobis Typicality p-value (FMTyp-p). We enhance our distributional suite with a per-sequence, point-to-distribution typicality probe, in the spirit of Mahalanobis-distance OOD detection (Lee et al., 2018b; Nalisnick et al., 2019) and its recent transfer to generative-model evalua-tion (Ganguly et al., 2025). Reusing the feature map ψ
+
+of DE in its raw (unstandardised) form, we fit on the ref-erence set {xref  
+
+> i
+
+}nr 
+
+> i=1
+
+the mean ˆμ = Ex∼Pdata [ψ(x)] and a Ledoit–Wolf shrinkage covariance ˆΣ (Ledoit & Wolf, 2004). Define the squared Mahalanobis score m2(x) = (ψ(x)−ˆμ)⊤ ˆΣ−1(ψ(x)−ˆμ) and report 
+
+FMTyp -p(PG, P data )= Ex∼PG
+
+"
+
+> 1
+> nr
+> nr
+
+X
+
+> i=1
+
+1m2(xref  
+
+> i
+
+) ≥ m2(x) #
+
+∈ [0 , 1] .
+
+The p-value framing is calibrated as follows: FMTyp -p ≈
+
+0.5 when PG is exchangeable with Pdata in ψ-space, and 
+
+→ 0 when generated sequences are systematically more atypical than the reference. 
+
+Rep-n. We introduce a fifth metric as a measure of within-sample integrity. For a sequence s = ( s1, . . . , s L),
+
+Rep -n(s) = 1 − |distinct n-grams in s|
+
+L − n + 1 , (10) and we report the corpus average Rep -n(PG) =
+
+Es∼PG [Rep -n(s)] . Rep-n inverts the Distinct-n metric of Li et al. (2016): zero means every n-gram window is unique, one means the sequence is a single repeating cycle. 
+
+# 4. Experiments 
+
+The trained generators included in our evaluation span diffu-sion models such as SEDD (Lou et al., 2024), MDLM (Sa-hoo et al., 2024), CANDI (Pynadath et al., 2025), and Duo (Sahoo et al., 2025); and the continuous-flow mod-els FLM and FMLM (Lee et al., 2026) across NFE budgets. The results in Tables 1–2 represent our own evaluations using the authors’ official checkpoints. We adhere to the fol-lowing evaluation protocol: generate 1024 samples (pooling statistics via averaging) with sequence lengths L fixed to 128 for LM1B and 1024 for OWT, and use gpt2-large 
+
+(Radford et al., 2019) as scorer. Some findings stand out. 
+
+(1) Distributional metrics cleanly separate trained from naive generators; gen-PPL does not. On both LM1B and OWT, every naive sampler scores poorly under MAUVE ,
+
+DE , GM , and FMTyp -p. The distributional diagnostics identify them, correctly, as bad text generators. A gen-PPL-only protocol, by contrast, would happily report Periodic-k
+
+as a state-of-the-art model. 
+
+(2) Distributional metrics reorder trained generators in informative ways. gen-PPL pulls apart models whose sam-ples, on inspection, do not look particularly far apart. The clearest case in our suite is SEDD versus MDLM trained on OWT. Their samples display the same profile: both have internalized grammar but neither manages to convey a coher-ent message, and a human reader would put them at roughly 5Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Table 1. Benchmark results: LM1B, L=128 tokens. Generator H↑ gen-PPL ↓ MAUVE ↑ GM ↓ DE ↓ FMTyp-p↑ Rep-1 ↓ Rep-2 ↓ Rep-3 ↓
+
+Reference 
+
+LM1B train 4.33 56.9 1.000 0.0 0.000 0.469 0.228 0.016 0.002 CANDI 4.32 119.9 0.697 29.9 0.116 0.487 0.216 0.009 0.001 MDLM 4.26 83.8 0.749 29.7 0.073 0.470 0.239 0.013 0.001 Duo 4.28 98.6 0.779 29.6 0.018 0.488 0.234 0.012 0.002 FLM (NFE = 1024 ) 4.29 119.3 0.471 32.8 0.176 0.444 0.233 0.011 0.001 FMLM (NFE = 1 ) 4.17 135.6 0.010 69.4 2.117 0.224 0.285 0.015 0.001 FMLM (NFE = 4 ) 4.18 105.8 0.021 58.0 1.884 0.249 0.283 0.016 0.001 FMLM (NFE = 32 ) 4.19 78.8 0.096 45.4 1.758 0.258 0.274 0.016 0.001 
+
+Zero-parameter samplers 
+
+Top-k IID ( k=32 ) 2.99 75.0 0.004 462.9 42.599 0.000 0.711 0.149 0.011 Mirror ( K=5000 ) 3.84 61.3 0.004 171.8 69.925 0.000 0.582 0.495 0.489 Periodic ( k=64 ) 4.16 29.4 0.004 435.0 128.144 0.000 0.500 0.496 0.491 Phrase bank ( m=1000 ) 4.03 78.1 0.004 295.1 5.845 0.016 0.303 0.063 0.018 
+
+Table 2. Benchmark results: OpenWebText, L=1024 tokens. Generator H↑ gen-PPL ↓ MAUVE ↑ GM ↓ DE ↓ FMTyp-p↑ Rep-1 ↓ Rep-2 ↓ Rep-3 ↓
+
+Reference 
+
+OWT train 5.48 17.2 1.000 0.0 0.000 0.482 0.437 0.083 0.026 SEDD 5.65 125.7 0.871 5.1 0.838 0.441 0.371 0.038 0.003 MDLM 5.31 48.3 0.784 5.0 1.200 0.391 0.466 0.068 0.008 Duo 5.45 102.1 0.645 8.3 0.801 0.398 0.405 0.042 0.003 FLM (NFE = 1024 ) 5.40 96.3 0.363 15.8 2.191 0.342 0.419 0.045 0.003 FMLM (NFE = 1 ) 5.33 241.7 0.016 64.6 3.380 0.261 0.433 0.044 0.001 FMLM (NFE = 4 ) 5.46 181.2 0.197 34.8 2.756 0.317 0.406 0.044 0.001 FMLM (NFE = 32 ) 5.22 61.0 0.402 26.8 2.608 0.367 0.485 0.074 0.006 AR baseline 5.61 40.2 0.919 0.4 0.433 0.461 0.393 0.056 0.013 
+
+Zero-parameter samplers 
+
+Top-k IID ( k=64 ) 3.78 99.9 0.004 286.8 84.266 0.000 0.696 0.111 0.004 Mirror ( K=5000 ) 5.14 50.6 0.006 72.9 11.191 0.008 0.626 0.501 0.498 Periodic ( k=400 ) 5.97 21.6 0.004 54.5 28.601 0.003 0.610 0.609 0.609 Phrase bank ( m=5000 ) 4.63 60.7 0.012 116.1 8.667 0.031 0.334 0.050 0.012 
+
+the same stage. gpt2-large nevertheless finds MDLM’s outputs noticeably easier to predict, and MDLM’s gen-PPL ends up less than half of SEDD’s. The reader can see some generated samples in Appendix A. 
+
+(3) The suite reveals an NFE–quality gap that gen-PPL substantially under estimates. For continuous flow-based language models on LM1B, gen-PPL flatters the few-step (e.g. FMLM NFE=1 ) variants: their gen-PPL is close to that of the full-trajectory integration, even though the samples are qualitatively worse. The distributional metrics emphasis this difference, showing that there is still quite a ways to go to close the performance gap for one-step text generation. 
+
+# 5. Conclusion 
+
+We are excited about the recent progress in diffusion-based and continuous-flow language models. However, before these families can be evaluated on the same fine-grained terms as autoregressive LMs, they first need to clear a more basic bar: produce coherent text, and so we need a way to tell reliably when they do so. Our central claim is that gen-PPL cannot serve that role, even under matched entropy. The reason is that high-quality text is predictable under a strong scorer, but the reverse does not always hold: pre-dictable text might not be necessarily high quality. The naive samplers introduced in Section 3 empirically demon-strate this disconnect. We close to recommend evaluation suite of distributional distance metrics, and rebenchmark a representative slice of recent diffusion- and flow-based 6Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+models. Two limitations are worth flagging for distribu-tional evaluation more broadly. First, it is computationally heavier than gen-PPL : estimating a divergence requires fea-tures or gradients over the full generated and reference sets rather than a single scorer pass per sample. Second, it is sensitive to the choice of representation, since any distribu-tional metric is ultimately a comparison in some encoder’s or feature map’s space, and blind spots of that representa-tion silently bound what the metric can detect. A promising direction for future work is to bridge this gap by combining robust distributional distances with hypothesis testing: pair-ing representation-agnostic or multi-encoder divergences with permutation-based significance tests and confidence intervals, so that generator comparisons rest on calibrated statistical evidence rather than point estimates in a single feature space. 7Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+# References 
+
+Albergo, M. S., Boffi, N. M., and Vanden-Eijnden, E. Stochastic interpolants: A unifying framework for flows and diffusions. arXiv preprint arXiv:2303.08797 , 2023. Arriola, M., Gokaslan, A., Chiu, J. T., Yang, Z., Qi, Z., Han, J., Sahoo, S. S., and Kuleshov, V. Block diffusion: Inter-polating between autoregressive and diffusion language models. arXiv preprint arXiv:2503.09573 , 2025. Austin, J., Johnson, D. D., Ho, J., Tarlow, D., and van den Berg, R. Structured denoising diffusion models in dis-crete state-spaces. In Advances in Neural Information Processing Systems , pp. 17981–17993, 2021. Avdeyev, P., Shi, C., Tan, Y., Dudnyk, K., and Zhou, J. Dirichlet diffusion score model for biological sequence generation. In Proceedings of the 40th International Conference on Machine Learning , 2023. Bengio, Y., Ducharme, R., Vincent, P., and Jauvin, C. A neu-ral probabilistic language model. In Journal of Machine Learning Research , volume 3, pp. 1137–1155, 2003. Boffi, N. M., Albergo, M. S., and Vanden-Eijnden, E. Flow map matching with stochastic interpolants: A mathemat-ical framework for consistency models. arXiv preprint arXiv:2406.07507 , 2024. Boffi, N. M., Albergo, M. S., and Vanden-Eijnden, E. How to build a consistency model: Learning flow maps via self-distillation. arXiv preprint arXiv:2505.18825 , 2025. Brown, T. B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D. M., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., and Amodei, D. Language models are few-shot learners. In Advances in Neural Information Processing Systems , pp. 1877–1901, 2020. Caccia, M., Caccia, L., Fedus, W., Larochelle, H., Pineau, J., and Charlin, L. Language GANs falling short. Inter-national Conference on Learning Representations , 2020. Cai, T., Li, Y., Geng, Z., Peng, H., Lee, J. D., Chen, D., and Dao, T. Medusa: Simple LLM inference acceleration framework with multiple decoding heads. In Proceed-ings of the 41st International Conference on Machine Learning , 2024. Campbell, A., Benton, J., De Bortoli, V., Rainforth, T., Deligiannidis, G., and Doucet, A. A continuous time framework for discrete denoising models. In Advances in Neural Information Processing Systems , 2022. Campbell, A., Yim, J., Barzilay, R., and Jaakkola, T. Gener-ative flows on discrete state-spaces: Enabling continuous-time models for graph and text generation. arXiv preprint arXiv:2402.04997 , 2024. Chang, H., Zhang, H., Jiang, L., Liu, C., and Freeman, W. T. MaskGIT: Masked generative image transformer. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2022. Chen, C., Borgeaud, S., Irving, G., Lespiau, J.-B., Sifre, L., and Jumper, J. Accelerating large language model decoding with speculative sampling. arXiv preprint arXiv:2302.01318 , 2023. Davis, O., Kessler, S., Petrache, M., Ceylan, ˙I. ˙I., Bronstein, M., and Bose, A. J. Fisher flow matching for genera-tive modeling over discrete data. In Advances in Neural Information Processing Systems , 2024. Dieleman, S., Sartran, L., Roshannai, A., Savinov, N., Ganin, Y., Richemond, P. H., Doucet, A., Strudel, R., Dyer, C., Durkan, C., Hawthorne, C., Leblond, R., Grath-wohl, W., and Adler, J. Continuous diffusion for categori-cal data. arXiv preprint arXiv:2211.15089 , 2022. Frans, K., Hafner, D., Levine, S., and Abbeel, P. One step diffusion via shortcut models. arXiv preprint arXiv:2410.12557 , 2024. Ganguly, N., Morningstar, W. R., Yu, J., and Chaudhary, V. Forte: Detecting synthetic content in generative models via representation typicality. In International Conference on Learning Representations , 2025. Gat, I., Remez, T., Shaul, N., Kreuk, F., Chen, R. T. Q., Synnaeve, G., Adi, Y., and Lipman, Y. Discrete flow matching. arXiv preprint arXiv:2407.15595 , 2024. Geng, Z., Deng, M., Bai, X., Kolter, J. Z., and He, K. Mean flows for one-step generative modeling. arXiv preprint arXiv:2505.13447 , 2025. Ghazvininejad, M., Levy, O., Liu, Y., and Zettlemoyer, L. Mask-predict: Parallel decoding of conditional masked language models. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing ,2019. Gretton, A., Borgwardt, K. M., Rasch, M. J., Sch ¨olkopf, B., and Smola, A. A kernel two-sample test. Journal of Machine Learning Research , 13:723–773, 2012. Gu, J., Bradbury, J., Xiong, C., Li, V. O., and Socher, R. Non-autoregressive neural machine translation. In Inter-national Conference on Learning Representations , 2018. 8Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Han, X., Kumar, S., and Tsvetkov, Y. SSD-LM: Semi-autoregressive simplex-based diffusion language model for text generation and modular control. arXiv preprint arXiv:2210.17432 , 2022. Hashimoto, T. B., Zhang, H., and Liang, P. Unifying human and statistical evaluation for natural language genera-tion. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics , pp. 1689–1701, 2019. Hoogeboom, E., Nielsen, D., Jaini, P., Forr ´e, P., and Welling, M. Argmax flows and multinomial diffusion: Learning categorical distributions. In Advances in Neural Informa-tion Processing Systems , pp. 12454–12465, 2021. Hoogeboom, E., Gritsenko, A. A., Bastings, J., Poole, B., van den Berg, R., and Salimans, T. Autoregressive dif-fusion models. In International Conference on Learning Representations , 2022. Hoogeboom, E., Ruhe, D., Heek, J., Mensink, T., and Sal-imans, T. Beyond single tokens: Distilling discrete diffusion models via discrete MMD. arXiv preprint arXiv:2603.20155 , 2026. Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B., Chess, B., Child, R., Gray, S., Radford, A., Wu, J., and Amodei, D. Scaling laws for neural language models. In 
+
+arXiv preprint arXiv:2001.08361 , 2020. Kim, D., Lai, C.-H., Liao, W.-H., Murata, N., Takida, Y., Uesaka, T., He, Y., Mitsufuji, Y., and Ermon, S. Consis-tency trajectory models: Learning probability flow ODE trajectory of diffusion. In International Conference on Learning Representations , 2024. Ledoit, O. and Wolf, M. A well-conditioned estimator for large-dimensional covariance matrices. Journal of Multivariate Analysis , 88(2):365–411, 2004. Lee, C., Yoo, J., Agarwal, M., Shah, S., Huang, J., Raghu-nathan, A., Hong, S., Boffi, N. M., and Kim, J. Flow map language models: One-step language modeling via continuous denoising. arXiv preprint arXiv:2602.16813 ,2026. Lee, J., Mansimov, E., and Cho, K. Deterministic non-autoregressive neural sequence modeling by iterative re-finement. In Proceedings of the 2018 Conference on Em-pirical Methods in Natural Language Processing , 2018a. Lee, K., Lee, K., Lee, H., and Shin, J. A simple unified framework for detecting out-of-distribution samples and adversarial attacks. In Advances in Neural Information Processing Systems , 2018b. Leviathan, Y., Kalman, M., and Matias, Y. Fast inference from transformers via speculative decoding. In Proceed-ings of the 40th International Conference on Machine Learning , 2023. Li, J., Galley, M., Brockett, C., Gao, J., and Dolan, B. A diversity-promoting objective function for neural conver-sation models. In Proceedings of the 2016 Conference of the North American Chapter of the Association for Com-putational Linguistics: Human Language Technologies ,pp. 110–119, 2016. Li, X. L., Thickstun, J., Gulrajani, I., Liang, P., and Hashimoto, T. B. Diffusion-LM improves controllable text generation. In Advances in Neural Information Pro-cessing Systems , 2022. Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., and Le, M. Flow matching for generative modeling. In 
+
+International Conference on Learning Representations ,2023. Liu, X., Gong, C., and Liu, Q. Flow straight and fast: Learning to generate and transfer data with rectified flow. In International Conference on Learning Representations ,2023. Lou, A., Meng, C., and Ermon, S. Discrete diffusion mod-eling by estimating the ratios of the data distribution. In 
+
+Proceedings of the 41st International Conference on Ma-chine Learning , 2024. Nalisnick, E., Matsukawa, A., Teh, Y. W., and Lakshmi-narayanan, B. Detecting out-of-distribution inputs to deep generative models using typicality. arXiv preprint arXiv:1906.02994 , 2019. Nie, S., Zhu, F., You, Z., Zhang, X., Ou, J., Hu, J., Zhou, J., Lin, Y., Wen, J.-R., and Li, C. Large language diffusion models. arXiv preprint arXiv:2502.09992 , 2025. Peng, F. Z., Bezemek, Z., Patel, S., Rector-Brooks, J., Yao, S., Bose, A. J., Tong, A., and Chatterjee, P. Path plan-ning for masked diffusion model sampling, 2025. URL 
+
+https://arxiv.org/abs/2502.03540 .Pillutla, K., Swayamdipta, S., Zellers, R., Thickstun, J., Welleck, S., Choi, Y., and Harchaoui, Z. MAUVE: Mea-suring the gap between neural text and human text using divergence frontiers. In Advances in Neural Information Processing Systems , pp. 4816–4828, 2021. Potaptchik, P., Yim, J., Saravanan, A., Holderrieth, P., Vanden-Eijnden, E., and Albergo, M. S. Discrete flow maps. arXiv preprint arXiv:2604.09784 , 2026. Pynadath, P., Shi, J., and Zhang, R. CANDI: Hybrid discrete-continuous diffusion models. arXiv preprint arXiv:2510.22510 , 2025. 9Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Pynadath, P., Shi, J., and Zhang, R. Generative frontiers: Why evaluation matters for diffusion language models. 
+
+arXiv preprint arXiv:2604.02718 , 2026. Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., and Sutskever, I. Language models are unsupervised multitask learners. OpenAI Blog , 1(8), 2019. Roos, D., Davis, O., Eijkelboom, F., Bronstein, M., Welling, M., Ceylan, ˙I. ˙I., Ambrogioni, L., and van de Meent, J.-W. Categorical flow maps. arXiv preprint arXiv:2602.12233 ,2026. Sahoo, S. S., Arriola, M., Schiff, Y., Gokaslan, A., Marro-quin, E., Chiu, J. T., Rush, A., and Kuleshov, V. Simple and effective masked diffusion language models. In Ad-vances in Neural Information Processing Systems , 2024. Sahoo, S. S., Deschenaux, J., Gokaslan, A., Wang, G., Chiu, J. T., and Kuleshov, V. The diffusion duality. arXiv preprint arXiv:2506.10892 , 2025. Salimans, T. and Ho, J. Progressive distillation for fast sam-pling of diffusion models. In International Conference on Learning Representations , 2022. Shi, J., Han, K., Wang, Z., Doucet, A., and Titsias, M. K. Simplified and generalized masked diffusion for discrete data. arXiv preprint arXiv:2406.04329 , 2024. Shih, A., Sadigh, D., and Ermon, S. Training and infer-ence on any-order autoregressive models the right way. In Advances in Neural Information Processing Systems ,2022. Sohl-Dickstein, J., Weiss, E. A., Maheswaranathan, N., and Ganguli, S. Deep unsupervised learning using nonequi-librium thermodynamics. In Proceedings of the 32nd International Conference on Machine Learning , 2015. Song, Y., Sohl-Dickstein, J., Kingma, D. P., Kumar, A., Er-mon, S., and Poole, B. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Representations , 2021. Song, Y., Dhariwal, P., Chen, M., and Sutskever, I. Consis-tency models. In Proceedings of the 40th International Conference on Machine Learning , pp. 32211–32252, 2023. Stark, H., Jing, B., Wang, C., Corso, G., Berger, B., Barzi-lay, R., and Jaakkola, T. Dirichlet flow matching with applications to DNA sequence design. In Proceedings of the 41st International Conference on Machine Learning ,2024. Stern, M., Shazeer, N., and Uszkoreit, J. Blockwise parallel decoding for deep autoregressive models. In Advances in Neural Information Processing Systems , 2018. Strudel, R., Tallec, C., Altch ´e, F., Du, Y., Ganin, Y., Mensch, A., Grathwohl, W., Savinov, N., Dieleman, S., Sifre, L., and Leblond, R. Self-conditioned embedding diffusion for text generation. arXiv preprint arXiv:2211.04236 ,2022. Sz ´ekely, G. J. and Rizzo, M. L. Energy statistics: A class of statistics based on distances. Journal of Statistical Planning and Inference , 143(8):1249–1272, 2013. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., and Polosukhin, I. Atten-tion is all you need. In Advances in Neural Information Processing Systems , pp. 5998–6008, 2017. Wang, G., Schiff, Y., Sahoo, S. S., and Kuleshov, V. ReMDM: Remasking discrete diffusion models with inference-time scaling. arXiv preprint arXiv:2503.00307 ,2025. 10 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+# A. Full Parameter Sweeps 
+
+Tables 3–6 show gen-PPL and H across the full parameter range for each sampler family. 
+
+Table 3. Top-k full sweep. LM1B ( L=128 ) OWT ( L=1024 )
+
+k H gen-PPL H gen-PPL 16 2.54 39.79 — —32 2.99 75.00 3.33 59.46 64 3.33 117.37 3.78 99.88 128 3.59 181.88 4.17 152.88 256 3.78 286.01 4.51 231.23 512 3.96 460.03 4.81 346.93 1024 4.11 762.63 5.09 543.63 
+
+Table 4. Mirror-k full sweep. LM1B ( L=128 ) OWT ( L=1024 )
+
+k H gen-PPL H gen-PPL 10 2.12 9.10 2.21 19.32 50 3.02 14.98 3.36 19.35 100 3.24 18.11 3.77 22.08 500 3.56 29.00 4.48 29.49 1000 3.67 36.89 4.73 34.35 5000 3.84 61.26 5.14 50.55 
+
+Table 5. Periodic-k full sweep. LM1B ( L=128 ) OWT ( L=1024 )
+
+k H gen-PPL H gen-PPL 2 0.69 1.24 — —4 1.39 1.37 — —8 2.08 1.70 — —12 2.48 2.02 — —16 2.77 2.47 2.77 3.57 20 2.99 3.14 — —32 3.47 5.63 3.47 2.25 50 3.89 13.86 — —64 4.16 29.39 4.16 2.10 100 4.55 234.13 4.60 2.52 150 — — 5.01 3.36 200 — — 5.30 4.73 225 — — 5.41 5.79 256 — — 5.55 7.14 300 — — 5.69 9.90 400 — — 5.97 21.63 
+
+Table 6. Phrase bank full sweep. LM1B ( L=128 ) OWT ( L=1024 )
+
+m H gen-PPL H gen-PPL 10 3.10 10.33 2.54 3.89 25 3.32 27.78 2.72 5.54 50 3.51 39.59 3.55 12.03 100 3.68 49.33 3.80 16.59 200 3.82 61.82 3.89 22.63 500 3.96 65.20 4.20 32.71 1000 4.03 78.13 4.48 49.64 2000 4.10 88.68 4.63 58.84 5000 4.16 107.86 4.63 60.74 
+
+11 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+# Text Gallery 
+
+LM1B samples are shown in full ( L=128 tokens). OWT samples are truncated. 
+
+Config Sample 
+
+Reference 
+
+LM1B train  
+
+> H=4 .33 ,PPL=56 .9
+> reference data
+
+[CLS]. [SEP] this season, we ’ ll find out whether the traditional fall rollout still counts for something - - or whether it ’ s outlived its usefulness. [SEP] the game, between georgia and the university of iowa, was delayed for 10 minutes after conley fell hard on her back and appeared to hit her head on the floor. [SEP] there is no evidence to suggest manipulation of the scene on the part of the photographer, but there is ample evidence of a human impulse to impute motive, to debunk and triumph over the work of another, etc. [SEP] housing ministry officials did not respond to calls seeking comment [SEP] 
+
+Diffusion-based language models 
+
+CANDI  
+
+> H=4 .32 ,PPL=119 .9
+
+[CLS] ) but ( those who think that everything he doesn’t buy are criminals with an excuse for wanting an ethical alternative to hiding something for under three? ) foolishness to splurge on the kitchen counter. we need acetytto food intros, wild pigs, roach, pasta, ears, flavorful oil with a little lemon, salt, lemon, and canaria for sure. [CLS] ” with funding forced on the back doorings for existing customers, having now added many new customers and customers have undergone their members demanding all new products to accept requests are going to grow in a broader range, ” lynn gansler of b [CLS] 
+
+MDLM  
+
+> H=4 .26 ,PPL=83 .8
+
+[CLS] go further. [CLS] ” the project is likely to be completed by the autumn of 2010 and is not lined up in new zealand. [CLS] ” we ought to take some time to see how this... suddenly stepped down from the side of the aisle... as a white house bid, ” kennedy wrote. [CLS] it was, after a few minutes, a mind - set and i had come to visions of nothing entering a corner. [CLS] while the vote being made public comes before high court considers due to hear lady scotland’s’battle, the real question is whether the nb will be the next for any other shareholders [CLS] 
+
+Duo  
+
+> H=4 .28 ,PPL=98 .6
+
+[CLS] security stooges, akin to blackmailing private business into protecting entrants against the poor. [CLS] comedies have particularly relied on suspects, while the biggest hits to the list and the family comedy marketplace have gone for ” juno. ” [CLS] suicide blast rocked much of the afghan constitution celebration monday night. [CLS] it says parents needed an ” incentive ” to volunteer time. [CLS] but he laughed off the suggestion that he made him nervous. [CLS] under the plan, it says citigroup could loan municipal bonds from entire state agencies, while the state, which still adopts department of local laws, is allowed to set up a fund for [CLS] 
+
+Flow-based language models 
+
+FLM  
+
+> H=4 .29 ,PPL=119 .3
+> 1024-NFE
+
+[CLS] view it as the biggest piece in pennsylvania’s career, but in realityiga sees the financial difficulties of getting pupils to go while the state superintendent of education lets them live in the millions. [CLS] however didier blatia, consultant to the bma, said : ” the first isa needs to be carried out in economic activity. [CLS] study team from the national oceanic administration however said events might have been caused by an impact on the edge of the atmosphere. [CLS] why don’t you want to pay the money yourself? [CLS] the only other u. s. had come back to 20 years later, the report said. [CLS] 
+
+FMLM  
+
+> H=4 .17 ,PPL=135 .6
+> 1-NFE
+
+[CLS] [CLS] it seems the biggest talks in argentina’s two, but in just part of the financial burden of an agreement to go while in a couple of things were this country in good faith. [CLS] s. [CLS] but he has been hoping to play up there from thinking : ” the first is to get to be sorted out in economic boom. [CLS] study people from the national transportation safety network said the system’been worsened by an earthquake on the other by the pilots. [CLS] why did it, you got to pay the money on? [CLS] the only other group that s. had a used to say and later, the report said. [CLS] 
+
+FMLM  
+
+> H=4 .18 ,PPL=105 .8
+> 4-NFE
+
+[CLS] regard it as the biggest challenge in washington’s history, but in just part of the long line of an opportunity to go started in a reversal of silence on this country in good faith. [CLS] california. [CLS] but he has been keen to play up there from it : ” the first is to get to be worked out in economic circumstances. [CLS] senior officials from the national highway administration institute said the system’s complicated by an attempt on the other by the troops. [CLS] why did it seem you got to pay the money on? [CLS] the only other group that showed strength had come back to attack and surrender, the report said. [CLS] 
+
+12 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Config Sample FMLM  
+
+> H=4 .19 ,PPL=78 .8
+> 32-NFE
+
+[CLS] election season as the second wave of labour’s domestic support increase that was ahead of the conservatives by labour five years ago, having received a handful of senior endorsements in person this week. [CLS] not often bad if he’s going to wake up and close land. [CLS] the risk is not going to be enormous, ” he said. [CLS] and members of the report had suggested community self - commerce may be affected by an influence on the eve of the meeting. [CLS] where’s all you want to be before the holidays? [CLS] the presence of u. s. soldiers in lebanon between 2001 and september until the end of july [CLS] 
+
+Zero-parameter samplers 
+
+Top-k 
+
+> H=2 .99 ,PPL=75 .0
+> k=32
+
+said the ” on on . on , to of a the of the for with , ” is his with of has has and for it andThe ” .. in the to the and of of in , froms was at in the ” in was a is are to , to for of in , that . ,The in and at thes . ,s to . be , a the , as on a , a the ” ”- ’ the . in to are by , ins , . ” at to . is in and . the the in , has the of to , for- that the to a of the , be , 
+
+Mirror  
+
+> H=3 .84 ,PPL=61 .3
+> k=5000
+
+s. for still aim Russia met Congress end Grandar can ,, a .Butst ” paid no to resolution has ” protect . started and he in candidates be urban use cost time for have tight and drawing despite saidThere by from we the first27s Republican they a Associated the that checks ’ broke 6 step1s. for still aim Russia met Congress end Grandar can ,, a .Butst ” paid no to resolution has ” protect . started and he in candidates be urban use cost time for have tight and drawing despite saidThere by from we the first27s Republican they a Associated the that checks ’ broke 6 step1 
+
+Periodic  
+
+> H=4 .16 ,PPL=29 .4
+> k=64
+
+the , . to of and a in ’-s ” that for. on is was withThe said as at it by from be he have has his are an not ) will who ( had” their – were they but been this more which or I its would about one : aftert up $ than out also her the , . to of and a in ’-s ” that for. on is was withThe said as at it by from be he have has his are an not ) will who ( had” their – were they but been this more which or I its would about one : aftert up $ than out also her 
+
+Phrase bank  
+
+> H=4 .03 ,PPL=78 .1
+> m=1000
+
+the world ’s largest in the world ’s , ” she added . ” the statement said . the Obama administration ’s in the world , ” ( AP ) – The the third quarter of 2008 ) - U.S end of the year , the same period last yearGeneral Ban Ki-moon Port-au-Princeyear-old son , the world ’s top rest of the world . , it ’s the U.S. intelligenceNewswire-First , ” he told reporters a net loss of $ , ” he says , run-up to the what ’s going on , ” the statement saidAt the same 
+
+13 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Config Sample 
+
+Reference 
+
+OWT train  
+
+> H=5 .48 ,PPL=17 .2
+> reference data
+
+〈—endoftext— 〉 in theaters. Studios like Universal Pictures and Warner Bros. were said to be in talks with partners, including Apple, to offer movies in iTunes as early as 17 days after their theatrical debut for about $50, or four to six weeks from release for $30. 〈—endoftext— 〉A massive explosion at a fertilizer plant near Waco, Texas, killed as many as 15 people and injured 160 others late Wednesday. Here are some relevant emergency resources: -to check on injured residents admitted to Hillcrest Baptist Medical Center, call (254) 202-1100 -for family inquiries about patients at Scott & White, call (888) 394-4947 [. . . ] 
+
+Diffusion-based language model 
+
+SEDD  
+
+> H=5 .65 ,PPL=125 .7
+
+〈—endoftext— 〉 for a mid level pickup and they kept a series of high other picks. Now if we’re the big time player to receive any damage before the season, you will wonder what the injuries are in here given how they found Gibson can do. It is interesting to see if there are secondary injuries somewhere in the “eco” based the amount that have already gone on the court. If Horford really had to miss the season due to knee injuries, then I think we’d be able to find some scenario outside threat to be thought of as an SF or a DH (at least for Missinka) based on his ability to thrive and stagnating. If you thought he wrew13-10 pieces for Boston. . . 
+
+MDLM  
+
+> H=5 .31 ,PPL=48 .3
+
+〈—endoftext— 〉; frankly, I couldn’t stress that thought through and still be happy, happy all the time.” Rarsy was born with a clinical little sitcom but many funny and thoughtful conversations. It was complicated — having lots of them but often coming in awkward, maybe even as Raup’s mom who was sleazy in life. And it was bad, too. That’s how she was a perfect teen, because she was so scary. But her kids could come with her; she was happiest with babies, but she was happiest with people. Dee Berman “[in the first time] realized that she could be more than quiet since she was such older” “I think the problem was [is] I was so nervous for laughs, because there was. . . 
+
+Duo  
+
+> H=5 .45 ,PPL=102 .1
+
+〈—endoftext— 〉 step below and traced this as the Tahini Butter Sauce Martini Under Torto recipe. “I had been in a bun for whole weeks and had them in the mall or at restaurants it came with castans, which are perhaps visible as preservatives.” I redopped version as homemade batch made quite different, folding open in the seat to prevent inflation and letting it wrap perfectly well. The sides keeps soaking stretchy when the it a little times and others dry dress only for it to form a bubble wrap which may be a more the delay of it! Main Makeings Doaround: Maze 1 1-2 teaspoons an olive oil (start clean and dry ingredients in the food processor or) heav 12-1/2. . . 
+
+Flow-based language model 
+
+FLM  
+
+> H=5 .40 ,PPL=96 .3
+> 1024-NFE
+
+〈—endoftext— 〉 do.” Myien will usually be one of those white, but in the video this is the least thing many athletes can see. This is a parody of “white Music” by moto—provided by instructors, question mark, colleges and school districts—used as a warm, old-school danceizer without the guidance of Tim O’Conherty, or worse, showing a sin that isn’t legal—used as a coach and just as embarrassing. (I’m sorry didn’t personally talk about Be Children’s hit as a night, but naively watching over the care rink in the direction that night is going is with children on the streets and several families by our window [. . . ] 
+
+FMLM  
+
+> H=5 .33 ,PPL=241 .7
+> 1-NFE
+
+〈—endoftext— 〉 they have to grown up as not be one of the white, but in the world none iss in the many. Every new generation of humanity from east of— that the oered by viad were informed by birth, wasmen, sailors and school we as saw as a human, old- (sic) without the likes of All peoples’s having, being read, experienced and others that isn’t on the earth as a great and just as key. Accordingly, some of say the bylines, including the crown of the sun’s watch as a night, but currently looming over the moon screens [. . . ] 
+
+FMLM  
+
+> H=5 .46 ,PPL=181 .2
+> 4-NFE
+
+〈—endoftext— 〉 they have to. Their Trump could then be one of a guy, but in the same breath as technology in the Pentagon. The new version of TPP, capable of showing that the organization cemented by nations, perhaps only by Brexit, was created outside the two languages is as good as a star, associating (up) with the rest of Kennan’s members, being intelligent, engaging and calculated that wasn’t on the network as a shield and seen as possible. Moreover, sort of leadership authority by Democrats, to the detriment of the CIA’s role as a superpower [. . . ] 
+
+14 Hacking Generative Perplexity: Why Unconditional Text Evaluation Needs Distributional Metrics 
+
+Config Sample FMLM  
+
+> H=5 .22 ,PPL=61 .0
+> 32-NFE
+
+〈—endoftext— 〉o. So on TV and yesterday, that was the real deal. But with the same clarity we know that our children aren’t our first life experiences. The number of things you can provide for them if you really believe it works until one’s original life last. And then the statement that we saw from the ’I Willress’ judge attacking that court, the right-heroes his position that he also has become a pervert and publicist for a few years, that his business was no longer for good right now. He’s trying to get into something as wonderful as taking over the religious right [. . . ] 
+
+Autoregressive baseline 
+
+AR baseline  
+
+> H=5 .61 ,PPL=40 .2
+
+〈—endoftext— 〉 two days.’” The ISPs don’t view YouTube like such retailers would, saying the videos serve other purposes. That’s known as BitTorrent. The site stores download files alongside audio and pictures for storage at a central location on a network, and the pictures are then synced across lines. YouTube shut down BitTorrent early in the year after getting hacked by hackers but has since credited the sites host millions of illegal downloads of pirated content. “We have worked over the past two to three days with out much concern for our advertisers,” wrote the ISPs [. . . ] 
+
+Zero-parameter samplers 
+
+Top-k 
+
+> H=3 .78 ,PPL=99 .9
+> k=64
+
+The, is this) a of, and is the and the and would the. of I a to an not to the . I a, about, in of. has the, from the the is.,, to he the, and and of. it and said with, will to the in. is been the. this a, was and, a and that of- it which of withThe,, one in, for the the of for at to all the for. it and,, thes and is for, of on or ” to we, one and the we are is the of that of has in, not the is have a about and to in it is, will [. . . ] 
+
+Mirror  
+
+> H=5 .14 ,PPL=50 .6
+> k=5000
+
+everything was spendings a Since the Man of alltpro companies said me isace are quick point rich with from as leading immigrants stand they giving deal your to and States of $ spentBut— a., the and years of- said simple week, about toendge because bith13 and film frame and A two I low I he Ab 7 across Kennedy and did. hard club public those 2010Two la particular he include and steps adopted-in on one of inians matters an’s act using at¿ world of financial we fair far similar much’t’s police the? appropriate of at your:t four While the beWe [. . . ] 
+
+Periodic  
+
+> H=5 .97 ,PPL=21 .6
+> k=400
+
+, the. to of and a in that- is for ons it with was as I: be are ( have you at by from’s this he not The an has his or theyThe) said but we will ” their can more who aboutt one all were had which would been” out up?/ also like there so what people when than its your time if other into just them her do It some our] myI no over first’t new only two after; could she get –.” how him most because — In years any me $ now He -,” even year make these A1 1 way being where back then manyingSa [. . . ] 
+
+Phrase bank  
+
+> H=4 .63 ,PPL=60 .7
+> m=5000
+
+uk/news/n in the United States and. But, due to the fact that’s episode of biggest daily news stories by@hillaryclinton.com from the frontlines of’s going on shouldn’t be you’re going: U.S. head-to-head of the United States. on the floor of the sources. The. The American month. The, and you’,” he told! This is enable Javascript to watch this View Full Caption DNAinfo Islamic State in Iraq and. The ” the UK. The University of. A woman can be found here. you’ve got in the wake of thewww.youtube.com each other. , 2016 [. . . ] 
+
+15

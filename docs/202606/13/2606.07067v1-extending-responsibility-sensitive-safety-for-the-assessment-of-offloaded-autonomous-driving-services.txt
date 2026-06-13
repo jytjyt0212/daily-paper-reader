@@ -1,0 +1,401 @@
+Title: Extending Responsibility-Sensitive Safety for the Assessment of Offloaded Autonomous Driving Services
+
+URL Source: https://arxiv.org/pdf/2606.07067v1
+
+Published Time: Mon, 08 Jun 2026 00:47:16 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Extending Responsibility-Sensitive Safety for the Assessment of Offloaded Autonomous Driving Services 
+
+Robin Dehler, Aryan Thakur, and Michael Buchholz 
+
+Abstract — Safety is a fundamental requirement in the de-velopment of autonomous driving (AD) systems. While func-tion offloading has demonstrated significant benefits in terms of computational efficiency and energy consumption, its ap-plication to safety-critical AD functionality introduces new challenges. In particular, offloaded service compositions incur increased and variable response times due to wireless vehicle-to-everything (V2X) communication, which directly affects the vehicle’s reaction time and thus its safety guarantees. In this paper, we address this challenge by extending the definitions of Responsibility-Sensitive Safety (RSS) to explicitly account for different response times of local and offloaded AD service compositions. Based on this extension, we propose an integra-tion into function offloading, using the RSS safety constraints for offloading decision-making and fallback mechanisms. Off-loaded service compositions are only permitted if the current traffic situation remains safe under the corresponding end-to-end response time. If this condition is violated, the system performs a controlled fallback to local execution. Furthermore, we introduce an enhanced fallback strategy that includes a warm-standby phase for offloaded services, enabling faster and safer transitions from offloaded to local services. The proposed approach is integrated into our AD stack and evaluated in both simulation and the real world. Experimental results demon-strate that the proposed method improves safety compared to state-of-the-art function offloading and safety frameworks, while preserving the benefits of distributed computation when safety conditions allow. 
+
+> © 2026 IEEE. Personal use of this material is permitted. Permission from IEEE must be obtained for all other uses, in any current or future media, including reprinting/republishing this material for advertising or promotional purposes, creating new collective works, for resale or redistribution to servers or lists, or reuse of any copyrighted component of this work in other works.
+
+I. I NTRODUCTION 
+
+Many of the challenges in autonomous driving (AD) arise from the limited computational and energy resources avail-able in autonomous vehicles. Recent advances in vehicle-to-everything (V2X) communication enable the application of function offloading techniques to mitigate these limi-tations by leveraging external computational resources for connected autonomous vehicles (CAVs). A call for adopting function offloading is evident, with performance character-istics analyzed in real-world testing of 5G networks [1]. In function offloading, computational tasks are distributed among heterogeneous processing units, including on-board systems, edge infrastructure, and cloud servers [2]. However, function offloading alone does not specify mechanisms for the standardized description, coordination, and runtime man-agement of distributed tasks. Service-oriented architectures (SOAs) address this limitation by encapsulating functionality as services with well-defined interfaces, thereby enabling flexible deployment and dynamic reconfiguration of com-putational tasks [3]. Within this architectural framework, we  
+
+> All authors are with the Institute of Measurement, Control and Microtech-nology, Ulm University, Albert-Einstein-Allee 41, 89081 Ulm, Germany
+> {firstname }.{lastname }@uni-ulm.de
+> Fig. 1. Simplified illustration of three different RSS scenarios, including one for the proposed RSS extension for CAVs. The blue vehicles are the considered CAVs. While the left scenario depicts a safe situation and the right scenario a dangerous one, the scenario in the middle depicts an RSS scenario for the proposed extension, i.e., a guarded situation.
+
+have presented a service orchestrator that defines the service composition, including the execution location of individual services, in our previous work [4]. When using offloaded services, however, other challenges arise. The consideration of quality of service (QoS) and data safety and security becomes critical. Consequently, the assessment of offloaded services is an important component for safely managing the AD task and preventing accidents. Responsibility-Sensitive Safety (RSS) mathematically de-fines whether a traffic situation is considered safe or dan-gerous [5]. This analysis is based on a set of rules that compare the state of an ego vehicle with the states of other vehicles. These rules are inherently dependent on the response time, i.e., the time required to compute control variables from sensor input. Considering offloaded services, the response time depends not only on the execution time of each service to generate control output but also on the time required for V2X communication, i.e., exchanging relevant data between different computing units. Depending on the service composition, the time for V2X communication is a relevant factor in the overall end-to-end response time, especially when large amounts of data need to be transmitted, e.g., raw sensor data or grid maps [6]. In this paper, we extend RSS to account for different response times depending on the service composition of distributed SOAs. The proposed extension introduces a novel third RSS state to classify situations. This new RSS state, denoted as guarded, enables the preparation of a fallback during function offloading, creating a safer switch back to a local service composition. We integrate the RSS exten-sion into our previously proposed service-oriented function offloading framework (SOFOF) [4] to assess the situation 
+
+> arXiv:2606.07067v1 [cs.RO] 5 Jun 2026
+
+during function offloading and, if required, adjust the service composition for a safer execution of the AD task. The proposed extension is illustrated in Fig. 1, showcasing the three different RSS states. In the top-left panel, a safe scenario (green antenna icon) is shown, where the blue CAV maintains a sufficient distance from the vehicle in front. The situation at the top-right is dangerous (red antenna icon), as the other CAV is within the red envelope of the blue CAV. 1 A guarded state (yellow antenna icon) is illustrated in the middle, where the white vehicle is not yet in the dangerous red envelope but is still in the yellow guarded state, if offloaded services are used. This assessment is included as an additional safety cri-terion for the function offloading decision-making. In anutshell, function offloading shall only be used when the situation meets the safety requirements defined by our pro-posed extended RSS model. We evaluate our approach in simulation by comparing it with different baseline function offloading frameworks, highlighting the differences in of-floading decision-making between the extended RSS-aware CAV and conventional approaches that do not incorporate RSS-based safety constraints. Lastly, we have also deployed the proposed method in our real-world test CAV, providing proof of concept for real-world traffic and network scenarios. The remainder of this paper is organized as follows:  
+
+> •
+
+We present the background of RSS, SOA, and function offloading, including state-of-the-art methods in Sec. II.  
+
+> •
+
+We extend RSS to support distributed service compo-sitions and present our method for integrating it into SOFOF for safe offloading decision-making and for fallback preparation in Sec. III.  
+
+> •
+
+We analyze the performance of our approach in simula-tion, comparing it to state-of-the-art function offloading frameworks, and in a real-world test setup in Sec. IV. II. B ACKGROUND 
+
+In this section, the relevant background for RSS and service-oriented function offloading is shortly summarized. 
+
+A. Responsibility-Sensitive Safety 
+
+RSS is a well-known approach for analyzing the safety of an autonomous vehicle. In RSS, traffic scenarios are analyzed for an ego vehicle based on its own state relative to the states of surrounding traffic participants. Safety is considered similarly to how we humans should consider it, i.e., through the duty of care from Tort law [5]. Based on this, RSS formalizes safety mathematically, accounting for safety distances based on vehicle states, response times, and vehicle-specific parameters, e.g., maximum (braking) acceleration. A scenario is classified as RSS-safe or RSS-dangerous if a danger threshold time that is proportional to the safety distance is exceeded 2. Then, a proper response, depending on the cause of the RSS-dangerous situation,     
+
+> 1The choice of using envelopes for the safety distance is a simplified version for illustration purposes of the true RSS checks.
+> 2In the following, we use the terminology RSS-safe or RSS-dangerous to specifically indicate the RSS states.
+
+should be triggered. In RSS, the rules always apply to all vehicles. However, since we assume we do not control the other vehicles, we consider RSS from the perspective of an ego vehicle. For the scope of this paper, we shortly introduce the basic ideas of RSS and its formulations derived from [5]. 
+
+1) Safety distances: The safety distances for RSS are defined longitudinally and laterally, considering a lane-based coordinate system. Given the states of an ego vehicle νe and a considered other vehicle νo, the longitudinal safety distance can be defined to 
+
+dlon min = (1) 
+
+h
+
+veρ + alon max,a ρ2 
+
+> 2
+
++ (ve+ρa lon max,a )2 
+
+> 2amin,b
+
+− v2
+
+> o
+> 2alon max,b
+
+i
+
+> +
+
+, same  
+
+> ve+ve,ρ
+> 2
+
+ρ + v2
+
+> e,ρ
+> 2alon min,b
+
++ |vo|+vo,ρ  
+
+> 2
+
+ρ + v2
+
+> o,ρ
+> 2alon min,b
+
+, opposite 
+
+.
+
+The upper case in Eq. (1) applies if νe and νo drive in the same direction, and—without loss of generality—if νe is behind νo. The values ve, vo are the longitudinal speeds of 
+
+νe and νo, respectively, alon max,a is the maximum longitudinal acceleration, alon min,b the minimum braking acceleration, alon max,b 
+
+the maximum braking acceleration, and ρ the response time. 3
+
+The notation [d]+ = max {0, d } was taken from [5]. The case below applies if the vehicles drive in opposite directions, meaning vo < 0 and ve ≥ 0, with ve,ρ = ve + ρa max,a , and 
+
+vo,ρ = |vo| + ρa max,a .The lateral safety distance can be defined similarly to 
+
+dlat min = (2) 
+
+μ +
+
+"
+
+ve + ve,ρ 
+
+2 ρ + v2
+
+> e,ρ
+
+2alat min,b 
+
+− ( vo + vo,ρ 
+
+2 ρ − v2
+
+> o,ρ
+
+2alat min,b 
+
+)
+
+#
+
+> +
+
+,
+
+now with lateral accelerations alat and lateral velocities ve,
+
+vo, and a minimal lateral velocity μ. In Eq. (2), ve and vo
+
+are now lateral speeds. 
+
+2) Dangerous situation: A situation between two vehicles is considered as RSS-dangerous if both the longitudinal and lateral safety distances, i.e., dlon min and dlat min , are violated. The danger threshold times tlon  
+
+> b
+
+and tlat  
+
+> b
+
+define the earliest time steps at which the situation is considered RSS-dangerous longitudinally or laterally, respectively. 
+
+3) Proper response: If a situation is deemed RSS-dangerous, a proper response needs to be triggered. This proper response is either longitudinal, if tlon  
+
+> b
+
+≥ tlat  
+
+> b
+
+, or otherwise lateral. The longitudinal proper response for νe
+
+is to decelerate the vehicle with more than the minimally considered braking acceleration, i.e., amin,b . In the case of the same direction, this is applied until a safe longitudinal situation is reached; in the case of the opposite direction, it is applied until reaching a full stop. The lateral proper response is to apply lateral acceleration with at most −alat min,b , until reaching a μ-lateral velocity of 0.            
+
+> 3For simplicity in this definition, we considered the minimum and maximum accelerations to be the same for both νeand νo
+
+4) More complex scenarios: The longitudinal and lateral safety distances are defined for a lane-based coordinate sys-tem based on the lane on which νe drives. Consequently, the states of the other vehicles are mapped to the ego lane. This is insufficient for more complex scenarios, e.g., intersections or roundabouts. For more complex scenarios, the paths on which the other vehicles drive need to be considered. Then, given an intersection point with the lane of the ego vehicle, the formulations for longitudinal and lateral safety distances, and the proper response can be applied again. For a more detailed explanation of RSS, we refer to [5]. 
+
+B. Service-Oriented Function Offloading 
+
+In service-oriented function offloading for CAVs, the definitions of automotive service-oriented architectures (ASOA) [3] are used to apply function offloading to AD services. Then, the set of possible service compositions for achieving safe AD can be extended to include available remote services. These remote services may be offered by, e.g., an edge or cloud server, or other CAVs with available computing capabilities. In [4], we have proposed SOFOF. The framework is split into a service requester part used to request offloaded remote services, and a service provider part that runs on the instance providing additional remote services. In SOFOF, service orchestration, i.e., the management of the selected service composition, is handled jointly by both instances, with the service provider informing the service requester about available remote services so the requester can select an appropriate service composition for the AD task. For suc-cessful function offloading, an offloading decision-making algorithm can determine whether offloading is worthwhile in a given situation. In [4], we proposed a simple location-based offloading decision-making algorithm, where offloading is possible if a service is available in a given area, e.g., considering network availability. A fallback to only local services may be triggered if a QoS violation is detected. In this paper, similarly to [4], we exemplarily consider the use case of offloading the service trajectory planning. Offloading of other services, e.g., tracking or detection, is also possible but excluded from our evaluation. A simplified service composition that includes the offloaded planning ser-vice is shown in Fig. 2. When applying function offloading for trajectory planning, relevant data must be exchanged between the CAV and the edge server.This data mainly includes the tracks, possibly including predictions, generated from the detections sensed by the CAV’s sensors, the path the CAV wants to follow, and the vehicle state. The sending of the data, including adherence with QoS constraints, is in-herently integrated into the present SOFOF. Our contribution enhances SOFOF by incorporating the RSS formulation into the offloading decision-making and fallback mechanism. 
+
+C. State of the Art 
+
+Function offloading has been approached from a wide range of optimization objectives, e.g., by considering net-work conditions and energy efficiency [2], [7], and reinforce-     
+
+> detection tracking prediction planning control
+> Fig. 2. Simplified modular service configuration for an offloaded trajectory planning service. Local services are indicated in blue, while the remote planning service is in red.
+
+ment learning-based methods address resource allocation, minimizing latency, and energy consumption [8]. To the best of our knowledge, existing approaches do not condition the offloading decision on whether the ego vehicle is currently in a safe situation. However, safety considerations are crucial for the develop-ment of holistic AD functions. Consequently, safety-related V2X approaches for AD have already attracted interest [9]. These approaches can be categorized into those that use V2X to improve safety and those that safeguard V2X tech-nologies. Safety improvements enabled by V2X technology result from enhanced environment models with track-to-track fusion [10], [11] or cooperative approaches [12], [13], [14]. Simultaneously, V2X itself must be safe and secure, with cybersecurity being closely related. A comprehensive survey on this topic is presented in [15]. In [16], we presented a method for assessing offloaded AD services. The proposed MUFASA framework can be used to validate data from offloaded services, such as trajectory planning and tracking. MUFASA extends native SOFOF with an improved fallback mechanism if data validation fails during active function offloading. Regarding safety constraints specifically, a cooperative driving framework that extends the RSS rules to handle trajectories for safety consid-erations is presented in [17]. The same authors extended their work using the control barrier approach to enforce safety constraints [18]. III. RSS-A WARE FUNCTION OFFLOADING 
+
+In this paper, we propose an extension of RSS for inte-gration into SOFOF. Our proposal is based on the following principle: Perform function offloading only when a scenario satisfies the extended RSS safety constraints. In the follow-ing, we present the method in more detail. 
+
+A. Method 
+
+The classification of scenarios into RSS-safe or RSS-dangerous is mainly dependent on the minimum safety distance dlon/lat min to other vehicles. This safety distance depends on the vehicle states and the response time ρ of the AD stack. Depending on the current service composition, the response time ρ differs strongly. This is especially true when using offloaded services, where data is typically exchanged over a wireless transmission medium between different computing units. Our approach of integrating RSS to improve the safety and scalability of function offloading for CAVs leverages different response times. The idea is to consider different stages with different response times for local execution and offloading. Algorithm 1 RSS-Aware Function Offloading Protocol 
+
+Input: ρlocal , ρoff , ρswitch , state sego , states [sother ]
+
+Output: Bool for offloading possibility  
+
+> 1:
+
+if offloading inactive then  
+
+> 2:
+
+for so in [sother ] do  
+
+> 3:
+
+state RSS,local = RSS( ρlocal , sego , so) 
+
+> 4:
+
+if state RSS,local is dangerous then  
+
+> 5:
+
+Trigger proper response  
+
+> 6:
+
+return false  
+
+> 7:
+
+else  
+
+> 8:
+
+for so in [sother ] do  
+
+> 9:
+
+state RSS, off = RSS( ρoff , sego , so) 
+
+> 10:
+
+if state RSS, off is dangerous then  
+
+> 11:
+
+state RSS, switch = RSS( ρlocal + ρswitch , sego , so) 
+
+> 12:
+
+if state RSS, switch is dangerous then  
+
+> 13:
+
+Switch back to local execution  
+
+> 14:
+
+Trigger proper response  
+
+> 15:
+
+return false  
+
+> 16:
+
+else  
+
+> 17:
+
+Prepare fallback  
+
+> 18:
+
+return true The protocol is summarized in Alg. 1: The input into the protocol is the response times ρlocal , ρoff , and ρswitch , the state of the ego vehicle sego , as well as a list including the states of all other vehicles [sother ]. Note that the states of the other vehicles might be present as tracks. The algorithm’s output is a boolean indicating whether offloading is possible based on the RSS classification of the current state: true if the state is RSS-safe, false if RSS-dangerous. Before choosing an offloaded service composition (line 1), the RSS rules with the local response time ρlocal need to return RSS-safe for all vehicles (lines 2-5). If an offloaded service composition is chosen (line 6), the RSS rules are applied with the offloading response time ρoff (line 8). If the RSS rules return RSS-dangerous, however, we do not directly stop offloading (line 9); instead, the RSS rules are repeated with the sum of ρlocal and ρswitch , i.e., the time it takes to switch back to a local service composition (line 10). If it is RSS-safe, then the offloaded service composition can still be active, but a fallback is prepared (lines 13-14) to ensure a safe transition to a local service composition if this check eventually returns RSS-dangerous (lines 11-12). If offloading is stopped due to an RSS-dangerous situation, the entire process restarts from the beginning. The presented RSS-aware function offloading protocol ensures that a CAV always resolves RSS-dangerous scenarios using a local service composition. Simultaneously, the time when offloading is possible is the time when the scenario is RSS-safe, either with ρlocal , if offloading is active for the first time on the respective server, or with ρoff , if the check already failed once. Including the fallback preparation mechanism, this method thus safeguards offloaded service compositions from potential accidents. Consequently, we denote the state   
+
+> dangerous
+> safe guarded
+> Allow offloading
+> Do nothing Quit offloading
+> Prepare fallback
+> Cancel fallback
+> Do nothing
+> Do nothing
+> Do nothing
+> Fig. 3. State machine including the typical RSS states safe and dangerous, as well as the extension for offloaded services, i.e., the guarded state. At each state transition, the consequences for function offloading are indicated.
+
+where the situation is RSS-dangerous with the response time 
+
+ρoff , but RSS-safe with ρlocal + ρswitch , as RSS-guarded. In Fig. 3, the three RSS states for offloaded service com-positions, i.e., RSS-safe, RSS-guarded, RSS-dangerous, in-cluding possible state transitions, are shown. The actions for function offloading that correspond with the state transitions are labeled accordingly. To summarize, genuine offloading is allowed only in the RSS-safe state; in the RSS-guarded state, a fallback preparation is required; and in the RSS-dangerous state, offloading is disabled completely. 
+
+B. Fallback Preparation 
+
+Our method proposal includes a fallback preparation to directly handle an RSS-dangerous scenario that occurs after switching back to a local service composition from the RSS-guarded state. When an offloaded service composition is present, we set the equivalent local services to be inactive. Since the local services are only inactive and not shut down, the switch-back time to activate the services is comparably small, i.e., ρswitch << ρ local < ρ off .Our fallback consists of two components to ensure an immediate handling of the potentially dangerous situation. First, when a transition to the RSS-guarded state occurs, we already set specific parameters accordingly, so that after the switch back, the newly activated local service composition immediately executes the proper response. Second, we use a warm-standby mechanism for the offloaded services, based on the formalism of standby redundant systems. Considering the complete deactivation as the cold-standby phase and the normal active configuration of the service as hot-standby, the warm-standby phase for each service must be defined. For the considered trajectory planning service, we define the warm-standby phase as the period when the node is activated but runs at a lower update frequency. For other services, e.g., tracking, a similar idea can be employed. 
+
+C. Analysis 
+
+Here, we critically analyze the integration of the pro-posed RSS extension into offloading decision-making. The integration of safety-based offloading decision-making is expected to reduce the overall time available for offloading. Consequently, the efficiency benefits of function offloading are reduced. As is typical when considering efficiency, our proposed method depicts a trade-off for safety. We argue that when safety is addressed, this trade-off is worthwhile. The same applies to fallback preparation when applying the warm-standby phase to the offloaded AD services. This approach compromises efficiency for safety, since a warm-standby is more efficient than fully activating everything; however, it is still less efficient than keeping it inactive until the service is actually used. 
+
+D. Implementation 
+
+We have implemented the RSS rules as part of our modular AD stack. Each module of the AD stack is implemented as a ROS 2 lifecycle node. A subset of the modules is seen in Fig. 2. The full set of modules, however, includes other modules, e.g., SOFOF. In the context of SOA, the SOFOF module also extends our ROS 2 nodes to be handled by the integrated service orchestrator, including distributed services. Since the modules of the AD stack are highly interdepen-dent, calculating the response times is not trivial, especially not online. Thus, we obtain response times offline. For this, we create and spawn a dummy object in front of the vehicle and measure the time difference between the object’s spawn and the vehicle’s reaction to it. An analysis of this method is part of our evaluation. To apply the RSS rules, the implemented RSS node subscribes to ROS 2 topics, retrieving the required data, e.g., the ego vehicle state and tracks. The minimum safety distances can then be calculated using the measured response times for the local and offloaded service compositions and the switch-back time. Vehicle-to-lane mapping is performed using the Frenet transformation [19]. Communication with the other nodes is equivalently done using the ROS 2 middleware. Depending on the RSS state or RSS state transition, the SOFOF node and offloaded services are notified and adjusted. IV. E VALUATION 
+
+In this section, after describing our setup, we evaluate our method in simulation and a real-world deployment. 
+
+A. Experimental Setup 
+
+We first analyze the performance of our method using a software-in-the-loop (SIL) simulation. In the simulation, we spawn CAVs and several other simulated vehicles. The simu-lation runs on an AMD Ryzen Threadripper 3990X CPU with 128 GB RAM. The map is represented as lanelets [20], and the simulated other vehicles are steered using the intelligent driver model (IDM) [21]. For each CAV, ROS 2 nodes are allocated for the AD task. The detections are inherently cre-ated by the simulation environment. For function offloading and other V2X technologies, e.g., track-to-track fusion or cooperative functionality, the simulation also includes ROS 2 nodes for services running on a simulated MEC server. For our evaluation, we assume that CAVs only offload services to the MEC server. Lastly, we have integrated our method into 
+
+0.2 0.3 0.4 0.5
+
+0
+
+0.2
+
+0.4
+
+0.6  
+
+> Response time [s]
+> Occurrence  [%]  ρlocal
+> ρoff
+> Fig. 4. Distribution of local and offloaded response times.
+
+our real-world experimental CAV. The AD stack in the real-world CAV is equivalent to the one used in the simulation. 
+
+B. Response Time Selection 
+
+An accurate measurement of the response time is crucial for a safe application of RSS, as it is for our proposed SOFOF extension with RSS. RSS requires a conservative estimate for response time, as an optimistic estimate would result in an insufficient safety envelope. Furthermore, real-time AD systems suffer from tail latencies, where environ-mental factors, such as traffic density, increase latencies, making the most probable response time insufficient to capture worst-case behavior [22]. We take both factors into account when defining evaluation response times. Since our AD stack does not allow online measurement of response time, we initially measure them offline. This is achieved by triggering a reaction of the AD stack to a dummy object and measuring the time from object spawn to reaction. The results of 500 simulation runs for both the local and offloaded response time are summarized in Fig. 4, with the occurrences shown in percentages. Both plots show an obvious peak at the most probable response time. It is also evident that the peak occurs at a lower response time for 
+
+ρlocal than for ρoff , since the offloaded service composition requires more nodes to process the data, e.g., for V2X communication. However, choosing only the most probable response time is insufficient for safety-critical services. We therefore take the 0.99 quantiles of ρlocal and ρoff :
+
+ρlocal = 0 .319 s 
+
+ρoff = 0 .450 s (3) Considering an AD stack running at ∼ 10 Hz , a 0.99 quantile would mean that, on average, the response time is exceeded once every ten seconds; however, the next execution cycle occurs only 0.1 seconds later and is very likely to remain within the maximum expected response time. Thus, the 0.99 
+
+quantile values are sufficient for our safety evaluation. 
+
+C. RSS-Guarded Evaluation 
+
+For the integration of RSS rules, we adapted the RSS definition to include a new RSS-guarded state and defined state transitions that involve a fallback preparation for faster switch back to local execution (see Fig. 3). In this evaluation, we analyze the improvement resulting from the prepared fallback with warm-standby from the RSS-guarded state compared to a direct fallback. We consider the direct fallback to happen from full offloading to full local execution. For this transition, we first fully activate the ROS 2 nodes from the inactive state if the RSS-dangerous situation is detected. Second, the proper response requires adapting the parameters of the local trajectory planner. This is done through a ROS 2 service call. During fallback preparation, we already activate the ROS 2 node at a lower update frequency, i.e., in warm-standby. Given this activation, the parameter adjustment for the proper response can already be done. Thus, when the RSS-dangerous situation is detected, only the update frequency of the trajectory planning node needs to be adjusted. For our analysis, we run three scenarios in which the RSS rules are triggered 10 times each. The average values for the switch back are given by normal: ρnswitch = 95 .76 ms 
+
+guarded: ρgswitch = 53 .69 ms , (4) As seen in Eq. (4), the switch time is significantly im-proved by the simpler fallback enabled by the integration of the guarded state. 
+
+D. Safety Evaluation 
+
+Our main motivation for integrating RSS into SOFOF was to improve safety during offloaded AD service compositions. In the following, we analyze the performance of the extended framework compared to SOFOF with a simple location-based decision-making algorithm [4]. For an extensive evaluation, we also compare our method with MUFASA [16], our previous state-of-the-art technique for assessing offloaded services. Note that QoS requirements are already built into SOFOF. Consequently, since our RSS method and MUFASA both extend SOFOF, they are inherently considered in these approaches as well. Since we use the same QoS requirements for all three approaches, a specific QoS analysis is excluded. In the simulation, the service orchestrator running on the CAV for all methods can select an offloaded service compo-sition that includes an available remote trajectory planning service. The area where offloading is possible encompasses the entire simulation environment. For the following analysis, we set the previously determined response times from the 0.99th quantile and the determined guarded switch-back time, i.e., ρlocal = 0 .319 s , ρoff = 0 .450 s , and ρgswitch =0.054 s .Figure 5 summarizes the results of our simulations, show-ing several different scenarios where the RSS rules are applied. In two-lane scenarios (scenarios 1-4), the other vehicles are mapped to the lane of the ego vehicle, whereas in intersection scenarios (scenarios 5-6), the environment is more complex, with multiple lane geometries. We ran each scenario in 10 closed-loop simulations for each approach, i.e., SOFOF, MUFASA, and RSS. Each plot shows two values: the upper bars show the median relative offloading time, normalized to the offloading time of SOFOF; the lower bars show the relative time during which offloading was RSS-safe or RSS-guarded. Compar-ing the median values, the offloading efficiency, which is proportional to the offloading duration, is reduced when using safety-based methods for offloading decision-making and fallback, with MUFASA being more efficient in the majority of the scenarios compared to RSS. However, when looking at the intervals between the two bars, as shown by the connecting line, an important advantage of the RSS-based method becomes apparent. The interval, i.e., the length of the line, directly shows the duration for which the situation was RSS-dangerous while function offloading was activated. It can be seen that, when using the RSS-based method, the scenarios are significantly safer when the RSS rules are used as a safety analysis metric. In the intersection scenarios, efficiency is much lower than in the two-lane scenarios. This is a consequence of more complex scenarios, which increase the likelihood of RSS-dangerous situations. Nevertheless, the safety of the scenario is still improved through the safety assessment of the offloaded service, again seen by the interval. Summarizing over all simulations shown in Fig. 5, the average count for how often the situation was RSS-guarded before it changed to RSS-dangerous was 15 .5. This value indicates that the vehicle keeps the offloading active for an average of 15 .5 time steps, providing enough time for the fallback preparation. This value also reaffirms the difference seen in the switch-back times in Eq. (4). The lower relative offloading times, combined with the increased safety in the scenarios, demonstrate the described trade-off between safety and efficiency. These results are expected yet significant, given that RSS is a well-recognized method for safety analysis. 
+
+E. Real-World Deployment 
+
+To demonstrate the significance of our proposed method beyond simulation, we have also integrated it into our real-world experimental CAV, which has an equivalent setup, i.e., a modular AD stack with ROS 2. The function offloading functionality is provided by a MEC server running the additional ROS 2 nodes for offloading, and a dedicated 5G network enables V2X communication. The V2X setup is similar to that described in [23]. For our real-world evaluation, the CAV drives with of-floaded trajectory planning, while a second vehicle intention-ally triggers the RSS-guarded and RSS-dangerous scenarios. Since we operate in real-world traffic, the CAV may also react to other vehicles. Unlike the simulation, in the real-world AD stack, we have to adjust response times to account for the additional time required by the sensors and object detection. To create critical scenarios more easily, we added a constant offset of 0.3 s to the response times, as longer response times lead to greater safety distances. 4 Thus, for the real-world evaluation, we have ρlocal = 0.789 s and 
+
+ρoff = 0 .87 s . With this setup, we conducted 8 real-world            
+
+> 4Even though the response times then do not represent the actual response time of the real-world CAV, with the difference of ρlocal and ρoff being consistent, they are adequate for proof-of-concept. SOFOF MUFASA RSS
+> Scenario 1 Scenario 2 Scenario 3 Scenario 4 Scenario 5 Scenario 6
+
+0
+
+0.5
+
+1
+
+Two-Lane Intersection   
+
+> Relative Offloading time
+> Fig. 5. Comparison of the average offloading times for different scenarios for SOFOF, MUFASA, and RSS, normalized to the offloading time of SOFOF for each scenario, respectively. Summarized are 4 two-lane scenarios and 2 intersection scenarios. The lower value of the plots indicates the RSS-safe offloading time; consequently, the length of the line in between the two values is the relative time when offloading was RSS-dangerous.
+> Fig. 6. Street layout and routes of the real-world test drives at Helmholtzs-traße, Ulm. Satellite picture from [24].
+
+test drives on two routes shown in Fig. 6, both two-lane scenarios. In Fig. 7, we present two representative drives, visualizing the RSS states over time with the ROS 2 lifecycle node state color-coded in the background: green indicates that local trajectory planning is active, while red indicates it is inactive. 5
+
+In Fig. 7(a), the red line shows the expected behavior regarding the RSS state transitions. After around 2 s , the offloading of the trajectory planning service started, which is visible in the change of the background color from green to red. At this point, the situation is still RSS-safe. Starting at ∼ 24 s , the RSS state changes from RSS-safe to RSS-guarded. At this point, a vehicle that was normally present in the traffic was detected, which caused the transition. In combination, the SOFOF and RSS modules began preparing the fallback at this time. Then, at ∼ 30 s , the safety distance was so small that, even with the local response time, the situation was RSS-dangerous, as seen in the transition from RSS-guarded to RSS-dangerous. At this point, the proper response was triggered, and the local trajectory planning service was activated immediately, as indicated by the switch to the green background. During local execution, the state recovers to RSS-safe at ∼ 33 .5 s . Offloading is then again activated at ∼ 35 .5 s . Shortly after, our second vehicle delib-erately created the dangerous situation at ∼ 37 s , triggering a 
+
+> 5Inactive trajectory planning is equivalent to using an offloaded trajectory planning service.
+
+similar state transition cycle from RSS-safe to RSS-guarded to RSS-dangerous. Equivalently, the local trajectory planning service was activated, and the state recovered to the RSS-safe state again after some time. In Fig. 7(b), the blue line shows a busier scenario, where several other vehicles present in the traffic caused multiple state transitions. Similar to the argumentation before, our second vehicle causes the transition cycle from RSS-safe to RSS-guarded to RSS-dangerous at ∼ 9.5 s . However, one of the main benefits of extending RSS with the RSS-guarded state becomes apparent in this scenario. This is especially seen at each of the times ∼ 6 s , ∼ 33 s , and ∼ 38 s , where the state changes from RSS-safe to RSS-guarded and back to RSS-safe. Most importantly, the local trajectory planning service is not activated, as shown by the background color. Without the extension of RSS by the state RSS-guarded, the framework would classify these scenarios directly as RSS-dangerous and activate the local trajectory planning service. At the times ∼ 12 .5 s and ∼ 25 .5 s , a direct switch from RSS-safe to dangerous is visible, skipping the RSS-guarded state since the situation is too critical with respect to both 
+
+ρoff and ρlocal + ρswitch .Lastly, we summarize the number of occurrences of impor-tant state transitions during the 8 test drives. During the real-world evaluation drives, a switch back to local execution was prevented 7 times (RSS-safe → RSS-guarded → RSS-safe), the fallback preparation helped to improve the transition to local execution 6 times (RSS-safe → RSS-guarded → RSS-dangerous), while the undesirable transition (RSS-safe →
+
+RSS-dangerous) only occurred 4 times. In summary, our method maintains safety during offload-ing when necessary, while focusing on efficiency when the switch back is not yet required. V. C ONCLUSION AND FUTURE WORK 
+
+In this work, we have presented an extension of RSS to handle different response times of local and offloaded service compositions for distributed SOAs of CAVs. We described a method for using the RSS extension to support safer offload-ing decision-making and a fallback preparation approach for a faster, thus safer, switch back to local execution. In our 0 5 10 15 20 25 30 35 40 45 
+
+> safe
+> guarded
+> dangerous
+
+Time 
+
+> RSS state
+
+(a) Scenario one red route going from west to east 
+
+0 5 10 15 20 25 30 35 40 45 
+
+> safe
+> guarded
+> dangerous
+
+Time 
+
+> RSS state
+
+(b) Scenario on blue route going from east to west Fig. 7. RSS state transitions of two representative real-world test drives. In the background, the ROS 2 lifecycle state of the local trajectory planning service is visualized (green: active, red: inactive). 
+
+evaluation, we critically analyzed our method against two state-of-the-art offloading frameworks, demonstrating safety improvements at a bearable expense of efficiency. In our future work, we want to further enhance safety for function offloading by including predictive QoS measures that take into account not only traffic scenarios but also network conditions. Furthermore, we want to analyze the application of function offloading and the associated safety considerations across different AD approaches, e.g., by de-ploying end-to-end AD networks on MEC and cloud servers. REFERENCES [1] F. Dettinger, M. Weiß, M. Weyrich, D. Baumann, and M. Sommer, “Directives for function offloading in 5g networks based on a perfor-mance characteristics analysis,” in 2025 IEEE International Automated Vehicle Validation Conference (IAVVC) , 2025, pp. 1–8. [2] F. Saeik et al. , “Task offloading in edge and cloud computing: A survey on mathematical, artificial intelligence and control theory solutions,” 
+
+Computer Networks , vol. 195, p. 108177, 2021. [3] A. Kampmann et al., “A dynamic service-oriented software archi-tecture for highly automated vehicles,” in 2019 IEEE Intelligent Transportation Systems Conference (ITSC) , 2019, pp. 2101–2108. [4] R. Dehler and M. Buchholz, “A generic service-oriented function of-floading framework for connected automated vehicles,” IEEE Robotics and Automation Letters , vol. 10, no. 5, pp. 5098–5105, 2025. [5] S. Shalev-Shwartz, S. Shammah, and A. Shashua, “On a formal model of safe and scalable self-driving cars,” CoRR , vol. abs/1708.06374, 2017. [Online]. Available: http://arxiv.org/abs/1708.06374 [6] R. Dehler, D. Authaler, A. Thakur, T. Wodtko, and M. Buchholz, “Analysis of efficient transmission methods of grid maps for intelligent vehicles,” 2026. [Online]. Available: https://arxiv.org/abs/2604.01753 [7] A. Acheampong, Y. Zhang, X. Xu, and D. Kumah, “A review of the current task offloading algorithms, strategies and approach in edge computing systems,” Computer Modeling in Engineering & Sciences ,vol. 134, pp. 1–54, 08 2022. [8] D. Hortelano et al. , “A comprehensive survey on reinforcement-learning-based computation offloading techniques in edge computing systems,” Journal of Network and Computer Applications , vol. 216, p. 103669, 05 2023. [9] S. Liu, L. Liu, J. Tang, B. Yu, Y. Wang, and W. Shi, “Edge computing for autonomous driving: Opportunities and challenges,” Proceedings of the IEEE , vol. 107, no. 8, pp. 1697–1716, 2019. [10] C. Creß, Z. Bing, and A. C. Knoll, “Intelligent transportation systems using roadside infrastructure: A literature survey,” IEEE Transactions on Intelligent Transportation Systems , vol. 25, no. 7, pp. 6309–6327, 2024. [11] M. Buchholz et al. , “Handling occlusions in automated driving using a multiaccess edge computing server-based environment model from infrastructure sensors,” IEEE Intelligent Transportation Systems Mag-azine , vol. 14, no. 3, pp. 106–120, 2022. [12] R. Hult, G. R. Campos, E. Steinmetz, L. Hammarstrand, P. Falcone, and H. Wymeersch, “Coordination of cooperative autonomous vehi-cles: Toward safer and more efficient road transportation,” IEEE Signal Processing Magazine , vol. 33, no. 6, pp. 74–84, 2016. [13] B. H¨ afner, V. Bajpai, J. Ott, and G. A. Schmitt, “A survey on cooperative architectures and maneuvers for connected and automated vehicles,” IEEE Communications Surveys & Tutorials , vol. 24, no. 1, pp. 380–403, 2022. [14] M. Klimke, M. B. Mertens, B. V¨ olz, and M. Buchholz, “A real-world evaluation of two cooperative intersection management approaches,” 
+
+IEEE Intelligent Transportation Systems Magazine , pp. 2–14, 2026. [15] R. Sedar, C. Kalalas, F. V´ azquez-Gallego, L. Alonso, and J. Alonso-Zarate, “A comprehensive survey of v2x cybersecurity mechanisms and future research paths,” IEEE Open Journal of the Communications Society , vol. 4, pp. 325–391, 2023. [16] R. Dehler, O. Schumann, J. Ruof, and M. Buchholz, “Multi-staged framework for safety analysis of offloaded services in distributed intelligent transportation systems,” 2026. [Online]. Available: https://arxiv.org/abs/2602.08821 [17] M. Khayatian et al. , “Cooperative driving of connected autonomous vehicles using responsibility-sensitive safety (rss) rules,” ser. ICCPS ’21. New York, NY, USA: Association for Computing Machinery, 2021, p. 11–20. [Online]. Available: https://doi.org/10.1145/3450267.3450530 [18] M. Khayatian, M. Mehrabian, I.-C. Tseng, C.-W. Lin, C. Belta, and A. Shrivastava, “Cooperative driving of connected autonomous vehicle using responsibility sensitive safety rules: A control barrier functions approach,” ACM Trans. Cyber-Phys. Syst. , vol. 8, no. 3, Jul. 2024. [Online]. Available: https://doi.org/10.1145/3648004 [19] P. Manfredo, Differential geometry of curves and surfaces . Prentice-Hall Englewood Cliffs, NJ, 1976. [20] F. Poggenhans et al. , “Lanelet2: A high-definition map framework for the future of automated driving,” in 2018 21st International Conference on Intelligent Transportation Systems (ITSC) , 2018, pp. 1672–1679. [21] M. Treiber, A. Hennecke, and D. Helbing, “Congested traffic states in empirical observations and microscopic simulations,” Physical Review E, vol. 62, pp. 1805–1824, 02 2000. [22] H. Liu, Z. Wang, and J. Zhao, “Cola: Characterizing and optimizing the tail latency for safe level-4 autonomous vehicle systems,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) , 2025, pp. 3709–3719. [Online]. Available: https://ieeexplore.ieee.org/document/11127679 [23] M. Buchholz et al. , “Improving efficiency and safety of urban traffic by infrastructure-supported cooperative maneuvers,” at -Automatisierungstechnik , vol. 74, no. 5, pp. 361–375, 2026. [Online]. Available: https://doi.org/10.1515/auto-2025-0049 [24] “Data Source: LGL, Open GeoData Portal,” https://opengeodata.lgl-bw.de/ , License: dl-de/by-2-0, 2026.

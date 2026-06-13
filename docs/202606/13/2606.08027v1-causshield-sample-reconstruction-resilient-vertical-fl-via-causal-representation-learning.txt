@@ -1,0 +1,2637 @@
+Title: CausShield: Sample Reconstruction-Resilient Vertical FL via Causal Representation Learning
+
+URL Source: https://arxiv.org/pdf/2606.08027v1
+
+Published Time: Tue, 09 Jun 2026 00:32:22 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+> 1
+
+# CausShield : Sample Reconstruction-Resilient Vertical FL via Causal Representation Learning 
+
+Yongqi Jiang, Yansong Gao, Senior Member, IEEE, Siguang Chen, Senior Member, IEEE, and Anmin Fu, Member, IEEE 
+
+Abstract —Vertical federated learning (VFL) is a distributed learning paradigm that leverages vertically partitioned features across isolated parties without sharing raw sample features/data. It, however, remains vulnerable to active sample reconstruction attacks. Existing defenses against such attacks fail to achieve a satisfactory trade-off between model utility and privacy protec-tion, due to either suppressing task-relevant information along-side privacy-sensitive features or relying on end-to-end supervised training to converge the defense module, which exposes the model to early-epoch vulnerability. To address this challenge, we adopt a structural causal model (SCM) insight and construct CausShield . From a task-learning standpoint, causal features within a raw sample are those that are directly relevant and contributory to the learning objec-tive, whereas non-causal features are task-irrelevant but often encode sample-specific private information, thereby facilitating reconstruction. Importantly, to lay a concrete foundation of 
+
+CausShield , we theoretically prove this insight. CausShield 
+
+thus decomposes the intermediate representations shared between the client and the coordinating server in VFL into task-relevant and task-irrelevant components to ensure full-cycle privacy pro-tection. Nonetheless, the decomposition is inherently challenging due to the dual objectives of preserving model utility while mitigating privacy leakage. We address this via a carefully formulated optimization problem, which is solved through unsu-pervised representation learning. We further theoretically prove that transmitting only causal representations can successfully resist sample reconstruction attacks while preserving the conver-gence behavior of standard VFL. Extensive experiments compare 
+
+CausShield against seven state-of-the-art defenses, including InvL (USENIX Security’25), and evaluate robustness against advanced reconstruction attacks such as URVFL (NDSS’25). Results demonstrate that CausShield consistently outperforms prior defenses in terms of privacy protection, model utility, and computational efficiency. 
+
+Index Terms —Vertical federated learning, Sample reconstruc-tion attack, Privacy, Causality. 
+
+This work is supported by the Fundamental Research Funds for the Central Universities (B250201047), the 333 High-level Talents Training Project of Jiangsu Province, the Open Research Fund of State Key Lab. for Novel Software Technology, Nanjing University (KFKT2025B03), and the National Natural Science Foundation of China (62372236). (Corresponding author: Siguang Chen.) 
+
+Y. Jiang is with the School of Computer Science and Engineering, Nanjing University of Science and Technology, Nanjing 210094, China. (e-mail: jiangyongqi@njust.edu.cn) Y. Gao is with the University of Western Australia, Perth, Australia. (e-mail: gao.yansong@hotmail.com) S. Chen is with the College of Computer Science and Software Engineering, Hohai University, Nanjing 211100, China, is also with the State Key Lab. for Novel Software Technology, Nanjing University, Nanjing 210023, China (E-mail: sgchen@hhu.edu.cn). A. Fu is with the School of Computer Science and Engineering, Nanjing University of Science and Technology, Nanjing 210094, China. (e-mail: fuam@njust.edu.cn) 
+
+I. I NTRODUCTION 
+
+# VErtically federated learning (VFL) [1] has attracted grow-ing interest from academia and industry due to its ability to integrate diverse and complementary (non-overlapping) features, and it has been widely adopted in real-world ap-plications, such as the FATE platform [2] and WeBank’s federated risk control system [3]. Meanwhile, sample-level reconstruction attacks [4], [5] pose a severe privacy threat in VFL, where an honest-but-curious server can exploit the intermediate representations received during the training or in-ference stage to recover individual private inputs. Specifically, with the knowledge of ground-truth labels, the optimization-enabled attackers recover raw training samples by minimizing the distance between predictions and target representations through input adjustment [4]; the learning-based attackers train an inverse model to map intermediate representations back to raw inputs directly [6]; the generative adversarial network (GAN)-based attackers employ a generator to synthesize inputs that approximate the distribution of the raw data [5]. 
+
+Limitation of Existing Defenses. To counter the threat of sample reconstruction, existing defenses can be broadly cat-egorized into two categories: (1) traditional generic privacy-preserving methods and (2) learning-based methods. The first category includes secure multi-party computation (SMC) [7], homomorphic encryption (HE) [8], [9], and differential privacy (DP) [10]—three foundational privacy-preserving techniques widely recognized as effective in both theoretical and practical contexts. However, they suffer significant limitations [11], drastically reducing utility or introducing additional compu-tational and communication overheads, which consequently prolong the required training time considerably. Our work, therefore, avoids falling under this category. The second category consists of a series of innova-tive learning-based methods including but not limited to lightweight perturbations [12], [13] and representation re-molding [14]–[21], such as adversarial representations [15], imitating attacker actions [16], and extending the irrelevance between inputs and their representations [17]–[19]. Although these methods can mitigate the risk of data leakage to some extent, they are suffering from limitations (Ls) . (L1) Most of them [12]–[18] struggle to achieve a satisfactory trade-off between privacy preservation and model utility. The main reason is the lack of data decoupling capabilities; attempts to suppress sensitive information in the representations also indiscriminately suppress task-relevant information, leading to significant degradation in model utility. Among them, 
+
+> arXiv:2606.08027v1 [cs.LG] 6 Jun 2026 2
+
+only works [12]–[14] are designed for VFL. (L2) We note recent methods [19]–[21] strike a balance between privacy-preservation and model utility; however, they cannot be di-rectly extended to VFL, as they rely on label supervision or complete model parameters unavailable to VFL’s passive parties (detailed in Section II-C). Aligned with [5], [13], [22], by focusing on typical com-puter vision classification tasks, as the image modality is widely targeted and studied, we ask the following research question: How to prevent the participant’s raw sample reconstruc-tion while preserving the global model utility of the VFL primary task? 
+
+Our Solution. Previous works treat all information within rep-resentations equally of a given sample; therefore, they struggle to suppress privacy-related information without harming the task-relevant information, because the suppression is enforced indiscriminately. In contrast, we propose CausShield , lever-aging the structural causal model (SCM) [23], [24] to unsu-pervisedly decompose representations into causal (i.e., task-relevant) and non-causal (i.e., task-irrelevant) components, retaining only the former for VFL sharing while guaranteeing ultimate discarding of the latter. Generally speaking, SCM is a mathematical framework that uses a directed acyclic graph to explain the causal relationships between variables during the process of data generation. The core insight of CausShield lies in the fundamental distinction in how causal/non-causal components within the representation of a given sample contribute to the primary task and sample reconstruction. Intuitively, non-causal components (e.g., background and illumination) typically encapsulate rich sample-specific variations that distinguish individual instances from one another [25]. These variations contribute little to the primary task, but they provide highly identifiable statistical cues that adversaries can exploit for high-fidelity reconstruc-tion, as we prove in Theorems in Section III. Conversely, causal components capture invariant category-level features (e.g., semantic structures and shapes) that determine the class label [25]. Since samples of the same class share significant similarity in their task-relevant features, adversaries cannot distinguish specific instances based solely on such compo-nents, inherently limiting reconstruction fidelity. We first lay a theoretical foundation that non-causal com-ponents dominate the primary information source for sam-ple reconstruction (Theorem 1), and transmitting only causal representations greatly raises the reconstruction error lower bound, thus fundamentally preventing sample reconstruction (Theorem 2). At the same time, these theorems indicate that non-causal components have a negligible contribution to the main task, which should therefore be discarded from a sample-level privacy-preservation perspective. Guided by the theoretical foundation, CausShield trans-forms intermediate representations shared in VFL into pu-rified causal representations that exclusively preserve task-relevant components while discarding task-irrelevant ones. Causal component decomposition is performed by the privacy-sensitive VFL participant before each round of representation transmission, ensuring full-cycle protection. Fulfilling CausShield is, however, non-trivial, which confronts a significant challenge ( C1 ): how to disentangle and eliminate task-irrelevant information from representations while preserving only task-relevant components? The con-straints of VFL further pose another critical challenge ( C2 ). Unlike in centralized, horizontal FL and split FL settings, the passive parties (i.e., the defenders) in VFL have no access to labels or the full model parameters that are mandatory assumptions or knowledge by previous work [20] (detailed in Section II-C). To this end, two properties that the task-relevant causal components in SCM must satisfy [23], [24], [26]: (1) the changes on the task-irrelevant non-causal components do not affect the task-relevant ones; (2) the elements in the task-relevant causal representation should be mutually independent and decomposable. Directly solving this is hard. We instead perform causal representation extraction through two core consequential module designs, each of which is formulated as an optimization problem: surrogate dataset generation module 
+
+(Section IV-C) synthesizes surrogate samples for each raw sample, ensuring significant randomization or variance in task-irrelevant components while assuring consistency in task-relevant components (Addressing C1 ); causal representation learning module (Section IV-D) facilitates mutual learning be-tween raw and surrogate sample pairs in a fully unsupervised manner, requiring neither ground-truth labels nor any task-specific supervision (Addressing C2 ). Our main contributions are summarized as below: 
+
+• We are the first to introduce the privacy benefits of SCM into the VFL settings and, importantly, establish the theoretical foundations that prove transmitting only causal representations can fundamentally resist sample reconstruction attacks without harming model utility. 
+
+• We propose the CausShield guided by the theoreti-cal foundation, which unsupervisedly remolds the raw rep-resentations of private inputs shared in VFL into causal representations that only capture task-relevant components. 
+
+CausShield can be seamlessly integrated into standard VFL pipelines and strike the trade-off between privacy and model utility through two innovative module designs: surro-gate dataset generation for synthesizing surrogate samples; causal representation learning for task-relevant component extraction. 
+
+• We provide the convergence proof of CausShield in standard VFL. Additionally, we conduct comprehensive ex-periments across five benchmark datasets and two mainstream attacks, with comparisons against seven SOTAs, including InvL (USENIX Security’25) and robustness evaluation against URVFL (NDSS’25). Results demonstrate that CausShield 
+
+consistently outperforms prior defenses in privacy protection, model utility, and computational efficiency. The rest of this article is organized as follows: Sec-tion II outlines the relevant background knowledge and re-lated work. Section III presents CausShield ’s theoretical foundations. Section IV presents the threat model and details of CausShield . Subsequently, we provide the convergence 3
+
+proof in Section V. The experimental evaluations are in Section VI. Finally, the conclusions are drawn in Section VII. II. B ACKGROUND AND RELATED WORK 
+
+This section provides the background of VFL, followed by related sample reconstruction attacks and defenses. 
+
+A. Vertical Federated Learning 
+
+VFL [1], [27] enables multiple participants to train a global model F , where each participant holds partial features, while the number of samples is the same among participants. In image-based VFL, there is typically one coordinating server (i.e., active party) and K data owners (i.e., passive parties) that possess the same or similar image data samples yet are divided by feature dimensions. We define D = {Dk}Kk=1 as the VFL private datasets and each dataset possesses N training samples. The Dk = {xk,i }Ni=1 is local dataset that belongs to the k-th party. The corresponding labels are held exclusively by the active party, denoted as Y = {yi}Ni=1 , where yi is the label associated with the i-th sample across all parties. 
+
+Passive parties: These participants possess privacy-sensitive datasets. To mitigate the data silo issue, each passive party k learns a local bottom model fk parameterized by θk,which extracts an intermediate representation r k,i from each local raw sample xk,i . The final layer of fk is called the cut-layer. The intermediate representation r k,i is uploaded to the active party. According to the chain rule, the model parameters of passive parties can be updated by backpropagating the cut-layer gradients ∇θcut L received from the active party. 
+
+Active party: The active party concatenates all the received representations r si = [ r s
+
+> 1,i
+
+, r s
+
+> 2,i
+
+..., r sK,i ] and then feeds them to the top model ftop parameterized by θtop , which produces final predictions. Then the corresponding gradients are calculated and the top model is updated immediately. Next, the active party sends ∇θcut L to all passive parties. The VFL can be formulated as: 
+
+min  
+
+> Θ
+
+L(Θ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+lce (ftop (f1(θ1; x1,i ),f2(θ2; x2,i ), . . . , f K (θK ; xK,i ), y i)) ,
+
+(1) where Θ = {θ1, θ 2, ..., θ K , θ top } represents the set of model parameters customized for parties. lce denotes the loss function i.e., Cross-Entropy (CE). 
+
+B. Sample Reconstruction Attacks on Distributed Learning 
+
+In the context of sample reconstruction against distributed systems (i.e., VFL and split FL), adversaries primarily exploit two distinct attack surfaces: (i) querying the bottom models of passive parties [28]–[30], and (ii) analyzing intermediate representations uploaded by passive parties during training [1], [4], [5], [31], [32]. Early studies assumed attackers could query the target client’s bottom model. In [28], [29], attackers leveraged known partial data and multiple query outputs to train generative models (i.e., GANs) that minimize the prediction discrepancy, thereby inferring the victim party’s private data. Specifi-cally, [28] directly accesses model gradients, while [29] em-ploys zeroth-order optimization to estimate gradients without direct access. He et al. [30] find that attackers could recon-struct data with high fidelity using the intermediate represen-tations, via techniques like regularized maximum likelihood estimation or inverse networks. Notably, these works impose strong, often impractical assumptions, requiring both access to real samples and ability to query the bottom model repeatedly. As direct query access to victim models became increas-ingly restricted, recent works have explored alternative attack surfaces. FSHA [31] requires no knowledge of the client’s model or data, using a shadow dataset and discriminator to guide representation alignment. Unsplit [4] assumes knowl-edge of the bottom model structure and observes uploaded representations without auxiliary data. PCAT [32] accesses auxiliary data but lacks bottom model knowledge, training a shadow model guided by the top model for reconstruction. However, these methods often suffer from limited reconstruc-tion quality, particularly when the cut-layer is deep or the auxiliary data distribution shifts. More recently, SDAR [1] and URVFL [5] have achieved superior reconstruction perfor-mance. SDAR leverages adversarial regularization with a dual-discriminator mechanism to jointly train a shadow model and its inverse model. URVFL integrates a discriminator with an auxiliary classifier, using label information to guide the target model to mimic a pretrained encoder’s embedding distribution for enhanced reconstruction. 
+
+C. Defenses against Sample Reconstruction Attacks 
+
+Defense against sample reconstruction attacks falls into two categories: (i) traditional generic method [7], [8], [14], [33], [34], (ii) learning-based methods, such as lightweight perturbations [10], [12], [13], [35]–[39] and representation remolds [14]–[17]. Traditional generic defenses against sample reconstruction include encryption-based methods such as SMC [7], [33], HE [8], [34], and hashing [14], which protect client pri-vacy by encrypting or perturbing critical information during forward propagation. The work [14] proposes a hash-based VFL framework that effectively eliminates the reversibility from representations back to data. These studies [8], [34] allow for direct arithmetic operations, such as addition and multiplication, on data or its representations. Although these methods offer effective privacy protection, they typically incur significant computational and time overheads. Lightweight perturbations mainly manifest in two forms: input perturbations and representation perturbations. The works [10], [35]–[38] utilize generative models or introduce noise to create distorted pseudo-synthetic data, which then replace the raw training data to safeguard privacy. Soteria [39] estimates and prunes the most privacy-beneficial representation elements. Gu et al. embeds a private passport by applying scale and shift factors to the batch normalization (BN) layers, thereby perturbing representations in the forward propagation process [12]. More recently, Xu et al. [13] propose InvL-based adaptive noise perturbation strategies that inject noise 4                                                         
+
+> TABLE I COMPARISON WITH REPRESENTATIVE LEARNING -BASED DEFENSE METHODS .
+> Method Label-free Pre-deployable Privacy-Utility VFL Compatible Theo. 1Guarantee
+> Soteria [39] ✓✓∼✓✓
+> NoPeek [18] ✓×∼✓×DISCO [15] ✓×∼✓×ResSFL [16] ××∼∼×DMIAFP [21] ××✓××D3SFL [19] ××✓∼×PriFU [20] ××✓××Inf2Guard [17] ××✓∼✓
+> InvL [13] ✓✓∼✓✓
+> CausShield ✓✓✓✓✓
+> 1Theo. – Theoretical
+> ✓: supported; ×: not supported; ∼: partially supported.
+
+calibrated by the spectral properties of the Jacobian matrix, achieving a favorable trade-off between privacy protection and model utility compared to conventional noise-based defenses. Despite the seemingly impregnable design of these methods, Li et al. [40] find that when adversaries possess enough prior knowledge to make up for the missing details, the defensive efficacy of these techniques is dramatically reduced. Representation remolds are designed to decrease the cor-relation between the intermediate representations and raw data. Qiu et al. [14] develop a framework based on ad-versarial training. It consists of three modules: adversarial reconstruction, noise regularization, and distance correlation minimization. Because these modules function independently of each other, they can be used singly or in combination. DISCO [15] learns a dynamic and data-driven filter to selec-tively obscure sensitive information within the representation space. ResSFL [16] employs attacker-aware training to obtain a resistant feature extractor, which is then used to initialize clients’ parameters before each training round to avoid data leakage during training. Inf 2Guard [17] proposes a unified information-theoretic defense framework that minimizes the mutual information between representations and private inputs to preserve privacy, while maximizing the mutual information between representations and labels to maintain utility. Although these methods [14]–[17] can achieve privacy pro-tection to a certain extent, they treat all information in inputs or representations equally without distinguishing task-relevant from task-irrelevant components or representations, causing them to indiscriminately suppress both types of information and thus inevitably incur non-negligible model utility degra-dation. To deal with these limitations, some methods [19]– [21] seek to preserve task-relevant information while sup-pressing privacy-sensitive information but fail to be directly extended to VFL due to their reliance on label supervision or complete model parameters. Specifically, DMIAFP [21] reduces both first-order and second-order correlations between private inputs and representations through feature purification, but requires ground-truth labels and a classifier to train its purification module jointly. D3SFL [19] introduces variable-structure sub-networks with sparse binary masks to disentangle input-feature dependencies, yet it relies on a locally simulated inversion model trained with a labeled auxiliary dataset and complete model gradients. PriFU [20] leverages gradient mag-nitude to identify and prune task-irrelevant dimensions, yet requires ground-truth labels and end-to-end backpropagation, and can only protect privacy during inference, leaving raw representations exposed throughout training. These incompatibilities prevent a direct adoption of label-supervised defense in VFL, motivating a novel defense that operates without label supervision and provides full-cycle protection from the first training round. TABLE I summarizes the key properties of representative defenses and highlights the limitations that motivate our work. III. T HEORETICAL FOUNDATIONS : C AUSAL 
+
+REPRESENTATIONS RESIST SAMPLE RECONSTRUCTION 
+
+While both the causal and non-causal components coexist in the raw representation, we establish a theoretical framework comprising two progressive claims, supported by empirical evidence, to prove that attackers cannot distinguish specific instances based solely on the causal representation. First, we prove that the non-causal components of the shared represen-tation are the primary source for high-fidelity sample recon-struction (Theorem 1). Building on it, we demonstrate that transmitting only the causal representation can fundamentally resist sample reconstruction (Theorem 2). 
+
+Structural Causal Model. In the SCM [23], [24], each raw input x comprises a blend of causal factors S (task-relevant) and non-causal factors U (task-irrelevant), i.e., P (x|S, U ).The causal factors S uniquely determine the class label y,i.e., P (y|S), while non-causal factors U encode rich instance-specific variation. While [24] leverages causal learning to resist membership inference attacks in centralized settings, our work leverages the privacy benefits of SCM to defend against a different sample reconstruction attack in VFL, operating without label supervision. The SCM construction principles are below: 
+
+Principle 1 (Common Cause Principle [23], [41]) . When two variables, X and Y , exhibit statistical dependence, it indicates the presence of a variable S that causally influences both of them and accounts for the entirety of their interdependence. 
+
+Principle 2 (Independent Causal Mechanisms (ICM) Prin-ciple [23]) . The elements in causal factor {s1, s 2, . . . } ∈ S
+
+are mutually independent: changes on P (si|Bi) do not affect 
+
+P (sj |Bj ) for i̸ = j, and their joint distribution factorizes as 
+
+P (s1, s 2, . . . ) = Q|S| 
+
+> i=1
+
+P (si|Bi).
+
+What Principles 1-2 declare is that elements {s1, s 2, ... } in causal factors should be jointly independent, and the knowl-edge contained in elements is not repeated [26]. 
+
+Key Insight 1 : Non-causal components dominate the singular value directions of the shared representation’s Jacobian, making them the primary information source for sample reconstruction attacks. 
+
+To formalize, we first introduce two assumptions grounded in the SCM structure, and then define the representation’s Jacobian decomposition. 
+
+Assumption 1 (Non-Causal Instance-Specificity) . Non-causal factors U encode rich instance-specific variation beyond class labels, i.e., I(U ; x|y) > 0. This implies that the non-causal 5
+
+representation ru must be sufficiently sensitive to U across all top-k directions to preserve such variation: 
+
+∃ ϵ > 0, σk
+
+ ∂ru
+
+∂U 
+
+
+
+≥ ϵ, (2) 
+
+where σk(·) denotes the k-th largest singular value measuring the sensitivity of the mapping along each direction. 
+
+Assumption 2 (Causal Class-Level Invariance) . Causal fac-tors S capture class-level invariant features. For any two instances i, j with yi = yj , the invariance condition rsi ≈ rsj
+
+implies that rs changes slowly along S-directions within a class: ∂rs
+
+∂S 2
+
+≤ γ, where γ ≪ ϵ. (3) 
+
+Definition 1 (SCM-Induced Jacobian Decomposition) . Let 
+
+r = fbottom (x) ∈ R1×J be the intermediate representation shared in VFL, and let Gx = ∂r/∂x be its Jacobian matrix. Under the SCM decomposition r = rs + ru, the Jacobian decomposes as: 
+
+Gx = GSx + GUx , GSx = ∂rs
+
+∂x , GUx = ∂ru
+
+∂x , (4) 
+
+where S ⊥ U by the SCM ensures orthogonal row spaces V:
+
+row( GSx ) ⊆ V S and row( GUx ) ⊆ V U , with VS ⊥ V U ; σi(·)
+
+denotes the i-th largest singular value of a matrix, with σ1(·)
+
+being the spectral norm;. 
+
+Theorem 1 (Non-Causal Components Dominate Reconstruc-tion Risk) . Under Assumptions 1-2 and Definition 1, for all 
+
+i ∈ { 1, . . . , k }, the i-th largest singular values of the causal and non-causal Jacobians satisfy: 
+
+σi(GUx ) ≫ σi(GSx ), (5) 
+
+i.e., the top-k singular directions of Gx are dominated by the non-causal Jacobian GUx , making non-causal components the primary information source for sample reconstruction. Proof. See Appendix B for details. The theoretical foundation of Theorem 1 builds on the work [13], which established that the top-k largest singular values of the representation’s Jacobian matrix determine the directions most exploitable for reconstruction. In other words, larger singular values corre-spond to directions along which the input-to-representation mapping is most invertible, providing adversaries with more recoverable information and thus higher reconstruction risk. However, [13] does not analyze which components within the representation (e.g., causal or non-causal) dominate these singular value directions and reconstruction risk. Grounded in this gap, we theoretically prove that the top-k singular values of the non-causal Jacobian GUx strictly dominate those of the causal Jacobian GSx , i.e., σi(GUx ) ≫ σi(GSx ) for all i ∈ { 1, . . . , k }, confirming that non-causal components constitute the dominant reconstruction attack surface. 
+
+Key Insight 2 : Sharing causal representations can raise the lower bound of reconstruction error, rendering sample reconstruction fundamentally infeasible. 
+
+The Invertibility Loss (i.e., InvLoss ) defined in [13] quan-tifies the minimum reconstruction error achievable by the attacker for a given input x from shared raw representation 
+
+r, which for a rank-k optimal attacker is bounded as: 
+
+InvLoss x = min 
+
+> Ax
+
+∥Ax(r) − x∥2 ≤
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+x)2 + C0, (6) where Ax denotes the optimal inverse transformation; Gx =
+
+UJ ΣV ⊤ 
+
+> J
+
+is the SVD of the Jacobian; VJ,i is the i-th right singular vector corresponding to the i-th largest singular value; and C0 = o(δ2) is the higher-order remainder from local linearization, treated as a constant. A larger residual tail energy Pdi=k+1 (V ⊤
+
+> J,i
+
+x)2 corresponds to a higher InvLoss ,meaning less information about x is recoverable from r and the attacker’s reconstruction is provably inaccurate. 
+
+Theorem 2 (Causal Representations Resist Sample Recon-struction) . Let τth := Pdi=k+1 (V ⊤
+
+> J,i
+
+x)2 + Pki=1 (U ⊤   
+
+> iε)2
+> σ2
+> i·p
+
++ C0
+
+denote the defense success threshold, where a defense succeeds if and only if it raises InvLoss strictly above τth . Transmitting only the causal representation rs yields a reconstruction error lower bound strictly and substantially exceeds τth :
+
+InvLoss( rs) ≥ (1 − kγ 2)∥xs∥2 + C0 ≫ τth . (7) 
+
+Proof. See Appendix C for details. [13] proves the InvLoss up-per bound for noise-based representation perturbation, show-ing that such perturbation can resist sample reconstruction albeit at the cost of representation utility. We adopt this upper bound as the defense success threshold τth . Building on this, Theorem 2 further proves that transmitting only causal representations yields InvLoss( rs) far exceeding the defense success threshold τth . Intuitively, this result stems from the fundamental roles that causal components play in both the primary task and data reconstruction, capturing invariant fea-tures shared across instances of the same class [25]. Since samples from the same class exhibit significant similarity in their task-relevant features, adversaries cannot distinguish specific instances based solely on these features. 0.3 0.4 0.5 0.6 0.7   
+
+> InvRE
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> MSE
+> 1e 2
+> corr: -9.47e-01
+> p: 1.20e-03
+> URVFL
+> No defense
+> Prune
+> DP-L
+> InvL-ENP
+> InvL-DNP
+> ResSFL
+> CausShield
+
+(a) InvRE( ↓)TSNE: Class 0      
+
+> 200 Label
+> 150
+> 100
+> 50
+> 0
+> ☆
+> -50
+> -100
+> -150
+> -100 0100 200
+> 0.765
+> 0.768
+> 0.562
+> 0.838
+> 0.873
+> 0.8 49
+
+(b) Cosine similarity( ↑) 
+
+> Fig. 1. Evidence of reconstruction risk and task relevance.
+
+Empirical Evidence: Fig. 1 jointly validates both Theorems 1-2. Fig. 1(a) shows the correlation between the InvRE score (which measures the reconstruction risk of shared represen-tations derived from InvLoss) and the reconstruction mean 6
+
+square error (MSE) on CIFAR-10. A lower InvRE means less invertible information. Among all compared methods, 
+
+CausShield achieves the lowest InvRE ( 0.296 ) and the highest reconstruction MSE ( 0.069 ). This confirms that trans-mitting only causal representations minimizes information exploitable to attackers and resists reconstruction attacks, validating Theorem 2. In contrast, when no defense applied, the full representation r = rs + ru contains both causal and non-causal components, yielding the highest InvRE ( 0.729 )and the lowest MSE ( 0.017 ). Since the full representation can be decomposed into rs and ru, the substantially higher reconstruction risk compared to CausShield confirms that non-causal components ru constitute the primary information source exploited by the attacker, providing empirical support for Theorem 1. Fig. 1(b) evaluates the task-relevance of representations by measuring their cosine similarity to a causal proxy. Specif-ically, we select samples that maintain stable neighborhood relationships across multiple convolutional layers with high classification confidence as proxies for task-relevant causal information; higher cosine similarity indicates that the trans-mitted representation preserves more task-relevant causal in-formation. As shown, CausShield achieves the highest cosine similarity to the causal proxy ( 0.873 ), outperforming ResSFL ( 0.838 ), InvL-ENP ( 0.768 ), Prune ( 0.765 ), and InvL-DNP ( 0.562 ). This demonstrates that while CausShield 
+
+aggressively suppresses non-causal components to minimize reconstruction risk, it simultaneously preserves causal compo-nents most faithfully, achieving a superior privacy-utility trade-off over existing defense methods. IV. CA U S SH I E L D 
+
+We define the threat model and then overview the 
+
+CausShield and elaborate on its two core module designs. 
+
+A. Threat Model 1) Attacker Capability and Goal: We adopt the widely used honest-but-curious assumption for the active party. The attack surface in our setting aligns with the standard assumptions in VFL sample reconstruction works [4], [5], [31]. In this setting, the active party faithfully adheres to the federated protocol but attempts to infer the passive party’s private training data. As the central adversary, the active party controls the top model ftop and has full access to the ground-truth labels 
+
+Y. Furthermore, the adversary is assumed to be aware of the passive party’s local model architecture and can intercept the intermediate representations shared during training. Lever-aging knowledge of these representations alongside passive party’s model structure, the active party aims to reconstruct the corresponding private data [4]. To further enhance the fidelity of the reconstructed data, the adversary can also possess an auxiliary dataset that follows a similar distribution to the training data [5]. Each sample in this auxiliary dataset contains a complete set of features and its corresponding label. 
+
+2) Defender Capability and Goal: The defense objective of passive parties is to reshape the intermediate representations before sharing, reducing the exposure of private information while preserving representation utility. The passive party has full knowledge of its local training data, the architecture and parameters of its bottom model, and the entire training pro-cess. Meanwhile, the passive party strictly protects local data privacy by prohibiting any form of direct data query. Passive parties cannot communicate with each other, nor can they ac-cess any auxiliary datasets or additional label information. We assume that the passive party possesses relevant but minimal machine learning knowledge, enabling it to understand the attack mechanism and implement defense strategies. 
+
+B. Overview 
+
+Fig. 2 illustrates the workflow of our proposed 
+
+CausShield , which comprises two unsupervised modules: 
+
+surrogate data generation and causal representation learning ,addressing C1 and C2 respectively. The former module is performed offline before VFL training; the latter is executed prior to each round of representation transmission, thereby providing full-cycle privacy protection. The surrogate dataset generation module synthesizes a surrogate input ˆxk,i for each raw input xk,i in the passive party’s local dataset Dk, yielding a surrogate dataset ˆDk. The surrogate ˆxk,i is constructed to satisfy two requirements: it diverges from xk,i in task-irrelevant (i.e., non-causal) com-ponents U (e.g., color), while remaining consistent in task-relevant (i.e., causal) components S (e.g., semantic structure, shape). Such surrogate pairs (xk,i , ˆxk,i ) provide the contrastive signal necessary for causal representation learning without requiring any label supervision. The causal representation learning module leverages the surrogate pairs to distill causal representations in a fully un-supervised manner. Specifically, the passive party k duplicates its bottom model as a generator Gk, and feeds both xk,i and 
+
+ˆxk,i into Gk to obtain the raw representation rk,i and the surrogate representation ˆrk,i . Guided by Principles 1-2, the generator is then optimized to transform rk,i and ˆrk,i into causal representations rsk,i and ˆrsk,i that satisfy two properties: (1) same-dimension correlations between rsk,i and ˆrsk,i are maximized, ensuring invariance to non-causal changes; (2) cross-dimension correlations are minimized, ensuring mutual independence among causal factors. The causal representation 
+
+rsk,i is then uploaded to the active party for joint prediction, while the bottom model parameters are updated via the cut-layer gradients ∇θcut L backpropagated from the active party. 
+
+C. Surrogate Dataset Generation 
+
+To address C1 , we design this module to synthesize a surrogate for each raw input that differs greatly in non-causal components while preserving causal ones. The motivation lies in the invariant causal mechanisms [41]: changes in task-irrelevant features (e.g., color) alter only visual appearance without influencing P (y|S), such that surrogate data can significantly facilitate causal representation learning [42]. As shown in Fig. 3, we decompose the RGB image x
+
+into luminance xL and chrominance xab in Lab color space (also known as CIELAB color space), and design a dual-branch encoder consisting of two subnetworks A1 and A2 with 7Active party 1
+
+ˆs
+
+r2
+
+ˆs
+
+rˆsKr 
+
+> …
+> Concatenate
+> 45
+> Attack model
+
+r1
+
+ˆs
+
+r 
+
+> MSE
+> Passive party K
+> Dataset
+> Surrogate
+> Dataset
+> Bottom model K
+
+r
+
+> Generator
+
+ˆKrKrsKrˆsKr        
+
+> SU
+> XY
+> SCM
+> 1
+> 2
+> 3
+> 2Surrogate dataset generation
+> 1Intermediate representation extraction 3Causal representation learning
+> 4Gradient calculation and local update 5Data reconstruction
+> 5
+> Causal representation learning KDˆKD
+
+ˆKr
+
+> 3
+
+ˆstop 
+
+rcut 
+
+ 
+
+> 
+
+ Cut -layer    
+
+> Top model
+> Fig. 2. CausShield overview.
+
+two core designs: (i) Altering Non-Causal Components : A1
+
+generates chrominance output ˆxab with substantially different appearance from the original xab , by adopting CE loss over quantized color distributions and window-based variance reg-ularization to disrupt both global and local color patterns. (ii) Preserving Causal Components : A2 reconstructs luminance output ˆxL that faithfully retains the structural content of the original xL, ensuring causal consistency between ˆx and x.Upon the completion of the dual-branch encoder training process, ˆxL and ˆxab are consolidated into the surrogate data 
+
+ˆx = {ˆxL, ˆxab }.x 
+
+> RGB
+> Lab
+> xL
+> xab
+> A1
+> A2
+> Lab
+> RGB
+> Fig. 3. Surrogate data generation paradigm.
+
+Altering Non-Causal Components. Conventional coloriza-tion methods [43], [44] minimize pixel-level distance loss (e.g., Euclidean or L1 norm), driving the subnetwork to faithfully reproduce exact pixel values and producing ˆxab that remains chromatically close to xab , thus failing to alter non-causal components sufficiently. To address this, we introduce the following two designs for A1 that responsible for automatic colorization ( xL → ˆxab ): 
+
+CE Loss over Quantized Color Distributions. We adopt CE loss lce over quantized color distributions to replace pixel-level distance loss, enabling A1 to learn diverse color statistics rather than precise pixel values and generating ˆxab with a substantially different global color distribution from xab :
+
+A1∗ = arg min 
+
+> A1
+
+lce (A1(xL), x ab )= arg min 
+
+> A1
+
+− X
+
+> h,w
+
+X
+
+> q
+
+(xab )h,w,q log( A1(xL)h,w,q ). (8) 
+
+Window-Based Variance Regularization. Although CE loss for A1 alters the global color distribution of ˆxab , local color patterns within small spatial regions may still resemble those of x, providing identifiable cues that adversaries could exploit for reconstruction [45]. To this end, we augment A1’s objective with a window-based variance regularization term. By dividing 
+
+ˆxab into n non-overlapping windows of size s × s and penalizing deviations from a target variance ve, we actively disrupt local color consistency between ˆxab and xab :
+
+arg min 
+
+> A1∗
+
+− X
+
+> h,w
+
+X
+
+> q
+
+(xab )h,w,q log ((ˆ xab )h,w,q )+ μ X
+
+> i
+
+(V ar (win i(ˆ xab ) − ve)2,
+
+(9) where Var( ·) computes the pixel variance within each window and ve governs the expected degree of local color variation. 
+
+Preserving Causal Components Consistency. For A2 (tasked with grayscale prediction (xab → ˆxL)), since luminance encodes structural information (i.e., object shapes and edges) that constitutes causal components, we minimize the Euclidean distance lEuc to ensure ˆxL faithfully preserves the structural characteristics of xL, maintaining causal consistency between 
+
+ˆx and x:
+
+A2∗ = arg min 
+
+> A2
+
+lEuc (A2(xab ), x L)= arg min 
+
+> A2
+
+X
+
+> h,w
+
+∥A2(xab )h,w − (xL)h,w ∥2. (10) Overall, the final surrogate data ˆx = {ˆxL, ˆxab } serves as a high-quality contrastive signal for the subsequent causal representation learning module. 
+
+D. Causal Representation Learning 
+
+To address C2 , we design this module to unsupervisedly learn causal representation solely with the aid of surrogate representation ˆr k,i = Gk(ˆ xk,i ). Guided by the Principles 1-2, we first define two properties that must be satisfied to obtain accurate causal representations rsk,i :
+
+Property 1. Changes on the non-causal components U do not affect the causal representation r sk,i .
+
+Property 2. The elements {rs, 1 
+
+> k,i
+
+, r s, 2 
+
+> k,i
+
+, ..., r s,J k,i } of causal representation r sk,i are jointly independent and decomposable. 8,1 ,2 ,
+
+ˆ ˆ ˆ ˆ[( ) ,( ) ,...,( ) ] T T T Tk k k k B =R r r r,1 ,2 ,[( ) ,( ) ,...,( )) ] T T T Tk k k k B =R r r rDependent 
+
+> Representations
+> Correlation
+> Matrix
+> Identity
+> Matrix
+
+ˆ skRskR
+
+> Masker generator
+
+ˆ skR
+
+> Probability vector
+> Gumbel -Softmax
+> trick
+> Mask upp
+> m
+> Mask low
+> m
+> Independent
+> Representations
+
+
+
+> Upper
+> representations
+> Lower
+> representations
+> Representation Augmentation
+> Correlation
+> Calculation
+
+ˆkRkR
+
+> Approach sk
+
+Rlow 
+
+> mupp
+> m
+
+ˆ skRskRˆ skRskR 
+
+> Generator
+> Fig. 4. Causal representation learning process.
+
+As shown in Fig. 4, to satisfy the above two properties while preserving representation utility, we introduce two core designs: (i) Causal Representation Extraction : we measure the correlations between raw and surrogate representations across all dimensions via a correlation matrix C, and de-sign a decomposition loss lDec to jointly maximize same-dimension correlations and minimize cross-dimension cor-relations, extracting causal components efficiently; (ii) Task Relevance Augmentation : since not all causal dimensions carry sufficient task-relevant information, we design a masker ω to evaluate each dimension’s contribution and distinguish high-contribution upper dimensions from low-contribution lower ones. Through adversarial training between the generator 
+
+Gk and the masker ω, lower dimensions are progressively enriched with additional task-relevant information, improving the overall utility of the causal representations. 
+
+Causal Representation Extraction. We employ a cross-dimensional correlation function (denoted as COR ) to quantify the correlation between raw and surrogate representation pairs (rk,i , ˆrk,i ), which are Z-score normalized for fair assessment. To retain dimensions invariant to non-causal changes ( sat-isfying Property 1 ), we optimize Gk to maximize the same-dimension correlation: 
+
+max 
+
+> Gk
+
+1
+
+J
+
+> J
+
+X
+
+> j=1
+
+COR (rjk,i , ˆrjk,i ), (11) where rjk,i and ˆrjk,i represent the Z-score normalized j-th column of the matrix Rk = [( r k, 1)T , (r k, 2)T , ..., (r k,B )T ]T
+
+and ˆRk = [( ˆr k, 1)T , (ˆr k, 2)T , ..., (ˆr k,B )T ]T , respectively; B
+
+denotes the current batch size and Rk ∈ RB×J .To ensure each dimension captures independent and non-redundant causal information ( satisfying Property 2 ), we alop-timize Gkminimize cross-dimensional correlations: 
+
+min 
+
+> Gk
+
+1
+
+J(J − 1) 
+
+X 
+
+> j1̸=j2
+
+COR (rj1
+
+> k,i
+
+, ˆrj2
+
+> k,i
+
+), j1̸ = j2. (12) Note that optimizing Formulas (11) and (12) separately requires two independent passes over all J(J − 1) dimen-sion pairs, incurring quadratic computational cost O(J2). To address this efficiency bottleneck, we consolidate them into a single cross-dimensional correlation matrix C:
+
+Cj1,j 2 = ⟨rj1
+
+> k,i
+
+, ˆrj2
+
+> k,i
+
+⟩|| rj1
+
+> k,i
+
+|| || ˆrj2
+
+> k,i
+
+|| , j1, j 2 ∈ { 1, 2, . . . , J }, (13) where the inner product operation is indicated by ⟨·⟩ .Hence, the identical dimensions of Rk and ˆRk should increase in correlation, while the different dimensions should decrease. With this in mind, we develop a decomposition loss, denoted as lDec , that drives diagonal elements toward 1 and off-diagonal elements toward 0, formulated as follows: 
+
+lDec = 12 ∥C − I∥2 
+
+> F
+
+, (14) where I is Identity Matrix. By optimizing Gk to minimize the decomposition loss lDec , we can successfully disentangle the raw and surrogate pair’s representations (i.e., rk,i and 
+
+ˆrk,i ) into causal representations rsk,i and causal surrogate representations ˆrsk,i .
+
+Task-revelence Augmentation. Moreover, not all dimensions of causal representation rsk,i contribute equally to the primary task, some dimensions may carry insufficient task-relevant in-formation and contribute minimally. Since Property 2 ensures dimensions are mutually independent with non-overlapping information, these suboptimal dimensions represent wasted capacity that could otherwise encode additional task-relevant knowledge. Therefore, we establish a CNN-based masker ω
+
+that assigns a contribution score zj ∈ [0 , 1] to each dimension 
+
+j of rsk,i :
+
+z = Sigmoid (ω(rsk,i )) ∈ R1×J , (15) and analogously ˆz = Sigmoid( ω(ˆ rsk,i )) for the surrogate representation accordingly. 9
+
+Then, we employ the derivable Gumbel-Softmax trick [46] to sample the score vector z to generate binary-like masks. The top-τ J highest-scoring dimensions are classified as upper dimensions mupp , and the remaining ones as lower dimensions 
+
+mlow = 1 − mupp :
+
+mupp = Gumbel − Softmax( ω(rsk,i ), τ J ) ∈ R1×J , (16) and ˆmupp , ˆmlow are obtained analogously from ˆrsk,i .The masker ω and generator Gk are then trained adversar-ially. The masker is optimized to accurately distinguish upper from lower dimensions via score-based unsupervised losses: 
+
+lupp score =
+
+> J
+
+X
+
+> j=1
+
+(1 − zj )2 · mupp j +
+
+> J
+
+X
+
+> j=1
+
+(1 − ˆzj )2 · ˆmupp j , (17) 
+
+llow score =
+
+> J
+
+X
+
+> j=1
+
+(zj )2 · mlow j +
+
+> J
+
+X
+
+> j=1
+
+(ˆ zj )2 · ˆmlow j . (18) The generator Gk is trained by jointly minimizing LDec and maximizing the scores across all dimensions. This dual objec-tive progressively enriches the information capacity of lower dimensions while preserving the task-relevant information in upper dimensions and respecting the independence constraint enforced by LDec . The overall adversarial objective is: 
+
+min 
+
+> Gk
+> J
+
+X
+
+> j=1
+
+(1 − zj )2 + λLDec , min  
+
+> ω
+
+Lupp score + Llow score , (19) where λ denotes the trade-off factor. The passive party locally alternates between training the generator and masker for M
+
+iterations, upon which the generator acquires the capability to extract clean and mutually independent causal representations. Algorithm 1 in Appendix A details CausShield ’s full procedure. V. C ONVERGENCE PROOF 
+
+We prove convergence (Theorem 4) under the fixed step size strategy. More detailed proofs of Theorem 4 see Appendix D. 
+
+Convergence analysis: Prior assumptions are introduced that are commonly found in FL-related works [47], [48]. The partial derivative for θk can be expressed as: 
+
+∇kL(Θ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+∇θk lce (ftop (f1(θ1; x1,i ),f2(θ2; x2,i ), . . . , f K (θK ; xK,i ), y i)) .
+
+(20) The set of samples and labels belonging to a mini-batch B
+
+is denoted by XB and yB respectively. The stochastic partial derivative for the model parameter θk is described below: 
+
+∇kLB (Θ) = 1
+
+B
+
+> B
+
+X
+
+> i=1
+
+∇θk lce (ftop (f1(θ1; x1,i ),f2(θ2; x2,i ), . . . , f K (θK ; xK,i ), y i)) .
+
+(21) In addition, the chain rule shows that: 
+
+∇kLB (Θ) = ∇Rk LB (Θ) · ∇ θk Rk. (22) Let || · || be the 2-norm and || · || F be the Frobenius norm of a matrix. 
+
+Assumption 3 (Bounded hessian [47]) . A positive constant 
+
+Mk exists for each passive party k ∈ [1 , K ] such that the second partial derivative of θk satisfies: 
+
+||∇ 2 
+
+> Rk
+
+LB (Θ) || F ≤ Mk. (23) 
+
+Assumption 4 (Bounded representation gradients [48]) . There exist positive constants, denoted as Φk, ensure that the cut layer gradient remains bounded: 
+
+||∇ θk Rk|| F ≤ Φk. (24) 
+
+Definition 2 (Causal representation error) . Define ψk,i be the causal representation error on the tensor xk,i :
+
+ψk,i = Gk(ˆ xk,i ) − fk(θk; xk,i ). (25) Let ψtk = [( ψk, 1)T , (ψk, 2)T , ..., (ψk,B )T ] be the RJ×B
+
+matrix in mini-batch B. We define the expected squared message error at communication round t as Ψtk := || ψtk|| 2 
+
+> F
+
+.
+
+Theorem 3. Under Assumptions 3-4, the norm of the dif-ference between the partial derivatives of causal and raw representations is bounded as: 
+
+E||∇ k LtB ( ˆRsk) − ∇ k LtB (Rk)|| 2 ≤ M 2 
+
+> k
+
+Φ2
+
+> kK
+
+X
+
+> i=0 ,i ̸=k
+
+Ψti. (26) Further, some assumptions about local functions and stochastic gradient descent (SGD) algorithm are imported [47]. 
+
+Assumption 5 (Smoothness [47]) . All local functions are L-Lipschitz smooth, such that for all v and w, the objective function satisfies: 
+
+||∇L (v) − ∇L (w)|| ≤ L|| v − w|| , (27) 
+
+||∇ kLB (v) − ∇ kLB (w)|| ≤ Lk|| v − w|| , (28) 
+
+where v < ∞ and w < ∞.
+
+Assumption 6 (Unbiased gradients [47]) . For k ∈ [1 , K ] in batch B, the stochastic partial derivatives are unbiased: 
+
+EB [∇kLB (Θ)] = ∇kL(Θ) . (29) 
+
+Assumption 7 (Bounded variance [47]) . The stochastic partial derivatives for θk, are bounded as: 
+
+EB ||∇ kL(Θ) − ∇ kLB (Θ) || 2 ≤ π2
+
+> k
+
+B . (30) 
+
+where πk < ∞.
+
+Under Theorem 3 and Assumptions 3-5, we prove conver-gence by limiting the boundary of the average squared gradient over T communication rounds with a fixed step size. When the CausShield method is implemented, it is denoted as 
+
+L( ˆΘ) , and when L(Θ) represents the plain VFL. 
+
+Theorem 4 (Convergence results) . If the learning rate η is fixed in different communication rounds and satisfies η ≤10     
+
+> 116 Tmax {L, max k,L k}
+
+, then the gradients of the CausShield 
+
+algorithm is bounded over the global round T :
+
+ET h
+
+∇L (Θ t) 2i
+
+≤ 4 L(Θ 0) − L(Θ T ) 
+
+ηT + 6 ηT L 
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 92 T
+
+> K
+
+X 
+
+> k=1
+> T−1
+
+X
+
+> t=0
+
+M 2 
+
+> k
+
+Φ2
+
+> kK
+
+X 
+
+> j=1 ,j ̸=k
+
+Ψtj .
+
+(31) 
+
+Remark 1. The first term in the inequality is based on the dif-ference between the model initialization and the final trained model. The second term involves the variance of stochastic partial derivatives and Lipschitz constants. The third term is associated with the bounded causal representation error mentioned in Theorem 3. 
+
+Remark 2. When η = 1√T and Ψ = 1 
+
+> TT−1
+
+P
+
+> t=0
+> K
+
+P
+
+> k=1
+
+Ψtk, the optimal convergence rate is obtained: 
+
+E ||∇L (Θ T )|| 2 = O
+
+ 1
+
+√T + Ψ 
+
+
+
+. (32) We have now proved that the CausShield can withstand the bounded error and obtain stable asymptotic convergence when this condition is met. VI. E XPERIMENTS 
+
+We evaluate CausShield against seven SOTAs across defense effectiveness, model utility, and computational effi-ciency, demonstrating its superiority. 
+
+A. Experimental Setup 
+
+Datasets and model settings: Following the experimental settings of representative SOTAs [4], [5], [13], we conduct our experiments primarily on five diverse datasets: MNIST, EM-NIST, CIFAR-10, CIFAR-100, and ImageNet. The models for MNIST and EMNIST consist of 11 layers; those for CIFAR-10 and CIFAR-100 employ a ResNet-18. Notably, for the more complex ImageNet dataset, we utilize a deeper ResNet-34 model. We adopt the spatial splitting strategy described in [5] to partition the feature dimensions held by each participant. 
+
+Implementation and configuration: Without loss of gener-ality, we consider a configuration with one active party and two passive parties. We utilize SGD optimizer with a learning rate of 1e-4 and a momentum of 0.9. For all experiments, we set the number of surrogate iterations M based on the complexity of the dataset. Concretely, we use M = 20 for MNIST and EM-NIST, and M = 30 for CIFAR-10, CIFAR-100, and ImageNet. Moreover, as the model approaches convergence, it is feasible to gradually reduce the value of M to lower computational cost and mitigate the risk of overfitting to synthetic surrogates. Additionally, we fix the masking threshold τ at 0.5, meaning that the top-50% most causally informative dimensions are preserved during causal representation construction. 
+
+Compared methods: We compare the performance and pri-vacy of our CausShield against SOTAs. These comparison methods and their corresponding of privacy parameters are outlined as follows: (1) DP-L [35] ( ε: the privacy budget in DP based on Laplace noise); (2) Prune [49] ( k: the pruning rate of the representation elements); (3) Soteria [39] ( s: the perturbation degree of the representation element that is most beneficial to the attacker); (4) NoPeek [18] ( a: the coefficient of information leakage reduction term added to the objective loss function); (5) DISCO [15] ( ρ: the hyper-parameter to trade-off between accuracy and privacy); (6) ResSFL [16] ( δ:control the weight of the attacker-aware training term in the loss function); (7) InvL-DNP and InvL-ENP [13] ( n: control the strength of the adaptively noise). 
+
+Attack models: Unsplit [4] minimizes the distance between the attack model and raw model by optimizing model parame-ters and shadow input through the coordinate gradient descent. URVFL [5] leverages a discriminator with an auxiliary classi-fier to generate malicious gradients that are indistinguishable from those in VFL training, while simultaneously utilizing labels to enhance reconstruction performance. 
+
+Evaluation metrics: To evaluate the defense effect of the 
+
+CausShield , we employ peak signal-to-noise ratio (PSNR), mean squared error (MSE), structural similarity index measure (SSIM), learned perceptual image patch similarity (LPIPS) and attack success rate (ASR) as our metrics. To assess the impact of the defenses on the model utility of VFL, we show the accuracy (ACC) of the global model on the validation dataset over multiple communication rounds. 
+
+B. Privacy Evaluations 
+
+Defense against Unsplit. The defense effectiveness of 
+
+CausShield on the MNIST and EMNIST datasets, as depicted in Fig. 5. It is evident that without any defense mechanisms, Unsplit attackers can accurately replicate the contours of the digits. In contrast, the CausShield effec-tively prevents attackers from reconstructing handwritten digits and exhibits the highest MSE compared to other methods. Meanwhile, pruning-based approaches (i.e., Prune and Soteria) display unsatisfactory defense effectiveness, even when the pruning rate reaches 95%. This finding indicates that even optimized pruning methods are vulnerable to exploitation when attackers possess certain prior knowledge. Fig. 6 and Fig. 7 present the results of attack-defense experi-ments against Unsplit conducted on the CIFAR-10 and CIFAR-100 datasets, respectively. These evaluations include several advanced SOTAs. To account for potential color distortion in representation-based black-box Unsplit attacks, we incorpo-rate SSIM and LPIPS as evaluation metrics alongside MSE. Notably, a defense against the Unsplit attacker is deemed successful when the MSE exceeds 0.1. 
+
+Defense against URVFL. Table II and Fig. 8 illustrate the defensive performance of the InvL-DNP and InvL-ENP, along-side our CausShield , against advanced URVFL attackers. The evaluation spans various privacy parameter configurations on the CIFAR-10 and ImageNet datasets, where a defense is deemed successful if the reconstruction MSE exceeds 0.025. Additionally, in Figs. 6-8 and Table II, the cut layer in the model is the sixth layer. Both the ResSFL and CausShield show superior de-fensive capability across all evaluation metrics compared to 11 
+
+TABLE II COMPARISON OF DEFENSE METHODS AGAINST URVFL [5] ATTACKS. 
+
+Method CIFAR-10 ImageNet 
+
+MSE ↑ PSNR ↓ SSIM ↓ ACC ↑ MSE ↑ PSNR ↓ SSIM ↓ ACC ↑
+
+InvL-DNP ( n = 0 .08 ) 0.029±0.014 15.925±2.036 0.534±0.030 70.81% 0.014±0.004 18.559±1.228 0.606±0.049 59.2% InvL-DNP ( n = 0 .12 ) 0.042±0.016 14.133±1.674 0.416±0.012 66.70% 0.024±0.005 16.349±0.888 0.463±0.061 55.7% InvL-DNP ( n = 0 .15 ) 0.053±0.019 13.057±1.640 0.304±0.039 58.32% 0.030±0.004 15.231±0.646 0.397±0.076 49.0% InvL-ENP ( n = 0 .08 ) 0.021±0.014 17.775±2.885 0.699±0.063 64.166% 0.013±0.004 19.013±1.374 0.644±0.055 60.1% InvL-ENP ( n = 0 .12 ) 0.028±0.015 16.255±2.405 0.612±0.039 61.66% 0.025±0.006 16.177±1.159 0.462±0.075 54.9% InvL-ENP ( n = 0 .15 ) 0.033±0.018 15.423±2.319 0.553±0.036 50.0% 0.031±0.008 15.248±1.163 0.381±0.068 47.1% 
+
+CausShield 0.069±0.012 11.114±1.411 0.415±0.046 69.2% 0.070±0.033 12.622±2.432 0.410±0.059 58.5% Ground Truth  Method  Attack Result  MSE 
+
+No defense  0.062 ±0.003 
+
+DP -L( 𝜀 =3.0)  0.074 ±0.005 
+
+DP -L( 𝜀 =2.0)  0.125 ±0.006 
+
+DP -L( 𝜀 =1.0)  0.176 ±0.008 
+
+Prune( k=90%)  0.105 ±0.007 
+
+Prune( k=95%)  0.146 ±0.009 
+
+Prune( k=99%)  0.145 ±0.009 
+
+Soteria( s=90%)  0.133 ±0.007 
+
+Soteria( s=95%)  0.176 ±0.007 
+
+Soteria (s=99%)  0.097 ±0.006 
+
+CausShield  0.181 ±0.006 
+
+(a) MNIST Ground Truth  Method  Attack Result  MSE            
+
+> No defense 0. 099 ±0. 015
+> DP -L( 𝜀 =3.0) 0. 099 ±0. 016
+> DP -L( 𝜀 =2.0) 0. 097±0. 017
+> DP -L( 𝜀 =1.0) 0. 121 ±0. 016
+> Prune( k=90%) 0. 103 ±0. 013
+> Prune( k=95%) 0. 11 1±0. 014
+> Prune( k=99%) 0. 112 ±0. 014
+> Soteria( s=90%) 0. 091 ±0. 016
+> Soteria( s=95%) 0. 10 4±0. 015
+> Soteria (s=99%) 0. 118 ±0. 010
+> CausShield 0. 130 ±0. 014
+
+(b) EMNIST 
+
+Fig. 5. Defense effects against Unsplit on MNIST/EMNIST. 
+
+others. These two methods aim to minimize the inclusion of private information in transmitted representations. Privacy protection in ResSFL is attained through its attacker-aware training mechanism. Our CausShield , acting as a causal de-sensitization mechanism, discards task-irrelevant components and uploads only causal representations containing ample clas-sification information. The baseline VFL framework without any defense achieves accuracies of 71.8% and 63.3% on CIFAR-10 and ImageNet, respectively. As shown in Table II, both InvL-DNP and InvL-ENP fail to provide adequate pri-vacy protection when the adaptive noise scale is small (e.g., 
+
+n = 0 .08 ). Although increasing the noise scale successfully defends URVFL attacks, it simultaneously imposes a signif-Class  0 2 5 7
+
+Ground Truth 
+
+No defense 
+
+Result 
+
+MSE  0.070  0.051  0.048  0.082 
+
+SSIM  0.289  0.419  0.271  0.283 
+
+LPIPS  0.369  0.123  0.152  0.324 
+
+DP -L
+
+(𝜀 =1.0) 
+
+Result 
+
+MSE  0.109  0.091  0.097  0.059 
+
+SSIM  0.204  0.295  0.177  0.234 
+
+LPIPS  0.361  0.292  0.232  0.189 
+
+DISCO 
+
+(𝜌 =0.6) 
+
+Result 
+
+MSE  0.053  0.036  0.114  0.219 
+
+SSIM  0.478  0.416  0.249  0.126 
+
+LPIPS  0.160  0.228  0.386  0.547 
+
+NoPeek 
+
+(𝑎 =0.6) 
+
+Result 
+
+MSE  0.107  0.086  0.338  0.202 
+
+SSIM  0.471  0.277  0.044  0.075 
+
+LPIPS  0.224  0.194  0.385  0.486 
+
+Soteria 
+
+(s=95%) 
+
+Result 
+
+MSE  0.068  0.072  0.097  0.013 
+
+SSIM  0.301  0.331  0.170  0.422 
+
+LPIPS  0.214  0.200  0.286  0.147 
+
+Prune 
+
+(k=99%) 
+
+Result 
+
+MSE  0.065  0.068  0.089  0.088 
+
+SSIM  0.364  0.311  0.272  0.377 
+
+LPIPS  0.181  0.152  0.293  0.287 
+
+ResSFL 
+
+(𝛿 =0.3) 
+
+Result 
+
+MSE  0.102  0.106  0.094  0.100 
+
+SSIM  0.266  0.194  0.222  0.105 
+
+LPIPS  0.164  0.185  0.218  0.366 
+
+CausShield 
+
+Result 
+
+MSE  0.156  0.125  0.121  0.163 
+
+SSIM  0.220  0.265  0.289  0.0947 
+
+LPIPS  0.197  0.243  0.215  0.346 
+
+Fig. 6. Defense effects against Unsplit on CIFAR10. 
+
+icant penalty on the model’s primary task utility. Notably, 
+
+CausShield surpasses ResSFL in both defense effects (see Fig. 6-7) and model utility (see Figs. 11-12 and TABLE III). 
+
+Batch Attack Evaluation. In turn, batch attack-defense exper-iments are conducted on the CIFAR-10 dataset, as depicted in Fig. 9. The privacy parameter settings in batch attack-defense experiments follow those used in Fig. 6. Batch experiments mitigate the influence of randomness and privacy parameters on evaluations, thereby yielding more accurate and compre-hensive results. For each class in CIFAR-10, 1000 images are randomly selected to observe the ASR of the Unsplit. Fig. 9 illustrates the average ASR across 10 sets of 1000 images. Our 
+
+CausShield achieves the lowest ASR. This suggests that the CausShield mechanism is effective against large-scale attacks and offers increased dependability and practicality. 
+
+Robustness across Cut-Layer Depths. Subsequently, we conduct extensive experiments on CIFAR-10 to determine 12 Class  0 2 3 6 7                                                                           
+
+> Ground Truth
+> No defense
+> Result
+> MSE 0.069 0.063 0.066 0.066 0.065
+> SSIM 0.376 0.301 0.360 0.467 0.345
+> LPIPS 0.165 0.141 0.221 0.265 0.157
+> DP -L
+> (𝜀 =1.5)
+> Result
+> MSE 0.097 0.137 0.103 0.116 0.128
+> SSIM 0.237 0.164 0.236 0.305 0.213
+> LPIPS 0.253 0.469 0.300 0.283 0.451
+> Soteria
+> (s=95%)
+> Result
+> MSE 0.075 0.081 0.093 0.119 0.112
+> SSIM 0.326 0.264 0.275 0.283 0.326
+> LPIPS 0.346 0.242 0.346 0.294 0.395
+> ResSFL
+> (𝛿 =0.3)
+> Result
+> MSE 0.139 0.163 0.154 0.179 0.109
+> SSIM 0.341 0.247 0.269 0.215 0.282
+> LPIPS 0.330 0.322 0.345 0.295 0.286
+> CausShield
+> Result
+> MSE 0.186 0.174 0.164 0.191 0.173
+> SSIM 0.296 0.274 0.112 0.269 0.167
+> LPIPS 0.341 0.395 0.475 0.344 0364 
+
+Fig. 7. Defense effects against Unsplit on CIFAR-100. Method  
+
+> CIFAR -10 ImageNet
+> InvL -DNP
+> n=0.08
+> n=0.12
+> n=0.15
+> InvL -ENP
+> n=0.08
+> n=0.12
+> n=0.15
+> Prune( k=90%)
+> DP -L( 𝜀 =1.0)
+> ResSFL (𝛿 =0.3)
+> CausShield
+
+Fig. 8. Defense effects against URVFL on CIFAR-10/ImageNet. 
+
+whether these methods’ privacy parameters required vary with changes in the cut-layer depth. As depicted in Fig. 10, the quality of reconstructions gradually decreases as the cut-layer deepens, even without any defense. At a cut-layer depth of 12, the attacker cannot extract sample details from representations. This is attributed to the higher abstraction of high-level fea-tures in CNNs, which contain minimal low-level information such as edges, textures, and colors. Moreover, as the quality of reconstruction decreases, the required privacy parameters for methods such as DP-L, DISCO, and NoPeek decrease. Instead, our CausShield does not necessitate extensive experimenta-tion for parameter tuning. This characteristic reduces time and resource consumption and aligns CausShield more closely with practical application. No defense DP-L Prune Soteria NoPeek DISCO ResSFL CausShield 
+
+0
+
+20 
+
+40 
+
+60 
+
+80 
+
+> ASR(%)
+
+84.8% 
+
+30.9% 
+
+53.5% 
+
+40.4% 
+
+12.4% 
+
+19.0% 
+
+7.4% 6.2% 
+
+Fig. 9. Comparison of the batch attack-defense against Unsplit. Ground Truth                                                                                                
+
+> Cut -layer 78910 11
+> No defense
+> Result
+> MSE 0.069 0.074 0.076 0.095 0.130
+> SSIM 0.261 0.255 0.260 0.200 0.213
+> LPIPS 0.183 0.192 0.189 0.324 0.287
+> DP -L
+> 𝜀 1.0 1.0 1.5 2.0 ×
+> Result
+> MSE 0.120 0.100 0.131 0.139 0.125
+> SSIM 0.234 0.192 0.100 0.113 0.319
+> LPIPS 0.437 0.356 0.391 0.293 0.190
+> DISCO
+> 𝜌 0.6 0.6 0.3 0.3 ×
+> Result
+> MSE 0.102 0.119 0.153 0.139 0.131
+> SSIM 0.371 0.256 0.266 0.113 0.100
+> LPIPS 0.208 0.300 0.271 0.293 0.391
+> NoPeek
+> a0.6 0.6 0.3 0.3 ×
+> Result
+> MSE 0.137 0.143 0.130 0.170 0.123
+> SSIM 0.180 0.309 0.249 0.255 0.285
+> LPIPS 0.255 0.230 0.513 0.269 0.451
+> CausShield
+> Result
+> MSE 0.140 0.158 0.163 0.151 0.165
+> SSIM 0.105 0.174 0.110 0.266 0.162
+> LPIPS 0.330 0.393 0.373 0.399 0.396
+
+Fig. 10. Defense effect on different cut-layers on CIFAR-10. 
+
+C. Model Utility Evaluations 
+
+Accuracy and Convergence. We evaluate the model accuracy and loss across various approaches on the MNIST dataset (see Fig. 11). The privacy parameters for each method are as follows: DP-L ( ε=1.0), Prune ( k=99%), Soteria ( s=95%). It is evident that the accuracy and loss curves of the proposed 
+
+CausShield closely align with those of vanilla VFL as the communication rounds increase, with negligible utility degra-dation. The accuracy of CausShield remains 2% higher than that of the Soteria. Furthermore, the stability and conver-gence rate of our CausShield method are comparable to those of vanilla VFL. In contrast, other comparison approaches exhibit instability and slower convergence speeds. On CIFAR-10, the privacy parameters for each method are set identically to those presented in Fig. 6. Fig. 12 illustrates the round-wise testing accuracy and loss, where the following observations are made: (1) the unprotected VFL accuracy is the highest and serves as the baseline for utility evaluation. However, as mentioned earlier, it fails to defend against recon-struction attacks. (2) The noise perturbation based on the DP 13 0 20 40 60 80 100 
+
+> Communication rounds
+> 20
+> 40
+> 60
+> 80
+> ACC (%)
+> No defense
+> DP-L( =1.0)
+> Prune( k=99%)
+> CausShield
+> Soteria( s=95%)
+
+(a) ACC 0 20 40 60 80 100  
+
+> Communication rounds
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> Loss
+
+(b) Loss 
+
+Fig. 11. Comparison of the ACC and Loss on MNIST. 0 100 200 300 400 500 
+
+> Communication rounds
+> 30
+> 40
+> 50
+> 60
+> 70
+> ACC (%)
+> No defense
+> Soteria( s=95%)
+> DISCO( =0.6)
+> ResSFL( =0.3)
+> CausShield
+> DP-L( =1.0)
+
+(a) ACC 0 100 200 300 400 500  
+
+> Communication rounds
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> 4.5
+> Loss
+
+(b) Loss 
+
+Fig. 12. Comparison of ACC and Loss on CIFAR-10. 
+
+mechanism results in a significant decrease in model accuracy, approximately 15%. This decrease is attributed to the irre-versible disruption of intermediate representations caused by indiscriminate noise addition. (3) CausShield significantly outperforms SOTAs, with the utility degradation being almost negligible. This phenomenon demonstrates that CausShield 
+
+reduces utility loss by largely preserving crucial information for classification during causal representation learning. Thus, 
+
+CausShield validates our design objective of addressing the privacy-utility trade-off more flexibly. As also shown in TABLE III, CausShield consistently achieves superior ACC on the extended EMNIST and CIFAR-100 datasets. These results align with the findings on MNIST and CIFAR-10, demonstrating the scalability of our method. 
+
+Robustness under Asymmetric VFL. To evaluate the ro-bustness of our CausShield under realistic vertical het-erogeneity, we extend our experiments to the asymmetrical VFL setting by varying the sample identifier (ID) overlap ratio between clients (from 10% to 100%), following the AVFL framework [50]. Note that our previous experiments 20 40 60 80 100 
+
+> ID Overlap Ratio (%)
+> 86
+> 88
+> 90
+> 92
+> 94
+> Accuracy (%)
+> No Defense
+> CausShield
+> Soteria( s=95%)
+
+(a) MNIST 20 40 60 80 100  
+
+> ID Overlap Ratio (%)
+> 54
+> 56
+> 58
+> 60
+> 62
+> 64
+> 66
+> Accuracy (%)
+> No Defense
+> CausShield
+> ResSFL( =0.3)
+
+(b) CIFAR-10 
+
+Fig. 13. Comparison of the ACC at varying ID overlap ratio. 
+
+Fig. 14. Illustration of extra processing time. TABLE III COMPARISON OF DEFENSE METHODS IN ACC(%) ON EMNIST  
+
+> AND
+
+CIFAR-100. 
+
+(a) EMNIST Method ACC                
+
+> No defense 89.21 ±0.85 DP-L( ε=1.0) 82.13 ±1.10 Prune( k=99%) 84.72 ±0.92 Soteria( s=95%) 86.58 ±0.88
+> CausShield 88.32 ±0.75
+
+(b) CIFAR-100 Method ACC                
+
+> No defense 62.20 ±0.65 DP-L( ε=1.5) 38.80 ±1.20 Soteria( s=95%) 53.40 ±2.00 ResSFL( δ=0.3) 55.60 ±1.40
+> CausShield 56.90 ±1.30
+
+were conducted under the symmetric VFL assumption with 100% ID overlap. The asymmetrical setting reflects practical scenarios where smaller participants may only hold a partial subset of the global sample IDs. The privacy parameters for each method are as follows: Soteria ( s=95%), ResSFL ( δ=0.3). As shown in Fig. 13, all methods suffer from performance degradation as the ID overlap ratio decreases. Nevertheless, our proposed CausShield consistently outperforms baseline methods (e.g., Soteria, ResSFL) across all overlap levels, demonstrating strong resilience to ID space asymmetry. 
+
+D. Computational Efficiency Evaluations 
+
+Fig. 14 illustrates the extra processing time required for dif-ferent defense methods within a single communication round (t=1) on CIFAR-10 dataset. The privacy parameters used are aligned with those used in Fig. 6, and we set n = 0 .12 for InvL-ENP. As a typical lightweight approach, DP-L only adds noise to representations and thus introduces minimal latency. The per-round overhead of CausShield arises from the causal representation learning module. The surrogate dataset generation, being a one-time offline operation, contributes no per-round cost. Furthermore, as VFL training progresses and the bottom model fk stabilizes, the generator initialized from 
+
+fk requires fewer iterations M to converge within each round, allowing M to be progressively reduced and the per-round overhead to decrease accordingly. In contrast, both the Soteria, InvL-ENP, and ResSFL meth-ods noticeably slow down the training speed. Soteria requires a comprehensive traversal of each element within the rep-resentations, calculating their corresponding privacy benefits, and then conducting sorting and pruning operations. The primary computational overhead of InvL-ENP stems from the calculation of the Jacobian matrix for each input instance and the subsequent singular value analysis required to derive the adaptive noise scale. Similarly, the ResSFL method in-volves locally simulating attackers, iteratively adjusting the 14 
+
+parameters of the base model and attack model until the reconstructed images no longer leak privacy information. In summary, our approach provides robust privacy protection and offers substantial benefits in terms of computational efficiency and sustained model performance. The proposed CausShield introduces negligible commu-nication overhead compared to the standard VFL baseline. It is evidenced by two key observations: first, the convergence behavior, as shown in Fig. 11(b) and Fig. 12(b), is nearly identical, confirming no added communication rounds; sec-ond, the uploaded causal representations maintain the same dimensionality as their original counterparts, guaranteeing an unchanged per-round transmission volume. Therefore, the advancement in data privacy afforded by CausShield comes at no extra communication cost. VII. C ONCLUSIONS 
+
+This work proposes CausShield to defend against sample reconstruction attacks in VFL. Grounded in the SCM perspec-tive and our established theoretical foundation, CausShield 
+
+decomposes intermediate representations and transmits only causal representations to eliminate the primary reconstruc-tion attack surface while preserving model utility. This de-composition is achieved through two unsupervised modules: surrogate dataset generation and causal representation learn-ing, requiring neither ground-truth labels nor task-specific supervision, ensuring seamless integration into standard VFL pipelines. Theoretical analysis confirms that transmitting only causal representations can resist sample reconstruction, and 
+
+CausShield retains the convergence behavior of standard VFL. Extensive experiments demonstrate that CausShield 
+
+consistently outperforms seven SOTAs in privacy protection, model utility, and computational efficiency. REFERENCES [1] X. Zhu, X. Luo, Y. Wu, et al. Passive inference attacks on split learning via adversarial regularization. In Proc. Netw. Distrib. Syst. Secur. Symp. (NDSS) , 2025. [2] M. Ye, W. Shen, B. Du, et al. Vertical federated learning for effective-ness, security, applicability: A survey. ACM Comput. Surv. , 57(9):1–32, 2025. [3] WeBank. Federated ai technology enabler (fate). https://fate.fedai.org. Accessed: Oct. 31, 2019. [4] E. Erdogan, A. Kupcu, and A. E. Cicek. Unsplit: Data-oblivious model inversion, model stealing, and label inference attacks against split learning. In Proc. Workshop Priv. Electron. Soc. (WPES) , pages 115– 124, 2022. [5] D. Yao, S. Li, X. Gong, S. Hou, et al. Urvfl: Undetectable data reconstruction attack on vertical federated learning. In Proc. Netw. Distrib. Syst. Secur. Symp. (NDSS) , pages 1–18, 2025. [6] P. Ye, Z. Jiang, W. Wang, et al. Feature reconstruction attacks and countermeasures of dnn training in vertical federated learning. IEEE Trans. Dependable Secure Comput. , 22(3):2659–2669, 2024. [7] J. A. Khan and K. Ozbay. Secure floating-scalable federated learning framework for real-time trust in mobility data using secure multi-party computation and blockchain. In Proc. USENIX Secur. Symp. (USENIX Security) , pages 133–141, 2025. [8] D. Zhu, J. Chen, X. Zhou, et al. Vulnerabilities of data protection in vertical federated learning training and countermeasures. IEEE Trans. Inf. Forensics Secur. , 19:3674–3689, Feb. 2024. [9] Y. Li, N. Yan, J. Chen, et al. Fedphe: A secure and efficient federated learning via packed homomorphic encryption. IEEE Trans. Dependable Secure Comput. , 2025. [10] L. Cui and X. Wu. Aldp-fl for adaptive local differential privacy in federated learning. Scientific Reports , 15(1):26679, 2025. [11] Y. Hu, F. Wu, Q. Li, et al. Sok: Privacy-preserving data synthesis. In 
+
+Proc. IEEE Symp. Secur. Privacy (S&P) , pages 4696–4713, 2024. [12] H. Gu, J. Luo, Y. Kang, et al. Fedpass: privacy-preserving vertical federated deep learning with adaptive obfuscation. In Proc. Int. Joint Conf. Artif. Intell. (IJCAI) , pages 3759–3767, 2023. [13] X. Xu, Z. Li, Y. Han, et al. From risk to resilience: Towards assessing and mitigating the risk of data reconstruction attacks in federated learning. In Proc. USENIX Secur. Symp. (USENIX Secur.) , pages 3141– 3160, 2025. [14] P. Qiu, X. Zhang, S. Ji, et al. Hashvfl: Defending against data reconstruction attacks in vertical federated learning. IEEE Trans. Inf. Forensics Secur. , 19:3345–3359, 2024. [15] A. Singh, A. Chopra, E. Garza, et al. Disco: Dynamic and invariant sensitive channel obfuscation for deep neural networks. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) , pages 12125–12135, 2021. [16] J. Li, A. Rakin, X. Chen, et al. Ressfl: A resistance transfer framework for defending model inversion attack in split federated learning. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) ,pages 10194–10202, 2022. [17] S. L. Noorbakhsh, B. Zhang, Y. Hong, et al. Inf2guard: An information-theoretic framework for learning privacy-preserving representations against inference attacks. In Proc. USENIX Secur. Symp. (USENIX Secur.) , pages 2405–2422, 2024. [18] P. Vepakomma, A. Singh, O. Gupta, et al. Nopeek: Information leakage reduction to share activations in distributed deep learning. In Proc. IEEE Int. Conf. Data Mining Workshops (ICDMW) , pages 933–942, 2020. [19] T. Chen, J. Wang, J. Zhao, et al. Dual dependency disentangling for defending model inversion attacks in split federated learning. IEEE Trans. Inf. Forensics Security , 20:11048–11063, 2025. [20] X. Bi, Y. Hu, B. Liu, et al. Prifu: Capturing task-relevant information without adversarial learning. In Proc. ACM Int. Conf. Multimedia (ACM MM) , pages 3104–3112, 2024. [21] S. Shi and Y. Wo. Defending against model inversion attack via feature purification. IEEE Trans. Inf. Forensics Security , 2025. [22] C. Luo, D. K. Yau, and Q. Song. Svdefense: Effective defense against gradient inversion attacks via singular value decomposition. In Proc. Netw. Distrib. Syst. Secur. Symp. (NDSS) , 2026. [23] B. Scholkopf, D. Janzing, J. Peters, et al. On causal and anticausal learning. In Proc. Int. Conf. Learn. Represent. (ICLR) , 2012. [24] S. Tople, A. Sharma, and A. Nori. Alleviating privacy attacks via causal learning. In Proc. Int. Conf. Mach. Learn. (ICML) , pages 9479–9489, 2020. [25] D. Mahajan, S. Tople, and A. Sharma. Domain generalization using causal matching. In Proc. Int. Conf. Learn. Represent. (ICLR) , pages 7313–7324, 2021. [26] F. Lv, J. Liang, S. Li, et al. Causality inspired representation learning for domain generalization. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) , pages 8046–8056, 2022. [27] Qun Li, Chandra Thapa, Lawrence Ong, Yifeng Zheng, Hua Ma, Seyit A Camtepe, Anmin Fu, and Yansong Gao. Vertical federated learning: taxonomies, threats, and prospects. arXiv preprint arXiv:2302.01550 ,2023. [28] X. Luo, Y. Wu, X. Xiao, et al. Feature inference attack on model predictions in vertical federated learning. In Proc. Int. Conf. Data Eng. (ICDE) , pages 181–192, 2021. [29] R. Yang, J. Ma, J. Zhang, et al. Practical feature inference attack in vertical federated learning during prediction in artificial internet of things. IEEE Internet Things J. , 11(1):5–16, 2023. [30] Z. He, T. Zhang, and R. Lee. Model inversion attacks against collabo-rative inference. In Proc. Annu. Comput. Secur. Appl. Conf. (ACSAC) ,pages 148–162, 2019. [31] D. Pasquini, G. Ateniese, and M. Bernaschi. Unleashing the tiger: Inference attacks on split learning. In Proc. ACM Conf. Computer Commun. Secur. (CCS) , pages 2113–2129, 2021. [32] X. Gao and L. Zhang. Pcat: functionality and data stealing from split learning by pseudo-client attack. In Proc. USENIX Secur. Symp. (USENIX Security) , pages 5271–5288, 2023. [33] P. Mohassel and Y. Zhang. Secureml: A system for scalable privacy-preserving machine learning. In Proc. IEEE Symp. Secur. Privacy (SP) ,pages 19–38, 2017. [34] Q. Lou and L. Jiang. Hemet: A homomorphic-encryption-friendly privacy-preserving mobile neural network architecture. In Proc. Int. Conf. Mach. Learn. (ICML) , pages 7102–7110, 2021. [35] R. C. Geyer, T. Klein, M. Nabi, et al. Differentially private federated learning: a client level perspective. arXiv preprint arXiv:1712.07557 ,2017. 15 
+
+[36] X. Cao, G. Sun, H. Yu, et al. Perfed-gan: Personalized federated learning via generative adversarial networks. IEEE Internet Things J. , 10:3749– 3762, Mar 2023. [37] Y. Huang, Z. Song, K. Li, et al. Instahide: Instance-hiding schemes for private distributed learning. In Proc. Int. Conf. Mach. Learn. (ICML) ,pages 4457–4468, 2020. [38] T. Zou, Y. Liu, Y. Kang, et al. Defending batch-level label inference and replacement attacks in vertical federated learning. IEEE Trans. Big Data , pages 1–12, Jul 2022. [39] J. Sun, A. Li, B. Wang, et al. Soteria: Provable defense against privacy leakage in federated learning from representation perspective. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) ,pages 9307–9315, 2021. [40] Z. Li, J. Zhang, L. Liu, et al. Auditing privacy defenses in federated learning via generative gradient leakage. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) , pages 10122–10132, 2022. [41] J. Peters, D. Janzing, and B. Scholkopf. Elements of causal inference-foundations and learning algorithms . MIT Press, Cambridge, MA, USA, 2017. [42] K. Ahuja, D. Mahajan, Y. Wang, et al. Interventional causal representa-tion learning. In Proc. Int. Conf. Mach. Learn. (ICML) , pages 372–507, 2023. [43] R. Zhang, P. Isola, and A. Efros. Split-brain autoencoders: Unsupervised learning by cross-channel prediction. In Proc. IEEE Comput. Soc. Conf. Comput. Vision Pattern Recognit. (CVPR) , pages 1058–1067, 2017. [44] X. Kang, T. Yang, W. Ouyang, et al. Ddcolor: Towards photo-realistic image colorization via dual decoders. In Proc. IEEE/CVF Int. Conf. Comput. Vis. (ICCV) , pages 328–338, 2023. [45] X. Luo and X. Zhang. Exploiting defenses against gan-based feature inference attacks in federated learning. ACM Trans. Knowl. Discov. Data , 19(3):1–20, 2025. [46] E. Jang, S. Gu, B. Poole, et al. Categorical reparameterization with gumbel-softmax. In Proc. Int. Conf. Learn. Represent. (ICLR) , pages 1–13, 2017. [47] X. Li, K. Huang, W. Yang, et al. On the convergence of fedavg on non-iid data. In Proc. Int. Conf. Learn. Represent. (ICLR) , pages 1–26, 2020. [48] T. Castiglia, A. Das, S. Wang, et al. Compressed-vfl: Communication-efficient learning with vertically partitioned data. In Proc. Int. Conf. Mach. Learn. (ICML) , pages 2738–2766, 2022. [49] L. Zhu, Z. Liu, and S. Han. Deep leakage from gradients. In Proc. Int. Conf. Neural Inf. Proces. Syst. (NeurIPS) , pages 14774–14784, 2019. [50] L. Yang, X. Zhang, and L. Wang. Asymmetrical vertical federated learning. arXiv preprint arXiv:2004.07427 , 2020. 
+
+APPENDIX 
+
+A. CausShield ’s Algorithm 1 
+
+The algorithm of CausShield is presented in Algorithm 1 
+
+B. Proof of Theorem 1 Proof. The Jacobians ∂U/∂x and ∂S/∂x satisfy the following structural properties of the SCM: 
+
+σk
+
+ ∂U ∂x 
+
+
+
+≥ μ > 0, ∂S ∂x 2
+
+≤ ϑ < ∞, (33) where μ and ϑ are of comparable order; the first ensures the mapping from x to U is non-degenerate across all top-k
+
+directions, and the second ensures S has bounded sensitivity to x. Since row( GSx ) ⊥ row( GUx ) by Definition 1, Gx
+
+decomposes along orthogonal subspaces VS and VU .
+
+Step 1: Lower bound on σi(GUx ). By the chain rule, 
+
+GUx = ∂ru 
+
+> ∂U
+
+· ∂U ∂x . Since σmin (∂U/∂x ) ≥ σk(∂U/∂x ) ≥ μ,applying the singular value product lower bound σi(AB ) ≥
+
+σi(A)·σmin (B), and noting that i ≤ k implies σi(∂ru/∂U ) ≥
+
+σk(∂ru/∂U ) ≥ ϵ by Assumption 1: 
+
+σi(GUx ) ≥ σi
+
+ ∂ru
+
+∂U 
+
+
+
+·σmin 
+
+ ∂U ∂x 
+
+
+
+≥ ϵ·μ, ∀ i ∈ { 1, . . . , k }.
+
+(34) 
+
+Algorithm 1 The CausShield algorithm 
+
+Input: 
+
+Variable value: K; N ; D; ˆD; B; λ; T ; Bottom models and its parameters {fk; θk}Kk=1 ; Top model and it’s parameters 
+
+{ftop ; θtop }; Number of causal module optimizations M .
+
+Output: 
+
+The optimal model parameters {θk∗}Kk=1 and θ∗
+
+> top
+
+.
+
+1: Active party executes: 
+
+2: for each communication round t ∈ [1 , T ] do 
+
+3: Concatenates received representations Rs =[Rs
+
+> 1
+
+, Rs
+
+> 2
+
+, ..., RsK ];
+
+4: Calculates the CE loss and obtain gradients ∇θtop ;
+
+5: Updates the head model ftop ;
+
+6: Sends the cut-layer gradients ∇θcut L to passive parties; 
+
+7: end for 
+
+8: Passive parties k ∈ [1 , K ] executes: 
+
+9: for each batch do 
+
+10: Conducts forward propagation to compute intermediate representations Rk = {fk(θk; xk,i )}Bi=1 ;
+
+11: for each causal optimization module do 
+
+12: Feeds raw data xk,i and corresponding surrogate data 
+
+ˆxk,i to the generator Gk;
+
+13: Perform Z-score normalization on representations Rk
+
+and ˆRk;
+
+14: Computes decomposition loss defined in Eq. (14); 
+
+15: Calculates the causal representations Rsk and ˆRsk;
+
+16: Establishes a Masker ω to evaluate each dimension contribution within the representations Rsk and ˆRsk
+
+as Eq. (15); 
+
+17: Obtain derived masks mupp and mlow as Eq. (16); 
+
+18: Computes two unsupervised losses lupp score and llow score 
+
+as Eqs. (17)-(18); 
+
+19: Optimizes the Gk, ω according to Formula (19); 
+
+20: end for 
+
+21: Updates the causal representations Rsk;
+
+22: if receives the gradients from the active party then 
+
+23: Updates local bottom model fk by passing the cut-layer gradients. 
+
+24: end if 
+
+25: end for Step 2: Upper bound on σi(GSx ). By the chain rule, 
+
+GSx = ∂rs 
+
+> ∂S
+
+· ∂S ∂x . Applying submultiplicativity σi(AB ) ≤
+
+σ1(A) · σ1(B), together with Assumption 2: 
+
+σi(GSx ) ≤ ∂rs
+
+∂S 2
+
+· ∂S ∂x 2
+
+≤ γ ·ϑ, ∀ i ∈ { 1, . . . , k }. (35) 
+
+Step 3: Spectral dominance. Since γ ≪ ϵ by Assumption 2 and μ, ϑ are of comparable order, the spectral gap δ := ϵ · μ −
+
+γ · ϑ ≫ 0, yielding: 
+
+σi(GUx ) ≥ ϵ · μ ≫ γ · ϑ ≥ σi(GSx ), ∀ i ∈ { 1, . . . , k }. (36) 
+
+Step 4: Dominant alignment with VU . Since row( GSx ) ⊥
+
+row( GUx ) and the spectral gap δ ≫ 0, applying the Wedin 16 
+
+theorem to bound the perturbation of the top-k right singular vectors of Gx away from VU gives: 
+
+∥PVS VJ,i ∥ ≤ γ · ϑδ ≪ 1, ∀ i ∈ { 1, . . . , k }, (37) where PVS is the orthogonal projector onto VS . Since 
+
+∥PVU VJ,i ∥2 + ∥PVS VJ,i ∥2 = 1 , it follows that: 
+
+> k
+
+X
+
+> i=1
+
+∥PVU VJ,i ∥2 ≫
+
+> k
+
+X
+
+> i=1
+
+∥PVS VJ,i ∥2 , (38) where PVU is the orthogonal projector onto VU . Therefore, a rank-k optimal attacker [13] primarily exploits VU for recon-struction, confirming that non-causal components constitute the dominant reconstruction attack surface. 
+
+C. Proof of Theorem 2 Proof. Step 1: Defense success threshold τth . We select the ENP-based defense’s InvLoss upper bound for a rank-k
+
+optimal attacker in [13] as the τth :
+
+τth := 
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+x)2 +
+
+> k
+
+X
+
+> i=1
+
+(U ⊤ 
+
+> i
+
+ε)2
+
+σ2 
+
+> i
+
+· p + C0, (39) where the first term is the baseline tail residual energy without any defense, and the second term reflects the additional InvLoss increase contributed by the injected noise ε.
+
+Step 2: Reconstruction error lower bound for rs. When only rs is transmitted, the attacker’s Jacobian reduces to 
+
+GSx . By Assumption 2, σi(GSx ) ≤ γ for all i ∈ { 1, . . . , d }.The maximum energy recoverable from xs via the rank-k
+
+approximation is: 
+
+> k
+
+X
+
+> i=1
+
+(V S⊤ 
+
+> J,i
+
+xs)2 ≤ k · σ21 (GSx ) · ∥ xs∥2 ≤ kγ 2∥xs∥2. (40) Since {V SJ,i }di=1 form an orthonormal basis: 
+
+> d
+
+X
+
+> i=k+1
+
+(V S⊤ 
+
+> J,i
+
+xs)2 = ∥xs∥2 −
+
+> k
+
+X
+
+> i=1
+
+(V S⊤ 
+
+> J,i
+
+xs)2 ≥ (1 − kγ 2)∥xs∥2,
+
+(41) yielding the lower bound InvLoss( rs) ≥ (1 −kγ 2)∥xs∥2 +C0.
+
+Step 3: InvLoss( rs) strictly exceeds τth . Comparing Steps 1-2, since γ ≪ ϵ:
+
+InvLoss( rs) ≥ (1 − kγ 2)∥xs∥2 + C0 ≈ ∥ xs∥2 + C0. (42) For τth , the tail residual term satisfies: 
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+x)2 ≈
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+xU )2, (43) since by Theorem 1 the leading k singular vectors are pre-dominantly aligned with VU , leaving only a small residual in the tail. The noise term Pki=1 (U ⊤ 
+
+> i
+
+ε)2/(σ2 
+
+> i
+
+· p) is also finite for any practical noise level δ. Therefore: 
+
+InvLoss( rs) ≈ ∥ xs∥2 + C0
+
+≫
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+xU )2 +
+
+> k
+
+X
+
+> i=1
+
+(U ⊤ 
+
+> i
+
+ε)2
+
+σ2 
+
+> i
+
+· p + C0 ≥ τth ,
+
+(44) confirming InvLoss( rs) ≫ τth , i.e., transmitting only causal representations provably exceeds the ENP defense threshold, rendering sample reconstruction infeasible regardless of the attack strategy. 
+
+Step 4: Comparison with full representation. For the full representation rs + ru, by Theorem 1 the top-k singular directions are dominated by VU , so the rank-k approximation recovers substantial energy from xU , yielding a much smaller tail residual and lower InvLoss: 
+
+InvLoss( rs) ≥ (1 − kγ 2)∥xs∥2 + C0
+
+≫
+
+> d
+
+X
+
+> i=k+1
+
+(V ⊤
+
+> J,i
+
+x)2 + C0 ≥ InvLoss( rs + ru),
+
+(45) where the middle ≫ follows from σi(GUx ) ≫ σi(GSx ) estab-lished in Theorem 1. Therefore, we achieve InvLoss( rs) ≫
+
+InvLoss( rs + ru).
+
+D. Proof of Theorems 3-4 
+
+Lemma 1. The squared norm of the partial derivatives of embeddings belongs to party k multiplied by the Taylor series terms Rttop (Rk + Etk) is bounded [48]: 
+
+||∇ θk Rk · Rttop (Rk + Etk)|| 2 ≤ M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| F . (46) 
+
+where Rttop is denotes as the infinite sum of all terms in this Taylor series from the second partial derivatives; we let Etk
+
+be the causal representation error on each representation used in gradient calculation at iteration t.
+
+Lemma 2 (Bounded variance) . Under Assumptions 3-7 , if 
+
+η ≤ 14T max k Lk , we can bound the expected squared norm dif-ference between ∇L B (Θ t0 ) at the iteration t0 and ∇L B ( ˆΘtc )
+
+at the current iteration tc is expressed as: 
+
+> tc
+
+X
+
+> t=t0
+
+E
+
+
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
+≤ 16 T 3η2
+
+> K
+
+X
+
+> k=1
+
+L2 
+
+> k
+
+∥ ∇ kL(Θ t0 )∥2
+
++ 16 η2T 3
+
+> K
+
+X
+
+> k=1
+
+L2
+
+> k
+
+π2
+
+> k
+
+B + 64 T 3
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Et0 
+
+> k
+
+|| 2 
+
+> F
+
+.
+
+(47) 
+
+Proof. By employing the chain rule and Taylor series expan-sion on Lemma 1 in the work [48], we initially prove the boundedness of causal representation error, i.e., Theorem 3 .Combining the definition of causal representation error (Eq. (25), we can derive the following equation: 
+
+∇k LtB (Rk + Etk) := ∇k LtB ( ˆRsk). (48) Applying the chain rule to ∇k LB ( ˆRsk), Eq. (48) can be rewritten as: 
+
+∇kLtB ( ˆRsk) = ∇θk Rk · ∇ kLtB (Rk + Etk). (49) Next, we apply Taylor series expansion to rewrite Eq. (49): 
+
+∇kLtB ( ˆRsk) = ∇θk Rk[∇Rk LB (Rk) + Rt
+
+> top
+
+(Rk + Etk)] = ∇kLtB (Rk) + ∇θk Rk · Rt
+
+> top
+
+(Rk + Etk).
+
+(50) 17 
+
+By reordering the terms and incorporating the expected value and squared 2-norm, we can derive a more refined bound: 
+
+E ∥ ∇ k LtB ( ˆRsk) − ∇ k LtB ( ˆRk)∥2
+
+= E ∥ ∇ θk ˆRk · Rttop ( ˆRk + Etk)∥2
+
+≤ M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| F
+
+= M 2 
+
+> k
+
+Φ2
+
+> k
+
+X 
+
+> j̸=k
+
+|| ψtj || 2
+
+> F
+
+= M 2 
+
+> k
+
+Φ2
+
+> k
+
+X 
+
+> j̸=k
+
+Ψtj .
+
+(51) Based on the aforementioned proof, Theorem 3 holds. 
+
+Proof. Theorem 4 : By Assumption 3, the predicted difference of any two communication rounds can be expressed as: 
+
+L(Θ tc ) − L (Θ t0 )
+
+≤ ∇L (Θ t0 ), Θtc − Θt0 + L
+
+2 Θtc − Θt0 2
+
+= −
+
+*
+
+∇L (Θ t0 ), η 
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt)
+
++
+
++ L
+
+2 η
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt)
+
+> 2
+
+≤ − η
+
+> tc
+
+X
+
+> t=t0
+
+D
+
+∇L (Θ t0 ), ∇L B ( ˆΘt)
+
+E
+
++ LT 
+
+2 η2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt) 2
+
+≤ − η
+
+> tc
+
+X
+
+> t=t0
+
+D
+
+∇L (Θ t0 ), ∇L B ( ˆΘt) − ∇L B (Θ t0 )
+
+E
+
+− η
+
+> tc
+
+X
+
+> t=t0
+
+∇L (Θ t0 ), ∇L B (Θ t0 )
+
++ LT 
+
+2 η2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) + ∇L B (Θ t0 ) 2
+
+≤ η
+
+> tc
+
+X
+
+> t=t0
+
+D
+
+−∇L (Θ t0 ), ∇L B ( ˆΘt) − ∇L B (Θ t0 )
+
+E
+
+− η
+
+> tc
+
+X
+
+> t=t0
+
+∇L (Θ t0 ), ∇L B (Θ t0 )
+
++ LT η 2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
++ LT η 2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B (Θ t0 ) 2
+
+≤ η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+∇L (Θ t0 ) 2 + η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
+− η
+
+> tc
+
+X
+
+> t=t0
+
+∇L (Θ t0 ), ∇L B (Θ t0 )
+
++ LT η 2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
++ LT η 2
+
+> tc
+
+X
+
+> t=t0
+
+∇L B (Θ t0 ) 2.
+
+(52) Next, based on Assumptions 6-7, we take the mean of both sides of the Formula (52): 
+
+E[L(Θ tc )] − L (Θ t0 )
+
+≤ − η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+∇L (Θ t0 ) 2 + LT η 2
+
+> tc
+
+X
+
+> t=t0
+
+Et0
+
+h
+
+∇L B (Θ t0 ) 2i
+
++ η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+(1 + 2 LT η )Et0
+
+
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
+≤ − η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+(1 − 2LT η ) ∇L (Θ t0 ) 2 + LT η 2
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
+> tc
+
+X
+
+> t=t0
+
+η2
+
++ η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+(1 + 2 LT η )Et0
+
+
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
+= − T
+
+2 η(1 − 2LT η ) ∇L (Θ t0 ) 2 + LT η 2
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ η
+
+2
+
+> tc
+
+X
+
+> t=t0
+
+(1 + 2 LT η )Et0
+
+
+
+∇L B ( ˆΘt) − ∇L B (Θ t0 ) 2
+
+.
+
+(53) By introducing Lemma 2, we can further deduce: 
+
+E L(Θ tc ) − L (Θ t0 )= − T
+
+2 η(1 − 2LT η ) ∇L (Θ t0 ) 2
+
++ 8 T 3η3(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+L2
+
+> k
+
+||∇ kL(Θ t0 )|| 2
+
++ 8 T 3η3(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+L2
+
+> k
+
+π2
+
+> k
+
+B
+
++ 32 T 3η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2 
+
+> F
+
++ LT 2η2
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
+≤ − T
+
+2
+
+> K
+
+X
+
+> k=1
+
+η(1 − 2LT η − 16 T 2L2
+
+> k
+
+η2 − 16 T 3L2
+
+> k
+
+η3)||∇ kL(Θ t0 )|| 2
+
++ ( LT 2η2 + 8 T 3L2
+
+> k
+
+η3 + 8 T 4LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 32 T 3η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2 
+
+> F
+
+.
+
+(54) Next, taking into account the conditional limitations in The-orem 4, i.e., η ≤ 116 T max {L, max k ,L k } . The Formula (54) can 18 
+
+therefore be rewritten as follows: 
+
+E L(Θ tc ) − L (Θ t0 )= − T
+
+2
+
+> K
+
+X
+
+> k=1
+
+η(1 − 18 − 116 − 116 2 ) ∇kL(Θ t0 ) 2
+
++ ( LT 2η2 + 8 T 3L2
+
+> k
+
+η3 + 8 T 4LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 16 T 3η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2
+
+> F
+
+≤ − 3T
+
+8 η ∇L (Θ t0 ) 2
+
++ ( LT 2η2 + 8 T 3L2
+
+> k
+
+η3 + 8 T 4LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 32 T 3η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2 
+
+> F
+
+.
+
+(55) We rewrite the η∥∇L (Θ t0 )∥2 term as follows: 
+
+η ∇L (Θ t) 2
+
+≤ 83 (LT η 2 + 8 T 2L2
+
+> k
+
+η3 + 8 T 3LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 86 T 2η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2 
+
+> F
+
+.
+
+(56) We consider the total expectation of inequality (56) across T
+
+iterations: 
+
+ηE
+
+h
+
+∇L (Θ t) 2i
+
+≤ 4 L(Θ 0) − E L(Θ T ) 
+
+T
+
++ 83 (LT η 2 + 8 T 2L2
+
+> k
+
+η3 + 8 T 3LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 86 T 2η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+|| Etk|| 2
+
+> F
+
+.
+
+(57) Recalling Theorem 3, the scope of the Formula (57) can be limited as: 
+
+ηE
+
+h
+
+∇L (Θ t) 2i
+
+≤ 4 L(Θ 0) − L(Θ T ) 
+
+T
+
++ 83
+
+> T
+
+X
+
+> t=1
+
+(LT η 2 + 8 T 2L2
+
+> k
+
+η3 + 8 T 3LL 2
+
+> k
+
+η4)
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 86 T 2
+
+> T
+
+X
+
+> t=1
+
+η(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+X 
+
+> j̸=k
+
+Ψtj .
+
+(58) Averaging over T global rounds, we can have: 
+
+ET h
+
+∇L (Θ t) 2i
+
+≤ 4 L(Θ 0) − L(Θ T ) 
+
+T η 
+
++ 83
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B (LT η + 8 T 2L2
+
+> k
+
+η2 + 8 T 3LL 2
+
+> k
+
+η3)+ 86 T 2(1 + 2 LT η )
+
+> K
+
+X
+
+> k=1
+
+M 2 
+
+> k
+
+Φ2
+
+> k
+
+X 
+
+> j̸=k
+
+Ψtj
+
+≤ 4 L(Θ 0) − L(Θ T ) 
+
+ηT + 6 ηT L 
+
+> K
+
+X
+
+> k=1
+
+π2
+
+> k
+
+B
+
++ 92 T
+
+> K
+
+X 
+
+> k=1
+> T−1
+
+X
+
+> t=0
+
+M 2 
+
+> k
+
+Φ2
+
+> kK
+
+X 
+
+> j=1 ,j ̸=k
+
+Ψtj .
+
+(59) By combining the Lemma 1 and Lemma 2 of the work [48], we have the proof of Theorem 4.
