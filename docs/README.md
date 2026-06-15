@@ -6,105 +6,101 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-14
-- 运行时间：2026-06-14 21:56:09 UTC
+- 最新运行日期：2026-06-15
+- 运行时间：2026-06-15 23:18:47 UTC
 - 运行状态：成功
 - 本次总论文数：27
 - 精读区：13
 - 速读区：14
 
 ### 今日简报（AI）
-今日精读13篇、速读14篇，生成模型与自动驾驶成热点。
-
-最值得看：VAE解码潜在平均场结构（10分）与扩散模型分数的小波视角（9分），理论深度极高。
-
-普通读者建议：优先看KITScenes自动驾驶数据集或一步生成模型，实践性强且门槛适中。
-- 详情：[/202606/14/README](/202606/14/README)
+今日精读13篇速读14篇，总分最高是《Multi-Agent Embodied Autonomous Driving》与《A Theoretical Analysis of Memory and Overfitting》。最值得关注两个方向：多智能体V2X共享世界模型（10分）与工业级车道级地图生成MapAgent（8分）。建议普通读者优先深入这两篇论文，掌握协同感知与高效建图的前沿思路。
+- 详情：[/202606/15/README](/202606/15/README)
 
 ### 精读区论文标签
-1. [Discovering and decoding latent mean-field structure with variational autoencoders](/202606/14/2606.08694v1-discovering-and-decoding-latent-mean-field-structure-with-variational-autoencoders)  
-   标签：评分：10.0/10、query:gen-models
-   evidence：变分自编码器，潜变量模型
-2. [Where the Score Lives: A Wavelet View of Diffusion](/202606/14/2606.08309v1-where-the-score-lives-a-wavelet-view-of-diffusion)  
+1. [Multi-Agent Embodied Autonomous Driving: From V2X Information Exchange to Shared World Models](/202606/15/2606.13840v1-multi-agent-embodied-autonomous-driving-from-v2x-information-exchange-to-shared-world-models)  
+   标签：评分：10.0/10、query:self-driving
+   evidence：多智能体自动驾驶共享世界模型综述，涵盖V2X和VLA
+2. [A Theoretical Analysis of Memory and Overfitting Phenomena in Stochastic Interpolation Models](/202606/15/2606.08554v1-a-theoretical-analysis-of-memory-and-overfitting-phenomena-in-stochastic-interpolation-models)  
    标签：评分：9.0/10、query:gen-models
-   evidence：扩散模型得分函数的解析小波参数化
-3. [Forward-Free Diffusion Language Models](/202606/14/2606.08357v1-forward-free-diffusion-language-models)  
+   evidence：对随机插值模型（扩散/流匹配）中记忆和过拟合现象的理论分析
+3. [FAWAM: Force-Aware World Action Models for Closed-Loop Contact-Rich Manipulation](/202606/15/2606.08555v2-fawam-force-aware-world-action-models-for-closed-loop-contact-rich-manipulation)  
+   标签：评分：9.0/10、query:world-models
+   evidence：力感知世界动作模型用于闭环操作
+4. [CSFlow: Aligning Flow Matching with Human Contrast Sensitivity](/202606/15/2606.08833v1-csflow-aligning-flow-matching-with-human-contrast-sensitivity)  
    标签：评分：9.0/10、query:gen-models
-   evidence：扩散语言模型生成建模
-4. [LUNA-AD: Lightweight Uncertainty-Aware Language Model with Lifelong Learning for Autonomous Driving](/202606/14/2606.08470v1-luna-ad-lightweight-uncertainty-aware-language-model-with-lifelong-learning-for-autonomous-driving)  
+   evidence：流匹配模型与人类对比敏感度对齐
+5. [AHA-WAM:Asynchronous Horizon-Adaptive World-Action Modeling with Observation-Guided Context Routing](/202606/15/2606.09811v1-aha-wamasynchronous-horizon-adaptive-world-action-modeling-with-observation-guided-context-routing)  
+   标签：评分：9.0/10、query:world-models
+   evidence：异步时间分辨率的世界-动作模型
+6. [Language-Driven Cost Optimization for Autonomous Driving](/202606/15/2606.10974v1-language-driven-cost-optimization-for-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：自动驾驶中的轻量级不确定性感知语言模型与终身学习
-5. [Learning to Solve Generative ODEs Beyond the Linear Span](/202606/14/2606.08672v1-learning-to-solve-generative-odes-beyond-the-linear-span)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：在线性跨度之外求解生成微分方程用于流匹配
-6. [Self-Consistent Generative Paths via Admissible Random Variational Transport](/202606/14/2606.08953v1-self-consistent-generative-paths-via-admissible-random-variational-transport)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：统一扩散模型、流匹配和一致性模型的理论框架
-7. [Driving Video Retrieval for Complex Queries with Structured Grounding](/202606/14/2606.09109v1-driving-video-retrieval-for-complex-queries-with-structured-grounding)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向自动驾驶的带结构化基础的驾驶视频检索
-8. [EditSSC: Toward Editable Semantic Occupancy Scenes with Unconditional Diffusion Models](/202606/14/2606.09273v1-editssc-toward-editable-semantic-occupancy-scenes-with-unconditional-diffusion-models)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：使用扩散模型进行自动驾驶3D场景生成
-9. [Compositional Generative Modeling from Decentralized Data](/202606/14/2606.10153v1-compositional-generative-modeling-from-decentralized-data)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：去中心化组合流匹配
-10. [Flow-based generative models for amortized Bayesian inference in regression and inverse PDE problems](/202606/14/2606.10370v1-flow-based-generative-models-for-amortized-bayesian-inference-in-regression-and-inverse-pde-problems)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：提出Flow-ABI基于流的生成模型用于摊销贝叶斯推断，与流匹配方法直接相关
-11. [VLADriveBench: Evaluating CoT-Action Relationship in VLA for Autonomous Driving](/202606/14/2606.12706v1-vladrivebench-evaluating-cot-action-relationship-in-vla-for-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：评估自动驾驶VLA模型中思维链与动作关系的基准
-12. [CausalMoE: A Billion-Scale Multimodal Foundation Model for Granger Causal Discovery with Pattern-Routed Heterogeneous Experts](/202606/14/2606.13024v1-causalmoe-a-billion-scale-multimodal-foundation-model-for-granger-causal-discovery-with-pattern-routed-heterogeneous-experts)  
+   evidence：自动驾驶成本优化，利用大语言模型
+7. [From Prompts to Tokens: Internalizing Causal Supervision in Vision-Language Model for Multi-Image Causal Reasoning](/202606/15/2606.11745v1-from-prompts-to-tokens-internalizing-causal-supervision-in-vision-language-model-for-multi-image-causal-reasoning)  
    标签：评分：9.0/10、query:causal-rep
-   evidence：十亿级格兰杰因果发现基础模型
-13. [The Geometry of Phase Transitions in Generative Dynamics via Projection Caustics](/202606/14/2606.13191v1-the-geometry-of-phase-transitions-in-generative-dynamics-via-projection-caustics)  
+   evidence：将因果图内化到视觉语言模型中进行视觉因果推理
+8. [High-Fidelity Two-Step Image Generation via Teacher-Aligned End-to-End Distillation](/202606/15/2606.12575v1-high-fidelity-two-step-image-generation-via-teacher-aligned-end-to-end-distillation)  
    标签：评分：9.0/10、query:gen-models
-   evidence：扩散与流匹配模型的几何相变分析
+   evidence：通过教师对齐蒸馏实现高保真两步图像生成
+9. [A Tutorial on World Models and Physical AI](/202606/15/2606.12783v1-a-tutorial-on-world-models-and-physical-ai)  
+   标签：评分：9.0/10、query:world-models
+   evidence：涵盖世界模型与物理AI的教程
+10. [Generalization Bounds for Transformer-Based Next-Token Prediction in a Language Model](/202606/15/2606.13280v1-generalization-bounds-for-transformer-based-next-token-prediction-in-a-language-model)  
+   标签：评分：9.0/10、query:gen-models
+   evidence：关于大型语言模型下一词预测的理论泛化界
+11. [RT-VLA: Real-Time Vision-Language-Action Models via Knowledge Distillation](/202606/15/2606.14010v1-rt-vla-real-time-vision-language-action-models-via-knowledge-distillation)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：通过知识蒸馏实现实时视觉语言动作模型用于自动驾驶
+12. [WAM4D: Fast 4D World Action Model via Spatial Register Tokens](/202606/15/2606.14048v1-wam4d-fast-4d-world-action-model-via-spatial-register-tokens)  
+   标签：评分：9.0/10、query:world-models
+   evidence：利用空间注册令牌实现快速4D世界动作模型
+13. [ReactSim-Bench: Benchmarking Reactive Behavior World Model Simulation in Autonomous Driving](/202606/15/2606.14058v1-reactsim-bench-benchmarking-reactive-behavior-world-model-simulation-in-autonomous-driving)  
+   标签：评分：9.0/10、query:self-driving
+   evidence：自动驾驶中反应式世界模型仿真的基准测试
 
 ### 速读区论文标签
-1. [Drifting Preference Optimization for One-Step Generative Models](/202606/14/2606.02521v3-drifting-preference-optimization-for-one-step-generative-models)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：提出一步生成模型的偏好优化方法
-2. [The Road Ahead in Autonomous Driving: The KITScenes Multimodal Dataset](/202606/14/2606.02956v1-the-road-ahead-in-autonomous-driving-the-kitscenes-multimodal-dataset)  
+1. [MapAgent: An Industrial-Grade Agentic Framework for City-scale Lane-level Map Generation](/202606/15/2606.04513v1-mapagent-an-industrial-grade-agentic-framework-for-city-scale-lane-level-map-generation)  
    标签：评分：8.0/10、query:self-driving
-   evidence：多模态自动驾驶数据集包含高清地图
-3. [Learning Temporal Causal Structure via Smooth Differentiable Optimization](/202606/14/2606.03227v1-learning-temporal-causal-structure-via-smooth-differentiable-optimization)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：通过可微优化学习时间序列因果结构
-4. [Diffusing in the Right Space: A Systematic Study of Latent Diffusability](/202606/14/2606.03578v1-diffusing-in-the-right-space-a-systematic-study-of-latent-diffusability)  
+   evidence：自动驾驶车道级地图生成
+2. [WAM-Nav: Asymmetric Latent World-Action Modeling for Unified Visual Navigation](/202606/15/2606.04907v1-wam-nav-asymmetric-latent-world-action-modeling-for-unified-visual-navigation)  
+   标签：评分：8.0/10、query:world-models
+   evidence：用于视觉导航的潜在世界-动作模型
+3. [Balancing Image Compression and Generation with Bootstrapped Tokenization](/202606/15/2606.05552v1-balancing-image-compression-and-generation-with-bootstrapped-tokenization)  
    标签：评分：8.0/10、query:gen-models
-   evidence：扩散模型潜在空间系统研究
-5. [Adaptive Causal Alignment for High-Confidence Adversarial Training](/202606/14/2606.03925v1-adaptive-causal-alignment-for-high-confidence-adversarial-training)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：因果对齐的鲁棒学习方法
-6. [ChronoPhyBench: Do MLLMs Truly Understand the World or Merely Exploit Language Priors?](/202606/14/2606.07962v1-chronophybench-do-mllms-truly-understand-the-world-or-merely-exploit-language-priors)  
-   标签：评分：7.0/10、query:world-models
-   evidence：评估多模态大语言模型世界理解的基准，包含下一状态预测
-7. [Learning Predictive Control with Deep Koopman Operators for Autonomous Vehicle Motion Planning](/202606/14/2606.08136v1-learning-predictive-control-with-deep-koopman-operators-for-autonomous-vehicle-motion-planning)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：基于深度Koopman的自动驾驶车辆运动规划
-8. [Learning from Human Driving: A Human-in-the-Loop Online Behavior Cloning Framework for Autonomous Driving](/202606/14/2606.08170v1-learning-from-human-driving-a-human-in-the-loop-online-behavior-cloning-framework-for-autonomous-driving)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：自动驾驶中的人机闭环行为克隆
-9. [Causal Semantic Alignment for LLM-based Time Series Forecasting](/202606/14/2606.08262v1-causal-semantic-alignment-for-llm-based-time-series-forecasting)  
+   evidence：自举式分词用于图像生成
+4. [DRIFT: A Residual Flow Adapter for Decoding Continuous Outputs in Vision-Language Models](/202606/15/2606.05758v1-drift-a-residual-flow-adapter-for-decoding-continuous-outputs-in-vision-language-models)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：流匹配生成精化模块
+5. [NAVIRA: Decoupled Stochastic Remasking for Masked Diffusion Language Models](/202606/15/2606.06031v1-navira-decoupled-stochastic-remasking-for-masked-diffusion-language-models)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：掩码扩散语言模型的解耦重掩码
+6. [Speaker-Invariant Representation Learning for Spoofing Detection via Gradient Reversal and A Variational Information Bottleneck](/202606/15/2606.08678v1-speaker-invariant-representation-learning-for-spoofing-detection-via-gradient-reversal-and-a-variational-information-bottleneck)  
    标签：评分：7.0/10、query:causal-rep
-   evidence：时间序列预测中因果干预实现表示解耦
-10. [Latent Diffusion Policy: Shaping Latent Spaces for Diffusion-Based Robotic Manipulation](/202606/14/2606.08657v1-latent-diffusion-policy-shaping-latent-spaces-for-diffusion-based-robotic-manipulation)  
+   evidence：通过梯度反转和信息瓶颈实现说话人不变表示学习
+7. [Guided Discovery of New Behaviors using Diffusion Policies](/202606/15/2606.08743v1-guided-discovery-of-new-behaviors-using-diffusion-policies)  
    标签：评分：7.0/10、query:gen-models
-   evidence：在塑造的潜在空间中使用流匹配的潜在扩散策略
-11. [Beyond Raw Signals: Undecoded Generative Latents as Privileged Synthetic Data](/202606/14/2606.08336v1-beyond-raw-signals-undecoded-generative-latents-as-privileged-synthetic-data)  
+   evidence：扩散模型用于机器人策略生成，与扩散模型相关
+8. [BSTabDiff: Block-Subunit Diffusion Priors for High-Dimensional Tabular Data Generation](/202606/15/2606.09257v1-bstabdiff-block-subunit-diffusion-priors-for-high-dimensional-tabular-data-generation)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：针对高维表格数据生成的分块-子单元扩散先验
+9. [Uncertainty-Aware Motion Planning for Autonomous Driving in Mixed Traffic Environment](/202606/15/2606.09958v1-uncertainty-aware-motion-planning-for-autonomous-driving-in-mixed-traffic-environment)  
+   标签：评分：7.0/10、query:self-driving
+   evidence：在人类意图不确定下的自动驾驶运动规划
+10. [ARM: An AutoRegressive Large Multimodal Model with Unified Discrete Representations](/202606/15/2606.11188v1-arm-an-autoregressive-large-multimodal-model-with-unified-discrete-representations)  
+   标签：评分：7.0/10、query:world-models
+   evidence：基于离散表示的自回归多模态生成模型
+11. [Evaluating the Representation Space of Diffusion Models via Self-Supervised Principles](/202606/15/2606.09718v1-evaluating-the-representation-space-of-diffusion-models-via-self-supervised-principles)  
    标签：评分：6.0/10、query:gen-models
-   evidence：生成潜变量作为特权合成数据
-12. [Nonparametric undirected graphical model selection using diffusion models](/202606/14/2606.08468v1-nonparametric-undirected-graphical-model-selection-using-diffusion-models)  
+   evidence：基于自监督原理评估扩散模型的表示空间
+12. [Self-Supervised Relevance Modelling in Autonomous Driving via Counterfactual Analysis](/202606/15/2606.10688v1-self-supervised-relevance-modelling-in-autonomous-driving-via-counterfactual-analysis)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：基于反事实分析的自动驾驶自监督相关性模型
+13. [AllDayNav: Lifelong Navigation via Real-World Reinforcement Learning](/202606/15/2606.10927v1-alldaynav-lifelong-navigation-via-real-world-reinforcement-learning)  
+   标签：评分：6.0/10、query:world-models
+   evidence：将场景动态隐式编码到大模型参数中，自进化记忆，与世界模型架构相关
+14. [DiffCold: A Diffusion-based Generative Model for Cold-Start Item Recommendation](/202606/15/2606.12245v1-diffcold-a-diffusion-based-generative-model-for-cold-start-item-recommendation)  
    标签：评分：6.0/10、query:gen-models
-   evidence：使用扩散模型进行非参数无向图模型选择
-13. [Active Flow Expansion for Out-of-Distribution Discovery: from Theory to Molecules](/202606/14/2606.08802v1-active-flow-expansion-for-out-of-distribution-discovery-from-theory-to-molecules)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：面向分布外发现的主动流扩展
-14. [BLM-SGAN: Bidirectional Language Modeling for Semantic-Spatial Text-to-Image Generation](/202606/14/2606.08847v1-blm-sgan-bidirectional-language-modeling-for-semantic-spatial-text-to-image-generation)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：使用生成对抗网络的文本到图像生成
+   evidence：基于扩散的生成模型直接对应扩散模型相关需求
 
 
 <div class="dpr-home-promo-card">

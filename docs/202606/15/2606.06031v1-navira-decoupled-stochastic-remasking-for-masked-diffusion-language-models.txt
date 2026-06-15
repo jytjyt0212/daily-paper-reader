@@ -1,0 +1,489 @@
+Title: NAVIRA: Decoupled Stochastic Remasking for Masked Diffusion Language Models
+
+URL Source: https://arxiv.org/pdf/2606.06031v1
+
+Published Time: Fri, 05 Jun 2026 01:02:54 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+## NAVIRA: Decoupled Stochastic Remasking for Masked Diffusion Language Models 
+
+Andrey Fomenko 1, Maksim Kryzhanovskiy 1,2, Svetlana Glazyrina 1, Roman Ischenko 1,21 Lomonosov Moscow State University, Moscow, Russia  
+
+> 2
+
+Institute for Artificial Intelligence, Lomonosov Moscow State University, Moscow, Russia 
+
+Abstract 
+
+Masked diffusion language models generate text by iteratively unmasking many tokens in parallel, but this speed comes with a correc-tion problem: tokens generated in the same step are predicted from marginal distributions, and early local dependency errors can later con-taminate the context. PRISM addresses this by learning token-level quality scores and re-masking unreliable tokens, but its inference rule is coupled: the same forward pass both detects low-quality tokens and computes log-its for their replacements, so the erroneous to-kens still condition regeneration. We propose NAVIRA, an inference-time decoding policy that separates these two operations and sam-ples remasking positions stochastically. A first forward pass scores tokens; selected tokens are masked; a second forward pass regener-ates from the cleaned context. Temperature-controlled remasking reduces repeated correc-tion of the same positions and balances flu-ency against diversity. In controlled experi-ments with a 170M masked diffusion language model, decoupling improves fluency, while scheduled stochastic remasking preserves en-tropy and achieves stronger LLM-judge scores under larger forward-pass budgets. These re-sults show that remasking policy, not only the learned quality signal, is central to reliable masked-diffusion text generation. 
+
+1 Introduction 
+
+Masked diffusion models (MDMs) offer an alterna-tive to autoregressive text generation by iteratively denoising a partially masked sequence and updat-ing multiple positions in parallel. This non-left-to-right generation process enables bidirectional conditioning and can substantially reduce decod-ing latency. However, parallel token updates also introduce a characteristic failure mode: tokens gen-erated in the same step are predicted from marginal distributions and may fail to respect local dependen-cies. Once such errors enter the partially generated sequence, they can influence subsequent predic-tions and degrade later refinement. Inference-time remasking provides a natural mechanism for addressing this issue. In partic-ular, PRISM augments a pretrained MDM with a token-level quality head and uses the resulting scores to identify unreliable tokens for correction (Kim et al., 2025). This makes it possible to revisit previously generated positions rather than perma-nently committing to early decisions. Despite this advantage, the standard PRISM decoding rule re-mains coupled: the same forward pass is used both to score tokens and to produce generation logits. Consequently, tokens selected as low-quality still participate in the context used to generate their replacements, allowing erroneous tokens to con-taminate the very predictions intended to correct them. We propose NAVIRA, a simple inference-time modification of PRISM based on two design choices. First, we decouple remasking from gener-ation. A first forward pass estimates token quality and selects unreliable positions; these positions are then masked out, and a second forward pass recomputes generation logits from the corrected context. This ensures that tokens marked for cor-rection no longer condition the regeneration step. Second, we replace deterministic top-K remasking with stochastic remasking: positions are sampled from a temperature-controlled distribution derived from token-quality scores. This reduces repeated selection of the same low-scoring positions and provides a controllable mechanism for balancing correction and exploration. Our study isolates the effect of these inference-time choices while keeping the pretrained back-bone and PRISM training objective fixed. We com-pare deterministic and stochastic remasking vari-ants, fixed and scheduled temperatures, and non-1                             
+
+> arXiv:2606.06031v1 [cs.CL] 4 Jun 2026 current state
+> Isaw aapple
+> x(t)
+> wrong article contaminates context
+> first forward: scoring
+> .94 .89 .16 .91
+> si=gϕ(x(t))i
+> lower score ⇒stronger remask candidate
+> stochastic remasking
+> πi(τt)∝exp( −si/τ t)
+> Tt∼π(τt)over clean tokens
+> scheduler sets τt
+> remask state
+> Isaw [M] apple
+> ˜x(t)
+> sampled Ttis masked before generation
+> second forward: generation
+> fθ(· | ˜x(t))
+> separate unmasking pass
+> detection and regeneration are decoupled
+> refined state
+> Isaw an apple
+> x(t+1)
+> second forward recovers “an apple”
+> kept context low-quality token mask / remask generated token
+
+Figure 1: Overview of the proposed NAVIRA step. A first forward pass computes quality scores on the current state, a temperature-controlled scheduler samples positions to remask, and a separate second forward pass recomputes unmasking logits from the remasked context. 
+
+learned uncertainty-based baselines. Across un-conditional text generation experiments, decoupled remasking improves fluency by using a cleaner con-text for regeneration, while stochastic remasking helps preserve diversity and mitigates entropy col-lapse under larger decoding budgets. LLM-based evaluation further suggests that scheduled stochas-tic remasking improves perceived generation qual-ity, highlighting the importance of decoding policy design for reliable masked-diffusion text genera-tion. Our work presents the following contributions to the field of Diffusion Language Models (DLMs) and inference approaches: • We identify a coupling issue in PRISM-style inference and propose a two-pass decoding policy that separates token-quality scoring from regeneration, allowing correction to con-dition on a cleaned context. • We introduce temperature-controlled stochas-tic remasking for MDM inference, including fixed-temperature and scheduled variants that trade off focused correction against diversity-preserving exploration. • We provide controlled ablations under matched forward-pass budgets showing that decoupling improves fluency, while scheduled stochastic remasking mitigates entropy col-lapse and improves LLM-based generation quality. 
+
+2 Related Work 
+
+Masked diffusion language models. Discrete diffusion models, and masked diffusion models in particular, have gained significant interest as an ap-proach to text generation (Austin et al., 2021; Lou et al., 2024; Sahoo et al., 2024; Nie et al., 2025; Shi et al., 2024). Unlike autoregressive models, they generate tokens in parallel and refine a partially masked sequence over multiple steps. However, errors made at early stages of generation can prop-agate across iterations and negatively affect later predictions. This line is also connected to earlier iterative masked generation, such as Mask-Predict (Ghazvininejad et al., 2019), and to recent anal-yses that view absorbing-state MDMs as model-ing clean-token conditional distributions or time-agnostic masked models (Ou et al., 2024; Zheng et al., 2024). 
+
+Self-correction and remasking. A growing line of work explores how to revise low-quality tokens during inference. In diffusion-based decoders such as Dream 7B and LLaDA (Ye et al., 2025; Nie et al., 2025), remasking is typically restricted to tokens that were updated in the current iteration, while tokens generated in earlier steps remain fixed. This design simplifies the decoding process but limits the ability to revisit and correct earlier mistakes. In contrast, approaches such as ReMDM (Wang et al., 2025) allow remasking over the full set of revealed tokens, enabling the model to revise deci-sions made in previous iterations. These methods typically rely on heuristic rules or confidence prox-ies derived from model outputs. While simple and 2effective, such proxies are not explicitly trained to reflect token correctness and may become unreli-able as the sequence evolves. Related inference-time corrector methods include forward–backward correctors for discrete denoising models (Campbell et al., 2022) and discrete flow matching (Gat et al., 2024). PRISM addresses this limitation by learning token-level quality scores jointly with the back-bone, enabling the model to estimate both token distributions and correction signals within a unified framework (Kim et al., 2025). This design also sim-plifies fine-tuning, as it allows adapting the model to a specific task by training a lightweight auxil-iary head without full fine-tuning of the backbone. Related quality- or correction-based methods in-clude Token-Critic (Lezama et al., 2022), RemeDi (Huang et al., 2025), Informed Correctors (Zhao et al., 2024), and GIDD (Von Rütte et al., 2025); our focus is complementary, as we keep the backbone and PRISM objective fixed and study the inference-time remasking policy. 
+
+Decoding strategies in diffusion language mod-els. A key design choice in masked diffusion lan-guage models is how positions are selected and updated during iterative decoding. Existing ap-proaches differ in whether they restrict updates to recently generated tokens or allow revisiting the entire sequence. Many diffusion decoders adopt constrained update rules, where only tokens mod-ified in the current step are eligible for further re-finement, which simplifies the decoding process but limits the ability to correct earlier mistakes. More flexible formulations allow remasking over all revealed tokens, enabling global refinement across iterations, but typically rely on heuristic selection rules or simple confidence signals. This highlights the importance of token selection poli-cies as a core component of diffusion-based gener-ation. Recent work further studies which masked positions should be revealed and how they should be grouped, including path planning for masked diffusion sampling (Peng et al., 2025) and dilated scheduling for faster MDM decoding (Luxembourg et al., 2025). Our stochastic remasking is also mo-tivated by the broader observation that overly de-terministic text decoding can reduce diversity and lead to degeneration (Holtzman et al., 2020). 
+
+LLM-based generation evaluation. Our evalua-tion is also related to LLM-as-a-judge protocols for open-ended generation quality, such as MT-Bench and Chatbot Arena (Zheng et al., 2023). We use these judgments as a complementary diagnostic to perplexity and entropy rather than as the sole evaluation criterion. 
+
+3 Preliminaries 
+
+3.1 Masked Diffusion Models 
+
+Let x = ( x1, . . . , x L) ∈ V L denote a clean dis-crete sequence of length L over vocabulary V , and let m denote the mask token. A masked diffusion model is trained to recover clean tokens from par-tially masked versions of the sequence. Given a corrupted sequence z ∈ (V ∪ { m})L, obtained by masking a subset of positions in x, the model 
+
+fθ predicts, for each position i, a distribution over possible tokens: 
+
+fθ(· | z)i ≈ p(xi | z). (1) At inference time, decoding starts from a fully masked sequence and proceeds iteratively. At each step, a subset of masked positions is selected and filled using the model predictions. The choice of which positions to reveal is flexible and plays a key role in generation quality. 
+
+3.2 PRISM: Token-Level Quality for Self-Correction 
+
+PRISM augments a pretrained MDM with an addi-tional head gϕ that predicts token-level quality. For a partially generated sequence y, the target quantity is the probability that the current token yi is correct given its context: 
+
+g⋆i (y) := p(xi = yi | y ⊕ mi), (2) where y ⊕ mi denotes the sequence y with the i-th token masked out. Intuitively, tokens that are inconsistent with their context should receive lower scores and become candidates for remasking. The correction head is trained on partially de-noised sequences, using a binary label that indi-cates whether a predicted token matches the ground truth. This objective is combined with the stan-dard MDM loss, allowing the model to preserve its generation ability while learning a self-correction signal. 
+
+3.3 PRISM Inference 
+
+At inference time, PRISM maintains two sets of positions: masked positions, which are candidates for generation, and clean positions, which are can-didates for remasking. Let x(t) = ( x(t)1 , . . . , x (t) 
+
+> L
+
+)
+
+3denote the current partially denoised sequence at iteration t.The backbone diffusion model fθ maps x(t) to a set of token-wise predictive distributions over the vocabulary: 
+
+fθ(· | x(t))i = pθ(xi | x(t)),
+
+while the auxiliary head gϕ produces a scalar qual-ity score for each position i, denoted as gϕ(x(t))i.Thus, in a single forward pass, the model com-putes both token distributions and position-wise quality scores: 
+
+fθ(· | x(t)), gϕ(x(t)). (3) The decoder then selects a subset Tt of low-quality clean positions to remask and a subset St
+
+of masked positions to unmask, typically using a deterministic top-K rule. 
+
+Algorithm 1 PRISM inference step                                   
+
+> 1: Given xtℓ, run one forward pass:
+> fθ(· | xtℓ),gϕ(xtℓ)
+> 2: Select Tℓ(lowest-quality clean positions) 3: Select Sℓ(masked positions to unmask) 4: for j∈Tℓdo
+> 5: xjtℓ←m
+> 6: end for
+> 7: for i∈Sℓdo
+> 8: Sample xitℓ+1 ∼fiθ(· | xtℓ)
+> 9: end for
+
+3.4 Why the Coupled Inference Rule Can Be Problematic 
+
+The PRISM inference step is efficient, but it intro-duces two important limitations. First, the procedure is coupled : remasking de-cisions and unmasking logits are computed from the same state xt. As a result, tokens identified as low-quality still influence the distribution used to generate new tokens in the same step, which can lead to error propagation. Second, the remasking rule is greedy . The model is observed to repetitively select the same lowest-scoring positions, making the correction process overly greedy. Importantly, low-quality scores may correspond not only to clearly incorrect tokens, but also to rare or context-specific tokens that are harder to predict. As a result, such tokens can be consistently removed even when they are valid, biasing the generation process. In long de-coding runs, this behavior can reduce diversity and lead to mode collapse. Our work is motivated by these two observa-tions: the coupling between correction and genera-tion, and the lack of stochasticity in the remasking policy. 
+
+4 Methodology 
+
+4.1 Problem Formulation 
+
+We study inference-time self-correction strategies for masked diffusion language models. Our goal is to improve the trade-off between generation qual-ity and diversity without modifying either the pre-trained diffusion backbone or the underlying train-ing objective. This allows us to isolate the effect of the decoding policy itself. Building on the formulation introduced in Sec-tion 3, we focus exclusively on modifications to the decoding procedure while keeping all training components fixed. 
+
+4.2 Decoupled Remasking 
+
+In the standard coupled decoding formulation, re-masking and unmasking are both performed from the same intermediate state xt. We instead consider a decoupled variant of the decoding step, where each iteration is divided into two stages: Stage 1: gϕ(x(t)) ⇒ Tt ⊆ Ct
+
+˜x(t) obtained by masking {i ∈ Tt}
+
+Stage 2: fθ(· | ˜x(t))
+
+x(t+1)  
+
+> i
+
+∼ f iθ(· | ˜x(t)), i ∈ St
+
+Here, Ct denotes the set of clean (already re-vealed) positions. The subset Tt ⊆ Ct is selected based on the quality scores gϕ(xt). The interme-diate state ˜xt is obtained from xt by replacing all positions i ∈ Tt with the mask token, while keep-ing the remaining positions unchanged. This separation ensures that once a token is deemed unreliable and removed, it no longer in-fluences the logits used to generate new tokens. Compared to the coupled procedure, this approach requires an additional forward pass but yields a cleaner self-correction mechanism. 
+
+4.3 Stochastic Remasking 
+
+Deterministic remasking follows a greedy top-Kt
+
+policy, which often selects the same positions across iterations and can result in reduced diver-sity. To mitigate this, we introduce a stochastic remasking strategy inspired by temperature-based 4sampling in large language models. Instead of al-ways choosing the lowest-scoring tokens, we sam-ple positions according to a distribution induced by the quality scores and controlled by a tempera-ture parameter. This allows us to balance focused correction and exploration during the decoding pro-cess. We define a stochastic remasking policy over the set of clean tokens Ct:
+
+πi(τ ) = exp( −si/τ )
+
+P 
+
+> j∈Ct
+
+exp( −sj /τ ) , (4) where si = gϕ(x(t))i denotes the token-level qual-ity logit produced by the correction head for po-sition i (i.e., an unnormalized score), and τ is a temperature parameter controlling the level of ran-domness. Kt positions are selected without replace-ment according to the distribution π(τ ).
+
+4.4 Temperature Scheduling 
+
+A fixed temperature is generally suboptimal: early decoding benefits from conservative correction, while later stages can exploit additional stochas-ticity. Let                                      
+
+> t∈ { 0, . . . , T −1},ut=tT−1∈[0 ,1] ,
+> ∆τ=τmax −τmin ,gt=τt+1 −τt,t= 0 , . . . , T −2.
+> 0≤h, c, p 1, p 2<1,p1< p 2,τmin ≤τmax ,τmin ≤τmid ≤τmax .
+
+Here ut denotes normalized decoding progress and gt is the discrete scheduler increment. 
+
+Quadratic tail.              
+
+> τquad
+> t=
+> 
+> τmin ,ut≤h, τmin + ∆ τ
+> ut−h
+> 1−h
+> 2
+> ,ut> h.
+
+Sigmoid.          
+
+> τsig
+> t=τmin + ∆ τ σ (k(ut−c)) ,σ(z) = 11 + exp( −z).
+
+Piecewise.                            
+
+> τpw
+> t=
+> 
+> τmin ,ut≤p1,τmin + ( τmid −τmin )ut−p1
+> p2−p1
+> ,p1< u t≤p2,τmid + ( τmax −τmid )
+> ut−p2
+> 1−p2
+> 1.5
+> ,ut> p 2.
+
+All schedules are monotone non-decreasing in 
+
+t, implying gt ≥ 0. The quadratic and piecewise schedules concentrate temperature growth near the end of decoding, whereas the sigmoid schedule places the largest update around ut = c.
+
+4.5 Proposed algorithm 
+
+We summarize the full decoding procedure com-bining decoupled remasking, stochastic selection, and temperature scheduling. 
+
+Algorithm 2 NAVIRA inference 
+
+1: Initialize x(0) ← (m, . . . , m )
+
+2: for t = 0 , . . . , T − 1 do 
+
+3: Compute temperature τt
+
+4: Compute scores: si = gϕ(x(t))i
+
+5: Ct ← { i : x(t)
+
+> i
+
+̸ = m}
+
+6: πi ∝ exp( −si/τ t) for i ∈ Ct
+
+7: Sample Tt ⊆ Ct
+
+8: ˜x(t) 
+
+> i
+
+←
+
+(
+
+m, i ∈ Tt
+
+x(t) 
+
+> i
+
+, otherwise 9: Mt ← { i : ˜ x(t) 
+
+> i
+
+= m}
+
+10: Compute logits: fθ (· | ˜x(t))
+
+11: Select St ⊆ Mt
+
+12: for i ∈ St do 
+
+13: Sample x(t+1)  
+
+> i
+
+∼ f iθ (· | ˜x(t))
+
+14: end for 
+
+15: end for 
+
+5 Experiments 
+
+We evaluate several inference-time remasking strategies for masked diffusion language models. Throughout this section, we use the following nam-ing convention: • PRISM: the original deterministic PRISM remasking strategy; • PRISM stochastic: a stochastic variant of the original PRISM inference procedure without decoupled forward passes. We include this variant to isolate the effect of stochastic token selection itself and verify that the observed improvements are not explained solely by in-troducing sampling randomness; • NAVIRA-DET : our deterministic decoupled remasking variant; • NAVIRA: stochastic remasking with temperature-controlled token selection combined with decoupled inference; • NAVIRA + scheduler: stochastic decoupled remasking with adaptive temperature schedul-ing. We evaluate our inference strategies in the uncon-ditional text generation setting using a pretrained 170M masked diffusion language model (Sahoo et al., 2024) trained on OpenWebText (Gokaslan et al., 2019). Decoding starts from a fully masked sequence and proceeds iteratively for a fixed num-ber of denoising steps. Unless stated otherwise, we evaluate generation across diffusion budgets ranging from 64 to 2048 steps and generate 1000 samples for each configuration. 5Our experiments are designed as an ablation study rather than a benchmark comparison. The goal is to isolate the effect of inference-time remasking design while keeping the underlying model and training procedure fixed. We compare PRISM, NAVIRA-DET , stochastic NAVIRA vari-ants with fixed temperatures, adaptive scheduler-based NAVIRA variants, and decoding without remasking as a reference baseline. In addition, we compare against non-learned remasking strategies based on entropy and margin criteria inspired by Dream-style decoding (Ye et al., 2025), where to-ken selection is driven by uncertainty estimates rather than learned token-quality scores. We report two complementary metrics. Perplex-ity is used as a proxy for fluency and is computed with Qwen2.5-72B (Qwen Team, 2024) as a refer-ence language model: lower perplexity indicates that the generated text is more consistent with the distribution captured by a strong pretrained LLM. 
+
+Entropy is computed as the Shannon entropy of the empirical token distribution over generated sam-ples and serves as a lightweight diversity diagnostic. In particular, entropy is useful for detecting mode collapse, where generations become overly concen-trated or repetitive. We report both metrics because improvements in perplexity alone may come at the cost of reduced diversity. 
+
+5.1 PRISM versus Non-learned Remasking Baselines 
+
+We begin by comparing PRISM against greedy remasking strategies based on entropy and margin criteria, which do not use learned token-quality estimation. The goal of this comparison is to eval-uate whether explicitly learned quality scores pro-vide a more reliable correction signal than generic uncertainty-based heuristics. Appendix A reveals a consistent pattern. All methods eventually exhibit signs of mode collapse as the number of forward passes increases, includ-ing both PRISM and NAVIRA-DET . However, entropy- and margin-based remasking collapse sub-stantially faster and produce less stable trade-offs between fluency and diversity as the decoding bud-get grows. While these heuristic strategies can im-prove perplexity, this improvement is accompanied by a rapid drop in entropy, indicating increasingly repetitive and concentrated generations. In contrast, PRISM degrades more gradually, with NAVIRA-DET consistently achieving the best overall balance between fluency and diver-sity among the compared methods. In particu-lar, NAVIRA-DET achieves lower perplexity than PRISM while maintaining substantially higher en-tropy than the uncertainty-based baselines. These results suggest that learned token-quality estima-tion provides a more reliable correction signal than generic uncertainty heuristics, and that the way this signal is incorporated into the decoding procedure is critical. 
+
+5.2 Stochastic Remasking Without Temperature Scheduling 
+
+We next examine whether entropy collapse can be mitigated by replacing deterministic top-K re-masking with stochastic sampling. Appendix A compares deterministic and stochastic variants of both PRISM and NAVIRA-DET .The results show that introducing stochasticity substantially increases entropy across all forward-pass budgets. In particular, fixed-temperature stochastic NAVIRA variants maintain higher diver-sity even in regimes where deterministic NAVIRA- 
+
+> DET
+
+has already begun to collapse. This improvement in diversity, however, comes at the cost of higher perplexity. These findings sug-gest that greedy remasking is a major contributor to collapse, but unconstrained stochasticity is not suf-ficient on its own: while it helps preserve diversity, it also reduces the fluency gains that remasking is intended to provide. 
+
+5.3 Temperature-Controlled Stochastic Remasking 
+
+The preceding experiment shows that stochastic re-masking mitigates entropy collapse, but excessive stochasticity can substantially degrade perplexity. We therefore study how the strength of stochas-tic remasking should be controlled throughout the decoding trajectory. Figure 2 jointly compares deterministic remasking in NAVIRA-DET , fixed-temperature stochastic remasking in NAVIRA, and several adaptive temperature schedulers. The overall trend is consistent across inference budgets. Lower temperatures concentrate sampling on low-quality tokens, producing behavior closer to deterministic remasking in NAVIRA-DET and yielding lower perplexity. Higher temperatures flatten the sampling distribution, increasing explo-ration and preserving higher entropy. As a result, no single fixed temperature is uniformly optimal: the preferred operating point depends on the avail-664 128 256 512 1024 2048                        
+
+> Forward passes
+> 10 1
+> Perplexity ↓
+> Perplexity under NAVIRA schedules
+> PRISM
+> NAVIRA-det
+> NAVIRA quadratic
+> NAVIRA sigmoid
+> NAVIRA piecewise
+> 64 128 256 512 1024 2048
+> Forward passes
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> 4.5
+> 5.0
+> 5.5
+> Entropy ↑
+> Entropy under NAVIRA schedules
+> 64 128 256 512 1024 2048
+> Forward passes
+> 10 1
+> Perplexity ↓
+> Perplexity under fixed temperatures
+> 64 128 256 512 1024 2048
+> Forward passes
+> 3.0
+> 3.5
+> 4.0
+> 4.5
+> 5.0
+> 5.5
+> Entropy ↑
+> Entropy under fixed temperatures
+> PRISM
+> NAVIRA-det
+> NAVIRA, τ= 0.25
+> NAVIRA, τ= 0.5
+> NAVIRA, τ= 0.75
+> NAVIRA, τ= 1.0
+
+Figure 2: Temperature-controlled stochastic remasking. NAVIRA-DET corresponds to deterministic remasking, while NAVIRA uses stochastic token selection with either fixed temperatures or adaptive schedulers. Lower temperatures behave more greedily and preserve better perplexity, whereas higher temperatures maintain greater diversity. Adaptive schedulers further improve this balance by gradually increasing stochasticity throughout decoding. 
+
+able forward-pass budget and on the desired bal-ance between fluency and diversity. Motivated by this observation, we further in-vestigate adaptive temperature schedules that vary the degree of stochasticity during decoding. Early decoding stages benefit from lower temperatures, which encourage decisive correction while the se-quence remains unstable, whereas larger tempera-tures become more useful later in the trajectory to avoid convergence to narrow modes. Although the quantitative differences between scheduler families remain smaller than the gap between determinis-tic and stochastic remasking overall, gradually in-creasing schedules consistently provide the most favorable quality–diversity trade-off. To summarize the trends observed across diverse inference budgets, Table 1 reports the main quanti-tative results for a representative subset of decod-ing strategies, highlighting their respective quality– diversity trade-offs. 
+
+5.4 Correction Trajectory Analysis 
+
+The previous experiments demonstrate that differ-ent remasking strategies lead to distinct quality– diversity trade-offs. We next investigate whether these differences are reflected directly in the decod-ing dynamics themselves. Rather than comparing only final generations, we analyze the correction trajectories induced by different remasking poli-cies, i.e., the sets of token positions selected for remasking at each denoising step. For each decoding step t, we record the re-masked token set Tt and compare trajectories across methods using set-overlap statistics, includ-ing intersection size, Jaccard similarity, and overlap coefficient. Table 2 summarizes the pairwise over-lap statistics. PRISM and NAVIRA-DET exhibit relatively small overlap, indicating that decoupled remasking already induces noticeably different cor-rection dynamics. NAVIRA diverges substantially further: both comparisons involving stochastic re-masking yield near-zero Jaccard similarity, show-ing that stochastic remasking selects almost entirely different token subsets throughout decoding. Most importantly, the comparison between NAVIRA-DET and stochastic NAVIRA demon-strates that stochastic remasking is not merely a minor perturbation of deterministic decoding. In-stead, it produces fundamentally different correc-tion trajectories, confirming that the remasking pol-764 forwards 128 forwards 256 forwards 512 forwards 1024 forwards Method PPL ↓ Ent. ↑ PPL ↓ Ent. ↑ PPL ↓ Ent. ↑ PPL ↓ Ent. ↑ PPL ↓ Ent. ↑                                                  
+
+> ReMDM 72.51 3.72 16.69 1.80 9.71 1.10 16.74 1.04 24.44 1.68 MDLM backbone 89.57 5.69 76.30 5.66 72.17 5.65 69.97 5.62 67.01 5.62 PRISM ––25.75 5.17 15.85 5.17 11.17 4.97 7.59 4.75 NAVIRA-DET 23.95 5.25 12.22 4.93 6.42 4.49 3.09 3.74 1.94 2.91
+> NAVIRA + piecewise 32.43 5.38 19.34 5.20 12.94 4.96 6.17 4.19 2.69 3.30
+
+Table 1: Main results on OpenWebText. We report generation perplexity and entropy for different inference forward budgets. Lower perplexity indicates higher fluency, while higher entropy reflects better diversity. Boldface highlights the configuration achieving the strongest overall quality–diversity trade-off among the proposed methods across both metrics.                   
+
+> Method A Method B Inter. Jaccard Overlap PRISM NAVIRA-det 0.716 5.91% 19.23% PRISM NAVIRA ( τ= 0 .2)0.062 0.33% 4.67% NAVIRA-det NAVIRA ( τ= 0 .2)0.116 0.48% 3.61%
+
+Table 2: Pairwise overlap between remasking tra-jectories. Stochastic NAVIRA produces nearly non-overlapping correction trajectories compared to deter-ministic variants. 
+
+icy changes not only the final generations but also the iterative refinement process itself. 
+
+5.5 LLM-based Generation Evaluation 
+
+While perplexity and entropy provide useful auto-matic diagnostics, they do not fully capture qual-itative properties of generated text. We therefore additionally evaluate generations using an LLM-as-a-judge protocol (Zheng et al., 2023). As a reference evaluator, we use Qwen3-235B-A22B-Instruct-2507, which scores generated samples along several dimensions, including clarity, gram-maticality, factuality, style, and creativity. The full evaluation prompt is provided in Appendix B. For each configuration, we generate 1000 sam-ples and ask the judge model to assign scalar qual-ity scores using a fixed evaluation prompt. Ap-pendix C summarizes the resulting scores across different forward pass budgets. Among the evaluated configurations, scheduler-based stochastic NAVIRA achieves the strongest overall subjective generation quality. In particular, NAVIRA with sigmoid temperature scheduling achieves the highest overall score across nearly all decoding budgets, while also obtaining the strongest grammaticality and creativity ratings. In-terestingly, this trend differs from the perplexity-based evaluation, where deterministic NAVIRA- 
+
+> DET
+
+often achieved the best fluency scores. A pos-sible explanation is that stochastic remasking intro-duces more globally coherent and stylistically di-verse revisions, which are preferred by instruction-tuned LLM judges even when token-level likeli-hood slightly deteriorates. Overall, these results suggest that stochastic re-masking improves not only diversity metrics, but also the perceived subjective quality of generations under strong LLM-based evaluation. 
+
+6 Conclusion 
+
+This work demonstrates that the performance of PRISM-style self-correction in masked diffusion language models is governed not only by the avail-ability of learned token-level quality estimates, but also by the decoding policy through which those estimates are used. Our controlled ablations show that decoupling remasking from token generation yields more reliable correction by preventing to-kens identified as unreliable from conditioning sub-sequent predictions. Deterministic remasking is further shown to be prone to inducing repetitive correction behavior and entropy collapse, whereas stochastic remasking improves diversity by reduc-ing repeated selection of the same low-scoring po-sitions. Finally, temperature control, particularly through scheduled stochasticity, provides a princi-pled mechanism for balancing fluency and diver-sity across different inference budgets. Overall, these results highlight inference-time remasking design as a significant factor in the reliability and flexibility of diffusion-based text generation, and demonstrate that the proposed algorithm can sub-stantially enhance the quality-diversity trade-off without modifying the underlying model or train-ing objective. 
+
+Limitations 
+
+Our evaluation is limited to a 170M masked dif-fusion language model in the unconditional Open-8WebText generation setting, so the observed trends may not directly transfer to larger models or stronger diffusion backbones. In addition, we eval-uate the proposed remasking strategies only in un-conditional text generation and do not study their behavior on downstream conditional tasks such as summarization, code generation, or instruction fol-lowing, where the quality-diversity trade-off and correction dynamics may differ substantially. 
+
+References 
+
+Jacob Austin, Daniel D. Johnson, Jonathan Ho, Daniel Tarlow, and Rianne van den Berg. 2021. Structured denoising diffusion models in discrete state-spaces. In Advances in Neural Information Processing Sys-tems , volume 34, pages 17981–17993. Andrew Campbell, Joe Benton, Valentin De Bortoli, Tom Rainforth, George Deligiannidis, and Arnaud Doucet. 2022. A continuous time framework for discrete denoising models. In Advances in Neural Information Processing Systems , volume 35, pages 28266–28279. Itai Gat, Tal Remez, Neta Shaul, Felix Kreuk, Ricky T. Q. Chen, Gabriel Synnaeve, Yossi Adi, and Yaron Lipman. 2024. Discrete flow matching. In Ad-vances in Neural Information Processing Systems ,volume 37. Marjan Ghazvininejad, Omer Levy, Yinhan Liu, and Luke Zettlemoyer. 2019. Mask-predict: Parallel de-coding of conditional masked language models. In 
+
+Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Lan-guage Processing (EMNLP-IJCNLP) , pages 6112– 6121, Hong Kong, China. Association for Computa-tional Linguistics. Aaron Gokaslan, Vanya Cohen, Ellie Pavlick, and Ste-fanie Tellex. 2019. OpenWebText Corpus. Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, and Yejin Choi. 2020. The curious case of neural text de-generation. In International Conference on Learning Representations .Zemin Huang, Yuhang Wang, Zhiyang Chen, and Guo-Jun Qi. 2025. Don’t settle too early: Self-reflective remasking for diffusion language models. Preprint ,arXiv:2509.23653. Jaeyeon Kim, Seunggeun Kim, Taekyun Lee, David Z. Pan, Hyeji Kim, Sham Kakade, and Sitan Chen. 2025. Fine-tuning masked diffusion for provable self-correction. Preprint , arXiv:2510.01384. José Lezama, Huiwen Chang, Lu Jiang, and Irfan Essa. 2022. Improved masked image generation with token-critic. In Computer Vision – ECCV 2022 , vol-ume 13683 of Lecture Notes in Computer Science ,pages 70–86. Springer. Aaron Lou, Chenlin Meng, and Stefano Ermon. 2024. Discrete diffusion modeling by estimating the ratios of the data distribution. In Proceedings of the 41st International Conference on Machine Learning , vol-ume 235 of Proceedings of Machine Learning Re-search , pages 32819–32848. PMLR. Omer Luxembourg, Haim Permuter, and Eliya Nach-mani. 2025. Plan for speed: Dilated scheduling for masked diffusion language models. Preprint ,arXiv:2506.19037. Shen Nie, Fengqi Zhu, Zebin You, Xiaolu Zhang, Jingyang Ou, Jun Hu, Jun Zhou, Yankai Lin, Ji-Rong Wen, and Chongxuan Li. 2025. Large language dif-fusion models. Preprint , arXiv:2502.09992. Jingyang Ou, Shen Nie, Kaiwen Xue, Fengqi Zhu, Ji-acheng Sun, Zhenguo Li, and Chongxuan Li. 2024. Your absorbing discrete diffusion secretly models the conditional distributions of clean data. Preprint ,arXiv:2406.03736. Fred Zhangzhi Peng, Zachary Bezemek, Sawan Patel, Jarrid Rector-Brooks, Sherwood Yao, Avishek Joey Bose, Alexander Tong, and Pranam Chatterjee. 2025. Path planning for masked diffusion model sampling. 
+
+Preprint , arXiv:2502.03540. Qwen Team. 2024. Qwen2.5 technical report. Preprint ,arXiv:2412.15115. Subham Sekhar Sahoo, Marianne Arriola, Yair Schiff, Aaron Gokaslan, Edgar Marroquin, Justin T. Chiu, Alexander Rush, and Volodymyr Kuleshov. 2024. Simple and effective masked diffusion language mod-els. In Advances in Neural Information Processing Systems , volume 37. Jiaxin Shi, Kehang Han, Zhe Wang, Arnaud Doucet, and Michalis K. Titsias. 2024. Simplified and generalized masked diffusion for discrete data. In Advances in Neural Information Processing Systems , volume 37. Dimitri Von Rütte, Janis Fluri, Yuhui Ding, Antonio Orvieto, Bernhard Schölkopf, and Thomas Hofmann. 2025. Generalized interpolating discrete diffusion. In Proceedings of the 42nd International Conference on Machine Learning , volume 267 of Proceedings of Machine Learning Research , pages 61810–61843. PMLR. Guanghan Wang, Yair Schiff, Subham Sekhar Sahoo, and Volodymyr Kuleshov. 2025. Remasking Dis-crete Diffusion Models with Inference-Time Scaling. 
+
+Preprint , arXiv:2503.00307. Jiacheng Ye, Zhihui Xie, Lin Zheng, Jiahui Gao, Zirui Wu, Xin Jiang, Zhenguo Li, and Lingpeng Kong. 2025. Dream 7B: Diffusion large language models. 
+
+Preprint , arXiv:2508.15487. Yixiu Zhao, Jiaxin Shi, Feng Chen, Shaul Druck-mann, Lester Mackey, and Scott Linderman. 2024. Informed correctors for discrete diffusion models. 
+
+Preprint , arXiv:2407.21243. 
+
+9Kaiwen Zheng, Yongxin Chen, Hanzi Mao, Ming-Yu Liu, Jun Zhu, and Qinsheng Zhang. 2024. Masked diffusion models are secretly time-agnostic masked models and exploit inaccurate categorical sampling. 
+
+Preprint , arXiv:2409.02908. Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica. 2023. Judging LLM-as-a-judge with MT-bench and chatbot arena. In Advances in Neural Information Processing Sys-tems , volume 36, pages 46595–46623. 
+
+10 Appendix A. Additional Remasking Comparisons 64 128 256 512 1024 2048 
+
+> Forward passes
+> 10 1
+> 10 2
+> 10 3
+> Perplexity ↓
+
+Perplexity under heuristic remasking      
+
+> 64 128 256 512 1024 2048
+> Forward passes
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> 4.5
+> 5.0
+> 5.5
+> 6.0
+> Entropy ↑
+
+Entropy under heuristic remasking 
+
+> PRISM
+> NAVIRA-det
+> Entropy remasking
+> Margin remasking
+
+Figure 3: Comparison between PRISM, NAVIRA-DET , and basic Dream-style remasking baselines on the 170M MDM. NAVIRA-DET achieves the best overall quality–diversity trade-off, while the entropy- and margin-based heuristics exhibit strong entropy collapse as the number of forward passes grows. 64 128 256 512 1024 2048 
+
+> Forward passes
+> 10 1
+> Perplexity ↓
+
+Perplexity under stochastic remasking      
+
+> 64 128 256 512 1024 2048
+> Forward passes
+> 3.0
+> 3.5
+> 4.0
+> 4.5
+> 5.0
+> 5.5
+> Entropy ↑
+
+Entropy under stochastic remasking 
+
+> PRISM
+> NAVIRA-det
+> PRISM stochastic
+> NAVIRA
+
+Figure 4: Deterministic versus stochastic remasking without temperature scheduling. Stochastic NAVIRA substan-tially increases entropy for both PRISM and NAVIRA-DET , but incurs a noticeable perplexity cost, indicating that naive stochasticity alone does not resolve the quality–diversity trade-off. 
+
+Appendix B. LLM-as-a-Judge Evaluation Prompt 
+
+For LLM-based evaluation, we use the following fixed prompt for all generated samples: 
+
+You are an impartial expert evaluator for generated text. Evaluate the following text on a scale from 1 to 10 for: 1. Clarity 2. Grammaticality 3. Factuality 4. Style 5. Creativity Generated text: {text} Return ONLY valid JSON in exactly this format: {"clarity": float, "grammaticality": float, 
+
+11 "factuality": float, "style": float, "creativity": float }
+
+Appendix C. Additional LLM-as-a-Judge Results 64 128 256 512 1024 
+
+> Forward passes
+> 2.6
+> 2.8
+> 3.0
+> 3.2
+> 3.4
+> 3.6
+> Mean score ↑
+
+Mean score     
+
+> 64 128 256 512 1024
+> Forward passes
+> 1.5
+> 2.0
+> 2.5
+> Factuality ↑
+
+Factuality     
+
+> 64 128 256 512 1024
+> Forward passes
+> 2.75
+> 3.00
+> 3.25
+> 3.50
+> 3.75
+> 4.00
+> 4.25
+> Grammaticality ↑
+
+Grammaticality    
+
+> PRISM NAVIRA-det PRISM stochastic NAVIRA sigmoid
+
+Figure 5: LLM-as-a-judge evaluation using Qwen3-235B-A22B-Instruct-2507. Stochastic NAVIRA with sigmoid scheduling achieves the strongest overall scores across most inference budgets, particularly in grammaticality and overall generation quality. 
+
+Method Mean score Clarity Grammar Factuality Style Creativity 64 forward passes NAVIRA + sigmoid 3.212 2.630 3.522 1.752 3.465 4.692 
+
+NAVIRA-DET 3.073 2.605 3.397 1.850 3.180 4.332 PRISM stochastic 2.559 2.080 2.822 1.118 2.748 4.026 128 forward passes NAVIRA + sigmoid 3.519 2.980 4.035 1.965 3.780 4.835 
+
+NAVIRA-DET 3.319 2.850 3.822 2.040 3.417 4.465 PRISM 3.288 2.690 3.822 1.995 3.488 4.442 PRISM stochastic 3.168 2.560 3.476 1.690 3.424 4.688 256 forward passes NAVIRA + sigmoid 3.675 3.120 4.282 2.188 3.905 4.883 PRISM stochastic 3.573 2.880 3.942 2.118 3.910 5.016 
+
+NAVIRA-DET 3.287 2.795 3.882 2.183 3.283 4.290 PRISM 3.286 2.700 3.825 1.998 3.493 4.415 512 forward passes NAVIRA + sigmoid 3.586 2.990 4.125 2.190 3.808 4.817 PRISM stochastic 3.528 2.932 4.020 2.046 3.706 4.936 
+
+NAVIRA-DET 2.960 2.355 3.458 2.335 2.688 3.965 1024 forward passes NAVIRA + sigmoid 3.660 3.000 4.228 2.620 3.752 4.702 PRISM stochastic 3.485 2.804 3.728 2.374 3.350 5.168 
+
+PRISM 3.126 2.510 3.757 2.090 3.058 4.217 NAVIRA-DET 2.774 2.125 3.152 2.833 2.303 3.458 
+
+Table 3: LLM-as-a-judge evaluation using Qwen3-235B-A22B-Instruct-2507. We report average subjective scores over 1000 generated samples for each decoding configuration. Stochastic NAVIRA with sigmoid scheduling consistently achieves the strongest overall quality assessments across most inference budgets. 
+
+12

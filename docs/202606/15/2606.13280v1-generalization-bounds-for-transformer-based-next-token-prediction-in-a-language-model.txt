@@ -1,0 +1,9519 @@
+Title: Generalization Bounds for Transformer-Based Next-Token Prediction in a Language Model
+
+URL Source: https://arxiv.org/pdf/2606.13280v1
+
+Published Time: Fri, 12 Jun 2026 00:54:15 GMT
+
+Number of Pages: 74
+
+Markdown Content:
+# Generalization Bounds for Transformer-Based Next-Token Prediction in a Language Model 
+
+## Insung Kong, Niklas Dexheimer, Johannes Schmidt-Hieber 
+
+## Department of Applied Mathematics, University of Twente 
+
+Abstract 
+
+A refined statistical understanding of LLM pre-training requires the analysis of the transformer ar-chitecture for data distributions that encapsulate key characteristics of text data. To address this, we propose a text data distribution based on an extension of the log-bilinear language model from the natural language processing literature. For this data generating process, we derive generalization bounds for deep transformer architectures, highlighting the dependence on the network architecture, the vocabulary size, the number of documents and the document length. 
+
+# 1 Introduction 
+
+Recent progress in statistical learning theory shows that the success of different neural network architectures can be explained by their respective inductive biases. Deep (feedforward) neural networks (DNNs) are naturally studied within the classical supervised learning paradigm and a well-studied inductive bias is the ability of DNNs to learn compositional structure in the target function [6, 61, 43, 59, 29, 57]. Similarly, convolutional neural networks (CNNs) originate from image classification problems. Statistical theory can reveal distinctive properties of CNNs if studied for a statistical image classification model [41, 38, 14, 42, 44]. Transformer architectures are at the heart of the current AI revolution. Because they are far more complex than standard feedforward networks, their generalization guarantees remain less understood. There is, however, an impressive line of very recent work studying transformers within the standard supervised learning framework and relating them to conventional models, such as kernel-based estimators or DNNs [22, 40, 69, 24, 62, 30, 46, 65, 64]. In this work, we argue that in order to unravel the specific inductive biases of LLM pre-training, a natural next step is to base the transformer analysis on statistical models for text data. Text data occur as a collection of documents, where each document is a sequence of words or tokens. During pre-training, the task is to learn predicting the next word/token in the sequence. This means to learn a conditional probability mass function on a discrete space. The specific structure of text induces constraints on the conditional probabilities. Inspired by the log-bilinear language model proposed in Mnih and Hinton [54], we introduce 1
+
+> arXiv:2606.13280v1 [math.ST] 11 Jun 2026
+
+a new statistical model for text data that we call the nonparametric two-factor (N2F) language model. The N2F language model incorporates key characteristics of text by assuming that the conditional probabilities are a product of two (unobserved) factors, where the first factor is universal, and the second factor depends on a latent context function that changes from document to document. Both factors involve unknown functions, which makes the next word/token prediction problem nonparametric. Learning the first function requires aggregating information across all available documents, whereas learning the second factor only relies on the data in an individual document and bears some resemblance with the in-context learning task. We quantify moreover to which extent the inductive bias of the transformer architecture allows learn-ing next word/token prediction in the proposed N2F language model. To this end, we consider fitting a transformer architecture to data generated from the N2F language model, closely following the transformer architectures applied in practice. In particular, the analyzed architecture incorporates word encoding, posi-tional encoding, the standard multi-head self-attention layers with the softmax function, and the possibility to stack different transformer blocks on top of each other. Studying minimization of the cross-entropy loss, our main result (Theorem 1) is a risk bound (generalization guarantee) for the transformer applied to the proposed statistical model for next-word/token prediction. It reveals the dependence of the risk on the various size parameters of the transformer architecture, the hardness of the underlying learning problem, and two quantities related to the uniformity of the word embeddings. By optimizing the size parameters of the transformer architecture, nonparametric rates for estimating the two functions in the N2F model occur (Corollary 2). As the vocabulary size W is large, we argue that one has to include it into the asymptotics, revealing an intricate interplay between W and the convergence rates associated to the function learning problems. The proof of the generalization bound relies on an oracle inequality that decomposes the overall risk in an approximation error and a stochastic term. While the connection between the self-attention layer and the Nadaraya–Watson estimator has been made earlier for the in-context regression problem [63], a new technical difficulty of our construction is to identify a Nadaraya–Watson estimator which can be used to estimate the second factor in the proposed N2F language model and to prove that the transformer can approximate it. The analysis requires to derive convergence rates for the Nadaraya–Watson estimator under dependent data generated from a Markov chain supported on a discrete state space and under a non-standard smoothness constraint, as we can only guarantee H¨ older smoothness of the ℓ2-normalized function, see Section 5 for more details. The article is structured as follows. Section 2 discusses relevant aspects of statistical text modeling and introduces the new statistical model for next-word/token prediction. In Section 3, the transformer class is formally introduced. The assumptions and the risk bounds are given in Section 4 together with an outline of the main steps in the proof. The main contribution is the control of the approximation error using transformers and key steps of the construction are explained in Section 5. All related work is discussed in Section 6. Detailed proofs are deferred to the appendices. 21.1 Notation 
+
+We use standard notation for sets, N := {1, 2, . . . }, N0 := {0, 1, . . . }, [ n] := {1, 2, . . . , n }, Bm := {x ∈
+
+Rm, ∥x∥2 ≤ 1}, Sm−1 := {x ∈ Rm, ∥x∥2 = 1 }, and ∆ m−1 := {x ∈ [0 , 1] m, ∥x∥1 = 1 }. We write log( ·)for the natural logarithm and define x ∨ y := max( x, y ) as well as x ∧ y := min( x, y ). Vectors, matrix-valued and vector-valued functions are denoted by bold letters. We adopt the notation 0d = (0 , . . . , 0) ⊤ ∈ Rd and 
+
+1d = (1 , . . . , 1) ⊤ ∈ Rd. Unless otherwise specified, ej := (0 , . . . , 1, 0, . . . , 0) ⊤ ∈ RW denotes the j-th standard basis vector, and we define EW := {e1, . . . , eW } ⊂ RW . For v1, . . . , v d ∈ R, we write ( vi)i∈[d] := ( v1, . . . , v d)⊤
+
+and v(i) refers to the i-th entry of a vector v. For column vectors v1, . . . , vm, the stacked column vector is stack( v1, . . . , vm) := ( v⊤ 
+
+> 1
+
+, . . . , v⊤
+
+> m
+
+)⊤. Its length is the sum of the lengths of v1, . . . , vm. Column-wise concate-nation yields the matrix ( vi)i∈[m] := [ v1, v2, . . . , vm] whose columns are v1, . . . , vm (assuming they are all of the same length). For a matrix A, we denote its t-th column by A:,t . For vector or matrix-valued functions 
+
+f , we define ∥f ∥L∞(D) := sup x∈D ∥f (x)∥∞ with ∥ · ∥ ∞ the maximum entry vector/matrix norm. We write 
+
+f (n) ≲ g(n) if f (n) ≤ Cg (n) for some constant C > 0, and f (n) ≍ g(n) if f (n) ≲ g(n) and f (n) ≳ g(n). In addition, we write f (n) = ˜O(g(n)) if f (n) ≤ Cg (n) log k g(n) for some constant C > 0 and k > 0. Similarly, we write f (n) = ˜Ω( g(n)) if f (n) ≥ Cg (n) log −k g(n) for some constant C > 0 and k > 0. If f (n)/g (n) → 0, we write f (n) ≪ g(n). For real numbers a < b , we write P 
+
+> t∈[a,b ]
+
+:= P
+
+> t∈([ a,b ]∩Z)
+
+. We denote by •m an 
+
+m-dimensional vector with unspecified entries. 
+
+# 2 Statistical modeling of next-token prediction 
+
+## 2.1 Background 
+
+Statistical next word prediction models the conditional probability distribution of the next word given a sequence of words. The string ‘Yesterday, the weather’ should very likely be continued with ’was’ . In this case, the last words contain all the information for predicting the next word. However, to continue 
+
+‘Yesterday, the weather was’ might be continued by ‘nice’ or ‘bad’ . Without any further context, the next word has to be sampled from a distribution of all possible continuations. The string ‘We went to a nearby bar. We met some friends that we didn’t see in a long time and ordered a ...’ should be continued with ‘beer’, ‘cocktail’, ‘glass of wine’, ... . If one only includes the last words for the prediction of the next word, one would have forgotten that the scene happens in a bar, and the string could also be continued by ‘three course menu’ . From a statistical modeling perspective, one can either assume that there is a form of long-range dependence in documents that causes certain words (e.g., ‘bar’ ) to be-come relevant for the next word prediction much later in documents. Alternatively, one can assume that each document is associated with a latent context that induces a different conditional probability distribution for the next word given the previous words. In the example above, the context could be ‘friends in a bar’, which would then put more mass on words such as ‘beer’, ‘wine’, ... in the next word prediction problem 3above. While long-memory can be incorporated via a frequentist model, we could also imagine a document to be generated hierarchically by first drawing a latent context and then sampling tokens conditionally on the context. The randomly sampled context gives this modeling approach a Bayesian flavor. In this paper, we adopt the latent context modeling approach [20, 72]. Let 
+
+EW := {e1, . . . , eW }
+
+denote the set of token candidates, where each token is represented by a W -dimensional standard basis vector. To generate a document, a context function f : ( EW )r → RW is first drawn from some distribution. Given f ,the probability that w is the next token Xt+1 following the tokens ( X1, . . . , Xt) is 
+
+P
+
+
+
+Xt+1 = ew f , X1, . . . , Xt
+
+
+
+∝ exp 
+
+
+
+f (Xt−r+1 , . . . , Xt)
+
+
+
+, w ∈ [W ]. (1) The goal is to estimate the conditional distribution of XT +1 |X1, . . . , XT given a collection of documents. This requires estimating the transition probabilities of a discrete Markov chain of order r. Classical methods include the r-gram estimator 
+
+bp w|X1, . . . , XT
+
+ := 
+
+n
+
+t ∈ { r, . . . , T − 1} : ( Xt−r+1 , . . . , Xt, Xt+1 ) = ( XT −r+1 , . . . , XT , ew)
+
+on
+
+t ∈ { r, . . . , T − 1} : ( Xt−r+1 , . . . , Xt) = ( XT −r+1 , . . . , XT )
+
+o (2) (with tuning parameter r = 1 , 2, . . . ) and Kneser–Ney smoothing [37]. Each r-gram ( ew1 , . . . , ewr ) ∈ (EW )r
+
+is expected to appear T /W r times on average in a document of length T such that, without imposing any structural constraint, the convergence rate is ≳ W r /T (see Theorem 5 of [23] for the stronger lower bound ˜Ω( W r+1 /T )). The vocabulary size W in large language models is typically in the range 3 × 10 4 to 10 5, and cannot be regarded as negligible. However, these arguments ignore that the transition probabilities are highly structured objects. Without assumption on the context function f , we cannot achieve a better convergence rate than a r-gram estimator, even when learning a model (e.g., a transformer) from a training dataset composed of multiple documents, as each document is associated with a different context function f . For this reason, we introduce assumptions on f through (i) token embeddings and (ii) a decomposition into a linguistic function and a context function. The embedding of tokens into the m-dimensional Euclidean space should map semantically similar words to nearby points in the embedding space, causing the conditional probabilities in the language model to take similar values. Although words form a discrete subset of Rm, this representation allows us to impose smoothness. A key example is the log-bilinear language model by Mnih and Hinton [54], assuming 
+
+P Xt+1 = ew X1, X2, . . . , Xt
+
+ ∝ exp ℓ0
+
+
+
+ϕ(X1), . . . , ϕ(Xt)
+
+⊤
+
+ϕ(ew)
+
+!
+
+.
+
+Here, ϕ : EW → Rm is an embedding, and ℓ0 : Rm×t → Rm is an affine map shared across all documents. Although we model latent context via a random score function f in (1), one may expect that score functions across different documents share common basic linguistic structure, since their short-range dependencies are 4largely invariant across documents. For example, ‘Yesterday, the weather was’ is likely to be followed by 
+
+‘nice’ or ‘bad’ but not by ‘cat’ or ‘attacked’ , regardless of the overall context of a document. Motivated by this intuition, we decompose the score function into a linguistic function and a context function, which capture short-range dependencies and latent context, respectively. 
+
+## 2.2 Data generating process 
+
+As transformers are commonly applied to tokens, we refer to the states as tokens. Tokens are coded as standard basis vectors and are therefore elements of EW := {e1, . . . , eW }. For fixed but unknown m1 ∈ N
+
+and m2 ∈ { 2, 3, . . . , }, we assume that there exist unknown token embeddings 
+
+ϕ1 : EW → [−1, 1] m1 and ϕ2 : EW → Sm2−1, (3) mapping the tokens e1, . . . , eW to the hypercube [ −1, 1] m1 and the unit sphere Sm2−1 ⊂ Rm2 . We call ϕ1 the 
+
+linguistic embedding , and ϕ2 the context embedding . To facilitate the analysis, we will impose in Definition 4.1 regularity conditions ensuring that the context embedding vectors ϕ2(e1), . . . , ϕ2(eW ) are (almost) uniformly located on the unit sphere Sm2−1.Furthermore, we assume that the information of the last r1 tokens can be mapped to a cube through a 
+
+universal linguistic function g0 : [ −1, 1] m1r1 → [−δ1, δ 1]m1 , for some δ1 > 0. (4) To account for varying contexts across texts, we further assume that each token is associated with a 
+
+local context function h : [ −1, 1] m2r2 → δ2Sm2−1, for some δ2 > 0. (5) Throughout the paper, we do not track the dependence on ( m1, m 2, r 1, r 2, δ 1, δ 2) and treat them as constants. To generate a document, a context function h is first drawn from a distribution supported on a function class H ⊂ { h : Rm2r2 → δ2Sm2−1}. Given h, we assume that the probability that w is the next token Xt+1 
+
+following the tokens ( X1, . . . , Xt) is 
+
+P Xt+1 = ew h, X1, . . . , Xt
+
+
+
+∝ exp 
+
+
+
+g0
+
+
+
+ϕ1(Xt−r1+1 ), . . . , ϕ1(Xt)
+
+⊤
+
+ϕ1(ew) + h
+
+
+
+ϕ2(Xt−r2+1 ), . . . , ϕ2(Xt)
+
+⊤
+
+ϕ2(ew)
+
+
+
+,
+
+(6) setting ϕ1(Xs) := 0m1 and ϕ2(Xs) := 0m2 whenever s ≤ 0. We refer to this as the nonparametric two-factor (N2F) language model. 
+
+The function representation is, in general, non-unique, as there could be different pairs ( g0, h) leading to the same probability distribution. While the model captures characteristics of text data, it is not intended as a model to generate text. For instance, the next-token distribution is typically supported on a sparse subset of all tokens, giving rise to negligible probabilities for most tokens. To incorporate this in the N2F model would require that the right hand side in (6) can change by orders of magnitude, violating the boundedness constraints ∥g0∥∞ ≤ δ1 and ∥h∥2 ≤ δ2. Instead, the N2F language model should be considered as a starting 5point for a statistical learning type analysis of text data focusing on the ability of transformers to quickly learn the context from individual documents. The training data consist of n independent training documents of length T + 1, 
+
+ X(i)1 , . . . , X(i) 
+
+> T+1
+
+, i = 1 , . . . , n. 
+
+In particular, each of the n documents is generated by first independently sampling a context function h ∈ H ,and then recursively generating tokens from the probabilistic model (6). In practice, the task is to always use the previous tokens to predict the next token for the whole document. For the theory, we only do this for the last token. Specifically, the considered task is to predict the ( T + 1)-st token distribution given the first T tokens, where the predictor bp belongs to 
+
+P0 := {p : ( EW )T → ∆W −1}, with (EW )T := EW × . . . × E W
+
+| {z } 
+
+> Ttimes
+
+.
+
+For any (new) document ( X1, . . . , XT +1 ) generated from the same distribution as the training samples, 
+
+bp(X1, . . . , XT )is an approximation of the true conditional distribution 
+
+p0(h, X1, . . . , XT ) := 
+
+
+
+P XT +1 = ew h, X1, X2, . . . , XT
+
+ 
+
+> w∈[W]
+
+. (7) Although bp(X1, . . . , XT ) does not get any direct information of the latent function h as input, the estimator can learn an approximation bh of h from the token sequence ( X1, . . . , XT ). Given N independently generated test documents 
+
+ X(i)1 , . . . , X(i) 
+
+> T+1
+
+, i = n + 1 , . . . , n + N, 
+
+drawn from the same distribution as the training data, the statistical task it to evaluate how well, in average, the estimator bp allows us to predict the ( T + 1)-st token from the first T tokens. The corresponding test error (also referred to as log-perplexity in the NLP literature) is given by 
+
+− 1
+
+N
+
+> n+N
+
+X
+
+> i=n+1
+
+X(i)⊤  
+
+> T+1
+
+log  bp(X(i)1 , . . . , X(i) 
+
+> T
+
+).
+
+With p0(h, X1, . . . , XT ) as defined in (7) and using that XT +1 is one-hot encoded, the associated population risk is 
+
+−Etest 
+
+h
+
+X⊤  
+
+> T+1
+
+log  bp(X1, . . . , XT )i
+
+= Etest 
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤  
+
+> T+1
+
+bp(X1, . . . , XT )
+
+
+
+− Etest 
+
+h
+
+X⊤  
+
+> T+1
+
+log  p0(h, X1, . . . , XT )i (8) for an independently sampled ( h, X1, . . . , XT +1 ) that has the same distribution as the training documents. The first term on the right hand side is the expected Kullback–Leibler divergence between the conditional distributions of XT +1 given ( h, X1, . . . , XT ), and the second term does not depend on the estimator. Hence, the first term serves as the excess (population) risk. 63 The transformer function class 
+
+We provide a mathematical definition of the individual components of the transformer architecture, which then leads to the mathematical definition of the transformer function class at the end of the section. 
+
+Definition 3.1 (Softmax) . For a vector x = ( x1, . . . , x d)⊤, the softmax function is defined as 
+
+softmax( x) := 
+
+ exp( x1)
+
+Pdi=1 exp( xi) , . . . , exp( xd)
+
+Pdi=1 exp( xi)
+
+⊤
+
+.
+
+If the input is a d × T matrix, the softmax function is applied row-wise, 
+
+softmax  (xi,t )i,t 
+
+ := 
+
+ exp( xi,t )
+
+PTt=1 exp( xi,t )
+
+
+
+> i,t
+
+.
+
+Definition 3.2 (Self-attention) . Given a dimension N ∈ N and learnable matrices U, V ∈ RN ×N , the output of a self-attention layer with input X ∈ RN ×T is given by 
+
+SA U,V (X) := V X softmax  X⊤U X  ∈ RN ×T .
+
+For B > 0, we define the class of self-attention layers with bounded parameters 
+
+SA (N, B ) := 
+
+n
+
+SA U,V : U, V ∈ [−B, B ]N ×N o
+
+.
+
+For a matrix input X := ( x1, . . . , xT ) ∈ RN ×T , the t-th column of SA U,V (X) can be written as SA U,V (X):,t =
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) V xs. (9) The original definition of the self-attention layer further factorizes the matrix U as K⊤Q with K the so-called key matrix and Q the so-called query matrix. For notational simplicity, we directly work here with the matrix product. 
+
+Definition 3.3 (Multi-head self-attention) . Given a dimension N ∈ N, number of heads H ∈ N, B > 0,
+
+W ∈ [−B, B ]N ×N and f1, . . . , f H ∈ SA (N, B ), the output of a multi-head self-attention layer with input 
+
+X ∈ RN ×T is given by 
+
+MA f1,...,f H (X) := X +
+
+> H
+
+X
+
+> h=1
+
+fh(X) ∈ RN ×T .
+
+The class of multi-head self-attention layers with bounded parameters is 
+
+MA (N, H, B ) := 
+
+n
+
+MA f1,...,f H : f1, . . . , f H ∈ SA (N, B )
+
+o
+
+.
+
+The function class MA (N, H, B ) has H(N 2 + N 2) = 2 HN 2 many parameters. 
+
+Definition 3.4 (Multilayer perceptron) . Given input and output dimensions din , d out ∈ N, depth Lmlp ∈ N
+
+and width Nmlp ∈ N, let MLP θ : Rdin → Rdout be a multilayer perceptron parameterized by θ, with Lmlp 
+
+7hidden layers, Nmlp neurons in each hidden layer and the ReLU activation function x 7 → x ∨ 0. For B > 0,we define 
+
+MLP  din , d out , L mlp , N mlp , B  := 
+
+n
+
+MLP θ : Rdin → Rdout MLP θ has depth Lmlp , width Nmlp , and ∥θ∥∞ ≤ B
+
+o
+
+.
+
+For sequential input X := ( x1, . . . , xT ) ∈ RN ×T , the output of the multilayer perceptron is given by 
+
+MLP θ (X) := 
+
+
+
+MLP θ (x1), . . . , MLP θ (xT )
+
+
+
+.
+
+The formal definition of multilayer perceptrons is deferred to Appendix E.2. For simplicity, we omit skip connections in the MLP layers. However, our results can be readily extended to models with skip connections (e.g., see Lemma B.3 of [49]). 
+
+Definition 3.5 (Transformer block) . For N, H, L mlp , N mlp ∈ N and B > 0, we define the class of transformer blocks 
+
+T B (N, H, L mlp , N mlp , B ) := 
+
+n
+
+h ◦ g : g ∈ MA (N, H, B ), h ∈ MLP (N, N, L mlp , N mlp , B )
+
+o
+
+.
+
+The multi-head self-attention has 2 HN 2 learnable parameters and the multilayer perceptron has ( N +1) Nmlp + ( Lmlp − 1)( Nmlp + 1) Nmlp + ( Nmlp + 1) N many learnable parameters. Hence, the number of parameters of the transformer block is 2HN 2 + 2 N N mlp + ( Lmlp − 1) N 2mlp + Lmlp Nmlp + N. (10) For an input matrix 
+
+X := x1, x2, . . . , xT
+
+ ∈ RW ×T ,
+
+we consider a transformer model T with L transformer blocks, model dimension N , attention layers with H
+
+heads, multilayer perceptrons with depth Lmlp and width Nmlp , and parameter range B. The output of this model can be represented as 
+
+f (X) = 
+
+
+
+D · TB L ◦ · · · ◦ TB 1(P + EX )
+
+
+
+> :,T
+
+∈ RW . (11) For each ℓ ∈ [L], TB ℓ ∈ T B (N, H, L mlp , N mlp , B ) is a transformer block, composed with a multi-head self-attention with H heads and a multilayer perceptron with depth Lmlp and width Nmlp . Here, E ∈ [−B, B ]N ×W
+
+and D ∈ [−B, B ]W ×N are learnable encoding and decoding matrices, respectively. The positional encoding matrix P ∈ RN ×T is not learnable. Following the original transformer paper [73], we use the following multi-scale sinusoidal positional encoding. 
+
+Definition 3.6 (Positional encoding) . For A ≤ N/ 2, we define the positional encoding matrix P ∈ RN ×T as 
+
+P := 
+
+0N −2A . . . 0N −2A
+
+q1 . . . qT
+
+ , qt := 
+
+
+
+q1,t 
+
+q2,t 
+
+...
+
+qA,t 
+
+
+
+, qa,t := 
+
+sin   tT a/A 
+
+
+
+cos   tT a/A 
+
+ .
+
+Throughout the paper, we assume that N is a multiple of 4 and set A := N/ 4.
+
+8Figure 1: Illustration of the multi-scale sinusoidal positional encoding defined in Definition 3.6 for A = 10 and T = 20. For each a ∈ [A], the vectors qa,t = (sin( t/T a/A ), cos( t/T a/A )) ⊤, t = 1 , . . . , T , lie on the unit circle, with smaller a corresponding to faster rotation. Figure 1 shows an illustration of the positional encoding defined above. The positional encoding is necessary in the transformer architecture because all other operators (multi-head self-attention, multilayer perceptron, encoder and decoder) are permutation invariant 1. Most existing works on the statistical analysis of transformers employ the single-scale sinusoidal positional encoding (i.e., A = 1). For our analysis, it is crucial to use instead the multi-scale sinusoidal positional encoding with a sufficiently large A. In partic-ular, this reduces the magnitude of the parameters from polynomial order in T to logarithmic order when approximating the hardmax function by the softmax function in the self-attention layer, see Remark 2. In the definition of qq,t , T can be replaced by any Tmax with Tmax ≥ T . Although this formulation is more natural, we take Tmax = T for notational simplicity. We now give the final definition of the transformer function class used in this paper. 
+
+Definition 3.7 (Transformer function class) . We define 
+
+T  W, T, L, N, H, L mlp , N mlp , B  := 
+
+n
+
+f : ( RW )T → RW has the form (11) with E, D ⊤ ∈ [−B, B ]N ×W
+
+and TB 1, . . . , TB L ∈ T B (N, H, L mlp , N mlp , B )
+
+o
+
+.
+
+In addition, we define the class of clipped transformer networks for M > 0 as 
+
+TM
+
+ W, T, L, N, H, L mlp , N mlp , B  := 
+
+n
+
+clip M ◦ f : f ∈ T  W, T, L, N, H, L mlp , N mlp , B o
+
+,
+
+where clip M : x 7 → (−M ∨ x) ∧ M is applied element-wise. 
+
+By (10), the number of learnable parameters in the (clipped) transformer class is 2W N + L
+
+
+
+2HN 2 + 2 N N mlp + ( Lmlp − 1) N 2mlp + Lmlp Nmlp + N
+
+
+
+. (12)             
+
+> 1f:Rd×T→Rd′×Tis permutation invariant if f(Π X) = Π f(X) for any column-wise permutation operator Π and X∈Rd×T.
+
+94 Risk bound 
+
+Regularity conditions in fixed design settings are commonly imposed in nonparametric statistics (e.g., see [71]). As mentioned in Section 2, we require the context embedding vectors ϕ2(e1), . . . , ϕ2(eW ) to be regularly spaced on the unit sphere. The regularity is measured by the function φW and the quantity κW .
+
+Definition 4.1. Let φW : (0 , ∞) → (0 , 1] and κW > 0 be given by 
+
+φW (ϵ) := inf  
+
+> w∈[W]
+
+1
+
+W
+
+w′ ∈ [W ] : ∥ϕ2(ew) − ϕ2(ew′ )∥2 ≤ ϵ
+
+and 
+
+κW := sup 
+
+> v∈δ2Sm2−1
+
+PWw=1 exp  v⊤ϕ2(w)ϕ2(w)
+
+PWw=1 exp  v⊤ϕ2(w) −
+
+R 
+
+> z∈Sm2−1
+
+exp( v⊤z)zdz
+
+R 
+
+> z∈Sm2−1
+
+exp( v⊤z)dz 2
+
+.
+
+By definition, φW (ϵ) ≥ 1/W holds for any ϵ ∈ (0 , ∞). In addition, if ϕ2(e1), . . . , ϕ2(eW ) are independent and identically distributed samples from the uniform distribution on Sm2−1 with m2 ≥ 3, then a covering number argument yields the following assumption with high probability; see Appendix B for detail. 
+
+Assumption 1. For any ϵ > 0 with W − 1 
+
+> m2−1
+
+log W ≤ ϵ ≪ 1,
+
+φW (ϵ) = ˜Ω( ϵm2−1) and κW = ˜O(W −1/2),
+
+where ˜Ω, ˜O denote the lower/upper bounds for the rate up to log-factors (see section on notation for precise definitions). 
+
+The token probabilities following the sequences ‘I am very glad to’ and ‘I feel really happy to’ 
+
+should be similar. To this end, we impose the H¨ older smoothness assumption on the linguistic function g0
+
+and the context function h. This guarantees that if ϕ1(xs) ≈ ϕ1(x′
+
+> s
+
+) for t − r1 + 1 ≤ s ≤ t, then 
+
+g0
+
+ ϕ1(xt−r1+1 ), . . . , ϕ1(xt) ≈ g0
+
+ ϕ1(x′
+
+> t−r1+1
+
+), . . . , ϕ1(x′
+
+> t
+
+),
+
+and the same holds for ϕ2 and h.
+
+Definition 4.2 (β-H¨ older smooth functions) . Let β = q + s for some q ∈ N0 and s ∈ (0 , 1] . The β-H¨ older norm of a function f = ( f1, . . . , f d)⊤ : [ −1, 1] d → Rd′
+
+is defined as 
+
+∥f ∥Cβ := max 
+
+> j∈[d′]
+
+ X
+
+> α∈Nd
+> 0
+> α:∥α∥1≤q
+
+∥∂αfj ∥∞ + X
+
+> α∈Nd
+> 0
+> α:∥α∥1=q
+
+sup  
+
+> x1,x2∈[−1,1] d
+> x1̸=x2
+
+|∂αfj (x1) − ∂αfj (x2)|∥x1 − x2∥s
+
+> ∞
+
+
+
+.
+
+We say that a function f is β-H¨ older smooth if ∥f ∥Cβ exists and is finite. 
+
+Assumption 2. (i) ∥g0∥Cβ1 < ∞ for some β1 > 0, and (ii) sup h∈H ∥h∥Cβ2 < ∞ for some β2 ∈ (0 , 1] .
+
+Any function on a finite discrete domain can be extended to a H¨ older-smooth function on a continuous domain with finite H¨ older norm. Therefore, the H¨ older smoothness assumption is only meaningful on a discrete domain if one considers joint asymptotics where also the vocabulary size W grows. 10 For a class of candidate functions P ⊂ P 0, we consider the empirical risk minimizer bp with respect to the cross-entropy loss, that is, 
+
+bp ∈ argmin 
+
+> p∈P
+
+− 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+X(i)⊤  
+
+> T+1
+
+log  p(X(i)1 , . . . , X(i) 
+
+> T
+
+), (13) where the logarithm is applied componentwise. As we control the stochastic fluctuation using the multiclass classification oracle inequality in [13], one could moreover incorporate the optimization error in the analysis. For notational simplicity, we only consider the empirical risk minimizer. In particular, we consider 
+
+P =
+
+n
+
+softmax ◦ f : f ∈ T M
+
+ W, T, L, N, H, L mlp , N mlp , B o
+
+(14) as the class of candidate functions in (13). We further assume that the transformer class is sufficiently large as follows. 
+
+Assumption 3. (L, N, H, L mlp , N mlp , B, M ) satisfies 
+
+L ≥ 2, N ≥ 8 log T, H ≥ r1 + r2, Nmlp ≥ N ∨ T α, Lmlp ≥ log 3(Nmlp ∨ T ),B ≥ 9 log 2 T, M ≥ δ1m1 + δ2
+
+for some α > 0.
+
+We now present the main result of this paper. It provides convergence rates for the expected excess risk (8) of transformer-based next-token prediction models. 
+
+Theorem 1. Suppose that Assumptions 2 and 3 hold and that κW ≤ (1 + m2/δ 2)−1/2. For sufficiently large 
+
+n, W, and T , the empirical risk minimizer (13) with the candidate class (14) satisfies 
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤  
+
+> T+1
+
+bp(X1, . . . , XT )
+
+
+
+= ˜O
+
+ M (W N + HLN 2 + LL mlp N 2mlp + L2Lmlp + log B)
+
+n
+
++ N − 4β1 
+
+> m1r1
+> mlp
+
++ inf    
+
+> λ∈[T−1,log −1(W∧T)]
+
+
+
+λ2β2 + M 2
+
+T φ W (λ)r2
+
+
+
++ κ2
+
+> W
+
+
+
+,
+
+where the expectation is taken over all randomness (training data and (h, X1, . . . , XT )). The implicit constant depends only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 1, β 2, ∥g0∥Cβ1 , sup h∈H ∥h∥Cβ2 ).
+
+The first line on the right-hand side represents the stochastic error. This term increases with the model size but can be controlled by taking a sufficiently large sample size n, i.e., by using more training documents. The second line corresponds to the approximation error. In particular, the first term N −4β1/(m1r1)mlp corresponds to approximating the universal linguistic function g0, which can be controlled by increasing the width of the transformer. The remaining terms of the error bound originate from the learning of the context function h. Since h is random, it cannot be directly used in constructing the transformer for approximation and must instead be estimated from the data. In the proof, we construct a Nadaraya–Watson estimator with bandwidth λ whose 11 direction converges to that of h. The term involving the infimum arises from the bias-variance trade-off of the estimator and decreases as T increases. Finally, the κW term appears due to the discreteness of the token embeddings and is typically negligible under mild assumptions (e.g., Assumption 1). We want to stress again, that as we apply the risk bound in Theorem 3.5 of [13], one can go beyond the analysis of the empirical risk minimizer at the cost of an additional optimization error term in the rate. The following corollary follows from Theorem 1 by additionally imposing Assumption 1 and selecting an appropriate range of transformer architectures. 
+
+Corollary 2. Suppose Assumptions 1, 2 and 3, and further assume that there exists k > 0 such that 
+
+max( L, N, H, L mlp , B, M ) ≲ log k(n ∨ W ∨ T ) and Nmlp ≍ n m1r12(2 β1+m1r1) . (15) 
+
+For sufficiently large n, W, and T with T ≥ log W , the empirical risk minimizer (13) with the candidate class 
+
+(14) satisfies 
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤  
+
+> T+1
+
+bp(X1, . . . , XT )
+
+
+
+= ˜O
+
+ Wn + n− 2β12β1+m1r1 + T − 2β22β2+( m2−1) r2 + W − 2β2
+
+> m2−1
+
+
+
+,
+
+where the expectation is taken over all randomness (training data and (h, X1, . . . , XT )). The implicit constant depends only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 1, β 2, ∥g0∥Cβ1 , sup h∈H ∥h∥Cβ2 ).Proof. The result follows from Theorem 1 for the choices in (15), using Assumption 1, and by choosing 
+
+λ = T − 12β2+r2(m2−1) ∨ W − 1 
+
+> m2−1
+
+log W. 
+
+The error term W/n corresponds to learning the word embeddings ϕ1 : EW → Rm1 and ϕ2 : EW →
+
+Rm2 . It scales linearly in the vocabulary size W and can be effectively controlled by using a sufficiently large training set. The error term n− 2β12β1+m1r1 relates to learning the β1-H¨ older smooth and ( m1r1)-variate universal linguistic function g0. This is the standard nonparametric convergence rate for sample size n. 
+
+The error term T − 2β22β2+( m2−1) r2 corresponds to learning the β2-H¨ older smooth local context function h on the domain ( Sm2−1)r2 . The convergence rate in the document length T is surprising as the training loss 
+
+− 1
+
+> n
+
+Pni=1 X(i)⊤  
+
+> T+1
+
+log  p(X(i)1 , . . . , X(i) 
+
+> T
+
+) considers n prediction problems. It remains an open problem, whether the function g0 can be estimated with a faster rate also involving T. As n ≫ T in applications, we view this problem, however, as less relevant. The term W − 2β2 
+
+> m2−1
+
+arises in the convergence rate from the discrete structure of the domain, and becomes negligible when W ≳ T 1/r 2 . We emphasize again that for small (and fixed) vocabulary size W , classical methods such as the r-gram estimator or Kneser–Ney smoothing remain optimal, without smoothness assumptions. To circumvent the curse of dimensionality in learning g0, one can additionally assume that g0 is compo-sitionally sparse or is supported on a low-dimensional manifold M ⊂ [−1, 1] m1r1 . In the proof, one has to replace then the approximation theoretic result for H¨ older functions in Lemma 19 by the respective results for compositionally sparse functions in [61, 45] or functions supported on low-dimensional manifolds in [56, 31]. 12 Similarly, it is of interest whether faster rates can be achieved for the estimation of the context func-tion h. A key step in the proof is to exploit that the transformer architecture can represent a Nadaraya– Watson estimator. The H¨ older smoothness β of the regression function improves the convergence rate of the Nadaraya–Watson estimator for β ≤ 1 (e.g. Chapter 1 in [71]). For the context function h, the smoothness index is denoted by β2 and β2 ≤ 1 is imposed in Assumption 2 (ii). While the transformer can represent the Nadaraya–Watson estimator for a specific kernel, it remains unclear whether the transformer can also repre-sent higher-order local polynomial estimators. If possible, this would allow to exploit higher-order smoothness of h beyond Lipschitz continuity ( β2 = 1). If the data are supported on a low-dimensional manifold M, the convergence rate of the Nadaraya–Watson estimator can adapt to the dimension of M [8]. We conjecture that this phenomenon allows the transformer to circumvent the curse of dimensionality. We derive the generalization bound for specific transformer architectures satisfying the constraints in Assumption 3. In particular, we assume that the number of layers in the MLPs satisfies Lmlp ≥ log 3(Nmlp ∨T ).
+
+One can also obtain a similar generalization bound for shallow networks Lmlp = 1 by increasing the number of transformer blocks L instead. To see this, observe that if the multi-head self-attention represents the identity map, the transformer block coincides with the MLP. If each MLP is shallow, then, stacking L transformer blocks represents an MLP of depth L. 
+
+Alternatively, one can derive generalization bounds for models with only self-attention layers by following the recipe for translating ReLU approximation results to the softmax attention mechanism in [28]. 
+
+## 4.1 Proof of the risk bound 
+
+We now provide a proof of Theorem 1. Notice that the learning task is an i.i.d. multiclass classification problem with inputs ( X(i)1 , . . . , X(i) 
+
+> T
+
+) ∈ E TW and corresponding output X(i)  
+
+> T+1
+
+∈ E W , for i = 1 , . . . , n . Excess risk bounds for binary classification have been studied in [35, 44, 52, 79, 87] and for multiclass classification in [13, 81]. For the proof, we use the oracle inequality in [13]. It is known that the VC dimension of self-attention layers involving exponential operations is difficult to control, which leads to suboptimal rates in regression problems (see, e.g., the discussion following Theorem 3 in [30]). For this reason, we instead bound the parameter magnitudes and derive an upper bound for the metric entropy of the transformer class T (W, T, L, N, H, L mlp , N mlp , B ) as follows. The proof is deferred to Appendix C. Similar results on the covering numbers of transformers can be found in [15] for linear attention, [5, 24] for ReLU attention, and [69, 46] for softmax attention. 
+
+Theorem 3. Let B ≥ 1 and Nmlp ≥ N . For any δ > 0,
+
+log N
+
+
+
+δ, T  W, T, L, N, H, L mlp , N mlp , B , ∥ · ∥ L∞(( EW )T )
+
+
+
+≤
+
+
+
+2W N + 4 HLN 2 + 3 LL mlp N 2mlp 
+
+
+
+log 
+
+
+
+3 + (6 H)10 L2  B(Nmlp + 1) 38 L2Lmlp Bδ
+
+
+
+.
+
+Interestingly, the bound is independent of the document length T. For polynomially small δ and ignoring 13 logarithmic factors, the upper bound in the theorem scales as ( W N + HLN 2 + LL mlp N 2mlp )L2Lmlp log B. 
+
+The bound in Theorem 5.3 of [69] is similar but derived for finite W and the log covering number derived in Lemma 4 of [46] includes an additional log T factor. In the proposed statistical model (6) and by (7), the probabilities in the vector p0(h, X1, . . . , XT ) are up to normalization 
+
+∝ exp 
+
+
+
+g0
+
+
+
+ϕ1(XT −r1+1 ), . . . , ϕ1(XT )
+
+⊤
+
+ϕ1(ew) + h
+
+
+
+ϕ2(XT −r2+1 ), . . . , ϕ2(XT )
+
+⊤
+
+ϕ2(ew)
+
+| {z }
+
+=: f0(h, X1, . . . , XT )(w)
+
+
+
+, w ∈ [W ].
+
+The following theorem provides a bound on the approximation error, and serves as a key contribution of this paper. We provide a proof sketch in Section 5 and the formal proof is stated in Appendix D. 
+
+Theorem 4. Suppose Assumptions 2 and 3 hold. For sufficiently large W and T and any λ ∈ [T −1, log −1(W ∧
+
+T )] , there exists a transformer f ∗ ∈ T M (W, T, L, N, H, L mlp , N mlp , B ) such that 
+
+sup 
+
+> h∈H
+
+E
+
+h
+
+∥f ∗(X1, . . . , XT ) − f0(h, X1, . . . , XT )∥2 
+
+> ∞
+
+h
+
+i
+
+= ˜O
+
+
+
+N − 4β1 
+
+> m1r1
+> mlp
+
++ λ2β2 + M 2
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+,
+
+where the implicit constant depends only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 1, β 2, ∥g0∥Cβ1 , sup h∈H ∥h∥Cβ2 ).
+
+The main difficulty in the construction underlying Theorem 4 is that h has to be approximated by the data X1, . . . , XT . Compared to in-context nonparametric regression [34, 49, 63, 15], the considered statistical model for next-token prediction is significantly more challenging to analyze and requires novel techniques. In addition, the error in estimating h should not deteriorate due to the presence of g0, which further complicates the analysis. See Remark 1 for further discussion. 
+
+Proof of Theorem 1. By assumption M ≥ δ1m1 + δ2. Since 
+
+p0(h, X1, . . . , XT ) = softmax ◦ f0(h, X1, . . . , XT )and the w-th component of f0 has the form, 
+
+f0(h, X1, . . . , XT )(w) := g0
+
+
+
+ϕ1(XT −r1+1 ), . . . , ϕ1(XT )
+
+⊤
+
+ϕ1(ew) + h
+
+
+
+ϕ2(XT −r2+1 ), . . . , ϕ2(XT )
+
+⊤
+
+ϕ2(ew),
+
+we obtain ∥f0(h, X1, . . . , XT )∥∞ ≤ δ1m1 + δ2 ≤ M and 
+
+p0(h, X1, . . . , XT ) < exp(2 M )
+
+W .
+
+Because of the clipping operation in the transformer function class (Definition 3.7), every bp ∈ P satisfies exp( −2M )/W < bp(X1, . . . , XT ), and hence log 
+
+ p0(h, X1, . . . , XT )
+
+bp(h, X1, . . . , XT )
+
+
+
+≤ 4M. 
+
+By using the oracle inequality for multiclass classification (Theorem 3.5 of [13]), 
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤  
+
+> T+1
+
+bp(X1, . . . , XT )
+
+
+
+= Mn log N
+
+ 1
+
+n , log( P), ∥ · ∥ L∞(( EW )T )
+
+
+
+(stochastic error) 14 + ˜O
+
+
+
+inf  
+
+> p∈P
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤ 
+
+> T+1
+
+p(X1, . . . , XT )
+
+ 
+
+(approximation error) ,
+
+where log( P) := {f = log( p) : p ∈ P} and ∥f ∥L∞(( EW )T ) := max {∥ f (X1, . . . , XT )∥∞ : X1, . . . , XT ∈ E W }.
+
+Define 
+
+F := TM (W, T, L, N, H, L mlp , N mlp , B ).
+
+Combining log( P) = {log ◦ softmax ◦ f : f ∈ F} , the inequality 
+
+log ◦ softmax ◦ clip M (x) − log ◦ softmax ◦ clip M (x′) ∞ ≤ 2 x − x′
+
+> ∞
+
+and Theorem 3 yield 
+
+Mn log N
+
+ 1
+
+n , log( P), ∥ · ∥ L∞(( EW )T )
+
+
+
+= ˜O
+
+ M (W N + HLN 2 + LL mlp N 2mlp + L2Lmlp + log B)
+
+n
+
+
+
+.
+
+Using Lemma 32, the approximation error can be further bounded by inf  
+
+> p∈P
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤ 
+
+> T+1
+
+p(X1, . . . , XT )
+
+
+
+= inf  
+
+> p∈P
+
+E
+
+ WX
+
+> w=1
+
+p0(h, X1, . . . , XT )(w) log p0(h, X1, . . . , XT )(w)
+
+p(X1, . . . , XT )(w)
+
+
+
+≤ 4 inf   
+
+> f∈F
+
+E
+
+h
+
+f0(h, X1, . . . , XT ) − f (X1, . . . , XT ) 2
+
+> ∞
+
+i
+
+≤ 4 sup 
+
+> h∈H
+
+inf   
+
+> f∈F
+
+E
+
+h
+
+f0(h, X1, . . . , XT ) − f (X1, . . . , XT ) 2 
+
+> ∞
+
+h
+
+i
+
+.
+
+Together with Theorem 4, we get inf  
+
+> p∈P
+
+E
+
+
+
+log X⊤ 
+
+> T+1
+
+p0(h, X1, . . . , XT )
+
+X⊤ 
+
+> T+1
+
+p(X1, . . . , XT )
+
+
+
+= ˜O
+
+
+
+N − 4β1 
+
+> m1r1
+> mlp
+
++ inf    
+
+> λ∈[T−1,log −1(W∧T)]
+
+
+
+λ2β2 + M 2
+
+T φ W (λ)r2
+
+
+
++ κ2
+
+> W
+
+
+
+.
+
+# 5 Proof Sketch of the Upper Bound for the Approximation Error 
+
+We now outline the construction of a transformer f ∗ ∈ T (W, T, L, N, H, L mlp , N mlp , B ) satisfying the approx-imation error bound in Theorem 4. Recall that the input tokens X1, . . . , XT are coded as W -dimensional standard basis vectors. The input of the transformer is the W × T matrix 
+
+X := 
+
+h
+
+X1 X2 . . . XT
+
+i
+
+.
+
+It suffices to describe the construction of an encoder E ∈ RN ×W , a decoder D ∈ RW ×N , multi-head self-attentions μ1, μ2 ∈ MA (N, H, B ), and multilayer perceptrons ν1, ν2 ∈ MLP (N, L mlp , N mlp , B ), such that the T -th output column of the transformer is 
+
+f ∗(X) = clip M ◦
+
+
+
+D · ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+≈ f0(h, X ) := 
+
+
+
+g0
+
+ ϕ1(XT −r1+1 ), . . . , ϕ1(XT )⊤ϕ1(e1) + h ϕ2(XT −r2+1 ), . . . , ϕ2(XT )⊤ϕ2(e1)
+
+g0
+
+ ϕ1(XT −r1+1 ), . . . , ϕ1(XT )⊤ϕ1(e2) + h ϕ2(XT −r2+1 ), . . . , ϕ2(XT )⊤ϕ2(e2)...
+
+g0
+
+ ϕ1(XT −r1+1 ), . . . , ϕ1(XT )⊤ϕ1(eW ) + h ϕ2(XT −r2+1 ), . . . , ϕ2(XT )⊤ϕ2(eW )
+
+
+
+.
+
+15 Figure 2: Main building blocks of the transformer construction to control the approximation error. See Figure 2 for an illustration. The main challenge is that we cannot use the latent local context function 
+
+h to construct f ∗. Instead, h has itself to be approximated by the available input data. For the encoder operation, we use the N × W matrix 
+
+E := 
+
+
+
+ϕ1(e1) ϕ1(e2) · · · ϕ1(eW )
+
+ϕ2(e1) ϕ2(e2) · · · ϕ2(eW )
+
+0N −m1−m2 0N −m1−m2 · · · 0N −m1−m2
+
+ . (16) For every token w ∈ [W ], we have Eew = stack( ϕ1(ew), ϕ2(ew), 0N −m1−m2 ), consequently, 
+
+EX = EX1, X2, . . . , XT
+
+ =
+
+
+
+ϕ1(X1) ϕ1(X2) · · · ϕ1(XT )
+
+ϕ2(X1) ϕ2(X2) · · · ϕ2(XT )
+
+0N −m1−m2 0N −m1−m2 · · · 0N −m1−m2
+
+ ,
+
+and combined with the definition of the positional encoding matrix P (Definition 3.6), 
+
+P + EX =
+
+
+
+ϕ1(X1) ϕ1(X2) · · · ϕ1(XT )
+
+ϕ2(X1) ϕ2(X2) · · · ϕ2(XT )
+
+0 N 
+
+> 2−m1−m2
+
+0 N 
+
+> 2−m1−m2
+
+· · · 0 N 
+
+> 2−m1−m2
+
+q1 q2 · · · qT
+
+
+
+=
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+0 N 
+
+> 2−m1−m2
+
+qt
+
+ 
+
+> t∈[T]
+
+.
+
+The projected input P +EX is propagated to the first multi-head self attention layer μ1 ∈ MA (N, H, B ). For t ∈ [T ], we define Z1,t ∈ Rr1m1 and Z2,t ∈ Rr2m2 as the linguistic and context embeddings of the most 16 recent r1 and r2 tokens up to time t − 1, respectively, defined as 
+
+Z1,t := 
+
+
+
+ϕ1(Xt−r1 )
+
+ϕ1(Xt−r1+1 )...
+
+ϕ1(Xt−1)
+
+
+
+, Z2,t := 
+
+
+
+ϕ2(Xt−r2 )
+
+ϕ2(Xt−r2+1 )...
+
+ϕ2(Xt−1)
+
+
+
+. (17) By exploiting the positional encoding, one can construct a multi-head self-attention layer μ1 ∈ MA (N, H, B )such that 
+
+μ1
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+0 N 
+
+> 2−m1−m2
+
+qt
+
+ 
+
+> t∈[T]
+
+
+
+≈
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+Z1,t 
+
+Z2,t 
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rr1m1
+
+∈ Rr2m2
+
+∈ RN/ 2
+
+.
+
+The approximation is valid for the t-th column for t ≥ (r1 ∨ r2) + 1. See Lemma 14 for a bound on the approximation error. We now employ a multilayer perceptron to approximate two key quantities: g0(Z1,t +1 ), corresponding to the linguistic information, and 
+
+Yt := ϕ2(Xt)exp  g0(Z1,t )⊤ϕ1(Xt) ∈ Rm2 ,
+
+which will later be used to estimate the local context function h. Specifically, we construct a multi-layer perceptron ν1 ∈ MLP (N, L mlp , N mlp , B ) such that 
+
+ν1
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+Z1,t 
+
+Z2,t 
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+ 
+
+> t∈[T]
+
+
+
+≈
+
+
+
+g0(Z1,t +1 )
+
+Yt 
+
+> 1
+> λ
+
+Z2,t  
+
+> 1
+> λ
+
+ϕ2(Xt)
+
+> √r2
+> λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+2) m2−2
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rr2m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+. (18) The approximation error is controlled in Lemma 24. For z ∈ Rr2m2 , define 
+
+bmλ(z) := X    
+
+> s∈[log 2T,T −log 2T]
+
+Kλ
+
+ Z2,s , zP     
+
+> i∈[log 2T,T −log 2T]
+
+Kλ
+
+ Z2,i , z Ys. (19) with Kλ(z, z′) := exp( −∥ z − z′∥2/(2 λ2)) . The second multi-head self-attention layer μ2 ∈ MA (N, H, B ) is constructed to map the right-hand side of (18) to a N × T matrix. The last column of this matrix is given 17 by stack( g0(Z1,T +1 ), •N −m1−m2 , v) ∈ RN , where the vector v ∈ Rm2 is defined as 
+
+v := 
+
+> T
+
+X
+
+> s=1
+
+exp 
+
+ −r2+Z⊤  
+
+> 2,s Z2,T +1
+> λ2
+
++ T 3 I(s ∈ [log 2 T, T − log 2 T ]) 
+
+PTi=1 exp 
+
+ −r2+Z⊤  
+
+> 2,i Z2,T +1
+> λ2
+
++ T 3 I(i ∈ [log 2 T, T − log 2 T ]) 
+
+ Ys ≈ bmλ(Z2,T +1 ). (20) This approximation follows from the fact that ∥Z2,t ∥22 = r2 for every t ≥ r2 + 1. The following lemma characterizes the approximation error of the construction up to this point. In Appendix E.3, we restate the result as Lemma 26 and provide the formal proof. 
+
+Lemma 5. Suppose Assumptions 2 and 3 hold. For sufficiently large T and for any λ ≥ T −1, there exist multi-head self-attentions μ1, μ2 ∈ MA (N, H, B ) and a multilayer perceptron ν1 ∈ MLP (N, L mlp , N mlp , B )
+
+such that 
+
+
+
+μ2 ◦ ν1 ◦ μ1
+
+ P + EX 
+
+> :,T
+
+=
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+
+
+∈ Rm1
+
+∈ Rm2
+
+with 
+
+k1 − g0(Z1,T +1 ) ∞ ∨ k2 − bmλ(Z2,T +1 ) ∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
++ 1
+
+T ,
+
+where the implicit constant depends only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 1, ∥g0∥Cβ1 ).
+
+We now study the properties of (20). The estimator bmλ can be identified as a Nadaraya–Watson estima-tor applied to dependent samples with discrete support. From the classical nonparametric regression theory (see e.g. Section 1.5 in [71]), one would expect that bmλ(Z2,T +1 ) converges to the conditional expectation 
+
+E[YT +1 |h, Z2,T +1 ] under standard smoothness assumptions on the function h. In the present setting, how-ever, such convergence cannot be rigorously established, since E[YT +1 |h, Z2,T +1 = z] can vary considerably as a function of z. To see this, recall that for t ∈ [T ], the distribution of the tokens is described by the imposed statistical model 
+
+P Xt+1 = ew h, X1, . . . , Xt
+
+ ∝ exp 
+
+
+
+g0(Z1,t +1 )⊤ϕ1(ew) + h(Z2,t +1 )⊤ϕ2(ew)
+
+
+
+, w ∈ [W ]. (21) One can factorize the conditional expectation in this model via 
+
+E[YT +1 |h, Z2,T +1 = z] = E
+
+"
+
+ϕ2(XT +1 )exp  g0(Z1,T +1 )⊤ϕ1(XT +1 ) h, Z2,T +1 = z
+
+#
+
+= E
+
+PWw=1 exp  g0(Z1,T +1 )⊤ϕ1(ew) + h(z)⊤ϕ2(ew) ϕ2(ew )exp 
+
+ g0(Z1,T +1 )⊤ϕ1(ew )
+
+PWw=1 exp  g0(Z1,T +1 )⊤ϕ1(ew) + h(z)⊤ϕ2(ew) h, Z2,T +1 = z
+
+
+
+= E
+
+" PWw=1 exp  h(z)⊤ϕ2(ew)ϕ2(ew)
+
+PWw=1 exp  g0(Z1,T +1 )⊤ϕ1(ew) + h(z)⊤ϕ2(ew) h, Z2,T +1 = z
+
+#
+
+=
+
+PWw=1 exp  h(z)⊤ϕ2(ew)ϕ2(ew)
+
+PWw=1 exp  h(z)⊤ϕ2(ew)| {z }
+
+∈ Rm2
+
+E
+
+" PWw=1 exp  h(z)⊤ϕ2(ew)PWw=1 exp  g0(Z1,T +1 )⊤ϕ1(ew) + h(z)⊤ϕ2(ew) h, Z2,T +1 = z
+
+#| {z }
+
+∈ R
+
+.
+
+(22) 18 The two vectors Z1,T +1 and Z2,T +1 are the values with respect to the embeddings ϕ1 and ϕ2. Points that are mapped to nearby points with respect to ϕ2 could be mapped to far away points with respect to ϕ1. Thus, small changes in Z2,T +1 = z can lead to a large change in the conditional expectation of Z1,T +1 |Z2,T +1 = z
+
+such that we cannot guarantee any H¨ older smoothness of the second factor in (22). The first factor of (22) does, however, not depend on the interplay between ϕ1 and ϕ2. For the direction of z 7 → E[YT +1 |h, Z2,T +1 =
+
+z] it is therefore possible to establish H¨ older smoothness. Consequently, one can show that the direction of 
+
+bmλ(z) converges to that of E[YT +1 | h, Z2,T +1 = z], which is close to h/∥h∥2. With this intuition and properties of the von Mises–Fisher distribution, we present the following key lemma that in particular allows us later to construct a high-probability lower bound of ∥ bmλ(Z2,T +1 )∥2. The proof of the lemma is deferred to Appendix F. 
+
+Lemma 6. Suppose Assumption 2 holds. For sufficiently large W and T and for any λ ≤ log −1(W ∧ T ),
+
+E
+
+"
+
+δ2
+
+∥ bmλ(Z2,T +1 )∥2
+
+bmλ(Z2,T +1 ) − h(Z2,T )
+
+> 22
+
+h
+
+#
+
+= ˜O
+
+
+
+λ2β2 + 1  
+
+> T φ W(λ)r2
+
++ κ2
+
+> W
+
+
+
+.
+
+Moreover, there exists a constant c > 0 such that 
+
+P∥ bmλ(Z2,T +1 )∥2 < c h ≲ 1
+
+T φ W (λ)r2 .
+
+All implicit constants and the constant c depend only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 2, ∥h∥Cβ2 ).
+
+Remark 1. The convergence rate in Lemma 6 does not depend on g0 although the true probability model depends on g0. In an additive regression setting Yt = g0(X1,t ) + h(X2,t ) + ϵt, E(ϵt) = 0 , t = 1 , . . . , T, such a result can be easily obtained by considering the adjusted samples {X2,t , Y t − g0(X1,t )}Tt=1 . However, we argue that this approach cannot be extended to the statistical model (21) even when g0, ϕ1, and ϕ2 are known. 
+
+By Lemma 5 and Lemma 6, 
+
+
+
+μ2 ◦ ν1 ◦ μ1
+
+ P + EX  
+
+> :,T
+
+=: 
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+
+
+∈ Rm1
+
+∈ Rm2
+
+satisfies k1 ≈ g0(Z1,T +1 ) and δ2k2/∥k2∥2 ≈ h(Z2,T +1 ). In addition, ∥k2∥2 ≥ c/ 2 holds with high probability. Using these results, we construct the second MLP layer ν2 ∈ MLP (N, L mlp , N mlp , B ) such that 
+
+ν2
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+ ≈
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+∈ Rm1
+
+∈ Rm2 .
+
+See Lemma 25 for the detailed approximation error. By considering the decoder matrix D := E⊤, we finally 19 get 
+
+D
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+ =
+
+
+
+ϕ1(e1)⊤g0(Z1,T +1 ) + ϕ2(e1)⊤h(Z2,T +1 )
+
+ϕ1(e2)⊤g0(Z1,T +1 ) + ϕ2(e2)⊤h(Z2,T +1 )...
+
+ϕ1(eW )⊤g0(Z1,T +1 ) + ϕ2(eW )⊤h(Z2,T +1 )
+
+
+
+= f0(h, X ).
+
+See Section D for a formal proof of Theorem 4. 
+
+# 6 Related work 
+
+There is by now a substantial literature on the statistical learning theory of neural networks. For DNNs, theoretical results have been developed for a wide range of statistical tasks, including nonparametric regression and classification, with convergence rates depending on smoothness, (intrinsic) dimension, or compositional structure [6, 68, 61, 43, 48, 31, 80]. Statistical guarantees have also been obtained for other architectures. CNNs have been analyzed under structural assumptions motivated by the translation-invariance of image data [41, 38, 14, 42, 44]. The statistical analysis of recurrent neural networks (RNNs) focuses on sequential data with temporal dependence [39, 32, 83]. As transformers have become central to modern machine learning, recent studies started to investigate their approximation and representation capabilities. Among them, [85] proved universal approximation re-sults for continuous sequence-to-sequence functions and analyzed the roles of self-attention and feed-forward layers. [19] showed that transformers can efficiently represent sparse functions of long input sequences, while [60] identified tasks where transformers are more efficient than DNNs and RNNs. [28] showed that self-attention can approximate generalized ReLU-type operations, providing another route to universal ap-proximation. Recent statistical papers provided a statistical analysis of transformers within the standard supervised learning framework. [22] analyzed nonparametric binary classification with transformers under hierarchical composition structure, and [40] extended this result to overparametrized transformer classifiers trained by gradient descent. [69] studied nonparametric regression with transformers and established convergence rates for sequence-to-sequence functions with infinite-dimensional inputs under suitable assumptions on the target function. [24] analyzed transformers with ReLU self-attention for nonparametric regression and input data supported on a manifold, and [62] extended this analysis to noisy manifold settings. Most recently, [30, 46, 65] analyzed transformers for nonparametric regression under H¨ older smoothness, while [64] studied vision transformers with hierarchically compositional target functions. Another line of statistical research studies the theoretical properties of transformers for in-context learning in regression settings, showing that they can generalize to unseen tasks. For instance, [5, 75] showed that linear-attention transformers can implement standard learning algorithms, including gradient descent, in context. [34] analyzed transformers for in-context nonparametric regression and showed that pretraining 20 can improve in-context estimation by encoding basis representations relevant to the target function class. [49, 76] studied in-context learning with transformers pretrained on mixtures of nonparametric regression tasks, establishing adaptation to task difficulty and robustness to certain forms of test-time distribution shift. Recently, [63] and [15] connected transformers with the Nadaraya–Watson and local polynomial estimators for in-context nonparametric regression. The proposed N2F language model generates the next token from a latent context function and a finite token history. Topic models have a rich statistical theory and can also be viewed as latent context models. Specifically, in the probabilistic latent semantic indexing (pLSI) model [26] one assumes that for each observed document there is a latent weight vector that determines the mixture weights over K topics (e.g. sport, politics, news, . . . ). The word frequency in the document is then modeled as weighted sum over the word frequencies of the individual topics. The pLSI model is considerably simpler, as it only models the word frequencies but not the text as a sequence. The latent object is moreover a weight vector and not a function as in the proposed model in Section 2. There is an impressive line of existing statistical theory [4, 3, 50, 11, 12, 33, 78, 10, 36, 70], but the assumptions, the mathematical analysis, and the theoretical results differ significantly from our work. A growing line of recent research applies Markov chain theory to study language models that generate token from a finite token history. In particular, [47, 86, 84] analyzed estimation errors under the assumption that the training and test documents all share the same transition probabilities. In contrast, in the proposed N2F language model each document has its own transition probabilities. [72] proved that transformers can represent the r-gram estimator, and that the corresponding parameters form a stationary point of the population cross-entropy loss. This analysis is different as it considers a single document, does not introduce an estimator, and relies on the population cross-entropy loss. Estimating Markov transition matrices is a classical problem [2, 9, 55]. If the Markov chain of interest has only finitely many states, a natural estimator of the next-token distribution is given by the empirical frequency. The r-gram estimator is a special case of the empirical frequency under the implicit assumption that each document is generated according to a Markov chain of order r. If applied to the language model setting, [23] proved that if (document length) ≥ (vocabulary size) r+1 , then an averaged version of an additively smoothed empirical frequency estimator is minimax optimal. This suggests that the r-gram estimator is minimax rate-optimal. However, for text data the transition matrices are highly structured and should allow for faster estimation rates. Moreover, (document length) ≪ (vocabulary size) r+1 is the more relevant regime. The derived theory is also related to nonparametric estimation for Markov processes. Past research has for example focused on invariant density estimation [18, 67] and drift estimation for diffusion processes [66, 25, 21], with Nadaraya–Watson type estimators studied in e.g. [17, 16, 1]. 21 Acknowledgments 
+
+We are extremely grateful to Richard Samworth and Tianyi Ma for sharing their insights on the topic. All authors acknowledge support from ERC grant A2B (grant agreement no. 101124751). Parts of the research were carried out while the authors visited the Simons Institute in Berkeley. 
+
+# References 
+
+[1] Aeckerle-Willems, C., and Strauch, C. Sup-norm adaptive drift estimation for multivariate nonreversible diffusions. The Annals of Statistics 50 , 6 (2022), 3484–3509. [2] Anderson, T. W., and Goodman, L. A. Statistical inference about Markov chains. The Annals of Mathematical Statistics (1957), 89–110. [3] Arora, S., Ge, R., Halpern, Y., Mimno, D., Moitra, A., Sontag, D., Wu, Y., and Zhu, M. Apractical algorithm for topic modeling with provable guarantees. In Proceedings of the 30th International Conference on Machine Learning (2013), Proceedings of Machine Learning Research, PMLR, pp. 280– 288. [4] Arora, S., Ge, R., and Moitra, A. Learning topic models – going beyond SVD. In 2012 IEEE 53rd Annual Symposium on Foundations of Computer Science (2012), pp. 1–10. [5] Bai, Y., Chen, F., Wang, H., Xiong, C., and Mei, S. Transformers as statisticians: Provable in-context learning with in-context algorithm selection. Advances in neural information processing systems 36 (2023), 57125–57211. [6] Bauer, B., and Kohler, M. On deep learning as a remedy for the curse of dimensionality in non-parametric regression. The Annals of Statistics 47 , 4 (2019), 2261–2285. [7] Berbee, H. Random walks with stationary increments and renewal theory . Centrum Voor Wiskunde en Informatica, 1979. [8] Bickel, P. J., and Li, B. Local polynomial regression on unknown manifolds. Lecture Notes-Monograph Series 54 (2007), 177–186. [9] Billingsley, P. Statistical methods in Markov chains. The Annals of Mathematical Statistics (1961), 12–40. [10] Bing, X., Bunea, F., Strimas-Mackey, S., and Wegkamp, M. Likelihood estimation of sparse topic distributions in topic models and its applications to Wasserstein document distance calculations. 
+
+The Annals of Statistics 50 , 6 (2022), 3307–3333. 22 [11] Bing, X., Bunea, F., and Wegkamp, M. A fast algorithm with minimax optimal guarantees for topic models with an unknown number of topics. Bernoulli 26 , 3 (2020), 1765–1796. [12] Bing, X., Bunea, F., and Wegkamp, M. Optimal estimation of sparse topic models. Journal of Machine Learning Research 21 , 177 (2020), 1–45. [13] Bos, T., and Schmidt-Hieber, J. Convergence rates of deep ReLU networks for multiclass classifi-cation. Electronic Journal of Statistics 16 , 1 (2022), 2724–2773. [14] Chen, J., Langer, S., and Schmidt-Hieber, J. A novel statistical approach to analyze image classification. The Annals of Statistics (2026). Accepted, to appear. [15] Ching, M., Popescu, I., Smith, N., Ma, T., Underwood, W. G., and Samworth, R. J. Ef-ficient and minimax-optimal in-context nonparametric regression with transformers. arXiv preprint arXiv:2601.15014 (2026). [16] Dexheimer, N. Adaptive nonparametric drift estimation for multivariate jump diffusions under sup-norm risk. Stochastic Processes and their Applications 190 (2025), 104741. [17] Dexheimer, N., and Strauch, C. Estimating the characteristics of stochastic damping hamiltonian systems from continuous observations. Stochastic Processes and their Applications 153 (2022), 321–362. [18] Dexheimer, N., Strauch, C., and Trottner, L. Adaptive invariant density estimation for continuous-time mixing Markov processes under sup-norm risk. Annales de l’Institut Henri Poincar´ e, Probabilit´ es et Statistiques 58 , 4 (2022), 2029 – 2064. [19] Edelman, B. L., Goel, S., Kakade, S., and Zhang, C. Inductive biases and variable creation in self-attention mechanisms. In Proceedings of the 39th International Conference on Machine Learning 
+
+(2022), vol. 162 of Proceedings of Machine Learning Research , PMLR, pp. 5793–5831. [20] Edelman, E., Tsilivis, N., Edelman, B. L., Malach, E., and Goel, S. The evolution of statistical induction heads: In-context learning Markov chains. Advances in neural information processing systems 37 (2024), 64273–64311. [21] Gobet, E., Hoffmann, M., and Reiß, M. Nonparametric estimation of scalar diffusions based on low frequency data. The Annals of Statistics 32 , 5 (2004), 2223–2253. [22] Gurevych, I., Kohler, M., and S ¸ahin, G. G. On the rate of convergence of a classifier based on a transformer encoder. IEEE Transactions on Information Theory 68 , 12 (2022), 8139–8155. [23] Han, Y., Jana, S., and Wu, Y. Optimal prediction of Markov chains with and without spectral gap. 
+
+IEEE Transactions on Information Theory 69 , 6 (2023), 3920–3959. 23 [24] Havrilla, A., and Liao, W. Understanding scaling laws with statistical and approximation theory for transformer neural networks on intrinsically low-dimensional data. Advances in Neural Information Processing Systems 37 (2024), 42162–42210. [25] Hoffmann, M., and Ray, K. Nonparametric Bayesian estimation in a multidimensional diffusion model with high frequency data. Probability Theory and Related Fields 191 , 1 (2025), 103–180. [26] Hofmann, T. Probabilistic latent semantic indexing. In Proceedings of the 22nd Annual International ACM SIGIR Conference on Research and Development in Information Retrieval (New York, NY, USA, 1999), SIGIR ’99, Association for Computing Machinery, p. 50–57. [27] Hornik, K., and Gr¨ un, B. Amos-type bounds for modified Bessel function ratios. Journal of Math-ematical Analysis and Applications 408 , 1 (2013), 91–101. [28] Hu, J. Y.-C., Lu, M., Lee, Y.-C., and Liu, H. Transformer approximations from ReLUs. arXiv preprint arXiv:2604.24878 (2026). [29] Jacot, A., Choi, S. H., and Wen, Y. How DNNs break the curse of dimensionality: Compositionality and symmetry learning. In International Conference on Learning Representations (2025), vol. 2025, pp. 74504–74538. [30] Jiao, Y., Lai, Y., Sun, D., Wang, Y., and Yan, B. Approximation bounds for transformer networks with application to regression. arXiv preprint arXiv:2504.12175 (2025). [31] Jiao, Y., Shen, G., Lin, Y., and Huang, J. Deep nonparametric regression on approximate man-ifolds: nonasymptotic error bounds with polynomial prefactors. The Annals of Statistics 51 , 2 (2023), 691–716. [32] Jiao, Y., Wang, Y., and Yan, B. Approximation bounds for recurrent neural networks with appli-cation to regression. arXiv preprint arXiv:2409.05577 (2024). [33] Ke, Z. T., and Wang, M. Using SVD for topic modeling. Journal of the American Statistical Association 119 , 545 (2024), 434–449. [34] Kim, J., Nakamaki, T., and Suzuki, T. Transformers are minimax optimal nonparametric in-context learners. Advances in Neural Information Processing Systems 37 (2024), 106667–106713. [35] Kim, Y., Ohn, I., and Kim, D. Fast convergence rates of deep neural networks for classification. 
+
+Neural Networks 138 (2021), 179–197. [36] Klopp, O., Panov, M., Sigalla, S., and Tsybakov, A. B. Assigning topics to documents by successive projections. The Annals of Statistics 51 , 5 (2023), 1989–2014. 24 [37] Kneser, R., and Ney, H. Improved backing-off for m-gram language modeling. In 1995 International Conference on Acoustics, Speech, and Signal Processing (1995), vol. 1, pp. 181–184. [38] Kohler, M., and Kohler, B. Analysis of convolutional neural network image classifiers in a rota-tionally symmetric model. IEEE Transactions on Information Theory 69 , 8 (2023), 5203–5218. [39] Kohler, M., and Krzy˙ zak, A. On the rate of convergence of a deep recurrent neural network estimate in a regression problem with dependent data. Bernoulli 29 , 2 (2023), 1663–1685. [40] Kohler, M., and Krzyzak, A. On the rate of convergence of an over-parametrized transformer classifier learned by gradient descent. arXiv preprint arXiv:2312.17007 (2023). [41] Kohler, M., Krzy˙ zak, A., and Walter, B. On the rate of convergence of image classifiers based on convolutional neural networks. Annals of the Institute of Statistical Mathematics 74 , 6 (2022), 1085–1108. [42] Kohler, M., Krzy˙ zak, A., and Walter, B. Analysis of the rate of convergence of an over-parametrized convolutional neural network image classifier learned by gradient descent. Journal of Statistical Planning and Inference 239 (2025), 24. [43] Kohler, M., and Langer, S. On the rate of convergence of fully connected deep neural network regression estimates. The Annals of Statistics 49 , 4 (2021), 2231–2249. [44] Kohler, M., and Langer, S. Statistical theory for image classification using deep convolutional neural network with cross-entropy loss under the hierarchical max-pooling model. Journal of Statistical Planning and Inference 234 (2025), 9. [45] Kong, I., and Kim, Y. Posterior concentrations of fully-connected Bayesian neural networks with general priors on the weights. Journal of Machine Learning Research 26 , 94 (2025), 1–60. [46] Lai, Y., and Sun, D. Standard transformers achieve the minimax rate in nonparametric regression with Cs,λ targets. arXiv e-prints (2026), arXiv:2602.20555. [47] Lotfi, S., Kuang, Y., Amos, B., Goldblum, M., Finzi, M., and Wilson, A. G. Unlocking tokens as data points for generalization bounds on larger language models. Advances in Neural Information Processing Systems 37 (2024), 9229–9256. [48] Lu, J., Shen, Z., Yang, H., and Zhang, S. Deep network approximation for smooth functions. 
+
+SIAM Journal on Mathematical Analysis 53 , 5 (2021), 5465–5506. [49] Ma, T., Wang, T., and Samworth, R. J. Provable test-time adaptivity and distributional robustness of in-context learning. arXiv preprint arXiv:2510.23254 (2025). [50] Mao, X., Sarkar, P., and Chakrabarti, D. Overlapping clustering models, and one (class) SVM to bind them all. In Advances in Neural Information Processing Systems (2018), vol. 31. 25 [51] Mardia, K. V., and Jupp, P. E. Directional statistics. , 2nd ed. ed. Wiley Series in Probability and Statistics. Chichester: Wiley, 2000. [52] Meyer, J. T. Optimal convergence rates of deep neural networks in a classification setting. Electronic Journal of Statistics 17 , 2 (2023), 3613 – 3659. [53] Meyn, S. P., and Tweedie, R. L. Markov chains and stochastic stability . Springer Science & Business Media, 2012. [54] Mnih, A., and Hinton, G. Three new graphical models for statistical language modelling. In Pro-ceedings of the 24th international conference on Machine learning (2007), pp. 641–648. [55] Morvai, G., Yakowitz, S., and Gy¨ orfi, L. Nonparametric inference for ergodic, stationary time series. The Annals of Statistics 24 , 1 (1996), 370–379. [56] Nakada, R., and Imaizumi, M. Adaptive approximation and generalization of deep neural network with intrinsic dimensionality. Journal of Machine Learning Research 21 , 174 (2020), 1–38. [57] Parkinson, S., Ongie, G., and Willett, R. ReLU neural networks with linear layers are biased towards single- and multi-index models. SIAM J. Math. Data Sci. 7 , 3 (2025), 1021–1052. [58] Paulin, D. Concentration inequalities for Markov chains by Marton couplings and spectral methods. 
+
+Electronic Journal of Probability 20 (2015), 1 – 32. [59] Poggio, T., and Fraser, M. Compositional sparsity of learnable functions. Bulletin of the American Mathematical Society 61 , 3 (2024), 438–456. [60] Sanford, C., Hsu, D., and Telgarsky, M. Representational strengths and limitations of trans-formers. In Thirty-seventh Conference on Neural Information Processing Systems (2023). [61] Schmidt-Hieber, J. Nonparametric regression using deep neural networks with ReLU activation func-tion. The Annals of Statistics 48 , 4 (2020), 1875 – 1897. [62] Shen, Z., Havrilla, A., Lai, R., Cloninger, A., and Liao, W. Transformers for learning on noisy and task-level manifolds: Approximation and generalization insights. arXiv preprint arXiv:2505.03205 
+
+(2025). [63] Shen, Z., Hsu, A., Lai, R., and Liao, W. Understanding in-context learning on structured mani-folds: Bridging attention to kernel methods. In The Fourteenth International Conference on Learning Representations (2026). [64] Shi, Z., Fang, Z., and Cao, Y. Approximation and estimation capability of vision transformers for hierarchical compositional models. Applied and Computational Harmonic Analysis (2025), 101849. 26 [65] Shi, Z., and Liao, W. Learning theory of transformers: Local-to-global approximation via softmax partition of unity. arXiv preprint arXiv:2605.08811 (2026). [66] Strauch, C. Exact adaptive pointwise drift estimation for multidimensional ergodic diffusions. Prob-ability Theory and Related Fields 164 , 1-2 (2016), 361–400. [67] Strauch, C. Adaptive invariant density estimation for ergodic diffusions over anisotropic classes. The Annals of Statistics (2018), 3451–3480. [68] Suzuki, T. Adaptivity of deep ReLU network for learning in besov and mixed smooth besov spaces: optimal rate and curse of dimensionality. In International Conference on Learning Representations 
+
+(2019). [69] Takakura, S., and Suzuki, T. Approximation and estimation ability of transformers for sequence-to-sequence functions with infinite dimensional input. In International Conference on Machine Learning 
+
+(2023), PMLR, pp. 33416–33447. [70] Tran, H., Liu, Y., and Donnat, C. Sparse topic modeling via spectral decomposition and thresh-olding. arXiv e-prints (2023), arXiv:2310.06730. [71] Tsybakov, A. B. Introduction to nonparametric estimation . Springer Series in Statistics. New York, NY: Springer, 2009. [72] Varre, A., Y¨ uce, G., and Flammarion, N. Learning in-context n-grams with transformers: Sub-n-grams are near-stationary points. In Forty-second International Conference on Machine Learning 
+
+(2025). [73] Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., and Polosukhin, I. Attention is all you need. Advances in neural information processing systems 30 
+
+(2017). [74] Viennet, G. Inequalities for absolutely regular sequences: application to density estimation. Probability Theory and Related Fields 107 , 4 (1997), 467–492. [75] Von Oswald, J., Niklasson, E., Randazzo, E., Sacramento, J., Mordvintsev, A., Zhmogi-nov, A., and Vladymyrov, M. Transformers learn in-context by gradient descent. In International Conference on Machine Learning (2023), PMLR, pp. 35151–35174. [76] Wakayama, T., and Suzuki, T. In-context learning is provably Bayesian inference: a generalization theory for meta-learning. arXiv preprint arXiv:2510.10981 (2025). [77] Wang, Q., et al. Exponential convergence of the deep neural network approximation for analytic functions. arXiv preprint arXiv:1807.00297 (2018). 27 [78] Wu, R., Zhang, L., and Tony Cai, T. Sparse topic modeling: computational efficiency, near-optimal algorithms, and statistical inference. Journal of the American Statistical Association 118 , 543 (2023), 1849–1861. [79] Yang, Y., Feng, H., and Zhou, D.-X. On the rates of convergence for learning with convolutional neural networks. SIAM Journal on Mathematics of Data Science 7 , 4 (2025), 1755–1772. [80] Yang, Y., and Zhou, D.-X. Nonparametric regression using over-parameterized shallow ReLU neural networks. Journal of Machine Learning Research 25 , 165 (2024), 1–35. [81] Yara, A., and Terada, Y. Nonparametric logistic regression with deep learning. Bernoulli 32 , 2 (2026), 952 – 977. [82] Yarotsky, D. Error bounds for approximations with deep ReLU networks. Neural Networks 94 (2017), 103–114. [83] Yu, H., Wu, L., Zhou, W., and Ren, Z. Nonparametric quantile regression with ReLU-activated recurrent neural networks. In The Thirty-ninth Annual Conference on Neural Information Processing Systems (2026). [84] Y¨ uksel, O. K., and Flammarion, N. On the sample complexity of next-token prediction. In The 28th International Conference on Artificial Intelligence and Statistics (2025). [85] Yun, C., Bhojanapalli, S., Rawat, A. S., Reddi, S., and Kumar, S. Are transformers universal approximators of sequence-to-sequence functions? In International Conference on Learning Represen-tations (2020). [86] Zekri, O., Odonnat, A., Benechehab, A., Bleistein, L., Boull´ e, N., and Redko, I. Large language models as Markov chains. arXiv preprint arXiv:2410.02724 (2024). [87] Zhang, Z., Shi, L., and Zhou, D.-X. Classification with deep neural networks and logistic loss. 
+
+Journal of Machine Learning Research 25 , 125 (2024), 1–117. 28 A Additional Notation 
+
+We denote by Od1×d2 the d1 × d2 zero matrix and by Id the d × d identity matrix. We use x+ := x ∨ 0. We denote the inner product by ⟨u, v⟩ := u⊤v. For notational simplicity, given vectors v1 ∈ Rd1 and v2 ∈ Rd2
+
+and a function f : Rd1+d2 → Rm, we write f (v1, v2) for f (stack( v1, v2)). For vectors {ψj }j∈I and nonnegative scalars {aj > 0}j∈I , we introduce 
+
+X 
+
+> j∈I
+
+(aj ; ψj ) := X
+
+> j∈I
+
+aj
+
+P 
+
+> i∈I
+
+ai
+
+ψj (23) a more compact notation for the weighted average of {ψj }j∈I with normalized weights. 
+
+# B Discussion about Assumption 1 
+
+In this section, we analyze the function φW (·) and the quantity κW from Definition 4.1. For notational simplicity, let m := m2 ≥ 3 and δ := δ2 > 0. Suppose that ϕ2(e1), . . . , ϕ2(eW ) are independent and identically distributed according to the uniform distribution on Sm−1. Then, letting Z, Z1, . . . , ZW ∈ Sm−1
+
+be samples from the same distribution, we can rewrite φW (ϵ) and κW as 
+
+φW (ϵ) = inf  
+
+> w∈[W]
+
+1
+
+W
+
+w′ ∈ [W ] : ∥Zw − Zw′ ∥2 ≤ ϵ
+
+and 
+
+κW = sup 
+
+> v∈δSm−1
+
+PWw=1 exp( v⊤Zw)Zw
+
+PWw=1 exp( v⊤Zw) − E exp( v⊤Z)Z
+
+E [exp( v⊤Z)] 2
+
+.
+
+It is sufficient to show that 
+
+P
+
+
+
+φW (ϵ) ≥ ϵm−1 log −1(ϵ−1)
+
+
+
+−−−−→  
+
+> W→∞
+
+1 (24) for W − 1 
+
+> m−1
+
+log W ≤ ϵ ≪ 1 and 
+
+P
+
+
+
+κW ≤ log W/ √W
+
+
+
+−−−−→  
+
+> W→∞
+
+1. (25) Because of 
+
+φW (ϵ) ≥ inf 
+
+> z∈Sm−1
+
+1
+
+W
+
+w′ ∈ [W ] : ∥z − Zw′ ∥2 ≤ ϵ . (26) (24) follows if we can establish 
+
+P
+
+
+
+inf 
+
+> z∈Sm−1
+
+w ∈ [W ] : ∥Zw − z∥2 ≤ ϵ ≤ W ϵ m−1 log −1(ϵ−1)
+
+
+
+−−−−→  
+
+> W→∞
+
+0.
+
+Let cm > 0 be a constant that depends only on m such that 
+
+p := P(∥Z − z∥2 ≤ ϵ/ 2) ≥ cmϵm−1
+
+holds for all ϵ ∈ [0 , 1] and all z ∈ Sm−1. See Lemma 34 for the existence of such a constant. In addition, let 
+
+U be an ( ϵ/ 2)-net of Sm−1 with respect to the metric ∥ · ∥ 2, whose cardinality satisfies |U| ≲ ϵ−m. Then, for 29 any z ∈ Sm−1, there exists u ∈ U such that {w ∈ [W ] : ∥Zw − z∥2 ≤ ϵ} ⊇ { w ∈ [W ] : ∥Zw − u∥2 ≤ ϵ/ 2}. The multiplicative form of Chernoff’s inequality for Bernoulli random variables states that if X ∼ Bin( W, ρ ) and 0 ≤ δ ≤ 1, then, P(X ≤ (1 − δ)W ρ ) ≤ e−δ2W ρ/ 2. It follows that 
+
+P
+
+
+
+inf 
+
+> z∈Sm−1
+
+w ∈ [W ] : ∥Zw − z∥2 ≤ ϵ ≤ W ϵ m−1 log −1(ϵ−1)
+
+
+
+≤ P
+
+
+
+min 
+
+> u∈U
+
+w ∈ [W ] : ∥Zw − u∥2 ≤ ϵ/ 2 ≤ W pc −1 
+
+> m
+
+log −1(ϵ−1)
+
+
+
+≤ X
+
+> u∈U
+
+P
+
+ WX
+
+> w=1
+
+I ∥Zw − u∥2 ≤ ϵ/ 2 ≤
+
+
+
+1 −   1 − c−1 
+
+> m
+
+log −1(ϵ−1)
+
+| {z }
+
+> =: δ
+
+
+
+W p 
+
+
+
+≤ |U| e−δ2W p/ 2
+
+≲ ϵ−m exp 
+
+
+
+−δ2 cmϵm−1W
+
+2
+
+
+
+−−−−→  
+
+> W→∞
+
+0,
+
+provided that ϵ ≪ 1, ϵm−1 ≥ W −1 log m−1 W and m ≥ 3. Combining this with (26) yields (24). For the second claim, let V be an W −1/2-net of δSm−1 with respect to the Euclidean metric, whose cardinality satisfies |V| ≲ (δ√W )m ≲ W m/ 2. Observe that for any z ∈ Sm−1 and v, u ∈ δSm−1,
+
+exp( v⊤z)z − exp( u⊤z)z 2 ≤ exp( v⊤z) − exp( u⊤z) ≤ sup 
+
+> t∈[−δ,δ ]
+
+et (v − u)⊤z ≤ eδ ∥v − u∥2.
+
+Hence, for any v ∈ δSm−1, there exists ˜ v ∈ V such that sup z∈Sm−1 | exp( v⊤z) − exp(˜ v⊤z)| ≤ eδ W −1/2 and sup z∈Sm−1 ∥ exp( v⊤z)z − exp(˜ v⊤z)z∥2 ≤ eδ W −1/2. It follows that for t > 2eδ /√W ,
+
+P sup 
+
+> v∈δSm−1
+
+1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw) − E exp( v⊤Z) > t 
+
+!
+
+≤ P max 
+
+> v∈V
+
+1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw) − E exp( v⊤Z) > t − 2eδ W −1/2
+
+!
+
+≤ X
+
+> v∈V
+
+P 1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw) − E exp( v⊤Z) > t − 2eδ W −1/2
+
+!
+
+≤ 2|V| exp 
+
+
+
+− 2W (t − 2eδ W −1/2)2
+
+eδ
+
+
+
+≲ W m/ 2 exp − 2W (t − 2eδ /√W )2
+
+eδ
+
+!
+
+.
+
+For the third inequality, we use Hoeffding’s inequality with exp( v⊤Zw) ≤ eδ . For sufficiently large W , and by choosing t := eδ log W/ √W , we obtain sup 
+
+> v∈δSm−1
+
+1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw) − E exp( v⊤Z) = Op
+
+ log W
+
+√W
+
+
+
+. (27) Similarly, we derive sup 
+
+> v∈δSm−1
+
+1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw)Zw − E exp( v⊤Z)Z
+
+> 2
+
+= Op
+
+ log W
+
+√W
+
+
+
+. (28) 30 By Jensen’s inequality, E[exp( v⊤Z)] ≥ exp( E[v⊤Z]) = 1. Using (27) and (28), we get the desired result 
+
+κW = sup 
+
+> v∈δSm−1
+
+PWw=1 exp( v⊤Zw)Zw
+
+PWw=1 exp( v⊤Zw) − E exp( v⊤Z)Z
+
+E [exp( v⊤Z)] 2
+
+≤ sup 
+
+> v∈δSm−1
+
+1
+
+> 1
+> W
+
+PWw=1 exp( v⊤Zw) − 1
+
+E [exp( v⊤Z)] 
+
+!
+
+1
+
+W
+
+> W
+
+X
+
+> w=1
+
+exp( v⊤Zw)Zw
+
+> 2
+
++ sup 
+
+> v∈δSm−1
+> 1
+> W
+
+PWw=1 exp( v⊤Zw)Zw − E exp( v⊤Z)Z
+
+E [exp( v⊤Z)] 2
+
+= Op
+
+ log W
+
+√W
+
+
+
+.
+
+# C Proofs for the Stochastic Error 
+
+In this section, we prove Theorem 3. We first establish some basic lemmas that allow us to derive a covering bound by controlling the variation of the model in the individual layers. The next lemma shows that a bound on the gradient or a uniform bound on the Lipschitz constant with respect to the parameters implies a bound on the covering number. Recall that ∥f ∥L∞(D) := sup x∈D ∥f (x)∥∞ with ∥ · ∥ ∞ the maximum entry vector/matrix norm. 
+
+Lemma 7. Let fθ = ( f (1)  
+
+> θ
+
+, . . . , f (q) 
+
+> θ
+
+)⊤ : D ⊂ Rd → Rq for all θ ∈ [−B, B ]r . If 
+
+K := sup   
+
+> θ,θ′∈[−B,B ]r,θ̸=θ′
+
+∥fθ − fθ′ ∥L∞(D)
+
+∥θ − θ′∥∞
+
+exists and is finite, then, 
+
+log N
+
+
+
+δ, fθ : θ ∈ [−B, B ]r , ∥ · ∥ L∞(D)
+
+
+
+≤ r log 
+
+
+
+3 + KB δ
+
+
+
+.
+
+Moreover, if the gradients ∇θ f (j) 
+
+> θ
+
+(x) of the component functions f (j) 
+
+> θ
+
+exist for all θ ∈ [−B, B ]r , x ∈ D and are continuous in θ, then, 
+
+K = sup   
+
+> θ∈[−B,B ]r,x∈D
+
+max  
+
+> j=1 ,...,q
+
+∇θ f (j) 
+
+> θ
+
+(x) 1. (29) 
+
+Proof. Whenever θ, θ′ ∈ [−B, B ]r , θ̸ = θ′, we have ∥fθ − fθ′ ∥L∞(D) ≤ K∥θ − θ′∥∞. To construct a covering, take parameters in the discrete set Θ := {− B, B } ∪ { 2δK Z ∩ (−B, B )}r . The length of the interval is 2 B and thus the cardinality of this set is ≤ (3 + KB/δ )r . This set provides the centers of a δ-covering of the function class. To prove ≤ in (29), Taylor expansion with respect to the parameter vector shows that for any θ, θ′ ∈
+
+[−B, B ]r , there exists a ξ ∈ [−B, B ]r such that f (j) 
+
+> θ
+
+(x) − f (j) 
+
+> θ′
+
+(x) =  ∇θ f (j) 
+
+> ξ
+
+(x)⊤ θ − θ′) and therefore max j=1 ,...,q |f (j) 
+
+> θ
+
+(x) − f (j) 
+
+> θ′
+
+(x)| ≤ sup θ∈[−B,B ]r max j=1 ,...,q ∥∇ θ f (j) 
+
+> θ
+
+(x)∥1∥θ − θ′∥∞.
+
+To show ≥ in (29), consider a θ ∈ (−B, B )r . By choosing α > 0 small enough, we can ensure that 
+
+θ′
+
+> α
+
+(j, x) := θ − α sign( ∇θ f (j) 
+
+> θ
+
+(x)) ∈ (−B, B )r , where the sign function sign() is applied componentwise. 31 Using the definition of the gradient and α = ∥θ − θ′
+
+> α
+
+(j, x)∥∞, we have for α ↓ 0,
+
+∇θ f (j) 
+
+> θ
+
+(x) 1 = 1
+
+α ∇θ f (j) 
+
+> θ
+
+(x)⊤ θ − θ′
+
+> α
+
+(j, x) = f (j) 
+
+> θ
+
+(x) − f (j)
+
+> θ′
+> α(j, x)
+
+(x)
+
+∥θ − θ′
+
+> α
+
+(j, x)∥∞
+
++ o(1) .
+
+Due to the assumed continuity of the gradients in θ, we obtain sup   
+
+> θ∈[−B,B ]r,x∈D
+
+max  
+
+> j=1 ,...,q
+
+∇θ f (j) 
+
+> θ
+
+(x) 1 = sup   
+
+> θ∈(−B,B )r,x∈D
+
+max  
+
+> j=1 ,...,q
+
+∇θ f (j) 
+
+> θ
+
+(x) 1 ≤ K. 
+
+As we already established the other inequality, we must have equality and (29) holds. The next lemma provides a generic tool to control the covering number of function compositions. Similarly as in the backpropagation algorithm, it shows that the overall parameter variation of a hierarchical model can be controlled by the layerwise variation with respect to the inputs and the parameters. 
+
+Lemma 8. For q a positive integer, consider dimensions r1, . . . , r q , domains D0, . . . , D q , and functions 
+
+f1,θ1 , . . . , fq, θq such that for any θj ∈ [−B, B ]rj , fj, θj : Dj−1 → Dj . Write 
+
+Kj := sup     
+
+> θj,θ′
+> j∈[−B,B ]rj,θj̸=θ′
+> j
+
+∥fj, θj − fj, θ′ 
+
+> j
+
+∥L∞(Dj−1)
+
+∥θj − θ′ 
+
+> j
+
+∥∞
+
+, Qj := sup   
+
+> θj∈[−B,B ]rj,x,x′∈Dj−1,x̸=x′
+
+∥fj, θj (x) − fj, θj (x′)∥∞
+
+∥x − x′∥∞
+
+,
+
+for the Lipschitz constants of the individual functions with respect to the parameters and the inputs. Then, for θ = ( θ1, . . . , θq ) and θ′ = ( θ′
+
+> 1
+
+, . . . , θ′ 
+
+> q
+
+),
+
+sup    
+
+> θ,θ′∈[−B,B ]r1+... +rq ,θ̸=θ′
+
+∥fq, θq ◦ . . . ◦ f1,θ1 − fq, θ′ 
+
+> q
+
+◦ . . . ◦ f1,θ′ 
+
+> 1
+
+∥L∞(D0)
+
+∥θ − θ′∥∞
+
+≤ Kq +
+
+> q−1
+
+X
+
+> ℓ=1
+
+Qq . . . Q ℓ+1 Kℓ.
+
+Combined with Lemma 7 this gives for any δ > 0,
+
+log N
+
+
+
+δ, 
+
+n
+
+fq, θq ◦ . . . ◦ f1,θ1 : θq ∈ [−B, B ]rq , . . . , θ1 ∈ [−B, B ]r1
+
+o
+
+, ∥ · ∥ L∞(D0)
+
+
+
+≤
+
+> q
+
+X
+
+> j=1
+
+rj log 
+
+
+
+3 + Bδ
+
+
+
+Kq +
+
+> q−1
+
+X
+
+> ℓ=1
+
+Qq . . . Q ℓ+1 Kℓ
+
+
+
+.
+
+(30) If the gradients with respect to θ = ( θ1, . . . , θq ) exist and are continuous, applying the second claim of Lemma 7 and the previous lemma provides a bound on the ∥ · ∥ 1-norm of the gradients. 
+
+Proof. We prove the inequality by induction on q. For q = 1 , the inequality holds. The induction step (q − 1) → q follows by applying the triangle inequality from 
+
+fq, θq ◦ . . . ◦ f1,θ1 − fq, θ′ 
+
+> q
+
+◦ . . . ◦ f1,θ′ 
+
+> 1L∞(D0)
+
+≤ fq, θq ◦ fq−1,θq−1 ◦ . . . ◦ f1,θ1 − fq, θq ◦ fq−1,θ′ 
+
+> q−1
+
+◦ . . . ◦ f1,θ′ 
+
+> 1L∞(D0)
+
++ fq, θq ◦ fq−1,θ′ 
+
+> q−1
+
+◦ . . . ◦ f1,θ′ 
+
+> 1
+
+− fq, θ′ 
+
+> q
+
+◦ fq−1,θ′ 
+
+> q−1
+
+◦ . . . ◦ f1,θ′ 
+
+> 1L∞(D0)
+
+≤ Qq fq−1,θq−1 ◦ . . . ◦ f1,θ1 − fq−1,θ′ 
+
+> q−1
+
+◦ . . . ◦ f1,θ′  
+
+> 1L∞(D0)
+
++ fq, θq − fq, θ′ 
+
+> qL∞(Dq−1)
+
+and the induction hypothesis. 32 Lemma 9. (i) For A, B ≥ 1 and d, q ≤ N ,
+
+sup  
+
+> fθ∈MLP (d,q,L,N,B )
+
+∥fθ ∥L∞([ −A,A ]d) ≤ A B(N + 1) L+1 , (31) sup    
+
+> fθ∈MLP (d,q,L,N,B ),x,x′∈[−A,A ]d,x̸=x′
+
+∥fθ (x) − fθ (x′)∥∞
+
+∥x − x′∥∞
+
+≤ (BN )L+1 , (32) sup     
+
+> fθ,fθ′∈MLP (d,q,L,N,B ),θ̸=θ′
+
+∥fθ − fθ′ ∥L∞([ −A,A ]d)
+
+∥θ − θ′∥∞
+
+≤ 6A B(N + 1) 2L+1 . (33) 
+
+(ii) For A, B ≥ 1,
+
+sup  
+
+> fθ∈MA (N,H,B )
+
+∥fθ ∥L∞([ −A,A ]N ×T ]) ≤ 2HABN, (34) sup     
+
+> fθ∈MA (N,H,B ), X,X ′∈[−A,A ]N×T, X ̸=X′
+
+∥fθ (X) − fθ (X′)∥∞
+
+∥X − X′∥∞
+
+≤ 6HA 2B2N 3, (35) sup     
+
+> fθ,fθ′∈MA (N,H,B ),θ̸=θ′
+
+∥fθ − fθ′ ∥L∞([ −A,A ]N ×T ]) 
+
+∥θ − θ′∥∞
+
+≤ 3HA 3BN 3. (36) 
+
+(iii) For A, B, L mlp ≥ 1 and N ≤ Nmlp ,
+
+sup  
+
+> fθ∈T B (N,H,L mlp ,N mlp ,B )
+
+∥fθ ∥L∞([ −A,A ]N ×T ]) ≤ 2HA  B(Nmlp + 1) Lmlp +2 , (37) sup      
+
+> fθ∈T B (N,H,L mlp ,N mlp ,B ),x,x′∈[−A,A ]N×T,x̸=x′
+
+∥fθ (x) − fθ (x′)∥∞
+
+∥x − x′∥∞
+
+≤ 6HA 2 BN mlp 
+
+Lmlp +3 , (38) sup     
+
+> fθ,fθ′∈T B (N,H,L mlp ,N mlp ,B ),θ̸=θ′
+
+∥fθ − fθ′ ∥L∞([ −A,A ]N ×T ]) 
+
+∥θ − θ′∥∞
+
+≤ 30 H2A5 B(Nmlp + 1) 2Lmlp +4 . (39) 
+
+Proof. (i): We apply Lemma 8. Let θ1 := W0 ∈ [−B, B ]N ×d, f1,θ1 (x) := W0x, for j = 2 , . . . , L, θj := (Wj−1, vj−1) ∈ [−B, B ]N ×(N +1) , f j, θj (x) := Wj−1σ(x − vj−1), θL+1 = ( WL, vL) ∈ [−B, B ]q×N +N , and 
+
+fL+1 ,θL+1 (x) := WLσ(x − vL).
+
+If D0 = [−A, A ], we show that to apply Lemma 8, one can take as domains Dj = [−AB j (N +1) j−1N, AB j (N + 1) j−1N ] for j = 1 , . . . , L + 1 .
+
+Since for any x ∈ [−A, A ]d and W0 ∈ [−B, B ]N ×d, one has ∥f1,θ1 (x)∥∞ = ∥W0x∥∞ ≤ ABd, the formula holds for j = 1 . We now show the induction step from ( j − 1) to j. Suppose that Dj−1 = [ −AB j−1(N +1) j−2N, AB j−1(N + 1) j−2N ]. Using that for j ≥ 2, we find 
+
+∥fj, θj (x)∥∞ = Wj−1σ(x − vj−1) ∞ ≤ BN σ(x − vj−1) ∞ ≤ BN  ∥x∥∞ + B.
+
+Whenever ∥x∥∞ ≤ AB j−1(N + 1) j−2N, using A, B, N ≥ 1, we therefore have 
+
+fj, θj (x) ∞ ≤ BN  AB j−1(N + 1) j−2N + B ≤ AB j N  (N + 1) j−2N + B ≤ AB j (N + 1) j−1N, 
+
+that is, fj, θj (x) ∈ Dj . This establishes the induction step and proves (31). To show that the Lipschitz constants of each layer function with respect to the inputs are bounded by 
+
+BN , observe that whenever W0 ∈ [−B, B ]N ×d, ∥f1,θ1 (x) − f1,θ1 (x′)∥∞ ≤ ∥ W0(x − x′)∥∞ ≤ Bd ∥x − x′∥∞.
+
+Similarly, if all parameters are bounded by B, for any j = 2 , . . . , L + 1 ,
+
+fj, θj (x) − fj, θj (x′) ∞ ≤ Wj−1
+
+ σ(x − vj ) − σ(x′ − vj ) 
+
+> ∞
+
+≤ BN σ(x − vj ) − σ(x′ − vj ) ∞
+
+33 ≤ BN ∥x − x′∥∞. (40) This shows that the Lipschitz constant of the composed function is bounded by the product of the layerwise Lipschitz constants, thus, ≤ (BN )L+1 , proving (32). We finally derive a bound for the Lipschitz constants of the functions f1,θ1 , . . . , f L+1 ,θL+1 with respect to the parameters. Since for matrices W, W ′ ∈ [−B, B ]n×m and v, v′ ∈ [−B, B ]m, we have (for matrices ∥ · ∥ ∞
+
+is the entrywise maximum norm) 
+
+W σ (x − v) − W ′σ(x − v′)∥∞ ≤ (W − W ′)σ(x − v) ∞ + W ′ σ(x − v) − σ(x − v′)
+
+> ∞
+
+≤ m∥W − W ′∥∞
+
+ ∥x∥∞ + B + mB σ(x − v) − σ(x − v′) ∞
+
+≤ m∥W − W ′∥∞
+
+ ∥x∥∞ + B + mB v − v′
+
+> ∞
+
+.
+
+Hence, we obtain for any j = 1 , . . . , L + 1 and any x ∈ [−AB j−1(N + 1) j−1, AB j−1(N + 1) j−1],
+
+fj, θj (x) − fj, θj (x′) ∞ ≤
+
+
+
+N  AB j−1(N + 1) j−1 + B + N B 
+
+
+
+θj − θ′ 
+
+> j∞
+
+≤ 3AB j (N + 1) j θj − θ′ 
+
+> j∞
+
+≤ 3AB L+1 (N + 1) L+1 θj − θ′ 
+
+> j∞
+
+.
+
+We now apply Lemma 8 with q = L + 1. (40) shows that one can take Q1, . . . , Q L+1 ≤ BN ≤ B(N + 1) to apply Lemma 8. For any y ≥ 2, PLr=0 yr ≤ 2yL. Since B(N + 1) ≥ 2, this proves sup     
+
+> fθ,fθ′∈MLP (d,q,L,N,B ),θ̸=θ′
+
+∥fθ − fθ′ ∥L∞([ −A,A ]d)
+
+∥θ − θ′∥∞
+
+≤ 6A B(N + 1) 2L+1 ,
+
+establishing (33). 
+
+(ii): Consider SA (t) 
+
+> U,V
+
+(X) := SA U,V 
+
+ x1, . . . , xT
+
+ 
+
+> :,t
+
+=
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) V xs
+
+as a map D = [ −A, A ]N ×T → RN .
+
+Since ∥V xs∥∞ ≤ N B ∥xs∥∞ ≤ ABN, we obtain ∥ SA (t) 
+
+> U,V
+
+∥∞ ≤ ABN. This shows that any multi-head self-attention function MA f1,...,f H (X) = X +PHh=1 fh(X) in the class is bounded by A+HABN, establishing (34). We now derive (35). For X = ( xt)t∈[T ] ∈ [−A, A ]N ×T and X′ = ( x′
+
+> t
+
+)t∈[T ] ∈ [−A, A ]N ×T , we have 
+
+SA (t) 
+
+> U,V
+
+(X) − SA (t) 
+
+> U,V
+
+(X′) ∞ ≤
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) V xs −
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) V x′ 
+
+> s∞
+
++
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) V x′ 
+
+> s
+
+−
+
+> T
+
+X
+
+> s=1
+
+exp( x′⊤  
+
+> s
+
+U x′
+
+> t
+
+)
+
+PTr=1 exp( x′⊤  
+
+> r
+
+U x′
+
+> t
+
+) V x′ 
+
+> s∞
+
+≤ max   
+
+> s∈[T]
+
+V xs − V x′ 
+
+> s∞
+
+34 +
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) − exp( x′⊤  
+
+> s
+
+U x′
+
+> t
+
+)
+
+PTr=1 exp( x′⊤  
+
+> r
+
+U x′
+
+> t
+
+) max   
+
+> s∈[T]
+
+V x′ 
+
+> s∞
+
+.
+
+Assume that U, V ∈ [−B, B ]N ×N and A, B ≥ 1. Using the Lipschitz property ∥ softmax( z) − softmax( z′)∥1 ≤
+
+2∥z − z′∥∞ that holds for any real-valued vectors z and z′ of the same dimension (see Lemma 31), we obtain 
+
+SA (t) 
+
+> U,V
+
+(X) − SA (t) 
+
+> U,V
+
+(X′) ∞ ≤ BN X − X′ 
+
+> ∞
+
++ 2 ABN max   
+
+> s∈[T]
+
+x⊤ 
+
+> s
+
+U xt − x′⊤  
+
+> s
+
+U x′
+
+> t
+
+≤ BN X − X′ 
+
+> ∞
+
++ 2 ABN max  
+
+> s∈[T]
+
+
+
+x⊤ 
+
+> s
+
+U xt − x′⊤  
+
+> s
+
+U xt + x′⊤  
+
+> s
+
+U xt − x′⊤  
+
+> s
+
+U x′
+
+> t
+
+
+
+≤ BN X − X′ 
+
+> ∞
+
++ 4 ABN  ABN max   
+
+> s∈[T]
+
+∥xs − x′
+
+> s
+
+∥1
+
+
+
+≤ 5A2B2N 3 X − X′
+
+> ∞
+
+.
+
+This shows that each of the H self-attention functions has Lipschitz constant bounded by 5 A2B2N 3. Since X
+
+has Lipschitz constant 1 and by assumption A, B ≥ 1, this shows that any multi-head self-attention function MA f1,...,f H (X) = X + PHh=1 fh(X) in the class has Lipschitz constant bounded by 6 HA 2B2N 3, proving (35). We now show (36). We have 
+
+∂Vij SA (t) 
+
+> U,V
+
+(X) = 
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) eie⊤ 
+
+> j
+
+xs,
+
+and thus on X ∈ [−A, A ]N ×T , ∥∂Vij SA U,V (X)∥∞ ≤ A. Moreover, 
+
+∂Uij SA (t) 
+
+> U,V
+
+(X) = 
+
+> T
+
+X
+
+> s=1
+
+ x⊤ 
+
+> s
+
+eie⊤ 
+
+> j
+
+xt exp( x⊤ 
+
+> s
+
+U xt)
+
+PTr=1 exp( x⊤ 
+
+> r
+
+U xt) − exp( x⊤ 
+
+> s
+
+U xt) PTr=1 x⊤ 
+
+> r
+
+eie⊤ 
+
+> j
+
+xt exp( x⊤ 
+
+> r
+
+U xt)
+
+  P Tr=1 exp( x⊤ 
+
+> r
+
+U xt)2
+
+
+
+V xs.
+
+Using that every entry of X is bounded in absolute value by A and any entry of V is bounded in absolute value by B, we find 
+
+∂Uij SA U,V (X) ∞ ≤ 2A2 max  
+
+> s=1 ,...,T
+
+V xs ∞ ≤ 2A2N BA = 2 A3N B. 
+
+The multi-head self-attention class consists of functions of the form MA f1,...,f H (X) = X + PHh=1 fh(X) ∈
+
+RN ×T with self-attention layers f1, . . . , f H . Let θ = ( V1, U 1, . . . , V H , U H ) and denote the ( n, t )-th entry of MA f1,...,f H (X) by MA f1,...,f H (X)n,t . Then, for any X ∈ [A, A ]N ×T ,
+
+∇θ MA W,f 1,...,f H (X)n,t 1 ≤ HN 2A| {z } 
+
+> due to V1,...,V H
+
++ HN 2(2 A3N B )
+
+| {z } 
+
+> due to U1,...,U H
+
+≤ 3HA 3N 3B, 
+
+proving (36). 
+
+(iii): Recall that T B (N, H, L mlp , N mlp , B ) = {hθ′ ◦gθ : gθ ∈ MA (N, H, B ), hθ′ ∈ MLP (N, N, L mlp , N mlp , B )}.
+
+By (34), we find sup  
+
+> gθ∈MA (N,H,B )
+
+∥gθ ∥L∞([ −A,A ]N ×T ) ≤ 2HABN =: A. 
+
+By (31) and using N ≤ Nmlp ,
+
+sup  
+
+> hθ′∈MLP (N,N,L mlp ,N mlp ,B )
+
+∥hθ′ ∥L∞([ −A,A ]N ]) ≤ A B(Nmlp + 1) Lmlp +1 ≤ 2HA  B(Nmlp + 1) Lmlp +2 ,
+
+35 establishing (37). We now prove (38). The Lipschitz constant with respect to the input of the composition is the product of the Lipschitz constants with respect to the inputs of the inner function gθ and the outer function hθ′ .By (35), the Lipschitz constant of the inner function is 6 HA 2B2N 3 and by (32), the Lipschitz of the outer function is ( BN mlp )Lmlp . The product is the upper bound in (38). To derive (39), we apply Lemma 8 with q = 2 , K 1 ≤ 3HA 3BN 3 (by (36)), 
+
+K2 ≤ 6A B(Nmlp + 1) 2Lmlp +1 ≤ 12 HA  B(Nmlp + 1) 2Lmlp +2 
+
+(using that by assumption N ≤ Nmlp ), and Q1 ≤ 6HA 2B2N 3 (by (35)). Because of Lmlp ≥ 1, the bound (39) follows now from 
+
+K2 + Q1K1 ≤ 12 HA  B(Nmlp + 1) 2Lmlp +2 + (6 HA 2B2N 3)(3 HA 3BN 3)
+
+≤ 30 H2A5 B(Nmlp + 1) 2Lmlp +4 .
+
+The class of all maps F0 := {f : ( EW )T → ∆W −1} has W T possible inputs and maps inputs to a W -dimensional probability vector. If N (δ) denotes the covering number of ∆ W −1 with sup-norm balls of radius 
+
+δ, we have that N (δ, F0, ∥ · ∥ L∞(( EW )T )) = N (δ)W T
+
+and log N (δ, F0, ∥ · ∥ L∞(( EW )T )) = W T log N (δ).
+
+Compared to this bound, the following log covering bound for the transformer class depends only linearly on the vocabulary size W and is independent of the document length T . While transformers are still a flexible class, the comparison shows that they are a small subset within all possible maps from the T tokens to probability vectors. 
+
+Theorem 10 (Theorem 3) . Let A, B, L, L mlp ≥ 1 and N ≤ Nmlp . For the transformer class introduced in Definition 3.7 and any δ > 0,
+
+log N
+
+
+
+δ, T  W, T, L, N, H, L mlp , N mlp , B , ∥ · ∥ L∞(( EW )T )
+
+
+
+≤
+
+
+
+2W N + 4 HLN 2 + 3 LL mlp N 2mlp 
+
+
+
+log 
+
+
+
+3 + (6 H)10 L2  B(Nmlp + 1) 38 L2Lmlp Bδ
+
+
+
+.
+
+Proof. We aim to apply Lemma 8. Recall that any element in this class is of the form 
+
+f (X) = 
+
+
+
+D · TB L ◦ · · · ◦ TB 1(P + EX )
+
+
+
+> :,T
+
+with parameter matrices E, D ⊤ ∈ [−B, B ]N ×W , P ∈ [−1, 1] N ×T a fixed matrix introduced in Definition 3.6, and for each ℓ = 1 , . . . , L, TB ℓ ∈ T B (N, H, L mlp , N mlp , B ). We apply Lemma 8 with q = L + 2 , by interpreting the structure as a composition of L + 2 functions, namely P + EX, TB 1, . . . , TB L, D. We ignore the ( · ):,T operator, as it does not increase the covering number. For all of these layers, we need to bound the Lipschitz constant with respect to the parameters. This will then provide us with bounds for the quantities 
+
+K1, . . . , K L+2 defined in Lemma 8. For all layers except for the first layer, we also need to bound the Lipschitz 36 constant with respect to the inputs. This will then provide us with bounds for the quantities Q2, . . . , Q L+2 
+
+defined in Lemma 8. The result follows then by applying (30). Let X ∈ (EW )T ⊂ [0 , 1] W ×T . Then, P + EX ∈ [−B − 1, B + 1] N ×T and by using (37), for any ℓ = 1 , . . . , L 
+
+TB ℓ ◦ · · · ◦ TB 1(P + EX ) : ( EW )T → [−Aℓ+1 , A ℓ+1 ]N ×T
+
+with 
+
+Aℓ+1 := ( B + 1) 
+
+
+
+2H B(Nmlp + 1) Lmlp +2 ℓ
+
+. (41) For any X ∈ (EW )T , and any matrices E, E ′ ∈ [−B, B ]N ×W , we have ∥P + EX − (P + E′X)∥∞ ≤∥E − E′∥∞. Thus, K1 ≤ 1.
+
+Replacing A in (39) by Aℓ−1, we obtain that 
+
+Kℓ ≤ 30 H2A5
+
+> L+1
+
+ B(Nmlp + 1) 6Lmlp , ℓ = 2 , . . . , L + 1 ,
+
+and by (38), 
+
+Qℓ ≤ 6HA 2
+
+> L+1
+
+ BN mlp 
+
+4Lmlp , ℓ = 2 , . . . , L + 1 .
+
+Whenever D, D ′ ∈ [−B, B ]W ×N and U ∈ RN ×T , we obtain ∥DU − D′U ∥∞ ≤ N ∥U ∥∞∥D − D′∥∞. Thus, 
+
+KL+2 ≤ N A L+1 ≤ Nmlp AL+1 .
+
+For the Lipschitz constant of the output layer with respect to the inputs, observe that for D ∈ [−B, B ]W ×N
+
+and U, U ′ ∈ RN ×T , ∥DU − DU ′∥∞ ≤ N ∥D∥∞∥U − U ′∥∞ ≤ N B ∥U − U ′∥∞. Hence QL+2 ≤ BN ≤ BN mlp .
+
+Using that for any y ≥ 2, PLr=0 yr ≤ 2yL, A L+1 = ( B + 1)(2 H(B(Nmlp + 1)) Lmlp +2 )L, and L, L mlp ≥ 1,KL+2 +
+
+> L+1
+
+X
+
+> ℓ=1
+
+QL+2 . . . Q ℓ+1 Kℓ
+
+≤ 2
+
+
+
+6HA 2
+
+> L+1
+
+ BN mlp 
+
+4Lmlp 
+
+L
+
+30 H2A5
+
+> L+1
+
+ B(Nmlp + 1) 6Lmlp 
+
+≤ 2(6 H)L+2  B(Nmlp + 1) 10 Lmlp LA7LL+1 
+
+≤ (6 H)10 L2  B(Nmlp + 1) 38 L2Lmlp .
+
+This is an upper bound for the Lipschitz constant with respect to the parameters. To apply Lemma 7, the number of learnable parameters in the transformer class is shown in (12) to be 2W N + L
+
+
+
+(2 H + 1) N 2 + 2 N N mlp + ( Lmlp − 1) N 2mlp + Lmlp Nmlp + N
+
+
+
+.
+
+Using that by assumption N ≤ Nmlp , the number of parameters can be bounded by 
+
+≤ 2W N + 4 HLN 2 + 3 LL mlp N 2mlp .
+
+Applying now Lemma 7 yields the claimed bound for the metric entropy. 37 D Proofs for the Approximation Error 
+
+We now prove Theorem 4. Unless otherwise specified, the implicit constants in the notation ≲ and ˜O depend only on ( m1, m 2, r 1, r 2, δ 1, δ 2, β 1, β 2, ∥g0∥Cβ1 , sup h∈H ∥h∥Cβ2 ). We recall Theorem 4 here. 
+
+Theorem 11 (Theorem 4) . Suppose Assumptions 2 and 3 hold. For sufficiently large W and T and for any 
+
+λ ∈ [T −1, log −1(W ∧ T )] , there exists a transformer f ∗ ∈ T M (W, T, L, N, H, L mlp , N mlp , B ) such that 
+
+sup 
+
+> h∈H
+
+E
+
+h
+
+∥f ∗(X1, . . . , XT ) − f0(h, X1, . . . , XT )∥2 
+
+> ∞
+
+h
+
+i
+
+= ˜O
+
+
+
+N − 4β1 
+
+> m1r1
+> mlp
+
++ λ2β2 + M 2
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+.
+
+As prerequisites of the proof, we recall definitions and key lemmas from Section 5. The random vectors 
+
+Z1,t ∈ Rr1m1 , Z2,t ∈ Rr2m2 and Yt ∈ Rm2 are defined by 
+
+Z1,t =
+
+
+
+ϕ1(Xt−r1 )
+
+ϕ1(Xt−r1+1 )...
+
+ϕ1(Xt−1)
+
+
+
+, Z2,t =
+
+
+
+ϕ2(Xt−r2 )
+
+ϕ2(Xt−r2+1 )...
+
+ϕ2(Xt−1)
+
+
+
+, Yt := ϕ2(Xt)exp[ g0(Z1,t )⊤ϕ1(Xt)] .
+
+In addition, recall that for z ∈ Rr2m2 and Kλ(z, z′) := exp( −∥ z − z′∥2/(2 λ2)), 
+
+bmλ(z) := X    
+
+> s∈[log 2T,T −log 2T]
+
+Kλ
+
+ Z2,s , zP     
+
+> i∈[log 2T,T −log 2T]
+
+Kλ
+
+ Z2,i , z Ys.
+
+Lemma 6 states that 
+
+E
+
+"
+
+δ2
+
+∥ bmλ(Z2,T +1 )∥2
+
+bmλ(Z2,T +1 ) − h(Z2,T )
+
+> 22
+
+h
+
+#
+
+= ˜O
+
+
+
+λ2β2 + 1
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+, (42) and that there exists a constant c > 0 such that P ∥ bmλ(Z2,T +1 )∥2 < c h ≲ 1/(T φ W (λ)r2 ). All implicit constants and the constant c depend only on ( m1, m 2, r 1, r 2, δ 1, δ 2, β 1, β 2, ∥g0∥Cβ1 , sup h∈H ∥h∥Cβ2 ). 
+
+Proof of Theorem 4. We construct a transformer f ∗ ∈ T M (W, T, L, N, H, L mlp , N mlp , B ) defined by 
+
+f ∗(X) = clip M ◦
+
+
+
+D · ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+,
+
+where E, D ⊤ ∈ RN ×W , μ1, μ2 ∈ MA (N, H, B ) and ν1, ν2 ∈ MLP (N, L mlp , N mlp , B ). For the encoding matrix E, we use 
+
+E := 
+
+
+
+ϕ1(e1) ϕ1(e2) · · · ϕ1(eW )
+
+ϕ2(e1) ϕ2(e2) · · · ϕ2(eW )
+
+0N −m1−m2 0N −m1−m2 · · · 0N −m1−m2
+
+ , D := E⊤.
+
+Also, we use μ1, μ2 ∈ MA (N, H, B ) and ν1 ∈ MLP (N, L mlp , N mlp , B ) defined in Lemma 5, such that 
+
+
+
+μ2 ◦ ν1 ◦ μ1
+
+ P + EX 
+
+> :,T
+
+=
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+
+
+∈ Rm1
+
+∈ Rm2
+
+38 with 
+
+k1 − g0(Z1,T +1 ) ∞ ∨ ∥ k2 − bmλ(Z2,T +1 )∥∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
++ 1
+
+T .
+
+Applying Lemma 25 with M = ⌈log 2 T ⌉2, there exists a multilayer perceptron ν2 ∈ MLP (N, L mlp , N mlp , B )satisfying 
+
+ν2
+
+
+
+a1
+
+a2
+
+a3
+
+ −
+
+
+
+a1
+
+δ2a3/∥a3∥2
+
+0N −m1−m2
+
+
+
+> ∞
+
+≲ 1
+
+T ,
+
+for all a1 ∈ Rm1 , a2 ∈ RN −m1−m2 , and a3 ∈ Rm2 with c/ 2 ≤ ∥ a3∥2 ≤ exp( δ1m1) + 2. Since ∥Yt∥2 ≤
+
+exp( δ1m1) for every t ∈ [T ], we have ∥ bmλ(Z2,T +1 )∥2 ≤ exp( δ1m1) and hence ∥k2∥2 ≤ exp( δ1m1) + 2, provided that Nmlp and T are sufficiently large. Combining these inequalities with (42) and φW (λ) ≤ 1, we obtain for sufficiently large Nmlp and T
+
+E
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1
+
+ P + EX 
+
+> :,T
+
+−
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+I ∥ bmλ(Z2,T +1 )∥2 ≥ c h
+
+
+
+≤ E
+
+ ν2
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+ −
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+I ∥k2∥2 ≥ c/ 2 h
+
+
+
+≤ 3E
+
+ ν2
+
+
+
+k1
+
+•N −m1−m2
+
+k2
+
+ −
+
+
+
+k1
+
+δ2k2/∥k2∥
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+I ∥k2∥2 ≥ c/ 2 h
+
+
+
++ 3 E
+
+
+
+k1
+
+δ2k2/∥k2∥
+
+0N −m1−m2
+
+ −
+
+
+
+g0(Z1,T +1 )
+
+δ2 bmλ(Z2,T +1 )/∥ bmλ(Z2,T +1 )∥2
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+I ∥k2∥2 ≥ c/ 2 h
+
+
+
++ 3 E
+
+
+
+g0(Z1,T +1 )
+
+δ2 bmλ(Z2,T +1 )/∥ bmλ(Z2,T +1 )∥2
+
+0N −m1−m2
+
+ −
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+h
+
+
+
+= ˜O
+
+
+
+(Nmlp )− 2β1 
+
+> m1r1
+
++ λ2β2 + 1
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+.
+
+By considering the decoding matrix 
+
+D := 
+
+
+
+ϕ1(e1) ϕ1(e2) · · · ϕ1(eW )
+
+ϕ2(e1) ϕ2(e2) · · · ϕ2(eW )
+
+0N −m1−m2 0N −m1−m2 · · · 0N −m1−m2
+
+
+
+> ⊤
+
+=
+
+
+
+ϕ1(e1)⊤ ϕ2(e1)⊤ 0⊤ 
+
+> N−m1−m2
+
+ϕ1(e2)⊤ ϕ2(e2)⊤ 0⊤ 
+
+> N−m1−m2
+
+... ... ...
+
+ϕ1(eW )⊤ ϕ2(eW )⊤ 0⊤ 
+
+> N−m1−m2
+
+
+
+39 and noticing that M ≥ δ1m1 + δ2 ≥ max w∈[W ] |g0(Z1,T )⊤ϕ1(ew) + h(Z2,T )⊤ϕ2(ew)|, we obtain the assertion of Theorem 4 by 
+
+E
+
+h
+
+∥f ∗(X) − f0(h, X)∥2 
+
+> ∞
+
+h
+
+i
+
+= E
+
+
+
+clip M ◦ D ·
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+−
+
+
+
+g0(Z1,T )⊤ϕ1(e1) + h(Z2,T )⊤ϕ2(e1)
+
+g0(Z1,T )⊤ϕ1(e2) + h(Z2,T )⊤ϕ2(e2)...
+
+g0(Z1,T )⊤ϕ1(eW ) + h(Z2,T )⊤ϕ2(eW )
+
+
+
+> 2
+> ∞
+
+h
+
+
+
+= E
+
+ clip M ◦ D ·
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+−
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+h
+
+
+
+≤ E
+
+ D ·
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+−
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+> ∞
+
+I ∥ bmλ(Z2,T +1 )∥2 ≥ c h
+
+
+
++ M 2P ∥ bmλ(Z2,T +1 )∥2 < c h
+
+= E
+
+max 
+
+> w
+
+
+
+ϕ1(ew)
+
+ϕ2(ew)
+
+0N −m1−m2
+
+ 
+
+> ⊤
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+−
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 2
+
+I ∥ bmλ(Z2,T +1 )∥2 ≥ c h
+
+
+
++ M 2P ∥ bmλ(Z2,T +1 )∥2 < c h
+
+≤ (m2 + 1) E
+
+
+
+ν2 ◦ μ2 ◦ ν1 ◦ μ1(P + EX )
+
+
+
+> :,T
+
+−
+
+
+
+g0(Z1,T +1 )
+
+h(Z2,T +1 )
+
+0N −m1−m2
+
+
+
+> 22
+
+I ∥ bmλ(Z2,T +1 )∥2 ≥ c h
+
+
+
++ M 2P ∥ bmλ(Z2,T +1 )∥2 < c h
+
+= ˜O
+
+
+
+(Nmlp )− 2β1 
+
+> m1r1
+
++ λ2β2 + M 2
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+.
+
+# E Construction of the Transformer 
+
+In this section, we construct μ1, μ2 ∈ MA (N, H, B ) and ν1, ν2 ∈ MLP (N, L mlp , N mlp , B ), which are used in the proof of Theorem 4. We construct multi-head self-attention layers in Appendix E.1, and multi-layer perceptron layers in Appendix E.2. Using these results, we provide a formal proof of Lemma 5 in Appendix E.3. Unless otherwise specified, the implicit constants in the notation ≲ depend only on (m1, m 2, r 1, r 2, δ 1, δ 2, β 1, ∥g0∥Cβ1 ). 40 E.1 Construction of multi-head self-attention layers 
+
+Recall that for A := N/ 4, the positional encoding matrix P ∈ RN ×T is defined as 
+
+P := 
+
+0N −2A . . . 0N −2A
+
+q1 . . . qT
+
+ , qt := 
+
+
+
+q1,t 
+
+q2,t 
+
+...
+
+qA,t 
+
+
+
+, qa,t := 
+
+sin   tT a/A 
+
+
+
+cos   tT a/A 
+
+ .
+
+The following lemma is key to the use of multi-scale sinusoidal positional encoding. Although it seems likely that this result has appeared before, we were unable to find it in the literature. 
+
+Lemma 12. For any t1, t 2 ∈ [T ],(i) If t1 = t2, then q⊤ 
+
+> t1
+
+qt2 = PAa=1 q⊤ 
+
+> a,t 1
+
+qa,t 2 = A.(ii) If t1̸ = t2, then q⊤ 
+
+> t1
+
+qt2 = PAa=1 q⊤ 
+
+> a,t 1
+
+qa,t 2 ≤ A − 13T 2/A .Proof of Lemma 12. Claim (i) follows from ∥qa,t ∥2 = 1 for any a ∈ [A] and t ∈ [T ]. To prove (ii), the addition theorem and the fact that cos( ·) is 2 π-periodic and an even function gives 
+
+> A
+
+X
+
+> a=1
+
+q⊤ 
+
+> a,t 1
+
+qa,t 2 =
+
+> A
+
+X
+
+> a=1
+
+cos 
+
+ t1 − t2
+
+T a/A 
+
+
+
+=
+
+> A
+
+X
+
+> a=1
+
+cos ( sa)with 
+
+sa := 
+
+ |t1 − t2|
+
+T a/A 
+
+
+
+− 2π
+
+ 12π
+
+ |t1 − t2|
+
+T a/A 
+
+ 
+
+∈ [0 , 2π), a ∈ [A].
+
+It remains to show that there exists some a′ ∈ [A] such that T −1/A ≤ sa′ ≤ 2π − T −1/A . Combining this with the inequality cos( x) ≤ 1 − x2/2 + x4/24 ≤ 1 − x2/3 for 0 ≤ x ≤ 1, we obtain cos( sa′ ) ≤ cos( T −1/A ) ≤
+
+1 − 1/(3 T 2/A ), thereby completing the proof from PAa=1 cos ( sa) ≤ (A − 1) + cos( sa′ ) ≤ A − 1/(3 T 2/A ). To derive a contradiction, assume that either sa < T −1/A or sa > 2π − T −1/A for all a ∈ [A]. From 
+
+|t1 − t2| < T , we have 
+
+sA = |t1 − t2|
+
+T − 2π
+
+ 12π
+
+ |t1 − t2|
+
+T
+
+ 
+
+= |t1 − t2|
+
+T ∈ (0 , 1) .
+
+This excludes the possibility that sA > 2π − T −1/A and by assumption, we must have sA < T −1/A . Now, assume that 
+
+sa+1 = |t1 − t2|
+
+T (a+1) /A < T −1/A , for some a ∈ { A − 1, A − 2, . . . , 1}.
+
+It follows 
+
+|t1 − t2|
+
+T a/A < 1 < 2π, 
+
+and hence 
+
+sa = |t1 − t2|
+
+T a/A − 2π
+
+ 12π
+
+ |t1 − t2|
+
+T a/A 
+
+ 
+
+= |t1 − t2|
+
+T a/A < 1.
+
+41 From the assumption, it follows that sa < T −1/A . By backwards induction on a from A − 1 down to 1, we obtain 
+
+sa = |t1 − t2|
+
+T a/A < T −1/A 
+
+for every a ∈ [A]. For a = 1 ,T −1/A ≤ |t1 − t2|
+
+T 1/A = s1 < T −1/A ,
+
+we arrive at a contradiction. Therefore, the claimed result follows. 
+
+Remark 2. There is a clear benefit in choosing A ≫ 1. For single-scale sinusoidal positional encoding (i.e., 
+
+A = 1 ), the difference between two adjacent positional encoding vectors, qt and qt+1 , scales with O(1 /T ). If the self-attention layer is defined using the hardmax function, that is, 
+
+
+
+V X hardmax  X⊤U X 
+
+> :,t
+
+= V xs∗ with s∗ := argmax  
+
+> s∈[T]
+
+ x⊤ 
+
+> s
+
+U xt
+
+,
+
+this small difference is sufficient to distinguish the two columns. However, when using the softmax function, this difference needs to be multiplied by extremely large values to become non-negligible. In contrast, in Theorem 4, we employ the multi-scale sinusoidal positional encoding with A = N/ 4 ≳ log T , which gives 
+
+(3 T 2/A )−1 ≳ 1. By applying Lemma 12, we therefore do not need to use such large parameters. 
+
+For fixed r and each a ∈ [A], introducing the 2 × 2 rotation matrix 
+
+Ma := 
+
+cos   rT a/A 
+
+ − sin   rT a/A 
+
+
+
+sin   rT a/A 
+
+ cos   rT a/A 
+
+ , (43) and applying the addition theorem yields 
+
+Maqa,t =
+
+cos   rT a/A 
+
+ − sin   rT a/A 
+
+
+
+sin   rT a/A 
+
+ cos   rT a/A 
+
+sin 
+
+ tT a/A 
+
+
+
+cos 
+
+ tT a/A 
+
+ =
+
+sin 
+
+ t−rT a/A 
+
+
+
+cos 
+
+ t−rT a/A 
+
+ = qa,t −r . (44) This is the key argument in the next lemma showing how the self-attention layer can approximately implement a delay operation with respect to its sequential input. 
+
+Lemma 13. Under Assumption 3, and for any d1, d 2, d 3, d 4 ∈ N0 with d1 + d2 + d3 = N/ 2 and d2 + d4 ≤ N ,and for any r ∈ { 0, 1, . . . , T − 1}, there exists a self-attention SA U,V ∈ SA (N, B ) such that 
+
+SA U,V :
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ [−1, 1] d1
+
+∈ [−1, 1] d2
+
+∈ [−1, 1] d3
+
+∈ [−1, 1] N/ 2
+
+7−→ 
+
+
+
+0d4
+
+yt
+
+0N −d2−d4
+
+ 
+
+> t∈[T]
+
+with yt ∈ Rd2 satisfying 
+
+yt − x2,t −r ∞ ≤ 2T 1−log T for t ∈ { r + 1 , . . . , T }, ∥yt∥∞ ≤ 1 for t ∈ [T ]. (45) 42 Proof. For t ∈ [T ], we write xt := stack( x1,t , x2,t , x3,t , qt). It is enough to show that there exist matrices 
+
+U, V ∈ [−B, B ]N ×N such that for any t ∈ [T ], 
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) V xs =
+
+
+
+0d4
+
+yt
+
+0N −d2−d4 ,
+
+
+
+and (45) holds. Recall that A := N/ 4 and that Ma is defined in (43). For the matrix U ∈ RN ×N , we choose 
+
+U := B ·
+
+
+
+O2A×2A O2A×2A
+
+O2A×2A
+
+
+
+M1 0 · · · 00 M2 · · · 0... ... . . . ...0 0 · · · MA
+
+
+
+,
+
+recalling that Op×q denotes the p × q zero-matrix. By (44), we have 
+
+x⊤ 
+
+> s
+
+U xt = Bx⊤
+
+> s
+
+
+
+02A
+
+M1q1,t 
+
+M2q2,t 
+
+...
+
+MAqA,t 
+
+
+
+= Bx⊤
+
+> s
+
+
+
+02A
+
+q1,t −r
+
+q2,t −r
+
+...
+
+qA,t −r
+
+
+
+= B
+
+> A
+
+X
+
+> a=1
+
+q⊤
+
+> a,s
+
+qa,t −r
+
+for all t, s ∈ [T ]. For the matrix V ∈ RN ×N , we choose 
+
+V := 
+
+
+
+Od4×d1 Od4×d2 Od4×(N −d1−d2)
+
+Od2×d1 Id2 Od2×(N −d1−d2)
+
+O(N −d2−d4)×d1 O(N −d2−d4)×d2 O(N −d2−d4)×(N −d1−d2)
+
+ ,
+
+which yields 
+
+V xs =
+
+
+
+0d4
+
+x2,s 
+
+0N −d2−d4
+
+ .
+
+First, observe that 
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) V xs =
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt)
+
+
+
+0d4
+
+x2,s 
+
+0N −d2−d4
+
+ =
+
+
+
+0d4
+
+PTs=1 exp( x⊤      
+
+> sUxt)
+> PTj=1 exp( x⊤
+> jUxt)
+
+x2,s 
+
+0N −d2−d4
+
+ .
+
+For every t ∈ [T ], we have 
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) x2,s 
+
+> ∞
+
+≤
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) ∥x2,s ∥∞ ≤ 1,
+
+43 which yields the second assertion. Now we assume t ∈ { r+1 , . . . , T } and derive the first assertion. If s = t−r,we have by Lemma 12, exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) = exp  B PAa=1 q⊤
+
+> a,s
+
+qa,t −r
+
+PTj=1 exp  B PAa=1 q⊤ 
+
+> a,j
+
+qa,t −r
+
+
+
+≥ exp  BA 
+
+exp  BA  + ( T − 1) exp 
+
+
+
+B A − 13T 2/A 
+
+
+
+≥ 11 + T exp   − B/ (3 T 2/A )
+
+≥ 1 − T exp 
+
+
+
+− B
+
+3T 2/A 
+
+
+
+≥ 1 − T exp 
+
+
+
+− B
+
+3T 1/ log T
+
+
+
+= 1 − T exp 
+
+
+
+− B
+
+3e
+
+
+
+≥ 1 − T exp  − log 2 T 
+
+= 1 − T 1−log T , (46) provided that A = N/ 4 ≥ 2 log T and B ≥ 9 log 2 T > 3e log 2 T . Similarly, if s̸ = t − r, we have exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) = exp  B PAa=1 q⊤
+
+> a,s
+
+qa,t −r
+
+PTj=1 exp  B PAa=1 q⊤ 
+
+> a,j
+
+qa,t −r
+
+ ≤
+
+exp 
+
+
+
+B A − 13T 2/A 
+
+
+
+exp( BA ) ≤ T − log T . (47) Together, (46) and (47) yield 
+
+yt − x2,t −r ∞ =
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) x2,s − x2,t −r
+
+> ∞
+
+= exp( x⊤ 
+
+> t−r
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) x2,t −r + X
+
+> s̸=t−r
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) x2,s − x2,t −r
+
+> ∞
+
+= exp( x⊤ 
+
+> t−r
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) − 1
+
+!
+
+x2,t −r
+
+> ∞
+
++ X
+
+> s̸=t−r
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTj=1 exp( x⊤ 
+
+> j
+
+U xt) x2,s 
+
+> ∞
+
+≤ 2T 1−log T .
+
+The bound ∥yt∥∞ ≤ 1 for t ∈ [T ] follows since yt is a weighted average of {x2,s }s∈[T ].Based on Lemma 13, we can construct a multi-head self-attention that approximately implements a delay operation. We apply this lemma by setting x1,t = ϕ1(Xt) and x2,t = ϕ2(Xt). 44 Lemma 14. Under Assumption 3, there exists μ1 ∈ MA (N, H, B ) such that 
+
+μ1 :
+
+
+
+x1,t 
+
+x2,t 
+
+0 N 
+
+> 2−m1−m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] N/ 2
+
+7−→ 
+
+
+
+x1,t 
+
+x2,t 
+
+y1,t 
+
+y2,t 
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ Rr1m1
+
+∈ Rr2m2
+
+where for a = 1 , 2,
+
+ya,t −
+
+
+
+xa,t −ra
+
+xa,t −ra+1 
+
+...
+
+xa,t −1
+
+
+
+> ∞
+
+≲ T 1−log T , for all t ∈ { ra + 1 , . . . , T }, and ∥ya,t ∥∞ ≤ 1, for all t ∈ [T ].
+
+Proof. By applying Lemma 13 ( r1 + r2)-times and adding the identity, we obtain the assertion. The construction of the next multi-head self-attention layer follows from the definition of the self-attention. Later, we will set 
+
+x1,t = g0(Z1,t +1 ), x2,t = Yt, x3,t = 1
+
+λ ϕ2(Xt−r2 ), x4,t = 1
+
+λ stack  ϕ2(Xt−r2+1 ), . . . , ϕ2(Xt−1),
+
+x5,t = 1
+
+λ ϕ2(Xt), x6,t =
+
+√r2
+
+λ x7,t = T 3 I(t ∈ [log 2 T, T − log 2 T ]) .
+
+Lemma 15. There exists a multi-head self-attention μ2 ∈ MA (N, H, B ) such that 
+
+μ2 :
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+x4,t 
+
+x5,t 
+
+x6,t 
+
+x7,t 
+
+0N −m1−(r2+2) m2−2
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+7−→ 
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+x4,t 
+
+x5,t 
+
+x6,t 
+
+x7,t 
+
+0N −m1−(r2+3) m2−2
+
+yt
+
+  
+
+> t∈[T]
+
+∈ Rm2
+
+with 
+
+yt := X 
+
+> s∈[T]
+
+
+
+exp   stack( x3,s , x4,s ), stack( x4,t , x5,t ) − x6,s x6,t + λ√r2 x7,s x6,t 
+
+ ; x2,s 
+
+
+
+, (48) 
+
+where P is defined in (23) .
+
+45 Proof. By the definition of the self-attention in (9), the t-th column of SA U,V 
+
+ (xt)t∈[T ]
+
+ for given matrices 
+
+U, V ∈ RN ×N can be written as 
+
+> T
+
+X
+
+> s=1
+
+exp( x⊤ 
+
+> s
+
+U xt)
+
+PTi=1 exp( x⊤ 
+
+> i
+
+U xt) V xs = X 
+
+> s∈[T]
+
+  exp( x⊤ 
+
+> s
+
+U xt) ; V xs
+
+.
+
+Choosing matrices U, V ∈ [−B, B ]N such that 
+
+x⊤ 
+
+> s
+
+U xt = stack( x3,s , x4,s ), stack( x4,t , x5,t ) − x6,s x6,t + λ√r2 x7,s x6,t , V xs =
+
+0N −m2
+
+x2,s 
+
+ ,
+
+we obtain SA U,V 
+
+ (xt)t∈[T ]
+
+ =
+
+0N −m2
+
+yt
+
+ 
+
+> t∈[T]
+
+.
+
+By considering fO ∈ SA (N, B ) with fO (·) = ON ×T and μ2 := MA SA U,V ,f O ,f O ,...,f O ∈ MA (N, H, B ), we get the assertion by adding the identity to SA U,V .
+
+## E.2 Construction of multilayer perceptron layers 
+
+Given input and output dimensions din , d out ∈ N and depth and width Lmlp , N mlp ∈ N, let p0 := din , pℓ := 
+
+Nmlp for ℓ ∈ [Lmlp ] and pLmlp +1 := dout . A multilayer perceptron is parameterized by θ := {Wℓ, bℓ}ℓ∈{ 0,1,...,L mlp }
+
+with the weight matrices {Wℓ ∈ Rpℓ+1 ×pℓ }ℓ∈{ 0,1,...,L mlp } and the bias vectors {bℓ ∈ Rpℓ+1 }ℓ∈{ 0,1,...,L mlp }. For input x ∈ Rdin , the multilayer perceptron output MLP θ (x) is given by MLP θ (x) := WLmlp f (Lmlp )(x) − bLmlp ,
+
+where f (ℓ) for ℓ ∈ [Lmlp ] is recursively defined via 
+
+f (ℓ)(x) := σ
+
+
+
+Wℓ−1f (ℓ−1) (x) − bℓ−1
+
+
+
+,
+
+and f (0) (x) := x. Here σ denotes the componentwise application of the ReLU activation function in the sense that for any positive integer p, σ  (x1, . . . , x p)⊤ =  (x1)+, . . . , (xp)+
+
+⊤.
+
+It is well known that multilayer perceptrons can approximate polynomial and analytic functions at exponential rates, whereas they approximate H¨ older-smooth functions at polynomial rates. The results in this section follow from slight modifications of these known results. The following two lemmas show that multilayer perceptrons can approximate multiplication at exponential rates. Similar results can be found in the literature [43, 48, 61, 82]. We adapt Lemmas A.2 and A.3 of [61] to general bounded domains, while keeping the network parameters bounded. 
+
+Lemma 16. For any c ≥ 1 and M = 5 , 6, . . . , there exists a multilayer perceptron f : R2 → R with depth M ,width 7, and parameters bounded in absolute value by 4c2, such that 
+
+sup 
+
+> x1,x 2∈[−c,c ]
+
+|f (x1, x 2) − x1x2| ≤ c22−M +6 .
+
+46 Proof. By Lemma A.2 of [61], for any m ∈ N, there exists a multilayer perceptron g : R2 → R with depth 
+
+m + 4, width 6, and all parameters bounded in absolute value by 1, such that sup 
+
+> y1,y 2∈[0 ,1]
+
+|g(y1, y 2) − y1y2| ≤ 2−m.
+
+Let ℓ : x 7 → (x + c)/(2 c) and define 
+
+f (x1, x 2) = c2
+
+4g ℓ(x1), ℓ (x2) − 2ℓ(x1) − 2ℓ(x2) + 1 
+
+
+
+Since xj = 2 c ℓ (xj ) − c for j = 1 , 2, we have, for all x1, x 2 ∈ [−c, c ], 
+
+|f (x1, x 2) − x1x2| = c2
+
+4g ℓ(x1), ℓ (x2) − 2ℓ(x1) − 2ℓ(x2) + 1 
+
+
+
+−  2cℓ (x1) − c  2cℓ (x2) − c
+
+= 4 c2 g ℓ(x1), ℓ (x2) − ℓ(x1)ℓ(x2) ≤ 4c22−m.
+
+Moreover, the affine transformations before and after g can be absorbed into the first and last layers. Hence 
+
+f can be represented by a multilayer perceptron with depth m + 4, width 7 and all parameters bounded in absolute value by 4 c2, where one of the seven neurons is used to store ℓ(x1) + ℓ(x2). Setting m = M − 4proves the assertion. 
+
+Lemma 17. For any d = 2 , 3, . . . and M = 5 , 6, . . . , there exists a multilayer perceptron f : R → R with depth ⌈log 2 d⌉M , width 7d, and universally bounded parameters such that 
+
+sup 
+
+> x∈[−1,1]
+
+f (x) − xd ≤ d22−M +6 .
+
+Proof. Let ˜ g : R2 → R be the multilayer perceptron defined in Lemma 16 with depth M , width 7 and all parameters bounded in absolute value by 4, such that sup y1,y 2∈[−1,1] |˜g(y1, y 2) − y1y2| ≤ 2−M +6 . To ensure that the output lies in the range [ −1, 1], define 
+
+g(x1, x 2) :=  ˜g(x1, x 2) + 1  
+
+> +
+
+−  ˜g(x1, x 2) − 1 
+
+> +
+
+− 1 = 
+
+
+
+−1, ˜g(x1, x 2) < −1˜g(x1, x 2), ˜g(x1, x 2) ∈ [−1, 1] 1, ˜g(x1, x 2) > 1.
+
+Then, g : R2 → [−1, 1] is a multilayer perceptron with depth M + 1, width 7 and all parameters bounded in absolute value by 4, satisfying sup 
+
+> y1,y 2∈[−1,1]
+
+|g(y1, y 2) − y1y2| ≤ 2−M +6 . (49) We construct the multilayer perceptron f as follows. Let q := ⌈log 2 d⌉ and define 
+
+ℓ : x 7 → (x, . . . , x 
+
+| {z }
+
+> d
+
+, 1, . . . , 1
+
+| {z } 
+
+> 2q−d
+
+)⊤.
+
+Let ℓ(x) = ( x1, . . . , x 2q )⊤. Starting from ( ℓ(x), we apply g to the 2 q−1 pairs ( x1, x 2), . . . , (x2q −1, x 2q ) to compute g(x1, x 2), . . . , g (x2q −1, x 2q ). Then, we pair neighboring entries and apply g again to the resulting 47 2q−2 pairs. This procedure is continued until only one entry remains. Since affine transformations before and after a multilayer perceptron can be absorbed into the first and last layers, the resulting network has depth 
+
+qM , width 7 · 2q−1 ≤ 7d, and all parameters are bounded by a constant independent of d and M .If y1, y 2, ˜y1, ˜y2 ∈ [−1, 1], then by (49) and the triangle inequality, |g(˜ y1, ˜y2) − y1y2| ≤ 2−M +6 + |˜y1 − y1| +
+
+|˜y2 − y2|. By induction on the number of iterated multiplication steps q, we obtain 
+
+f (x) − xd ≤ 3q−12−M +6 ≤ 3log 2 d2−M +6 ≤ d22−M +6 
+
+for any x ∈ [−1, 1]. The next lemma states that multilayer perceptrons can approximate analytic functions at exponential rates. We adapt Theorem 6 of [77] to the case of bounded parameters. Compared with their result, our result achieves the same error rate using a more shallow but wider architecture. 
+
+Lemma 18. Assume that the power series f0(x) = P∞ 
+
+> k=0
+
+akxk is absolutely convergent in [−1, 1] and A := 
+
+P∞ 
+
+> k=0
+
+|ak| < ∞. Given fixed δ ∈ (0 , 1) , for any sufficiently large M ∈ N, there exists a multilayer perceptron 
+
+f : R → R with depth ⌈log 2(M/δ )⌉M , width 7⌈M/δ ⌉2, and parameters bounded in absolute value by a constant depending only on A, such that 
+
+sup 
+
+> x∈[−1+ δ, 1−δ]
+
+f (x) − f0(x) ≤ A(M + 1) 22−M +6 
+
+δ2 .
+
+Proof. For given q ∈ N, define 
+
+Pq (x) := 
+
+> q−1
+
+X
+
+> k=0
+
+akxk, Rq (x) := 
+
+> ∞
+
+X
+
+> k=q
+
+akxk.
+
+For x ∈ [−1 + δ, 1 − δ], we have |Rq (x)| ≤ (1 − δ)q P∞ 
+
+> k=q
+
+|ak| ≤ A(1 − δ)q and hence sup 
+
+> x∈[−1+ δ, 1−δ]
+
+|Pq (x) − f0(x)| ≤ A(1 − δ)q . (50) In the following proof, we approximate Pq (x), with q to be chosen later. For each d = 2 , . . . , q − 1, we apply Lemma 17 to approximate xd. By running these subnetworks in parallel, together with the outputs 1 and x, we construct a multilayer perceptron g : R → Rq with depth 
+
+⌈log 2(q − 1) ⌉M , width 1 + Pq−1 
+
+> d=2
+
+7d ≤ 7q2 and bounded parameters such that sup 
+
+> x∈[−1,1]
+
+g(x) − (xα)α∈{ 0,1,...,q −1} ∞ ≤ (q − 1) 22−M +6 .
+
+Define f : R → R by 
+
+f (x) := (a0, a 1, . . . , a q−1)⊤, g(x) .
+
+Then f can be represented by a multilayer perceptron with depth ⌈log 2(q − 1) ⌉M , width 7 q2 and parameters bounded in absolute value by a constant depending only on A. Moreover, for any x ∈ [−1, 1], 
+
+f (x) − Pq (x) ≤
+
+> q−1
+
+X
+
+> k=0
+
+|ak|  g ◦ ℓ(x) 
+
+> (k+1)
+
+− xk ≤ A(q − 1) 22−M +6 .
+
+48 Combining with (50), we have sup 
+
+> x∈[−1+ δ, 1−δ]
+
+f (x) − f0(x) ≤ A(1 − δ)q + A(q − 1) 22−M +6 .
+
+Choosing q = ⌈M/δ ⌉, we obtain 
+
+A(1 − δ)q + A(q − 1) 22−M +6 ≤ Ae −M + AM 22−M +6 
+
+δ2 ≤ A(M + 1) 22−M +6 
+
+δ2 .
+
+This proves the assertion. 
+
+Lemma 19 (Theorem 1 of [45]) . Given a β-H¨ older smooth function f0 : [ −c, c ]d1 → Rd2 , for any sufficiently large M ∈ N, there exists a multilayer perceptron f : Rd1 → Rd2 with depth ⌈log 2 M ⌉2, width M , and parameters bounded in absolute value by a constant depending only on (c, d 1, β, ∥f0∥Cβ ) such that 
+
+sup 
+
+> x∈[−c,c ]d
+
+∥f (x) − f0(x)∥∞ ≲ M − 2βd1 ,
+
+where the implicit constant depends only on (c, d 1, β, ∥f0∥Cβ ).
+
+Lemma 20. Given a fixed c > 0, for any sufficiently large M , there exists a multilayer perceptron f : R → R
+
+with depth M 2, width 33 M 2, and parameters bounded in absolute value by a constant depending only on c
+
+such that 
+
+sup 
+
+> x∈[−c,c ]
+
+|f (x) − exp( x)| ≲ M 22−M ,
+
+where the implicit constant depends only on c.Proof. Without loss of generality, assume that c ∈ N. Otherwise, we replace c by ⌈c⌉ and apply the same argument. Define 
+
+f1 : x 7 → x
+
+2c .
+
+By Lemma 18, there exists a multilayer perceptron f2 : R → R with depth ⌈log 2(2 M )⌉M , width 32 M 2, and bounded parameters such that sup 
+
+> x∈[−1/2,1/2]
+
+|f2(x) − exp( x)| ≲ M 22−M .
+
+Also, by Lemma 17, there exists a multilayer perceptron f3 : R → R with depth ⌈log 2(2 c)⌉M , width 16 c and bounded parameters such that sup 
+
+> x∈[0 ,1]
+
+|f3(x) − x2c| ≲ 2−M .
+
+We obtain the assertion from the fact that 
+
+f (x) := e2c f3
+
+ f2 ◦ f1(x)
+
+e
+
+
+
+can be represented as a multilayer perceptron with depth ⌈log 2(2 M )⌉M + ⌈log 2(2 c)⌉M ≤ M 2, width 32 M 2 +16 c ≤ 33 M 2, and parameters bounded in absolute value by a constant depending only on c, and sup 
+
+> x∈[−c,c ]
+
+f (x) − exp( x) = sup 
+
+> x∈[−1/2,1/2]
+
+e2c f3
+
+ f2(x)
+
+e
+
+
+
+− exp( x)2c
+
+49 ≤ e2c sup 
+
+> x∈[−1/2,1/2]
+
+f3
+
+ f2(x)
+
+e
+
+
+
+−
+
+ f2(x)
+
+e
+
+2c
+
++ sup 
+
+> x∈[−1/2,1/2]
+
+f2(x)2c − exp( x)2c
+
+≲ M 22−M .
+
+Lemma 21. Given 0 < a < b , there exist constants c = c(a, b ), c ′ = c′(a, b ), such that for any sufficiently large M , there exists a multilayer perceptron f : R → R with depth ⌈log 2(M b/a )⌉M , width 7⌈M b/a ⌉2, and parameters bounded in absolute value by c, satisfying 
+
+sup 
+
+> x∈[a,b ]
+
+f (x) − 1
+
+√x ≤ c′M 22−M .
+
+Proof. We rewrite 1
+
+√x = h0 ◦ g0(x), with g0(x) := 2x − a − bb and h0(z) := 
+
+√2
+
+√a + b
+
+1
+
+q1 + z
+
+> 1+( a/b )
+
+,
+
+where g0 maps [ a, b ] to [ −1 + ( a/b ), 1 − (a/b )]. By the generalized binomial theorem, 
+
+h0(z) = 
+
+√2
+
+√a + b
+
+X
+
+> k∈N0
+
+− 12
+
+k
+
+  z
+
+1 + ( a/b )
+
+k
+
+for all z ∈   − 1 − (a/b ), 1 + ( a/b )
+
+with generalized binomial coefficients 
+
+− 12
+
+k
+
+
+
+= (− 12 )( − 12 − 1) . . . (− 12 − k + 1) 
+
+k! = ( −1) k (2 k)! 4k(k!) 2 .
+
+Observe that 
+
+X
+
+> k∈N0
+
+− 12
+
+k
+
+  11 + ( a/b )
+
+k
+
+= X
+
+> k∈N0
+
+− 12
+
+k
+
+  
+
+− 11 + ( a/b )
+
+k
+
+= 1
+
+q
+
+1 − 11+( a/b )
+
+= p1 + ( b/a ).
+
+By Lemma 18, there exists a multilayer perceptron h : R → R with depth ⌈log 2(M b/a )⌉M , width 7 ⌈M b/a ⌉2,and parameters bounded in absolute value by a constant depending only on a and b such that sup 
+
+> z∈[−1+( a/b ),1−(a/b )]
+
+|h(z) − h0(z)| ≲ M 22−M .
+
+It follows that there exists a multilayer perceptron f = h ◦ g0 : R → R with the same architecture such that sup 
+
+> x∈[a,b ]
+
+f (x) − 1
+
+√x ≲ M 22−M .
+
+Lemma 22. For any d, c, L, M ∈ N with c ≤ (M B )L, there exists f ∈ MLP (d, d, L, 2dM, B ) such that 
+
+f (x) = cx for every x ∈ Rd.Proof. It suffices to consider the case d = 1 , as then, for arbitrary d, one can construct d networks computing 
+
+x 7 → cx and concatenate them into one large network computing x 7 → f (x) = cx.50 The first hidden layer consists of 2 M neurons, with M neurons computing ( Bx )+ = Bx I(x ≥ 0) and the remaining M neurons computing ( −Bx )+ = −Bx I(x ≤ 0). For each ℓ ∈ [L − 1], suppose that the ℓ-th hidden layer consists of M neurons computing M ℓ−1Bℓx I(x ≥ 0) and the remaining M neurons computing 
+
+−M ℓ−1Bℓx I(x ≤ 0). Then, in the ( ℓ + 1)-st hidden layer, we construct M neurons computing 
+
+ M B · M ℓ−1Bℓx I(x ≥ 0)  
+
+> +
+
+= M ℓBℓ+1 x I(x ≥ 0) ,
+
+and the remaining M neurons computing 
+
+ M B · (−M ℓ−1Bℓx I(x ≤ 0))  
+
+> +
+
+= −M ℓBℓ+1 x I(x ≤ 0) .
+
+By induction on ℓ from 1 to L − 1, the last hidden layer consists of 2 M neurons, with M neurons computing 
+
+M L−1BLx I(x ≥ 0) and the remaining M neurons computing −M L−1BLx I(x ≤ 0). We obtain the assertion from 
+
+M · c
+
+(M B )L · M L−1BLx I(x ≥ 0) + M · −c
+
+(M B )L ·   − M L−1BLx I(x ≤ 0)  = cx. 
+
+Lemma 23. Under Assumption 3 and any M ≥ 1 + 2 log 2 T , J ≥ 2 and c ≤ (M B )J−2, there exists 
+
+f ∈ MLP ( N 
+
+> 2
+
+, 1, J, M, B ) such that for every t ∈ [T ],
+
+f (qt) = c I t ∈ [log 2 T, T − log 2 T ].
+
+Proof. By Assumption 3, we have 3 T 8/N ≤ 3T 1/ log T ≤ B. By Lemma 12 with A = N/ 4 as in Definition 3.6, for every t1, t 2 ∈ [T ], 
+
+
+
+q⊤ 
+
+> t1
+
+qt2 − N
+
+4 + 1
+
+B
+
+
+
+> +
+
+= 1
+
+B I(t1 = t2),
+
+where we used ( −(3 T 1/ log T )−1 + B−1)+ = 0 when t1̸ = t2. Summing up, we get 
+
+X  
+
+> s∈[1 ,log 2T)
+
+
+
+q⊤ 
+
+> s
+
+qt − N
+
+4 + 1
+
+B
+
+
+
+> +
+
++ X   
+
+> s∈(T−log 2T,T ]
+
+
+
+q⊤ 
+
+> s
+
+qt − N
+
+4 + 1
+
+B
+
+
+
+> +
+
+= 1
+
+B I(t / ∈ [log 2 T, T − log 2 T ]) .
+
+In the first hidden layer, we construct ≤ 1 + 2 log 2 T neurons computing 
+
+qt 7 →
+
+(
+
+q⊤ 
+
+> s
+
+qt − N
+
+4 + 1
+
+B
+
+
+
+> +
+
+)     
+
+> s∈[T]\[log 2T,T −log 2T]
+
+.
+
+In the second hidden layer, we construct one neuron computing 
+
+qt 7 →
+
+1 − X  
+
+> s∈[1 ,log 2T)
+
+B
+
+
+
+q⊤ 
+
+> s
+
+qt − N
+
+4 + 1
+
+B
+
+
+
+> +
+
+− X   
+
+> s∈(T−log 2T,T ]
+
+B
+
+
+
+q⊤ 
+
+> s
+
+qt − N
+
+4 + 1
+
+B
+
+
+
+> +
+
+
+
+> +
+
+= I(t ∈ [log 2 T, T − log 2 T ]) .
+
+By applying Lemma 22 to the remaining J − 2 hidden layers, we obtain the desired network output. 51 Recall that, given vectors v1 ∈ Rd1 and v2 ∈ Rd2 and a function f : Rd1+d2 → Rm, we write f (v1, v2) for 
+
+f (stack( v1, v2)). 
+
+Lemma 24. Suppose Assumption 3 holds. For sufficiently large T and for any λ ≥ T −1, there exists a multi-head self-attention ν1 ∈ MLP (N, N, L mlp , N mlp , B ) such that for any t ∈ [T ],
+
+ν1 :
+
+
+
+x1
+
+x2
+
+x3
+
+x4
+
+x5
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] (r1−1) m1
+
+∈ [−1, 1] r2m2
+
+∈ [−1, 1] N/ 2
+
+7−→ 
+
+
+
+y1
+
+y21 
+
+> λ
+
+x51 
+
+> λ
+
+x2
+
+> √r2
+> λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+2) m2−2
+
+
+
+∈ Rm1
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+,
+
+with 
+
+y1 − g0(x4, x1) ∞ ∨ y2 − exp   − x⊤ 
+
+> 1
+
+g0(x3, x4)x2 ∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
+.
+
+Proof. To construct y1, y2, we construct Φ1, Φ2,1 ∈ MLP (m1r1, m 1, ⌈log 2 Nmlp ⌉2, ⌈Nmlp /4⌉, B ) using Lemma 19 such that for any x4 ∈ [−1, 1] (r1−1) m1 , any x1 ∈ [−1, 1] m1 , and any x3 ∈ [−1, 1] m1 ,
+
+Φ1(x4, x1) − g0(x4, x1) ∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
+, (51) and 
+
+Φ2,1(x3, x4) − g0(x3, x4) ∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
+.
+
+Since ∥g0(x3, x4)∥∞ ≤ δ1, we have ∥Φ2,1(x3, x4)∥∞ ≤ c1 := 1 + δ1. By applying Lemma 16 m1-times and summing the results, we construct Φ2,2 ∈ MLP (2 m1, 1, ⌈log 2 Nmlp ⌉2, 7m1, B ) such that for any x1 ∈
+
+[−1, 1] m1 and y ∈ [−c1, c 1]m1 ,
+
+Φ2,2(x1, y) − x⊤ 
+
+> 1
+
+y ≲ (Nmlp )− log 2 Nmlp .
+
+From |x⊤ 
+
+> 1
+
+y| ≤ m1c1, we have |Φ2,2
+
+ x1, Φ2,1(x3, x4)| ≤ c2 := 1 + m1c1. By applying Lemma 20, we construct 
+
+Φ2,3 ∈ MLP (1 , 1, ⌈2 log 2 Nmlp ⌉2, 33 ⌈2 log 2 Nmlp ⌉2, B ) such that for any y ∈ [−c2, c 2], 
+
+Φ2,3(y) − exp( −y) ≲ ⌈2 log 2 Nmlp ⌉42−⌈ 2 log 2 Nmlp ⌉2
+
+≲ ⌈2 log 2 Nmlp ⌉4(Nmlp )−4 log 2 Nmlp ≲ (Nmlp )− log 2 Nmlp .
+
+We have |Φ2,3 ◦Φ2,2
+
+ x1, Φ2,1(x3, x4)| ≤ c3 := 1+exp( c2). By applying Lemma 16 m2-times and parallelizing the results, we construct Φ2,4 ∈ MLP (m2 + 1 , m 2, ⌈log 2 Nmlp ⌉2, 7m2, B ) such that for any y ∈ [−c3, c 3] and 
+
+x2 ∈ [−1, 1] m2 ,
+
+Φ2,4(y, x2) − yx2 ∞ ≲ (Nmlp )− log 2 Nmlp .
+
+To sum up, we can construct Φ2 ∈ MLP (( r1 + 1) m1 + m2, m 2, 7⌈log 2 Nmlp ⌉2, ⌈Nmlp /2⌉, B ) with 
+
+Φ2(x1, x2, x3, x4) := Φ2,4
+
+
+
+Φ2,3 ◦ Φ2,2
+
+ x1, Φ2,1(x3, x4), x2
+
+
+
+,
+
+52 such that for any x1, x3 ∈ [−1, 1] m1 , x2 ∈ [−1, 1] m2 , and x4 ∈ [−1, 1] (r1−1) m1 ,
+
+Φ2(x1, x2, x3, x4) − exp   − x⊤ 
+
+> 1
+
+g0(x3, x4)x2 ≲ (Nmlp )− 2β1 
+
+> m1r1
+
+. (52) By Assumption 3, we have 
+
+BLmlp −1 ≥ (log 2 T )log 3 T ≥ T · T ≥√r2
+
+λ ≥ 1
+
+λ .
+
+Using Lemma 22, we can construct Φ3 ∈ MLP (( r2 + 1) m2 + 1 , (r2 + 1) m2 + 1 , L mlp , 2( r2 + 1) m2 + 2 , B ) such that 
+
+Φ3(x5, x2, 1) = stack 
+
+ x5
+
+λ , x2
+
+λ ,
+
+√r2
+
+λ
+
+
+
+. (53) Similarly, notice that ( ⌈ Nmlp   
+
+> log T
+
+⌉B)(log Nmlp ) ≥ N (log Nmlp )mlp ≥ T 3 since Nmlp ≥ T α by Assumption 3. Using Lemma 23, we can construct Φ4 ∈ MLP ( N 
+
+> 2
+
+, 1, 2 + ⌈log( Nmlp )⌉, ⌈ Nmlp   
+
+> log T
+
+⌉, B ) such that 
+
+Φ4(qt) = T 3 I t ∈ [log 2 T, T − log 2 T ]. (54) By stacking the MLPs ( Φ1, Φ2, Φ3, Φ4) and using (51), (52), (53) and (54), we obtain the assertion. Later, we apply Lemma 24 by setting 
+
+x1 = ϕ1(Xt), x2 = ϕ2(Xt), x3 = ϕ1(Xt−r1 ), x4 = stack( ϕ1(Xt−r1+1 ), . . . , ϕ1(Xt−1)) , x5 = Z2,t .
+
+Lemma 25. Given 0 < a < b , δ > 0, and input dimension d, there exist constants c = c(a, b, δ, d ), c ′ =
+
+c′(a, b, δ, d ) such that for any sufficiently large M , there exists a multilayer perceptron f : Rd → Rd with depth 
+
+⌈log 2(4 b2M/a 2)⌉M + 2 M , width M 3, and parameters bounded in absolute value by c, satisfying 
+
+sup 
+
+> x∈Rd:a≤∥ x∥2≤b
+
+f (x) − δ
+
+∥x∥2
+
+x
+
+> ∞
+
+≤ c′M 22−M .
+
+Proof. First, applying Lemma 16 d times and summing the results shows the existence of a multilayer perceptron g1 : Rd → R with depth M , width 7 d, and parameters bounded in absolute value by a constant depending only on b such that sup 
+
+> x∈[−b,b ]d
+
+g1(x) − ∥ x∥22 ≲ 2−M .
+
+Second, by Lemma 21, there exists a multilayer perceptron g2 : R → R with depth ⌈log 2(4 b2M/a 2)⌉M , width 7⌈4b2M/a 2⌉2, and parameters bounded in absolute value by a constant depending only on ( a, b, d ) such that sup 
+
+> x∈[da 2/2,2db 2]
+
+g2(x) − 1
+
+√x ≲ M 22−M .
+
+Third, applying Lemma 16 d times, multiplying by δ at each step, and parallelizing the results, shows the existence of a multilayer perceptron g3 : Rd+1 → Rd with depth M , width 7 d, and parameters bounded in absolute value by a constant depending only on ( a, b, δ, d ) such that sup 
+
+> x∈[−b,b ]d,y ∈[(3 db 2)−1/2,(da 2/3) −1/2]
+
+g3(x, y ) − (δy ) · x ∞ ≲ 2−M .
+
+53 Finally, we consider a multilayer perceptron f : Rd → Rd defined by 
+
+f (x) := g3
+
+ x, g 2 ◦ g1(x),
+
+which has depth ⌈log 2(4 b2M/a 2)⌉M + 2 M , width max(7 d, 7⌈4b2M/a 2⌉2) + d ≤ M 3, and parameters bounded in absolute value by a constant depending only on ( a, b, δ, d ). Here, the additional d neurons in each layer are used to preserve the input x ∈ [−b, b ]d via the equality ( x + b)+ − b = x for x ∈ [−b, b ]. For sufficiently large M , if x ∈ Bd(b) \ Bd(a), then we have g1(x) ∈ [da 2/2, 2db 2] and g2 ◦ g1(x) ∈
+
+[(3 db 2)−1/2, (da 2/3) −1/2]. Thus, the upper bound of the approximation error is given by sup 
+
+> x∈Bd(b)\Bd(a)
+
+f (x) − δ
+
+∥x∥2
+
+x
+
+> ∞
+
+= sup 
+
+> x∈Bd(b)\Bd(a)
+
+g3
+
+
+
+stack  x, g 2 ◦ g1(x)
+
+− δ
+
+∥x∥2
+
+x
+
+> ∞
+
+≤ sup 
+
+> x∈Bd(b)\Bd(a)
+
+g3
+
+
+
+stack  x, g 2 ◦ g1(x)
+
+− δ g2 ◦ g1(x)x ∞
+
++ sup 
+
+> x∈Bd(b)\Bd(a)
+
+δ g2 ◦ g1(x)x − δ g1(x)−1/2x ∞
+
++ sup 
+
+> x∈Bd(b)\Bd(a)
+
+δ g1(x)−1/2x − δ ∥x∥22
+
+−1/2 · x ∞
+
+≲ 2−M + M 22−M + 2 −M ≲ M 22−M .
+
+## E.3 Proof of Lemma 5 
+
+Let 
+
+M := 
+
+
+
+ϕ1(X1) ϕ1(X2) · · · ϕ1(XT )
+
+ϕ2(X1) ϕ2(X2) · · · ϕ2(XT )
+
+0 N 
+
+> 2−m1−m2
+
+0 N 
+
+> 2−m1−m2
+
+· · · 0 N 
+
+> 2−m1−m2
+
+q1 q2 · · · qT
+
+
+
+=
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+0 N 
+
+> 2−m1−m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ RN/ 2
+
+54 and introduce μ1,0 : RN ×T → RN ×T ,
+
+μ1,0 :
+
+
+
+x1,t 
+
+x2,t 
+
+0 N
+
+2 −m1−m2
+
+qt
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ RN/ 2
+
+7−→ 
+
+
+
+x1,t 
+
+x2,t 
+
+x1,t −r1
+
+x1,t −r1+1 
+
+...
+
+x1,t −1
+
+x2,t −r2
+
+x2,t −r2+1 
+
+...
+
+x2,t −1
+
+0 N
+
+2 −(r1+1) m1−(r2+1) m2
+
+qt
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm1
+
+∈ Rm1
+
+...
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+...
+
+∈ Rm2
+
+∈ RN/ 2
+
+.
+
+Using the definition of Z1,t and Z2,t in (17), the map μ1,0 applied to M has the form 
+
+μ1,0(M ) = 
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+Z1,t 
+
+Z2,t 
+
+0 N
+
+2 −(r1+1) m1−(r2+1) m2
+
+qt
+
+
+
+t∈[T ]
+
+=
+
+
+
+ϕ1(Xt)
+
+ϕ2(Xt)
+
+ϕ1(Xt−r1 )stack  ϕ1(Xt−r1+1 ), . . . , ϕ1(Xt−1)
+
+Z2,t 
+
+0 N
+
+2 −(r1+1) m1−(r2+1) m2
+
+qt
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm1
+
+∈ R(r1−1) m1
+
+∈ Rr2m2
+
+∈ RN/ 2
+
+.
+
+(55) Introducing moreover the map ν1,0 : RN ×T → RN ×T ,
+
+ν1,0 :
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+x4,t 
+
+x5,t 
+
+0 N
+
+2 −(r1+1) m1−(r2+1) m2
+
+qt
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm1
+
+∈ R(r1−1) m1
+
+∈ Rr2m2
+
+∈ RN/ 2
+
+7−→ 
+
+
+
+g0(x4,t , x1,t )exp   − x⊤
+
+1,t g0(x3,t , x4,t )x2,t 
+
+1
+
+λ x5,t 
+
+1
+
+λ x2,t 
+
+√r2
+
+λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+2) m2−2
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rr2m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+55 yields 
+
+ν1,0 ◦ μ1,0 (M ) = 
+
+
+
+g0(Z1,t +1 )exp  − g0(Z1,t )⊤ϕ1(Xt)ϕ2(Xt)
+
+1
+
+λ Z2,t 
+
+1
+
+λ ϕ2(Xt)
+
+√r2
+
+λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+1) m2−2
+
+
+
+t∈[T ]
+
+=
+
+
+
+g0(Z1,t +1 )exp  − g0(Z1,t )⊤ϕ1(Xt)ϕ2(Xt)
+
+1
+
+λ ϕ2(Xt−r2 )
+
+1
+
+λ stack  ϕ2(Xt−r2+1 ), . . . , ϕ2(Xt−1)
+
+1
+
+λ ϕ2(Xt)
+
+√r2
+
+λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+1) m2−2
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+Finally, we define the map μ2,0 : RN ×T → RN ,
+
+μ2,0 :
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+x4,t 
+
+x5,t 
+
+x6,t 
+
+x7,t 
+
+0N −m1−(r2+2) m2−2
+
+
+
+t∈[T ]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+7−→ 
+
+
+
+x1,T 
+
+x2,T 
+
+x3,T 
+
+x4,T 
+
+x5,T 
+
+x6,T 
+
+x7,T 
+
+0N −m1−(r2+3) m2−2
+
+y
+
+
+
+∈ Rm2
+
+with 
+
+y := X
+
+s∈[log 2 T,T −log 2 T ]
+
+
+
+exp   stack( x3,s , x4,s ), stack( x4,T , x5,T ) − x6,s x6,T 
+
+ ; x2,s 
+
+
+
+.
+
+Then we have 
+
+μ2,0 ◦ ν1,0 ◦ μ1,0 (M ) = 
+
+
+
+g0(Z1,t +1 )
+
+•N −m1−m2
+
+P
+
+s∈[log 2 T,T −log 2 T ]
+
+
+
+exp   −r2+Z⊤
+
+> 2,s
+
+Z2,T +1 
+
+λ2
+
+ ; exp   − g0(Z1,s )⊤ϕ1(Xs) ϕ2(Xs)
+
+
+
+=
+
+
+
+g0(Z1,t +1 )
+
+•N −m1−m2
+
+P
+
+s∈[log 2 T,T −log 2 T ]
+
+
+
+Kλ(Z2,s , Z2,T +1 ) ; exp   − g0(Z1,s )⊤ϕ1(Xs) ϕ2(Xs)
+
+
+
+56 with Kλ(z, z′) := exp( −∥ z − z′∥2/(2 λ2)), provided that ∥Z2,t ∥2 = 1 for t ∈ { r2 + 1 , . . . , T + 1 }. See (23) for the definition of P. With these new definitions, we can restate Lemma 5. 
+
+Lemma 26 (Restatement of Lemma 5) . Suppose Assumptions 2 and 3 hold. For sufficiently large T and for any λ ≥ T −1, there exist multi-head self-attentions μ1, μ2 ∈ MA (N, H, B ) and a multilayer perceptron 
+
+ν1 ∈ MLP (N, L mlp , N mlp , B ) such that 
+
+ μ2 ◦ ν1 ◦ μ1(M ) 
+
+> :,T
+
+− μ2,0 ◦ ν1,0 ◦ μ1,0(M ) ∞,m 1,m 2
+
+≲ (Nmlp )− 2β1 
+
+> m1r1
+
++ 1
+
+T ,
+
+where ∥(x1, x 2, . . . , x N )⊤∥∞,m 1,m 2 := max i∈([ N ]\{ m1+1 ,...,N −m2}) |xi|.
+
+The proof invokes the following lemma, whose proof is deferred to the end of this section. 
+
+Lemma 27. For any α− < α +, a1, . . . , a T ∈ [α−, α +], β > 0, y1, . . . , yT ∈ [−β, β ]m2 and c > 0,
+
+X 
+
+> s∈[T]
+
+
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ])  ; ys
+
+
+
+− X    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+exp  as
+
+ ; ys
+
+
+
+> ∞
+
+≤ 8β log 2 TT exp( c + α− − α+) .
+
+Proof of Lemma 26. Choosing μ1, ν1 and μ2 as in Lemmas 14, 24 and 15, the error can be decomposed via the triangle inequality into three terms, 
+
+ μ2 ◦ ν1 ◦ μ1(M ) 
+
+> :,T
+
+− μ2,0 ◦ ν1,0 ◦ μ1,0(M ) ∞,m 1,m 2
+
+≤  μ2 ◦ ν1 ◦ μ1(M ) 
+
+> :,T
+
+− μ2,0 ◦ ν1 ◦ μ1(M ) ∞,m 1,m 2
+
+(56) + ∥μ2,0 ◦ ν1 ◦ μ1 (M ) − μ2,0 ◦ ν1,0 ◦ μ1(M )∥∞,m 1,m 2 (57) + ∥μ2,0 ◦ ν1,0 ◦ μ1(M ) − μ2,0 ◦ ν1,0 ◦ μ1,0(M )∥∞,m 1,m 2 . (58) To derive some properties of the vectors μ1(M ) and ν1 ◦ μ1(M ), set 
+
+μ1(M ) =: 
+
+
+
+a1,t 
+
+a2,t 
+
+a3,t 
+
+a4,t 
+
+a5,t 
+
+a6,t 
+
+a7,t 
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm1
+
+∈ R(r1−1) m1
+
+∈ Rr2m2
+
+∈ RN/ 2−(r1+1) m1−(r2+1) m2
+
+∈ RN/ 2
+
+, ν1 ◦ μ1(M ) =: 
+
+
+
+b1,t 
+
+b2,t 
+
+b3,t 
+
+b4,t 
+
+b5,t 
+
+b6,t 
+
+b7,t 
+
+b8,t 
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+∈ RN −m1−(r2+2) m2−2
+
+.
+
+(59) By Lemma 14 and the definition of M , we have 
+
+∥ stack( a3,t , a4,t ) − Z1,t ∥∞ ≲ T 1−log T , ∥a5,t − Z2,t ∥∞ ≲ T 1−log T (60) 57 for all t ∈ { (r1 ∨ r2) + 1 , . . . , T }. Moreover, using that ∥ya,t ∥∞ ≤ 1 in Lemma 14, 
+
+a1,t = ϕ1(Xt), a2,t = ϕ2(Xt), ∥ stack( a3,t , a4,t , a5,t )∥∞ ≤ 1, a6,t = 0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+, a7,t = qt (61) for all t ∈ [T ]. It follows from Lemma 24 and ∥g0∥∞ ≤ δ1 that for all sufficiently large Nmlp and any t ∈ [T ],
+
+∥b1,t ∥∞ ≤ 1 + δ1, ∥b2,t ∥∞ ≤ 1 + exp( δ1m1), ∥b3,t ∥∞ ≤ 1
+
+λ , ∥b4,t ∥∞ ≤ 1
+
+λ , ∥b5,t ∥∞ ≤ 1
+
+λ , (62) 
+
+b6,t =
+
+√r2
+
+λ , b7,t = T 3 I(t ∈ [log 2 T, T − log 2 T ]) , b8,t = 0N −m1−(r2+2) m2−2. (63) We now derive an upper bound for (56). The vector semi-norm ∥ · ∥ ∞,m 1,m 2 only depends on the first m1
+
+components and on the last m2 components. By the definitions of μ2 and μ2,0, the first m1 components of the last column of μ2 and the first m1 components of μ2,0 are both x1,T such that an error can occur only in the last m2 components. By (59) and the expression for the last ms components in (48), we find (56) = X 
+
+> s∈[T]
+
+
+
+exp   stack( b3,s , b4,s ), stack( b4,T , b5,T ) − b6,s b6,T + λ
+
+√r2
+
+b7,s b6,T 
+
+ ; b2,s 
+
+
+
+− X    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+exp   stack( b3,s , b4,s ), stack( b4,T , b5,T ) − b6,s b6,T + λ
+
+√r2
+
+b7,s b6,T 
+
+ ; b2,s 
+
+
+
+> ∞
+
+.
+
+By assumption, λ ≥ T −1, which is equivalent to −T 2 ≤ − 1/λ 2. Combining this with (62) and (63), for any 
+
+t ∈ [T ],
+
+−(m2 + 1) r2T 2 ≤ −r2m2 − r2
+
+λ2 ≤ stack( b3,t , b4,t ), stack( b4,T , b5,T ) − b6,t b6,T ≤ r2m2 − r2
+
+λ2 ≤ (m2 − 1) r2T 2
+
+and λ√r2 b7,t b6,T = T 3 I(t ∈ [log 2 T, T −log 2 T ]). By (62) and (63), we can apply Lemma 27 with ( α−, α +, β, c ) = (−(m2 + 1) r2T 2, (m2 − 1) r2T 2, 1 + exp( δ1m1), T 3), which yields (56) ≤ 8 1 + exp( δ1m1) log 2 TT exp( T 3 − 2m2r2T 2) ≲ 1
+
+T . (64) To derive now an upper bound of (57), we analyze ν1,0 ◦ μ1(M ) − ν1 ◦ μ1(M ). Set 
+
+ν1,0 ◦ μ1(M ) =: 
+
+
+
+˜b1,t 
+
+˜b2,t 
+
+˜b3,t 
+
+˜b4,t 
+
+˜b5,t 
+
+˜b6,t 
+
+˜b7,t 
+
+˜b8,t 
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+∈ RN −m1−(r2+2) m2−2
+
+.
+
+By (61), every component of μ1(M ) is bounded in absolute value by 1. By the definition of ν1,0 and the definition of ν1 in Lemma 24, only the first m1 + m2 entries are mapped to different values and stack  b3,t , b4,t , b5,t , b 6,t , b 7,t , b8,t 
+
+ = stack  ˜b3,t , ˜b4,t , ˜b5,t , ˜b6,t , ˜b7,t , ˜b8,t 
+
+.
+
+58 Moreover, Lemma 24 yields the bounds 
+
+∥b1,t − ˜b1,t ∥∞ ∨ ∥ b2,t − ˜b2,t ∥∞ ≲ (Nmlp )− 2β1 
+
+> m1r1
+
+.
+
+Hence, we get (57) = 
+
+
+
+b1,T 
+
+•N −m1−m2
+
+P    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+exp   stack( b3,s , b4,s ), stack( b4,T , b5,T ) − b6,s b6,T 
+
+ ; b2,s 
+
+
+
+−
+
+
+
+˜b1,T 
+
+•N −m1−m2
+
+P    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+exp   stack( ˜b3,s , ˜b4,s ), stack( ˜b4,T , ˜b5,T ) − ˜b6,s ˜b6,T 
+
+ ; ˜b2,s 
+
+
+
+> ∞,m 1,m 2
+
+≲ (Nmlp )− 2β1 
+
+> m1r1
+
+. (65) Finally, we derive an upper bound of (58). For any N × T matrix of the form (xt)t∈[T ] := 
+
+
+
+x1,t 
+
+x2,t 
+
+x3,t 
+
+x4,t 
+
+x5,t 
+
+x6,t 
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] (r1−1) m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] (r2−1) m2
+
+∈ [−1, 1] N/ 2
+
+,
+
+recall that 
+
+ν1,0
+
+ (xt)t∈[T ]
+
+ =
+
+
+
+g0(x4,t , x1,t )exp   − x⊤
+
+> 1,t
+
+g0(x3,t , x4,t )x2,t  
+
+> 1
+> λ
+
+x5,t  
+
+> 1
+> λ
+
+x6,t  
+
+> 1
+> λ
+
+x2,t 
+
+> √r2
+> λ
+
+T 3 I(t ∈ [log 2 T, T − log 2 T ]) 
+
+0N −m1−(r2+2) m2−2
+
+ 
+
+> t∈[T]
+
+∈ Rm1
+
+∈ Rm2
+
+∈ Rm2
+
+∈ R(r2−1) m2
+
+∈ Rm2
+
+∈ R
+
+∈ R
+
+.
+
+and μ2,0 ◦ ν1,0(( xt)t∈[T ]) = stack( g0(x4,T , x1,T ), •N −m1−m2 , v(( xt)t∈[T ])) with 
+
+v (xt)t∈[T ]
+
+
+
+:= X     
+
+> s∈[log 2T,T −log 2T]
+
+exp 
+
+ ⟨stack( x5,s , x6,s ), stack( x6,T , x2,T )⟩ − r2
+
+λ2
+
+
+
+; x2,s 
+
+exp  x⊤
+
+> 1,s
+
+g0(x3,s , x4,s )!
+
+.
+
+59 Considering another N × T matrix (x′
+
+> t
+
+)t∈[T ] := 
+
+
+
+x′
+
+> 1,t
+
+x′
+
+> 2,t
+
+x′
+
+> 3,t
+
+x′
+
+> 4,t
+
+x′
+
+> 5,t
+
+x′
+
+> 6,t
+
+0 N 
+
+> 2−(r1+1) m1−(r2+1) m2
+
+qt
+
+ 
+
+> t∈[T]
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] m1
+
+∈ [−1, 1] (r1−1) m1
+
+∈ [−1, 1] m2
+
+∈ [−1, 1] (r2−1) m2
+
+∈ [−1, 1] N/ 2
+
+,
+
+we have 
+
+μ2,0 ◦ ν1,0
+
+ (xt)t∈[T ]
+
+ − μ2,0 ◦ ν1,0
+
+ (x′
+
+> t
+
+)t∈[T ]
+
+
+
+> ∞,m 1,m 2
+
+= g0(x4,T , x1,T ) − g0(x′ 
+
+> 4,T
+
+, x′ 
+
+> 1,T
+
+) ∞ ∨ v (xt)t∈[T ]
+
+ − v (x′
+
+> t
+
+)t∈[T ]
+
+
+
+> ∞
+
+≲ stack( x4,T , x1,T ) − stack( x′ 
+
+> 4,T
+
+, x′ 
+
+> 1,T
+
+) β1∧1
+
+> ∞
+
++ 1
+
+λ2 max      
+
+> t∈[log 2T,T −log 2T]∪{ T}
+
+stack( x2,t , x5,t , x6,t ) − stack( x′
+
+> 2,t
+
+, x′
+
+> 5,t
+
+, x′
+
+> 6,t
+
+) ∞
+
++ max     
+
+> t∈[log 2T,T −log 2T]
+
+stack( x1,t , x2,t ) − stack( x′
+
+> 1,t
+
+, x′
+
+> 2,t
+
+) ∞
+
++
+
+
+
+max     
+
+> t∈[log 2T,T −log 2T]
+
+stack( x3,t , x4,t ) − stack( x′
+
+> 3,t
+
+, x′
+
+> 4,t
+
+) ∞
+
+β1∧1
+
+,
+
+using the β1-H¨ older smoothness of g0 and the Lipschitz property ∥ softmax( z) − softmax( z′)∥∞ ≤ 2∥z − z′∥∞
+
+that holds for any real-valued vectors z and z′ of the same dimension (see Lemma 31). Combining this with (55), (60), and (61), we obtain (58) ≲ T (β1∧1)(1 −log T ) + T 1−log T
+
+λ2 ≲ 1
+
+T (66) for all sufficiently large T . From (64), (65) and (66), we get the assertion. 
+
+Proof of Lemma 27. With 
+
+P := 
+
+> T
+
+X
+
+> i=1
+
+exp  ai + c I(i ∈ [log 2 T, T − log 2 T ]) 
+
+Q := X    
+
+> i∈[log 2T,T −log 2T]
+
+exp  ai + c,
+
+we get 
+
+P − QP =
+
+P      
+
+> i∈([ T]\[log 2T,T −log 2T])
+
+exp( ai)
+
+PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ≤ exp( α+) · 2 log 2 T
+
+exp( α− + c) · T / 2 ,
+
+and 
+
+1
+
+Q − 1
+
+P ≤ 4 log 2 TT exp( c + α− − α+)Q .
+
+60 Hence, for every s ∈ [log 2 T, T − log 2 T ], we have 
+
+exp  as + cPTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  − exp( as)
+
+P     
+
+> i∈[log 2T,T −log 2T]
+
+exp( ai) = exp  as + c  1
+
+P − 1
+
+Q
+
+
+
+≤ 4 log 2 TT exp( c + α− − α+)exp  as + c
+
+Q ,
+
+and summing over s,
+
+X    
+
+> s∈[log 2T,T −log 2T]
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ]) PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  − exp( as)
+
+P     
+
+> i∈[log 2T,T −log 2T]
+
+exp( ai)
+
+≤ 4 log 2 TT exp( c + α− − α+) . (67) On the other hand, for every s / ∈ [log 2 T, T − log 2 T ], we have exp( as)
+
+PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ≤ exp( α+)exp( α− + c) · T / 2 ,
+
+and hence 
+
+X     
+
+> s∈([ T]\[log 2T,T −log 2T])
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ]) PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ≤ 4 log 2 TT exp( c + α− − α+) . (68) Using (67), (68) and ∥ys∥∞ ≤ β, we obtain 
+
+X 
+
+> s∈[T]
+
+
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ])  ; ys
+
+
+
+− X    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+exp  as
+
+ ; ys
+
+
+
+> ∞
+
+=
+
+> T
+
+X
+
+> s=1
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ]) PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ys − X    
+
+> s∈[log 2T,T −log 2T]
+
+exp( as)
+
+P     
+
+> i∈[log 2T,T −log 2T]
+
+exp( ai) ys
+
+> ∞
+
+≤ X    
+
+> s∈[log 2T,T −log 2T]
+
+exp  as + cPTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ys − exp( as)
+
+P     
+
+> i∈[log 2T,T −log 2T]
+
+exp( ai) ys
+
+> ∞
+
++ X     
+
+> s∈([ T]\[log 2T,T −log 2T])
+
+exp  as + c I(s ∈ [log 2 T, T − log 2 T ]) PTi=1 exp  ai + c I(i ∈ [log 2 T, T − log 2 T ])  ys
+
+> ∞
+
+≤ 8β log 2 TT exp( c + α− − α+) .
+
+# F Directional Convergence of the Nadaraya–Watson Estimator 
+
+In this section, we prove Lemma 6. Unless specified otherwise, the implicit constants in the notation ≲ and ˜O depend only on ( m1, m 2, r 1, r 2, δ 1, δ 2, β 2, sup h∈H ∥h∥Cβ2 ). 
+
+## F.1 Proof of Lemma 6 
+
+Recall that EW := {e1, . . . , eW } denotes the set of tokens. The following lemma characterizes the Markovian dynamics of the token generation process. Its proof is deferred to Appendix F.2. 61 Lemma 28. For r ∈ N, let Z = ( Zn)n∈N0 be a homogeneous ErW -valued Markov chain with transition probability kernel 
+
+P (x, z) := P(Zn+1 = z|Zn = x)= c(x) exp( g(x, z)) 
+
+> r−1
+
+Y
+
+> i=1
+
+I(zi = xi+1 ), x = ( x1, . . . , xr ) ∈ E rW , z = ( z1, . . . , zr ) ∈ E rW ,
+
+where g : ErW × E rW → R is a bounded function and c(·) is the normalizing constant. Then Z admits a unique stationary distribution ρ satisfying 
+
+(e2∥g∥∞ W )−r ≤ ρ(z) ≤ (e−2∥g∥∞ W )−r , for all z ∈ E rW .
+
+Furthermore, for any n = 1 , 2, . . . , 
+
+sup 
+
+> x∈E rW
+
+∥P n(x, ·) − ρ∥TV ≤
+
+
+
+1 − e−2∥g∥∞r n/r 
+
+.
+
+The next lemma shows that, for a uniformly exponentially ergodic Markov chain on a countable state space, if the direction of the conditional expectation of a vector-valued function satisfies a smoothness con-dition, then the direction of the Nadaraya–Watson estimator based on a truncated trajectory converges to that of the corresponding conditional expectation. For a unit vector θ ∈ Sd−1, define the projection matrices 
+
+Pθ := θθ ⊤ and P ⊥ 
+
+> θ
+
+:= Id − θθ ⊤, where Pθ projects onto the direction of θ and P ⊥ 
+
+> θ
+
+projects onto the subspace orthogonal to θ. See (23) for the definition of P.
+
+Lemma 29. Let M := ( ξt)t∈N0 be a homogeneous Markov chain on a countable set D, which admits a unique stationary distribution ρ. Assume that M is uniformly exponentially ergodic, i.e. there exists a constant 
+
+cM ∈ (0 , 1) such that for any n = 0 , 1, . . . 
+
+sup 
+
+> x∈D
+
+∥P n(x, ·) − ρ∥TV ≤ cn
+
+> M
+
+,
+
+where P n denotes the n-step transition probability of M. We write Px and Ex for the probability and expec-tation of the Markov chain M started at ξ0 = x. For a bounded function f : D → Rd define 
+
+m(x) := Ex[f (ξ1)] , θ(x) := m(x)
+
+m(x) 2
+
+, x ∈ D ,
+
+where we assume that inf x∈D ∥m(x)∥2 > 0. In addition, assume that for some bounded function s : D → Rm,
+
+β ∈ (0 , 1] and cθ > 0 it holds 
+
+∥θ(x) − θ(x′)∥2 ≤ cθ ∥s(x) − s(x′)∥β 
+
+> 2
+
+, for all x, x′ ∈ D . (69) 
+
+Define 
+
+bmλ(·) := X    
+
+> t∈[log 2T,T −log 2T]
+
+
+
+Kλ
+
+ s(ξt), s(·) ; f (ξt+1 )
+
+
+
+with Kλ(z, z′) := exp( −∥ z − z′∥22/(2 λ2)) . Then, for any x ∈ D ,
+
+Ex h
+
+P ⊥  
+
+> θ(ξT)
+
+bmλ(ξT ) 22
+
+i
+
+= ˜O
+
+
+
+λ2β + 1
+
+T inf x∈D Eρ[Kλ
+
+ s(ξ), s(x)]
+
+
+
+(70) 62 and 
+
+Px
+
+
+
+Pθ(ξT ) bmλ(ξT ) 2 < inf 
+
+> x∈D
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x)Pθ(x)m(ξ)
+
+> 2
+
+4Eρ
+
+Kλ
+
+ s(ξ), s(x) 
+
+≲ 1
+
+T inf x∈D Eρ[Kλ
+
+ s(ξ), s(x)] + sup 
+
+> x∈D
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x) 
+
+T Eρ
+
+Kλ
+
+ s(ξ), s(x)Pθ(x)m(ξ) 22
+
+, (71) 
+
+where the implicit constants depend only on cM, cθ , β, ∥f ∥∞ := max x∈D ∥f (x)∥2 and ∥s∥∞ := max x∈D ∥s(x)∥2.
+
+The proof is deferred to Appendix F.3. The first assertion controls the component of bmλ(ξT ) that is orthogonal to m(ξT ), while the second assertion ensures that the component along m(ξT ) is sufficiently large with high probability. The estimator bmλ in the lemma excludes indices t near the boundaries t < log 2 T
+
+and t > T − log 2 T . This ensures that the estimator only uses samples which are similarly distributed as the invariant distribution and are approximately independent of ξT .
+
+Proof of Lemma 6. Define 
+
+r := ( r1 + 1) ∨ r2.
+
+Moreover, let 
+
+ξt := ( Xt+1 , . . . , Xt+r )and, for x = ( x1, . . . , xr ) ∈ E rW ,
+
+f  x := ϕ2(xr )exp 
+
+
+
+g0
+
+ ϕ1(xr−r1 ), . . . , ϕ1(xr−1)⊤ϕ1(xr )
+
+ , s(x) := stack  ϕ2(xr−r2+1 ), . . . , ϕ2(xr ).
+
+By Lemma 28, for given h, {ξt}t∈N0 is a homogeneous Markov chain on ErW , which admits a unique stationary distribution ρ, satisfying 
+
+ exp( −2m1δ1 − 2δ2)
+
+W
+
+r
+
+≤ ρ(x) ≤
+
+ exp(2 m1δ1 + 2 δ2)
+
+W
+
+r
+
+, x ∈ E rW (72) and sup 
+
+> x∈E rW
+
+∥P n(x, ·) − ρ∥TV ≤
+
+
+
+1 − e−2r(m1δ1+δ2)n/r 
+
+, n ∈ N,
+
+where P n denotes the n-step transition probability of the Markov chain. This implies that {ξt}t∈N0 is uniformly exponentially ergodic. We further define 
+
+m(x) := E[f (ξ1)|h, ξ0 = x], θ(x) := m(x)
+
+m(x) 2
+
+, x ∈ E rW .
+
+Then we have the following results, whose proof is deferred to Appendix F.4. See (23) for the definition of 
+
+P.
+
+Lemma 30. Under the assumptions of Lemma 6 and the above notation, 
+
+63 (i) for any x ∈ E rW , the directions of m(x) and 
+
+X 
+
+> w∈[W]
+
+
+
+exp  h(s(x)) ⊤ϕ2(ew) ; ϕ2(ew)
+
+
+
+coincide, (ii) there exists c1 > 0 depending only on (m1, m 2, δ 1, δ 2) such that for any x ∈ E rW ,
+
+∥m(x)∥2 ≥ c1,
+
+(iii) there exists cθ > 0 depending only on (m2, δ 2, ∥h∥Cβ2 ) such that for any x, x′ ∈ E rW
+
+∥θ(x) − θ(x′)∥2 ≤ cθ ∥s(x) − s(x′)∥β2 
+
+> ∞
+
+,
+
+(iv) there exists c2 depending only on (m1, δ 1, δ 2, r 2),
+
+inf 
+
+> x∈E rW
+
+Eρ[Kλ
+
+ s(ξ), s(x)] ≥ c2φW (λ)r2 ,
+
+(v) with c1 > 0 as defined in (ii), 
+
+inf 
+
+> x∈E rW
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x)Pθ(x)m(ξ)
+
+> 2
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x) ≥ c1
+
+4 .
+
+Define random vectors Z1,t ∈ Rr1m1 , Z2,t ∈ Rr2m2 , and Yt ∈ Rm2 as 
+
+Z1,t := 
+
+
+
+ϕ1(Xt−r1 )
+
+ϕ1(Xt−r1+1 )...
+
+ϕ1(Xt−1)
+
+
+
+, Z2,t := 
+
+
+
+ϕ2(Xt−r2 )
+
+ϕ2(Xt−r2+1 )...
+
+ϕ2(Xt−1)
+
+
+
+, Yt := ϕ2(Xt)exp[ g0(Z1,t )⊤ϕ1(Xt)] .
+
+Moreover, define 
+
+bmλ(Z2,T +1 ) := X    
+
+> s∈[log 2T,T −log 2T]
+
+
+
+Kλ
+
+ Z2,s , Z2,T +1 
+
+ ; Ys
+
+
+
+and 
+
+α := θ(XT −r+1 , . . . , XT ) ∈ Sm2−1, Pα := αα ⊤, P ⊥ 
+
+> α
+
+:= Im2 − αα ⊤.
+
+Both Pα and P ⊥ 
+
+> α
+
+are projection matrices, where Pα denotes the projection onto the one-dimensional subspace 
+
+Rα and P ⊥ 
+
+> α
+
+denotes the projection onto its orthogonal complement. By (ii) and (iii) of Lemma 30, we can apply Lemma 29. Moreover, using (iv) and (v) of Lemma 30 we obtain 
+
+E ∥P ⊥ 
+
+> α
+
+bmλ(Z2,T +1 )∥22|h = ˜O
+
+
+
+λ2β + 1
+
+T φ W (λ)r2
+
+
+
+(73) and for some c > 0
+
+P∥Pα bmλ(Z2,T +1 )∥2 < c |h ≲ 1
+
+T φ W (λ)r2 . (74) 64 Here, the implicit constants and c depend only on ( m1, m 2, δ 1, δ 2, r 1, r 2, ∥h∥Cβ2 ). Since the Euclidean distance between two unit vectors is upper bounded by their angle, it holds 
+
+bmλ(Z2,T +1 )
+
+∥ bmλ(Z2,T +1 )∥2
+
+− α
+
+> 2
+
+≤ tan −1
+
+ ∥P ⊥ 
+
+> α
+
+bmλ(Z2,T +1 )∥2
+
+∥Pα bmλ(Z2,T +1 )∥2
+
+
+
+≤ ∥P ⊥ 
+
+> α
+
+bmλ(Z2,T +1 )∥2
+
+∥Pα bmλ(Z2,T +1 )∥2
+
+.
+
+Combining with (73) and (74), 
+
+E
+
+"bmλ(Z2,T +1 )
+
+∥ bmλ(Z2,T +1 )∥2
+
+− α
+
+> 22
+
+h
+
+#
+
+= E
+
+"bmλ(Z2,T +1 )
+
+∥ bmλ(Z2,T +1 )∥2
+
+− α
+
+> 22
+
+I(∥Pα bmλ(Z2,T +1 )∥2 ≥ c) h
+
+#
+
++ E
+
+"bmλ(Z2,T +1 )
+
+∥ bmλ(Z2,T +1 )∥2
+
+− α
+
+> 22
+
+I(∥Pα bmλ(Z2,T +1 )∥2 < c ) h
+
+#
+
+≲ E
+
+ ∥P ⊥ 
+
+> α
+
+bmλ(Z2,T +1 )∥22
+
+∥Pα bmλ(Z2,T +1 )∥22
+
+I(∥Pα bmλ(Z2,T +1 )∥2 ≥ c) h
+
+
+
++ P∥Pα bmλ(Z2,T +1 )∥2 < c h
+
+≲ E∥P ⊥ 
+
+> α
+
+bmλ(Z2,T +1 )∥22 h + P∥Pα bmλ(Z2,T +1 )∥2 < c h
+
+= ˜O
+
+
+
+λ2β2 + 1
+
+T φ W (λ)r2
+
+
+
+. (75) In addition, by the definition of κW (Definition 4.1), 
+
+X 
+
+> w∈[W]
+
+
+
+exp  h(Z2,T )⊤ϕ2(ew) ; ϕ2(ew)
+
+| {z }
+
+> =: χ1
+
+−
+
+R 
+
+> u∈Sm2−1
+
+exp( h(Z2,T )⊤u)u du
+
+R 
+
+> u∈Sm2−1
+
+exp( h(Z2,T )⊤u) du
+
+| {z }
+
+> =: χ2
+> 2
+
+≤ κW .
+
+Moreover, we have χ1/∥χ1∥2 = α by (i) of Lemma 30 and χ2/∥χ2∥2 = h(Z2,T )/δ 2 by the first argument of Lemma 35. Hence, 
+
+α − h(Z2,T )
+
+δ2 2
+
+= χ1
+
+∥χ1∥2
+
+− χ2
+
+∥χ2∥2 2
+
+≤ χ1 − χ2
+
+∥χ2∥2 2
+
++
+
+ 1
+
+∥χ1∥2
+
+− 1
+
+∥χ2∥2
+
+
+
+χ1
+
+> 2
+
+≲ κW ,
+
+where we use the second argument of Lemma 35 for the last inequality. Combining with (75), we obtain 
+
+E
+
+"
+
+δ2 bmλ(Z2,T +1 )
+
+∥ bmλ(Z2,T +1 )∥2
+
+− h(Z2,T )
+
+> 22
+
+h
+
+#
+
+= ˜O
+
+
+
+λ2β2 + 1
+
+T φ W (λ)r2 + κ2
+
+> W
+
+
+
+. (76) 
+
+## F.2 Proof of Lemma 28 
+
+Proof. The normalization function c(x) satisfies for any x ∈ E rW ,c(x) := 
+
+ X
+
+> z∈E rW
+
+exp( g(x, z)) 
+
+> r−1
+
+Y
+
+> i=1
+
+I(zi = xi+1 )
+
+
+
+> −1
+
+∈
+
+ exp( −∥ g∥∞)
+
+W , exp( ∥g∥∞)
+
+W
+
+
+
+.
+
+Additionally, the Chapman–Kolmogorov equation gives for the r-step transition probability 
+
+P r  (x1, . . . , xr ), (z1, . . . , zr ) ≥
+
+> r
+
+Y
+
+> t=1
+
+c (xt, . . . , xr , z1, . . . , zt−1) exp( −∥ g∥∞)65 ≥ (e2∥g∥∞ W )−r . (77) Thus by Theorem 16.0.2 in [53] there exists a stationary distribution ρ and Y is uniformly ergodic. Now applying (77) together with Theorem 16.2.4 in [53] gives sup 
+
+> x∈E rW
+
+∥P n(x, ·) − ρ∥TV ≤
+
+
+
+1 − e−2∥g∥∞r n/r 
+
+.
+
+Lastly, arguing similarly as in (77) gives 
+
+P r  (x1, . . . , xr ), (z1, . . . , zr ) ≤ (e−2∥g∥∞ W )−r ,
+
+and since 
+
+ρ (z1, . . . , zr ) = X P r  (x1, . . . , xr ), (z1, . . . , zr )ρ (x1, . . . , xr )
+
+this implies together with (77) (e2∥g∥∞ W )−r ≤ ρ(z) ≤ (e−2∥g∥∞ W )−r .
+
+## F.3 Proof of Lemma 29 
+
+Proof. For simplicity we write P = Pρ and E = Eρ. Furthermore, for T ∈ N, we introduce 
+
+T = T (T ) := {n ∈ N0 : log 2 T ≤ n ≤ T − log 2 T }, T ∗ := |T | + T − max( T ).
+
+We then obtain that for any x ∈ D ,
+
+Ex h
+
+∥P ⊥  
+
+> θ(ξT)
+
+bmλ(ξT )∥22
+
+i
+
+− E
+
+h
+
+∥P ⊥  
+
+> θ(ξT)
+
+bmλ(ξT )∥22
+
+i
+
+= Ex
+
+
+
+P ⊥ 
+
+> θ(ξT)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s(ξT ) ; f (ξt+1 )
+
+ 22
+
+
+
+− E
+
+
+
+P ⊥ 
+
+> θ(ξT)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s(ξT ) ; f (ξt+1 )
+
+ 22
+
+
+
+= Ex
+
+
+
+Eξmin( T )
+
+
+
+P ⊥  
+
+> θ(ξT∗)
+
+X
+
+> t∈{ 0,1,..., |T |− 1}
+
+
+
+Kλ
+
+ s(ξt), s(ξT ∗ ) ; f (ξt+1 )
+
+ 22
+
+ 
+
+− E
+
+
+
+Eξmin( T )
+
+
+
+P ⊥  
+
+> θ(ξT∗)
+
+X
+
+> t∈{ 0,1,..., |T |− 1}
+
+
+
+Kλ
+
+ s(ξt), s(ξT ∗ ) ; f (ξt+1 )
+
+ 22
+
+ 
+
+≤ ∥ f ∥2 
+
+> ∞
+
+sup 
+
+> x∈D
+
+∥P min( T )(x, ·) − ρ∥TV 
+
+≤ ∥ f ∥2
+
+> ∞
+
+cmin( T ) 
+
+> M
+
+, (78) where we applied the Markov property in the second equality. In the first inequality we used that 
+
+Eξmin( T )
+
+
+
+P ⊥  
+
+> θ(ξT∗)
+
+X
+
+> t∈{ 0,1,..., |T |− 1}
+
+
+
+Kλ
+
+ s(ξt), s(ξT ∗ ) ; f (ξt+1 )
+
+ 22
+
+
+
+66 is a measurable function of ξmin( T ), which is bounded by ∥f ∥2 
+
+> ∞
+
+together with the fact that ξmin( T ) ∼ P min( T )
+
+under Px and ξmin( T ) ∼ ρ under P. We now apply Berbee’s coupling lemma, see Lemma 5.1 in [74] and [7]. This states for two random variables X, Y, that there exists a random variable Y ∗, which is independent of 
+
+X, identically distributed as Y, and satisfies 
+
+P(Y̸ = Y ∗) = β(X, Y ),
+
+where β(X, Y ) is the β-mixing coefficient of X and Y . Since the investigated Markov chain is stationary under P, and uniformly ergodic, we can argue as in the proof of Theorem 3.1 in [18] to obtain 
+
+β
+
+ ξmin( T ), ξmin( T )+1 , . . . , ξmax( T )
+
+, ξT
+
+
+
+≤ cT −max( T ) 
+
+> M
+
+.
+
+Hence, there exists a random variable ˜ξ which is independent of ( ξmin( T ), ξmin( T )+1 , . . . , ξmax( T )), such that 
+
+E
+
+
+
+P ⊥ 
+
+> θ(ξT)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s(ξT ) ; f (ξt+1 )
+
+ 22
+
+
+
+− E
+
+
+
+P ⊥
+
+> θ( ˜ξ)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s( ˜ξ) ; f (ξt+1 )
+
+ 22
+
+
+
+≤ 2∥f ∥2
+
+> ∞
+
+P(ξT̸ = ˜ξ)
+
+≤ 2∥f ∥2
+
+> ∞
+
+cT −max( T ) 
+
+> M
+
+, (79) where we again used that the weighted sum is bounded by ∥f ∥∞. By construction, ˜ξ is identically distributed as ξT ∼ ρ under P, which implies 
+
+E
+
+
+
+P ⊥
+
+> θ( ˜ξ)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s( ˜ξ) ; f (ξt+1 )
+
+ 22
+
+
+
+= X
+
+> x∈D
+
+E
+
+
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+
+
+Kλ
+
+ s(ξt), s(x) ; f (ξt+1 )
+
+ 22
+
+
+
+ρ(x).
+
+(80) To simplify notation we introduce 
+
+Ut(x) := Kλ(s(ξt), s(x)) .
+
+For any x ∈ D , it now holds 
+
+E
+
+
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+
+
+Ut(x) ; f (ξt+1 )
+
+ 22
+
+
+
+≤ E
+
+"
+
+P ⊥
+
+> θ(x)
+
+P 
+
+> t∈T
+
+Ut(x)f (ξt+1 )
+
+P 
+
+> t∈T
+
+Ut(x)
+
+> 22
+
+I
+
+ X 
+
+> t∈T
+
+Ut(x) ≥ |T | 
+
+2 EU0(x)#
+
++ ∥f ∥2
+
+> ∞
+
+P
+
+ X 
+
+> t∈T
+
+Ut(x) < |T | 
+
+2 EU0(x)
+
+≤ 4
+
+|T | 2EU0(x)2 E
+
+"
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) 22
+
+#
+
++ ∥f ∥2
+
+> ∞
+
+P
+
+ X 
+
+> t∈T
+
+ Ut(x) − EU0(x) > |T | 
+
+2 EU0(x)
+
+.
+
+(81) We bound the probability using Markov’s inequality together with Theorem 3.2 in [58]. This result provides a similar variance bound for stationary Markov chains as for sums of independent random variables. For a random variable U with |U | ≤ 1 a.s., one has Var( U ) = E[U 2] − E2[U ] ≤ E[U 2] ≤ E[U ]. Using that ∥Kλ∥∞
+
+maps to [0 , 1] and applying the previous inequality to U0(x) = Kλ
+
+ s(ξ0), s(x), then gives 
+
+P
+
+ X 
+
+> t∈T
+
+Ut(x) − EU0(x) > |T | 
+
+2 EU0(x)
+
+≤ 16 
+
+γps (M)|T | EU0(x)2 E
+
+h
+
+U0(x) − EU0(x) 2i
+
+67 ≤ 16 
+
+γps (M)|T | EU0(x) , (82) where γps (M) denotes the pseudo spectral gap of M, which depends only on cM (see Definition 1.3 and Proposition 3.4 in [58]). Now, applying the bias-variance decomposition yields 
+
+E
+
+"
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) 22
+
+#
+
+= E
+
+"
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) − |T | E
+
+h
+
+P ⊥
+
+> θ(x)
+
+U0(x)f (ξ1)
+
+i 22
+
+#| {z }
+
+> variance
+
++ |T | 2 E
+
+h
+
+P ⊥
+
+> θ(x)
+
+U0(x)f (ξ1)
+
+i 22
+
+| {z }
+
+> squared bias
+
+,
+
+where we again used ∥Kλ∥∞ ≤ 1 in the last step. For the variance term we again apply the variance bound for Markov chains provided in Theorem 3.2 in [58] componentwise and obtain 
+
+E
+
+"
+
+P ⊥
+
+> θ(x)
+
+X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) − |T | E
+
+h
+
+P ⊥
+
+> θ(x)
+
+U0(x)f (ξ1)
+
+i 22
+
+#
+
+≤ E
+
+" X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) − |T | E
+
+h
+
+U0(x)f (ξ1)
+
+i 22
+
+#
+
+≤ 4|T | 
+
+γps (M) E
+
+
+
+U0(x)f (ξ1) − E
+
+h
+
+U0(x)f (ξ1)
+
+i 22
+
+
+
+≤ 4∥f ∥2
+
+> ∞
+
+|T | 
+
+γps (M) E [U0(x)] . (83) For the bias term we deduce by conditioning on ξ0 and by applying the definitions of m and θ,
+
+|T | 2 E
+
+h
+
+P ⊥
+
+> θ(x)
+
+U0(x)f (ξ1)
+
+i 22
+
+= |T | 2 E
+
+h
+
+U0(x)P ⊥
+
+> θ(x)
+
+m(ξ0)
+
+i 22
+
+= |T | 2 E
+
+h
+
+∥m(ξ0)∥2U0(x)P ⊥
+
+> θ(x)
+
+θ(ξ0)
+
+i 22
+
+= |T | 2 E
+
+h
+
+∥m(ξ0)∥2U0(x)P ⊥
+
+> θ(x)
+
+(θ(ξ0) − θ(x)) 
+
+i 22
+
+≤ |T | 2∥f ∥2
+
+> ∞
+
+E
+
+h
+
+U0(x)∥θ(ξ0) − θ(x)∥2
+
+i2
+
+, (84) where we use P ⊥
+
+> θ(x)
+
+θ(x) = 0d for the last equality. Furthermore, by the H¨ older continuity of θ, we deduce for any ϵ > 0,
+
+E
+
+h
+
+U0(x)∥θ(ξ0) − θ(x)∥2
+
+i
+
+= X
+
+> x′∈D
+
+Kλ
+
+ s(x′), s(x)∥θ(x′) − θ(x)∥2ρ(x′)
+
+≤ cθ
+
+X
+
+> x′∈D
+
+Kλ
+
+ s(x′), s(x)∥s(x′) − s(x)∥β 
+
+> 2
+
+ρ(x′)
+
+≤ cθ
+
+
+
+ϵβ X
+
+> x′∈D :∥s(x′)−s(x)∥2≤ϵ
+
+exp 
+
+
+
+− ∥s(x′) − s(x)∥22
+
+2λ2
+
+
+
+ρ(x′)+ exp 
+
+
+
+− ϵ2
+
+2λ2
+
+ X
+
+> x′∈D :∥s(x′)−s(x)∥2>ϵ
+
+∥s(x′) − s(x)∥β 
+
+> 2
+
+ρ(x′)
+
+
+
+≤ cθ
+
+
+
+ϵβ EU0(x) + 2 β ∥s∥β 
+
+> ∞
+
+exp 
+
+
+
+− ϵ2
+
+2λ2
+
+
+
+,
+
+where we used that Kλ is nonnegative in the last bound. Choosing 
+
+ϵ = λ
+
+r
+
+2 log 
+
+
+
+(E[U0(x)] λβ )−1
+
+
+
+,
+
+68 we get 
+
+E
+
+h
+
+U0(x)∥θ(ξ0) − θ(x)∥2
+
+i
+
+≤ cθ λβ E[U0(x)] 
+
+
+
+2 log  (E[U0(x)] λβ )−1β/ 2
+
++ 2 β ∥s∥β
+
+> ∞
+
+
+
+. (85) Combining this inequality with (78), (79), (80), (81), (82), (83) and (84) yields, for any x ∈ D 
+
+Ex h
+
+∥P ⊥  
+
+> θ(ξT)
+
+bmλ(ξT )∥22
+
+i
+
+≤ 3∥f ∥2
+
+> ∞
+
+clog 2 T −1 
+
+> M
+
++ 32 ∥f ∥2
+
+> ∞
+
+γps (M)|T | inf x∈D EU0(x)
+
++ 4 ∥f ∥2
+
+> ∞
+
+c2 
+
+> θ
+
+λ2β  
+
+2 log 
+
+
+
+( inf  
+
+> x∈D
+
+E[U0(x)] λβ )−1 β/ 2
+
++ 2 β ∥s∥β
+
+> ∞
+
+2
+
+,
+
+which together with the assumption λ ≥ T −1 and clog 2 T −1 
+
+> M
+
+= O(T −2β ) = O(λ2β ) proves the first assertion (70). To prove the second assertion, define 
+
+ν(λ, ρ, m) := inf 
+
+> x∈D
+
+E U0(x)Pθ(x)m(ξ0)
+
+> 2
+
+EU0(x) .
+
+Consider the event 
+
+A(u) := 
+
+
+
+Pθ(u) bmλ(u) 2 < ν(λ, ρ, m)4
+
+
+
+.
+
+Using the closeness to the invariant distribution P and arguing similarly as in (78), (79), and (80), we obtain for ˜ξ as in (79) and any x ∈ D ,
+
+Px A(ξT ) ≤ ∥ P min( T )(x, ·) − ρ∥TV + P A(ξT )
+
+≤ cmin( T ) 
+
+> M
+
++ P(ξT̸ = ˜ξ) + P A( ˜ξ)
+
+≤ cmin( T ) 
+
+> M
+
++ 2 cT −max( T ) 
+
+> M
+
++ X
+
+> x∈D
+
+P A(x)ρ(x). (86) Moreover, 
+
+cmin( T ) 
+
+> M
+
++ 2 cT −max( T ) 
+
+> M
+
+≤ 3clog 2 T 
+
+> M
+
+≲ 1
+
+T . (87) It therefore suffices to investigate the stationary case. Additionally it holds for any x ∈ D ,
+
+P A(x) = P
+
+ ∥ P 
+
+> t∈T
+
+Ut(x)Pθ(x)f (ξt+1 )∥2
+
+P 
+
+> t∈T
+
+Ut(x) < ν(λ, ρ, m)4
+
+
+
+≤ P 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x) ≥ 2EU0(x)!
+
++ P 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x)Pθ(x)f (ξt+1 ) 2
+
+< ν(λ, ρ, m)2 EU0(x)!
+
+≤ P 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x) ≥ 2EU0(x)!
+
++ P 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x)Pθ(x)f (ξt+1 ) 2
+
+< 12 E U0(x)Pθ(x)m(ξ0)
+
+> 2
+
+!
+
+, (88) where we used the definition of ν(λ, ρ, m) in the last step. The first term can be bounded similarly to (82) by 
+
+P 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x) ≥ 2EU0(x)!
+
+≤ 4
+
+γps (M)|T | EU0(x) . (89) 69 Furthermore, since ∥u∥2 < 12 ∥v∥2 implies that ∥u − v∥2 > 12 ∥v∥2, we obtain for the second term 
+
+P
+
+ 1
+
+|T | 
+
+X
+
+> t∈T
+
+Ut(x)Pθ(x)f (ξt+1 ) 2
+
+< 12 E U0(x)Pθ(x)m(ξ0)
+
+> 2
+
+
+
+≤ P
+
+ X
+
+> t∈T
+
+Ut(x)Pθ(x)f (ξt+1 ) − |T | E U0(x)Pθ(x)m(ξ0)
+
+> 2
+
+> |T | 
+
+2 E U0(x)Pθ(x)m(ξ0)
+
+> 2
+
+
+
+≤ 4
+
+E U0(x)Pθ(x)m(ξ0) 22|T | 2 E
+
+" X
+
+> t∈T
+
+Ut(x)f (ξt+1 ) − |T | E [U0(x)f (ξ1)] 
+
+> 22
+
+#
+
+≤ 4
+
+E U0(x)Pθ(x)m(ξ0) 22|T | 2
+
+4∥f ∥2
+
+> ∞
+
+|T | 
+
+γps (M) E [U0(x)] = 16 ∥f ∥2
+
+> ∞
+
+γps (M)|T | 
+
+EU0(x)
+
+E U0(x)Pθ(x)m(ξ0) 22
+
+where we use (83) for the last inequality. Combining this inequality with (86), (87), (88), and (89) yields the second assertion (71). 
+
+## F.4 Proof of Lemma 30 
+
+Proof. (i) Recall that for any x = ( x1, . . . , xr ) ∈ E rW , z1 := stack( ϕ1(xr−r1+1 ), . . . , ϕ1(xr )) ∈ Rm1r1 and 
+
+z2 := stack( ϕ2(xr−r2+1 ), . . . , ϕ2(xr )) ∈ Rm2r2 ,
+
+P Xr+1 = ew h, (X1, . . . , Xr ) = ( x1, . . . , xr ) ∝ exp 
+
+
+
+g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew)
+
+
+
+, w ∈ [W ].
+
+Hence, 
+
+m(x) = E
+
+"
+
+ϕ2(Xr+1 )exp  g0(z1)⊤ϕ1(Xr+1 ) h, (X1, . . . , Xr ) = ( x1, . . . , xr )
+
+#
+
+=
+
+PWw=1 exp 
+
+
+
+g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew)
+
+ ϕ2(ew )exp 
+
+ g0(z1)⊤ϕ1(ew )
+
+PWw=1 exp 
+
+
+
+g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew)
+
+
+
+=
+
+PWw=1 exp 
+
+
+
+h(z2)⊤ϕ2(ew)
+
+
+
+ϕ2(ew)
+
+PWw=1 exp 
+
+
+
+g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew)
+
+
+
+=
+
+PWw=1 exp  h(z2)⊤ϕ2(ew)ϕ2(ew)
+
+PWw=1 exp  h(z2)⊤ϕ2(ew)| {z }
+
+=: ˜ θ(z2) ∈ Rm2
+
+PWw=1 exp  h(z2)⊤ϕ2(ew)PWw=1 exp  g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew)| {z }
+
+∈ R
+
+, (90) which gives us the assertion. 
+
+(ii) Applying the reverse triangle inequality, the second argument of Lemma 35, the definition of κW
+
+(Definition 4.1), and the assumption κW ≤ (1 + m2/δ 2)−1/2, 
+
+˜θ(z2) 2 ≥
+
+R 
+
+> u∈Sm2−1
+
+exp( h(z2)⊤u)udu
+
+R 
+
+> u∈Sm2−1
+
+exp( h(z2)⊤u)du 2
+
+− ˜θ(z2) −
+
+R 
+
+> u∈Sm2−1
+
+exp( h(z2)⊤u)udu
+
+R 
+
+> u∈Sm2−1
+
+exp( h(z2)⊤u)du 2
+
+≥ 11 + m2/δ 2
+
+− κW ≥ 12 + 2 m2/δ 2
+
+:= ϱ > 0. (91) 70 On the other hand, we have 
+
+PWw=1 exp  h(z2)⊤ϕ2(ew)PWw=1 exp  g0(z1)⊤ϕ1(ew) + h(z2)⊤ϕ2(ew) ≥ W exp( −δ2)
+
+W exp( δ1m1 + δ2) = exp( −δ1m1 − 2δ2).
+
+Combining these inequalities with (90) gives us the assertion. 
+
+(iii) By Lemma 33 and the smoothness of h,
+
+˜θ s(x) − ˜θ s(x′) 
+
+> ∞
+
+≤ 2 h s(x) − h s(x′) 
+
+> 2
+
+≤ 2√m2 h s(x) − h s(x′)
+
+> ∞
+
+≤ 2√m2 h∥Cβ2 ∥s(x) − s(x′) β2 
+
+> ∞
+
+.
+
+Using θ(x) = m(x)/∥m(x)∥2 = ˜θ(s(x)) /∥ ˜θ(s(x)) ∥2 and (91), we get the assertion by 
+
+∥θ(x) − θ(x′)∥2 =
+
+˜θ s(x)
+
+∥ ˜θ s(x)∥2
+
+−
+
+˜θ s(x′)
+
+∥ ˜θ s(x′)∥2 2
+
+≤
+
+˜θ s(x) − ˜θ s(x′)
+
+∥ ˜θ s(x)∥2 2
+
++ 1
+
+∥ ˜θ s(x)∥2
+
+− 1
+
+∥ ˜θ s(x′)∥2
+
+!
+
+˜θ s(x′)
+
+> 2
+
+≤ 4m2∥h∥Cβ2
+
+ϱ ∥s(x) − s(x′)∥β2 
+
+> ∞
+
+.
+
+(iv) By (72), max x∈E rW ρ(x) min x∈E rW ρ(x) is bounded above by a constant that depends only on ( m1, δ 1, δ 2). For any x ∈ E rW , it follows using the definition Kλ(z, z′) = exp( −∥ z − z′∥2/(2 λ2)) ,
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x) ≥ Eρ
+
+Kλ
+
+ s(ξ), s(x)I ∥s(ξ) − s(x)∥2 ≤ √r2λ 
+
+≥ exp( −r2/2) ρ ξ : ∥s(ξ) − s(x)∥2 ≤ √r2λ
+
+≳ 1
+
+W r
+
+n
+
+(x′
+
+> 1
+
+, . . . , x′ 
+
+> r
+
+) ∈ E rW : max 
+
+> 1≤i≤r2
+
+∥ϕ2(x′
+
+> i
+
+) − ϕ2(xi)∥2 ≤ λ
+
+o
+
+= 1
+
+W r2
+
+n
+
+(x′
+
+> 1
+
+, . . . , x′ 
+
+> r2
+
+) ∈ E r2 
+
+> W
+
+: max 
+
+> 1≤i≤r2
+
+∥ϕ2(x′
+
+> i
+
+) − ϕ2(xi)∥2 ≤ λ
+
+o
+
+≥
+
+
+
+inf 
+
+> x∈E W
+
+1
+
+W
+
+n
+
+x′ ∈ E W : ∥ϕ2(x′) − ϕ2(x)∥2 ≤ λ
+
+o r2
+
+= φW (λ)r2 ,
+
+where the implicit constant of ≳ depends only on ( m1, δ 1, δ 2, r 2). 
+
+(v) By definition, Pθ(x)v = ⟨θ(x), v⟩θ(x) for any v ∈ Rm. Hence for any x ∈ E rW ,
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x)Pθ(x)m(ξ)
+
+> 2
+
+= X
+
+> x′∈D
+
+Kλ(s x′), s(x)ρ(x′)⟨θ(x), m(x′)⟩
+
+≥ X
+
+> x′∈D
+
+Kλ(s x′), s(x)ρ(x′)⟨θ(x), m(x′)⟩
+
+= X
+
+> x′∈D
+
+Kλ(s x′), s(x)ρ(x′) ⟨θ(x), m(x′)⟩
+
+− 2 X
+
+> x′∈D :⟨θ(x),θ(x′)⟩<0
+
+Kλ(s x′), s(x)ρ(x′) ⟨θ(x), m(x′)⟩ . (92) 71 Since θ(x) = m(x)/∥m(x)∥2 for any x ∈ D it follows for any x′ ∈ D , that |⟨ θ(x), m(x′)⟩| ≥ c1⟨θ(x), θ(x′)⟩ = 
+
+> c1
+> 2
+
+(2 − ∥ θ(x) − θ(x′)∥22). Hence, 
+
+X
+
+> x′∈D
+
+Kλ(s x′), s(x)ρ(x′) ⟨θ(x), m(x′)⟩ ≥ c1
+
+2
+
+X
+
+> x′∈D
+
+Kλ(s x′), s(x)ρ(x′) 2 − ∥ θ(x) − θ(x′)∥22
+
+
+
+= c1Eρ
+
+Kλ
+
+ s(ξ), s(x) − c1
+
+2 Eρ
+
+Kλ
+
+ s(ξ), s(x)∥θ(ξ) − θ(x)∥2
+
+
+
+≥ c1Eρ
+
+Kλ
+
+ s(ξ), s(x) , (93) where the second inequality follows from ∥θ(x) − θ(x′)∥22 ≤ 2∥θ(x) − θ(x′)∥2, and the last inequality follows from (85) by taking λ sufficiently small. On the other hand, since ⟨θ(x), θ(x′)⟩ < 0 implies ∥θ(x) − θ(x′)∥2 ≥√2 and hence ∥s(x) − s(x′)∥2 ≥ (√2/c θ )1/β 2 , we have by the definition of Kλ and the Cauchy–Schwarz inequality 
+
+X
+
+> x′∈D :⟨θ(x),θ(x′)⟩<0
+
+Kλ(s x′), s(x)ρ(x′) ⟨θ(x), m(x′)⟩ ≤ exp 
+
+
+
+− (√2/c θ )2/β 2
+
+2λ2
+
+
+
+sup 
+
+> x′∈E rW
+
+∥m(x′)∥2
+
+≤ exp 
+
+
+
+− (√2/c θ )2/β 2
+
+2λ2 + δ1m1
+
+
+
+.
+
+Combining this inequality with (92), (93), and (iv), we obtain 
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x)Pθ(x)m(ξ)
+
+> 2
+
+Eρ
+
+Kλ
+
+ s(ξ), s(x) ≥ c1
+
+2 − 2 exp   − (√2/c θ )2/β  
+
+> 2λ2
+
++ δ1m1
+
+
+
+EU0(x)
+
+≥ c1
+
+2 − 2 exp   − (√2/c θ )2/β  
+
+> 2λ2
+
++ δ1m1
+
+
+
+φW (λ)r2
+
+≥ c1
+
+2 − 2W r2 exp 
+
+
+
+− (√2/c θ )2/β log 2 W
+
+2 + δ1m1
+
+
+
+≥ c1
+
+4 ,
+
+provided that W is sufficiently large. We used that by definition, φW (λ) ≥ 1/W for the third inequality. 
+
+# G Technical Lemmas 
+
+Lemma 31 (Corollary A.7 of [19]) . For any real-valued vectors x and x′ of the same dimension, 
+
+∥ softmax( x) − softmax( x′)∥∞ ≤ ∥ softmax( x) − softmax( x′)∥1 ≤ 2∥x − x′∥∞.
+
+Lemma 32. If u1, . . . , u m, v 1, . . . , v m are real numbers, U := Pmk=1 euk , and V := Pmk=1 evk , then, 
+
+> m
+
+X
+
+> j=1
+
+euj
+
+U log 
+
+
+
+euj −vj VU
+
+
+
+≤ 4 max  
+
+> j
+
+|uj − vj |2.
+
+Proof. Let ∆ := max j |uj − vj |. Using the log sum inequality to bound log( V /U ), 
+
+> m
+
+X
+
+> j=1
+
+euj
+
+U log 
+
+
+
+euj −vj VU
+
+
+
+=
+
+> m
+
+X
+
+> j=1
+
+euj
+
+U
+
+ uj − vj
+
+ + log 
+
+ VU
+
+
+
+≤
+
+> m
+
+X
+
+> j=1
+
+euj
+
+U
+
+ uj − vj
+
+ + evj
+
+V
+
+ vj − uj
+
+.
+
+72 The right hand side can be upper bounded by ≤ 2∆ . The right hand side can also be upper bounded by 
+
+> m
+
+X
+
+> j=1
+
+ uj − vj
+
+ euj
+
+U − evj
+
+V
+
+
+
+=
+
+> m
+
+X
+
+> j=1
+
+ uj − vj
+
+ euj − evj
+
+U + evj
+
+V · V − UU
+
+
+
+≤ ∆ e∆ − 1 + ∆ |V − U |
+
+U
+
+≤ 2∆  e∆ − 1,
+
+using that for any two real numbers u, v, |eu − ev | ≤ (e|u−v| − 1) eu. Combining both upper bounds and using that for any x ≤ log(2) , e x − 1 = x + P∞ 
+
+> k=2
+
+xk/k ! ≤ x + 12 x P∞ 
+
+> ℓ=1
+
+xℓ/ℓ ! ≤ x + 12 xe x ≤ 2x yields the upper bound 
+
+≤ 2∆ min 
+
+
+
+1, e ∆ − 1
+
+
+
+≤ 2∆ min(1 , 2∆) ≤ 4∆ 2.
+
+Lemma 33. For any δ > 0, any v1, v2 ∈ δSm−1, and any u1, . . . , uW ∈ Sm−1,
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+uw
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+ −
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+uw
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+
+
+> ∞
+
+≤ 2∥v1 − v2∥2.
+
+Proof. Define for v ∈ δSm−1
+
+p(v) := 
+
+ exp  v⊤uw
+
+PWi=1 exp  v⊤ui
+
+ 
+
+> w∈[W]
+
+= softmax  y(v), y(v) := ( v⊤u1, . . . , v⊤uW )⊤.
+
+Since for each coordinate j ∈ [m], 
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+(uw)(j)
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+ −
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+(uw)(j)
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+
+
+=
+
+> W
+
+X
+
+> w=1
+
+p(v1)(w)(uw)(j) −
+
+> W
+
+X
+
+> w=1
+
+p(v2)(w)(uw)(j)
+
+≤
+
+> W
+
+X
+
+> w=1
+
+p(v1)(w) − p(v2)(w) (uw)(j)
+
+≤ p(v1) − p(v2) 1
+
+and ∥ softmax( x) − softmax( x′)∥1 ≤ 2∥x − x′∥∞ (see Lemma 31), we get the assertion by 
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+uw
+
+PWw=1 exp  v⊤ 
+
+> 1
+
+uw
+
+ −
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+uw
+
+PWw=1 exp  v⊤ 
+
+> 2
+
+uw
+
+
+
+> ∞
+
+≤ ∥ p(v1) − p(v2)∥1
+
+≤ 2∥y(v1) − y(v2)∥∞
+
+= 2 max   
+
+> w∈[W]
+
+(v1 − v2)⊤uw
+
+≤ 2∥v1 − v2∥2.
+
+73 Lemma 34. Let Z be uniformly distributed on Sm−1. Then there exists a constant cm > 0, depending only on m, such that for any ϵ ∈ [0 , 1] and any z ∈ Sm−1,
+
+P(∥Z − z∥2 ≤ ϵ/ 2) ≥ cmϵm−1.
+
+Proof. By the uniformity, it is sufficient to consider z = e1 = (1 , 0, . . . , 0) ⊤ ∈ Rm. Write Z = ( Z1, . . . , Z m)⊤ =: (Z1, Z(−1) )⊤ ∈ R × Rm−1. On the event Z1 ≥ 0, triangle inequality, ∥Z∥2 = 1, and the formula √a − √b =(a − b)/(√a + √b) that holds for all positive a, b, yield 
+
+∥Z − e1∥2 ≤ | Z1 − 1| + ∥Z(−1) ∥2 = 1 −
+
+q
+
+1 − ∥ Z(−1) ∥22 + ∥Z(−1) ∥2 ≤ ∥ Z(−1) ∥22 + ∥Z(−1) ∥2.
+
+Hence, 
+
+P(∥Z − z∥2 ≤ ϵ/ 2) = P(∥Z − e1∥2 ≤ ϵ/ 2) ≥ P(Z1 > 0, ∥Z(−1) ∥2 ≤ ϵ/ 4) = 12 P(∥Z(−1) ∥2 ≤ ϵ/ 4) = Cm(ϵ/ 4) m−1
+
+for some constant Cm > 0 depending only on m, where the last equality follows from the volume formula of an ( m − 1)-dimensional Euclidean ball with radius ϵ/ 4.
+
+Lemma 35. For any m = 2 , 3, . . . and v ∈ Rm, define 
+
+f (v) := 
+
+R 
+
+> z∈Sm−1
+
+exp( v⊤z)z dz
+
+R 
+
+> z∈Sm−1
+
+exp( v⊤z) dz .
+
+Then, 
+
+f (v)
+
+∥f (v)∥2
+
+= v
+
+∥v∥2
+
+and ∥f (v)∥2 > 11 + m/ ∥v∥2
+
+Proof. We denote by vMF v the von Mises–Fisher distribution on Sm−1 with mean direction v/∥v∥2 and concentration parameter ∥v∥2, whose probability density function is given by 
+
+z 7 → cv exp( v⊤z), z ∈ Sm−1,
+
+with cv the normalizing constant. The expectation is given by 
+
+EZ∼vMF( v)[Z] = f (v) = Im/ 2(∥v∥2)
+
+Im/ 2−1(∥v∥2)
+
+v
+
+∥v∥2
+
+,
+
+with Iv the modified Bessel function of the first kind (see e.g. [51], Equation (9.3.8)). This establishes the first assertion. Moreover, classical Amos-type bounds for Bessel function ratios (e.g., see Theorem 3 of [27]) yield that 
+
+Im/ 2(∥v∥2)
+
+Im/ 2−1(∥v∥2) ≥ ∥v∥2 
+
+> m−12
+
++
+
+q
+
+( m+1 2 )2 + ∥v∥22
+
+.
+
+We obtain the second assertion by using that √a2 + b2 < a + b for positive a, b, and therefore 
+
+∥v∥2 
+
+> m−12
+
++
+
+q
+
+( m+1 2 )2 + ∥v∥22
+
+> ∥v∥2 
+
+> m−12
+
++ m+1 2 + ∥v∥2
+
+= 11 + m/ ∥v∥2
+
+.
+
+74
