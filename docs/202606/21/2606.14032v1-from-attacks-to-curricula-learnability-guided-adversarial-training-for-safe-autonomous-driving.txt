@@ -1,0 +1,1072 @@
+Title: From Attacks to Curricula: Learnability-Guided Adversarial Training for Safe Autonomous Driving
+
+URL Source: https://arxiv.org/pdf/2606.14032v1
+
+Published Time: Mon, 15 Jun 2026 00:30:38 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+# From Attacks to Curricula: Learnability-Guided Adversarial Training for Safe Autonomous Driving 
+
+Yuewen Mei a, Tong Nie a,b , Jie Sun a, Haotian Shi a, Wei Ma b, Jian Sun a, ∗
+
+> aCollege of Transportation & Key Laboratory of Road and Traffic Engineering of Ministry of Education, Tongji University, Shanghai, 201804, China
+> bDepartment of Civil and Environmental Engineering, The Hong Kong Polytechnic University, Hong Kong SAR, China
+
+Abstract 
+
+Closed-loop adversarial training has emerged as a vital paradigm for enhancing the safety of autonomous driving policies by enabling them to learn from rare safety-critical scenarios. Standard training pipelines typically generate adversarial scenarios first, then sample them for policy optimization. However, most existing frameworks remain attack-oriented. Driven primarily by collision maximization, current generators often synthesize practically unsolvable extreme situations, thereby degrading the learning process. Furthermore, conventional heuristic and simplified sampling strategies ignore the continuously evolving capability of the driving policy, leading to sample inefficiency and delayed convergence. To overcome these limitations, we propose AlignADV, a learnability-guided closed-loop adversarial training framework designed to convert adversarial scenarios into resolvable and capability-aligned curricula. First, we reformulate adversarial scenario generation as a preference alignment problem and employ direct preference optimization to guide the generator toward critical yet resolvable scenarios. Second, we introduce the concept of behavioral fingerprint to extract the intrinsic characteristics of the evolving policy and construct a multi-modal capability prediction model that accurately evaluates policy performance without expensive simulations. By combining the resolvability-aligned scenario set with these capability predictions, we develop a dynamic curriculum sampling mechanism that prioritizes scenarios targeting the exact vulnerabilities of the current policy. Comprehensive experiments using the Waymo Open Motion Dataset demonstrate that AlignADV significantly improves both convergence efficiency and final performance, reducing training steps by up to 40.6% compared to baseline methods, while reducing collision rate and improving route completion rate in both normal and adversarial traffic conditions. These results highlight a shift from attack-oriented scenario generation to learnability-guided policy improvement, offering a principled direction for safer and more efficient autonomous driving training. Project page and video demonstration: https://meiyuewen.github.io/AlignADV/. 
+
+Keywords: Autonomous driving, Adversarial training, Curriculum learning, Adversarial scenario generation 
+
+1. Introduction 
+
+Autonomous driving (AD) technologies have achieved significant breakthroughs in recent years. In particular, end-to-end driving models have demonstrated potential in navigating urban and highway traffic environments. However, ensuring the reliability and safety of AD in complex and extremely rare safety-critical scenarios remains a severe challenge. Since traffic accidents occur with extremely low probabilities in the real world, relying solely on naturalistic driving data to train and test AD policy is insufficient (Feng et al., 2021). To overcome the issue of rarity, simulation-based generation of safety-critical scenarios, particularly adversarial scenarios, has become a standard practice (Ding et al., 2023b; Xu et al., 2025a). Building upon this foundation, adversarial training has emerged as a potential closed-loop learning approach for improving driving safety (Hanselmann et al., 2022; Zhang et al., 2023; Stoler et al., 2025). This paradigm models the environment as an attacker that challenges the AD policy, which acts as a defender, by maximizing collision risks. Through this two-player game, the AD policy learns from safety-critical interactions induced in simulation, thereby improving the driving performance in long-tail scenarios. Generally, the efficacy of this adversarial training paradigm depends on two key factors: what scenarios to generate and how to use these scenarios to maximize learning efficiency and policy performance. Regarding what scenarios to generate, existing studies have developed various generation methods, ranging from optimization-based methods (Hanselmann et al., 2022; Liu et al., 2025) to reinforcement learning (Liu et al., 2024; Qiu et al., 2025) and deep generative models (Rempe et al., 2022; Ding et al., 2023a). These methods commonly expose policy vulnerabilities by increasing collision risks, but this attack-oriented objective may also push generators toward overly aggressive scenarios. Some recent methods introduce kinematic constraints and    
+
+> ∗Corresponding authors.
+> Email address: sunjian@tongji.edu.cn (Jian Sun)
+> Preprint Under Review June 15, 2026
+> arXiv:2606.14032v1 [cs.RO] 12 Jun 2026
+
+......  
+
+> Adversarial But Unsolvable Scenario Brake
+
+×× Reward 
+
+> Capability-Mismatched Sampling Performance
+> Training Efficiency
+> Resolvable Adversarial Scenario Capability-Aligned Sampling AlignADV Framework
+
+WHAT Scenarios? HOW to Use Scenarios? 
+
+AD Policy Adversarial Scenarios Attack Defend Safety 
+
+General Adversarial Training Framework General Adversarial Training Framework General Adversarial Training Framework Existing Limitations Existing Limitations Existing Limitations Proposed Framework Proposed Framework Proposed Framework   
+
+> Conservative Behavior
+> Learnability-Guided Curriculum
+> Scenario Difficulty ≠Policy Capability Figure 1: Overview of the research motivation and the proposed AlignADV framework. Existing methods exhibit two primary limitations: the generation of practically unsolvable scenarios that induce conservative driving behaviors and the capability-mismatched sampling that degrades training efficiency. Our proposed learnability-guided framework addresses these limitations by establishing a unified learning loop driven by resolvable adversarial scenarios and capability-aligned sampling strategies.
+
+traffic rule regularizations to improve the physical realism and behavioral plausibility of generated scenarios (Chen et al., 2024; Nie et al., 2025). However, plausibility alone does not ensure resolvability: a trajectory may be rational for the background vehicle while leaving no reasonable collision-avoidance response for the ego vehicle. Training on such unsolvable scenarios provides weak action-discriminative feedback and reward for policy learning, forcing the policy to learn overly conservative driving behaviors or even causing the collapse of the training process (Feng et al., 2026). Since traffic scenarios are high-dimensional and highly dynamic, it is difficult to explicitly characterize the differentiating boundary between critical yet resolvable challenges and unresolvable hazards. Therefore, the key challenge is how to guide adversarial generators toward safety-critical scenarios that remain practically resolvable and thus useful for policy learning. In addition to the quality of the generated adversarial scenarios, how to effectively use these scenarios in the training loop is equally crucial. Existing training pipelines often employ static random sampling or rely on predefined scenario complexity metrics for heuristic sorting (Anzalone et al., 2022; Bronstein et al., 2023; Sheng et al., 2026). Although some advanced methods consider automated curriculum selection, they mostly depend on feedback from historical interactions of the AD agent (Peng et al., 2024; Abouelazm et al., 2025). However, as the parameters of the AD policy continuously update during training, its capability to handle different scenarios exhibits highly dynamic and non-linear fluctuations. The aforementioned lagging sampling methods lack a forward-looking mechanism to evaluate the true competence of the current policy before actual interaction, leading to a severe mismatch between the difficulty of the sampled scenarios and the current capability of the policy. Such a mismatch weakens the learning process, as statically sampled scenarios may gradually become easy for the evolving policy. This raises the key challenge of how to achieve a timely performance evaluation of AD policies during training over diverse scenario libraries without resorting to computationally expensive closed-loop simulations. To overcome the aforementioned challenges, we propose a novel closed-loop adversarial training framework denoted as AlignADV. Instead of treating adversarial scenarios purely as attacks, AlignADV converts them into learnability-guided curricula. In this work, learnability serves as an operational principle that guides AlignADV to jointly pursue resolvability-aligned scenario generation and capability-aligned scenario sampling. First, we reformulate the adversarial scenario generation as a preference alignment problem. We construct a preference dataset by introducing a rule-based expert policy and fine-tune the trajectory generation model via Direct Preference Optimization (DPO). As a post-training procedure, this alignment step directly reshapes the generator output distribution toward resolvable scenarios without modifying the specific generator architecture. Second, to make effective use of these resolvable scenarios during training, we propose a novel forward-looking policy capability prediction mechanism. We introduce the concept of the behavioral fingerprint for the AD policy to extract the intrinsic features of the continuously evolving policy network. By combining this fingerprint with the local context of specific scenarios, we design a cross-attention multi-modal prediction model to accurately output the predicted success probability of the current policy in any given scenario prior to actual simulation rollout. Ultimately, based on these capability predictions, we construct a dynamic capability-aligned curriculum sampling distribution. This holistic framework ensures that the AD policy is challenged by solvable hazards that adaptively match its evolving capability, thereby avoiding both unsolvable scenarios and trivial tasks and enabling a more effective and efficient training curriculum for AD policies. The main contributions of this paper can be summarized in the following three aspects: • We propose a resolvable adversarial scenario generation mechanism based on DPO, which serves as a general post-training fine-tuning paradigm for existing adversarial generation methods. It substantially 2improves the solvability of the generated adversarial environment while preserving high-risk challenges. • We introduce the concept of a behavioral fingerprint and construct a multi-modal policy capability prediction model. The behavioral fingerprint provides an algorithm-agnostic representation of the driving policy. The capability prediction model efficiently evaluates the performance of the dynamically updating policy across diverse scenarios, offering a reliable quantitative metric for automated curriculum learning. • We develop a closed-loop adversarial training framework, AlignADV, which couples resolvability-aligned generation with capability-aligned sampling to transform attack-oriented scenario generation into effective policy improvement. Compared to baseline method, this framework not only saves up to 40.6% of the training steps but also significantly improves both collision rate and route completion rate of AD policy. The remainder of this paper is organized as follows: Section 2 reviews the related works on adversarial training and curriculum learning; Section 3 formulates the problem for end-to-end driving and defines our adversarial training objective; Section 4 elaborates on the methodology of the AlignADV framework, including resolvable scenario generation, capability prediction, and the curriculum sampling mechanism; Section 5 presents comprehensive experimental setups, result analyses, and ablation studies; and finally, Section 6 concludes this work. 
+
+2. Related Works 
+
+2.1. Adversarial Training 
+
+Adversarial training has emerged as a prominent paradigm for enhancing the robustness of AD policies by exposing the driving agent to challenging and safety-critical scenarios. To overcome the rarity problem of safety-critical scenarios and efficiently supply these rare scenarios for policy training, numerous scenario generation methods have been developed. These methods can be broadly categorized into optimization-based, reinforcement learning (RL)-based, and generative model-based approaches. Recently, optimization-based methods have been proposed to directly optimize the kinematic trajectories of background vehicles to collide with the ego vehicle (Hanselmann et al., 2022; Zhang et al., 2023; Mei et al., 2025a). These methods are generally computationally efficient and maintain basic physical realism. Meanwhile, RL-based methods establish a Markov Decision Process to intelligently search for interactive adversarial strategies (Ransiek et al., 2024; Cai et al., 2024). By dynamically maximizing the collision probability, RL approaches specialize in exploring a wide range of complex attack behaviors. Additionally, recent studies utilize deep generative models, such as diffusion models, to create hazardous scenarios by conditioning the generation on an increased probability of traffic accidents (Chang et al., 2024; Xie et al., 2024; Xu et al., 2025a). These advanced foundation models offer strong controllability and exceptional environmental realism. Despite their respective advantages in efficiency, exploration, or realism, these approaches share a fundamental limitation: their primary generation objectives are aligned with maximizing collision probabilities. Consequently, they can lead to practically unsolvable or action-indiscriminative situations, such as sudden rear-end collisions from blind spots (Mei et al., 2025b). Training the driving agent on such unsolvable scenarios undermines the learning process, which severely degrades the overall task completion rate and driving efficiency in normal traffic conditions (Feng et al., 2026). Recent frameworks have attempted to mitigate unrealistic attacks by incorporating preference alignment (Nie et al., 2025) or restricting adversarial behaviors within an estimated feasible region (Chen et al., 2024). However, they do not explicitly align the generator with an ego-side resolvability signal within closed-loop training pipelines. Therefore, there is a critical need to shift the focus of adversarial training from merely maximizing danger to ensuring the resolvability of the generated scenarios, ensuring that the driving agent is challenged by high-value critical scenarios. 
+
+2.2. Scenario-based Curriculum Learning 
+
+Effectively integrating generated scenarios into the training process is as crucial as the generation itself, where curriculum learning plays a vital role by organizing the training sequence to accelerate convergence and improve the learning process. While the principles of curriculum learning can be applied to various dimensions of the training pipeline, such as task decomposition (Qiao et al., 2018; Song et al., 2021) and reward shaping (Chu et al., 2025), we focus on the schedule of scenarios. Early implementations of scenario-based curriculum learning primarily relied on manually designed heuristics or fixed stages, where scenarios are ordered based on static attributes such as traffic density (Anzalone et al., 2022) or the difficulty score of the scenarios (Bronstein et al., 2023). To overcome the scalability and adaptability limitations of manual scheduling, recent research has shifted toward automated curriculum learning frameworks that dynamically adjust the training data distribution. For instance, Sheng et al. (2026) progressively increases the probability of adversarial scenarios based on training phases. Peng et al. (2024) models automated curriculum selection as a multi-armed bandit problem and utilizes historical rewards from reinforcement learning, thereby optimizing the sampling weights of each curriculum. 3Abouelazm et al. (2025) dynamically selects scenarios by evaluating the learning potential of the driving policy, which is quantified by temporal-difference errors. Despite the progress made by these automated frameworks, their scenario selection mechanisms remain fundamentally reactive. They predominantly rely on implicit difficulty estimates or reactive metrics derived from historical interactions. Since AD policy undergoes continuous and non-linear parameter updates, its ability to handle specific situations changes rapidly. Consequently, evaluating an agent based on its past performance often fails to reflect its true, current competence. They lack a forward-looking mechanism that explicitly predicts the agent’s performance for given scenarios before interaction, leading to a potential mismatch between the selected scenarios and the policy’s current capability (Xu et al., 2025b). Consequently, a predictive curriculum approach is essential for accurately matching training tasks with the policy’s evolving capabilities. 
+
+3. Preliminary and Problem Formulation 
+
+3.1. End-to-End Driving via RL 
+
+The safe autonomous driving task can be formulated as a Markov Decision Process. We define this process using a tuple comprising the state space, the action space, the state transition dynamics, the reward function, and the discount factor, denoted as ⟨S , A, K, R, γ ⟩. The environment is initialized from the scenario library denoted by Φ. For a specific traffic scenario ϕ ∈ Φ, the state space S encompasses the kinematic states of the ego vehicle, the states of surrounding background vehicles, and the topological information of the road network. At each time step t, the autonomous driving agent observes the environment state st ∈ S . Based on this observation, the agent executes a continuous control action at ∈ A , which consists of longitudinal acceleration and lateral steering commands. The state transition dynamics K : S × A → ∆( S) describe the evolution of the traffic environment. The transition probability K(st+1 |st, a t, ϕ ) is jointly determined by the physical kinematics of the ego vehicle and the behavioral models of the background traffic participants within the specific scenario ϕ. Then, the reward function R : S × A → R provides a scalar feedback signal rt at each step, which is designed to encourage route completion while heavily penalizing safety violations such as collisions or road departures. Let πθ : S → A 
+
+denote the end-to-end driving policy of the ego vehicle, parameterized by θ. The fundamental objective of the autonomous driving agent is to learn an optimal policy π∗ 
+
+> θ
+
+that maximizes the expected cumulative discounted return over a finite time horizon T , which is formulated as: 
+
+J(πθ , ϕ ) = Eat∼πθ ,s t+1 ∼K 
+
+" TX
+
+> t=0
+
+γtR(st, a t)
+
+#
+
+(1) where J(πθ , ϕ ) denotes the expected cumulative discounted return of the driving policy πθ under the specific scenario ϕ, parameterized by the discount factor γ.
+
+3.2. Adversarial Training Objective 
+
+Relying solely on naturalistic driving scenarios ϕ ∈ Φ often fails to expose the autonomous driving agent to safety-critical events due to the long-tail distribution of traffic accidents. To address this rarity, the adversarial generator Gψ , parameterized by ψ, is introduced to perturb the original scenario ϕ into a safety-critical variant ϕ′.By generating aggressive or challenging future trajectories for the critical background vehicles, the adversarial generator Gψ acts as an attacker aiming to minimize the expected return of the current driving policy πθ . This adversarial scenario generation objective is formulated as: 
+
+min  
+
+> ψ
+
+Eϕ∼P (ϕ),ϕ ′∼G ψ (·| ϕ) [J(πθ , ϕ ′)] (2) Building upon adversarial scenario generation, closed-loop adversarial training establishes a two-player game to improve driving safety. The driving policy πθ acts as the defender, aiming to learn robust strategies that maximize the expected return against the adversarial environments. The overall adversarial training paradigm thus yields a min-max optimization objective: 
+
+max  
+
+> θ
+
+min  
+
+> ψ
+
+Eϕ∼P (ϕ),ϕ ′∼G ψ (·| ϕ) [J(πθ , ϕ ′)] (3) However, most existing frameworks remain heavily attack-oriented. Directly optimizing this unconstrained min-max objective introduces two critical challenges that hinder the convergence and performance of the driving policy. First, an unconstrained adversarial generator Gψ tends to generate practically unsolvable scenarios where unavoidable collisions occur. Under such conditions, the expected return J(πθ , ϕ ′) degenerates to a large negative penalty regardless of the agent’s actions. This eliminates meaningful gradient signals for the policy, forcing it to collapse into overly conservative driving behaviors rather than learning effective accident-avoidance 4maneuvers. Second, the training process usually relies on a scenario sampling mechanism, where a base scenario 
+
+ϕ is drawn from the library Φ according to a sampling distribution P(ϕ) at the onset of each training episode. Standard adversarial training assumes a static, uniform sampling distribution, formulated as P(ϕ) = 1 /|Φ|.As the policy πθ continuously evolves during the training process, its capability to handle different scenarios fluctuates dynamically. Consequently, statically sampled scenarios may become trivially easy, leading to sample inefficiency and delayed convergence. 
+
+3.3. Problem Formulation 
+
+To address these bottlenecks, we reformulate the conventional adversarial training objective from a learning-oriented perspective. The goal is to convert attack-oriented adversarial scenarios into training scenarios that are both resolvable and informative for the evolving driving policy. Accordingly, we decouple the direct min-max optimization into two tractable sub-problems: resolvable adversarial scenario generation and predictive capability-aligned curriculum sampling. We constrain the adversarial generator Gψ within a solvable space Ωsolvable . Formally, a scenario is defined as solvable if there exists at least one policy within the entire policy space Π capable of safely navigating it. The objective of the scenario generator is thus redefined to maximize the risk against the current driving policy πθ
+
+while satisfying the solvability constraint: 
+
+ψ∗ = arg min  
+
+> ψ
+
+Eϕ∼P (ϕ), ϕ ′∼Gψ (·| ϕ) [J(πθ , ϕ ′)] s.t. max  
+
+> π∈Π
+
+J(π, ϕ ′) ≥ δsafe (4) where δsafe denotes a predefined minimum safety threshold. By enforcing max π∈Π J(π, ϕ ′) ≥ δsafe , we guarantee the existence of at least one solution, ensuring the generated scenarios are challenging yet solvable. To enhance the training utility of the scenarios, we replace the static uniform sampling P(ϕ) with a dynamic curriculum distribution Pθ,ω ( ˜ϕ). Here, ˜ϕ denotes a generalized training scenario sampled from a mixed scenario library, which is either a naturalistic base scenario ϕ ∈ Φ or a generated solvable adversarial scenario ϕ′. This distribution is governed by a forward-looking policy capability prediction model Cω , parameterized by ω. The capability predictor explicitly estimates the probability Cω (πθ , ˜ϕ) ∈ [0 , 1] that the current policy πθ can successfully resolve the scenario ˜ϕ prior to actual simulation. The dynamic curriculum distribution Pθ,ω ( ˜ϕ) is constructed to assign higher sampling weights to scenarios with lower predicted success probabilities, thereby prioritizing the exact vulnerabilities of the current policy and avoiding capability mismatch. Consequently, the final optimization objective for the driving policy is reformulated as: 
+
+θ∗ = arg max  
+
+> θ
+
+E ˜ϕ∼P θ,ω ( ˜ϕ)
+
+h
+
+J(πθ , ˜ϕ)
+
+i
+
+(5) 
+
+4. Methodology 
+
+4.1. Framework Overview 
+
+We propose a novel closed-loop adversarial training framework, denoted as AlignADV. The primary objective of this framework is to shift from the conventional unidirectional attack paradigm to learnability-guided curriculum loop, thereby accelerating the learning process and enhancing the ultimate robustness of the autonomous driving agent. Here, learnability refers to training utility of a scenario, which requires the scenario to be both practically resolvable and sufficiently challenging for current policy πθ . To achieve this objective, the framework couples resolvability-aligned scenario generation with capability-aligned sampling, so that the training scenarios are both practically resolvable and aligned with the evolving competence of the driving policy. The AlignADV framework is constructed upon three synergistic modules. First, the Solvable Adversarial Scenario Generation module (Sec. 4.2) optimizes the adversarial generator Gψ to ensure that the generated safety-critical scenarios ϕ′ reside within the solvable space Ωsolvable . Second, the Dynamic Policy Capability Prediction module (Sec. 4.3) constructs a parameterized predictor Cω to quantify the success probability of the current policy πθ on any given scenario. In this module, we introduce a behavioral fingerprint to explicitly encode the intrinsic characteristics and dynamic responses of πθ . Third, the Capability-Aligned Curriculum Sampling module (Sec. 4.4) formulates the dynamic distribution Pθ,ω ( ˜ϕ) based on the outputs of Cω , prioritizing the scenarios that maximize the learning gradient for the current policy. The operational pipeline of the AlignADV framework is divided into two phases: an offline preparation phase and an online closed-loop training phase. During the offline phase, the adversarial generator Gψ is fine-tuned via DPO, and the capability predictor Cω is trained based on the offline dataset. In the online policy training phase, policy optimization, scenario generation, and curriculum sampling are tightly integrated into a unified closed loop. As the driving policy πθ evolves, the capability predictor Cω periodically evaluates the latest competence of the updated policy to construct the dynamic curriculum distribution Pθ,ω ( ˜ϕ). Meanwhile, the adversarial generator Gψ continuously synthesizes resolvable safety-critical scenarios ϕ′ tailored to the recent performance of the policy. Through this dynamic interaction, the framework continuously perceives the evolving competence 5Resolvable Adversarial Scenario Generation Resolvable Adversarial Scenario Generation Resolvable Adversarial Scenario Generation 
+
+Base Scenarios Pre-trained Adversarial Generator Preference Dataset Direct Preference Optimization Candidate Adversarial Scenarios 
+
+Behavioral Characteristics of Ego Policy Scenario-Specific Feature 
+
+Capability Predictor Expert ×>
+
+# ×
+
+Probe States Behavioral Fingerprint Proxy of Specific Scenario Scenario-Specific Feature ...... }
+
+Fine-tuned Resolvable Adversarial Generator Q-values Actions 
+
+> OFFLINE ONLINE
+
+Training with Multi-modal Features 
+
+Self-expanding Scenario Library Scenario Generation Capability-aware Sampling Capability Prediction Policy Optimization Simulation 
+
+Dynamic Policy Capability Prediction Dynamic Policy Capability Prediction Dynamic Policy Capability Prediction Capability-Aligned Curriculum Sampling Capability-Aligned Curriculum Sampling Capability-Aligned Curriculum Sampling 
+
+Global Feature Encoder Local Context Encoder Cross-Attention Fusion Trigger Figure 2: Overview of the AlignADV framework. (a) Resolvable adversarial scenario generation (Sec. 4.2) fine-tunes a pretrained adversarial generator with expert-evaluated preference pairs and DPO, guiding generated scenarios toward critical yet resolvable interactions. (b)    
+
+> Dynamic policy capability prediction (Sec. 4.3) represents the evolving policy with behavioral fingerprints and predicts scenario-specific success probabilities before expensive simulation. (c) Capability-Aligned curriculum sampling (Sec. 4.4) combines the resolvable scenario library with predicted policy capabilities to construct a dynamic curriculum distribution for online policy optimization.
+
+of the driving policy to adaptively supply solvable, high-value challenges. This tightly coupled feedback loop ensures that the agent is neither overwhelmed by unsolvable hazards nor slowed down by trivial tasks, thus achieving highly efficient and robust autonomous driving training. 
+
+4.2. Resolvable Scenario Generation via Preference Optimization 
+
+The mechanism of the adversarial generator Gψ is to synthesize a safety-critical scenario ϕ′ by manipulating the future trajectory of the background vehicle, which interacts with the ego vehicle. A naturalistic base scenario 
+
+ϕ ∈ Φ encompasses the static map M alongside the states of all traffic participants. To predict the background vehicle’s future behavior, the generator extracts a historical scenario tuple ϕhis = ( M, sego , sbv ) from ϕ, where 
+
+sego and sbv denote the historical state sequences of the ego vehicle and the background vehicles. Built upon a deep learning motion forecasting model, the generator takes this scenario tuple as input to predict a multi-modal trajectory distribution for the critical background vehicle, turning it into the adversarial vehicle. From the distribution, a set of K candidate trajectories Tϕ is sampled, which can be denoted as: 
+
+Tϕ =
+
+n
+
+τ (k) 
+
+> adv
+
+∼ G ψ (· | ϕhis )
+
+oKk=1 
+
+(6) Subsequently, each candidate trajectory τ (k) 
+
+> adv
+
+∈ T ϕ is integrated into the base scenario ϕ, replacing its original benign trajectory, to construct a perturbed adversarial scenario ϕ′ 
+
+> k
+
+= ϕ ∪ { τ (k) 
+
+> adv
+
+}.To construct an effective training environment, the optimal adversarial trajectory τ ∗ 
+
+> adv
+
+must be selected to maximize the collision likelihood against the current driving policy πθ while residing within the solvable space 
+
+Ωsolvable . Following the probabilistic factorization principle (Zhang et al., 2023), the joint collision probability can be decomposed into the traffic prior, the ego vehicle estimation, and the collision likelihood, which is 6mathematically formulated as: 
+
+τ ∗ 
+
+> adv
+
+= arg max  
+
+> τadv ∈T ϕ
+
+P(τadv |ϕhis )P(τego |τadv , ϕ his , π θ )P(Coll |τego , τ adv ) s.t. ϕ ∪ { τadv } ∈ Ωsolvable (7) where τego denotes the future trajectory of the ego vehicle rolled out by the policy πθ , and Coll denotes the collision event. The constraint ϕ ∪ { τadv } ∈ Ωsolvable ensures that every generated candidate trajectory provides a feasible solution for the ego vehicle. Concurrently, the collision maximization objective encourages these solvable scenarios to effectively expose the weaknesses of the current policy πθ , forcing the agent to learn robust accident-avoidance strategies. To systematically quantify the solvability of the generated candidate trajectories, we introduce a privileged rule-based expert policy, denoted as πexpert , equipped with perfect environmental perception and precise kinematic control. Based on the ground truth future states of the background vehicles, the privileged expert policy employs a kinematic bicycle model combined with proactive proportional-integral-derivative (PID) controllers to navigate the ego vehicle. More details about the expert policy are provided in Appendix A. For each perturbed scenario ϕ′
+
+> k
+
+, we conduct a closed-loop rollout by resetting the simulator with the generated adversarial trajectory and using πexpert as the ego-vehicle controller. Then, we define an evaluation function E(πexpert , ϕ ′
+
+> k
+
+) that yields two critical metrics including the binary collision indicator Icol ∈ { 0, 1} and the continuous route completion rate Irc ∈ [0 , 1] . Based on these rollout metrics, we define an expert-based solvability indicator Isolvable (τ (k) 
+
+> adv
+
+) for a given trajectory as: 
+
+Isolvable (τ (k) 
+
+> adv
+
+) = 
+
+(
+
+1, if Icol = 0 and Irc ≥ ηrc , where (Icol , Irc ) = E(πexpert , ϕ ′
+
+> k
+
+)0, otherwise (8) where ηrc represents a predefined threshold for acceptable route completion. This indicator explicitly determines whether a generated trajectory resides within the theoretical solvable space Ωsolvable .Using this indicator, the candidate trajectory set Tϕ is partitioned into a solvable subset Tsol and an unsolvable subset Tunsol :
+
+Tsol =
+
+n
+
+τ (k) 
+
+> adv
+
+∈ T ϕ | I solvable (τ (k) 
+
+> adv
+
+) = 1 
+
+o
+
+Tunsol =
+
+n
+
+τ (k) 
+
+> adv
+
+∈ T ϕ | I solvable (τ (k) 
+
+> adv
+
+) = 0 
+
+o (9) Based on this deterministic evaluation, we construct a preference dataset Dpref to guide the generator Gψ
+
+towards the solvable space. For a given base scenario ϕ, we formulate preference pairs τw and τl, where τw
+
+denotes the preferred or winner trajectory, τl represents the dispreferred or loser trajectory, and Npref = |D pref |
+
+denotes the total number of preference pairs collected from all eligible base scenarios. 
+
+Dpref =
+
+n 
+
+ϕ(n)his , τ (n) 
+
+> w
+
+, τ (n)
+
+> l
+
+o Npref 
+
+> n=1
+
+(10) When both the solvable and unsolvable subsets are non-empty, we construct the preference pairs by uniformly sampling τw ∼ T sol and τl ∼ T unsol . Scenarios where all candidate trajectories are solvable are excluded from the preference dataset to concentrate the optimization efforts on the boundary of safety-critical failures. Conversely, under highly aggressive scenario initializations where all candidate trajectories are evaluated as unsolvable, we construct pseudo-preference pairs based on the continuous route completion metric Irc to provide dense learning signals. Specifically, a trajectory τi is preferred over τj if Irc (τi) > Irc (τj ) + ϵ, where ϵ is a marginal threshold. The threshold ϵ ensures a meaningful difference in the driving progress, indicating that τi allows the ego vehicle to survive longer before the inevitable failure occurs. With the preference dataset Dpref established, we employ the DPO (Rafailov et al., 2023) algorithm to fine-tune the parameters ψ of the adversarial generator Gψ . Unlike traditional reinforcement learning from human feedback that requires training an explicit reward model, DPO directly optimizes the network to align with the established preferences. Let Gψref denote the frozen pre-trained reference model, which represents the original unconstrained trajectory forecasting model without preference alignment. The generator Gψ is updated by minimizing the negative log-sigmoid of the implicit reward difference between the winner and loser trajectories. The optimization objective is formally defined as: 
+
+LDP O (ψ) = −E(ϕhis ,τ w ,τ l)∼D pref 
+
+
+
+log σ
+
+
+
+β log Gψ (τw|ϕhis )
+
+Gψref (τw|ϕhis ) − β log Gψ (τl|ϕhis )
+
+Gψref (τl|ϕhis )
+
+ 
+
+(11) where σ is the sigmoid function and β is a temperature hyperparameter controlling the deviation from the reference model. By minimizing LDP O (ψ), the generator intrinsically increases the likelihood of synthesizing solvable trajectories τw while penalizing the probability of generating unsolvable trajectories τl. Through this offline 7fine-tuning process, the optimized adversarial generator, now denoted as G∗ 
+
+> ψ
+
+, is constrained within the solvable space Ωsolvable . This satisfies the theoretical generation objective defined in Eq.4, thereby providing high-quality, solvable safety-critical environments for the subsequent closed-loop policy training. 
+
+4.3. Dynamic Policy Capability Prediction 
+
+To implement a highly efficient curriculum learning paradigm, it is essential to dynamically evaluate the evolving capability of the current policy, which is concretely reflected by its success probability on any given scenario ˜ϕ. However, the driving policy is a highly non-linear neural network whose competence fluctuates dynamically during the training process. Furthermore, the traffic scenarios exhibit immense spatial-temporal diversity. Directly evaluating this success probability by executing full closed-loop simulations on every candidate scenario is computationally prohibitive. To tackle these challenges, we propose a parameterized capability predictor Cω . The core mechanism of this predictor is to map the intrinsic behavioral characteristics of the current policy πθ and its localized responses within a specific scenario ˜ϕ to a continuous success probability. The prediction framework is structurally divided into two components, including the extraction of a scenario-agnostic behavioral characteristics and the construction of a multi-modal capability prediction network. 
+
+4.3.1. Behavioral Fingerprint Extraction 
+
+We introduce the concept of behavioral fingerprint to represent the intrinsic driving style and decision-making preferences of the evolving driving policy. As the driving policy undergoes continuous parameter updates, its strategic mapping from the state space to the action space, formally denoted as πθ : S → A , shifts dynamically. The behavioral fingerprint captures this mapping by calculating the deterministic actions of the policy across a meticulously designed set of standardized probe states. Let Sprobe denote the probe state set comprising M states: 
+
+Sprobe = {s(1) 
+
+> probe
+
+, s (2) 
+
+> probe
+
+, . . . , s (M )
+
+> probe
+
+} ⊂ S (12) The construction of Sprobe is conducted offline by aggregating a massive state dataset Dstate derived from naturalistic scenarios. To ensure that the probe states comprehensively cover both typical driving conditions and safety-critical boundary cases, we employ a hybrid extraction methodology. First, we apply the K-Means clustering algorithm to the state dataset Dstate , extracting the cluster centroids to form a representative state subset Srep . Second, to ensure the inclusion of safety-critical boundaries, we evaluate the Time-to-Collision (TTC) metric for all states in Dstate and heuristically filter a critical state subset Scrit , characterized by minimal TTC values. The final probe state set is formulated by the union and de-duplication of these two subsets, denoted as 
+
+Sprobe = Srep ∪ S crit .For any given policy πθ parameterized by θ at a specific training step, the behavioral fingerprint fθ is generated by computing the action vectors across the entire probe state set Sprobe . Specifically, for each probe state s(m)
+
+> probe
+
+, the policy outputs the deterministic continuous control action a(m) = πθ (s(m)
+
+> probe
+
+) ∈ A , containing both longitudinal acceleration and lateral steering commands. The behavioral fingerprint fθ of the given policy πθ is then defined as the concatenation of all corresponding action vectors: 
+
+fθ =
+
+> M
+
+M
+
+> m=1
+
+πθ
+
+
+
+s(m)
+
+> probe
+
+
+
+(13) where L denotes the concatenation operator. Given that A ⊂ R2, this yields a vector fθ ∈ R2M that acts as a unique signature of the policy, providing the subsequent prediction model with a global representation of the algorithmic competence. 
+
+4.3.2. Scenario-Specific Feature Construction 
+
+While the behavioral fingerprint provides a global representation of the policy πθ , explicitly estimating the success probability Cω (πθ , ˜ϕ) requires localized interaction contexts within the specific scenario ˜ϕ. To achieve this, we formulate the capability predictor Cω as a multi-modal deep neural network incorporating a cross-attention Transformer architecture. The model integrates the global behavioral fingerprint fθ with a sequence of localized interaction features. To accurately predict the policy performance without executing a computationally expensive full closed-loop simulation, we must construct a highly representative proxy of the specific scenario ˜ϕ. The driving policy changes incrementally between consecutive training updates. Therefore, instead of executing a new rollout for every candidate scenario, we reuse the historical states encountered by the previous policy as a close proxy for the situations that the current policy πθ is likely to face in the same scenario. Specifically, we extract a fixed-length context state sequence sctx ∈ RL×|S| from the historical states. To maximize information density, the sequence is constructed based on a hybrid sampling strategy: 
+
+sctx = ( st1 , s t2 , . . . , s tL ), where {t1, . . . , t L} = Finit ∪ F crit ∪ F sparse (14) 8where Finit represents the initial frames to capture the scenario initialization, Fcrit selects the critical frames with the minimum TTC to capture the core conflict, and Fsparse uniformly samples the remaining frames to represent the overall progression. Unlike the scenario-agnostic probe set Sprobe , the sequence sctx explicitly defines the localized environmental challenges the current policy needs to resolve within ˜ϕ.Merely observing the states is insufficient to predict whether the current policy can safely complete the scenario. The predictor must evaluate how the current policy intends to react to these hazards and assess the quality of those reactions. First, we query the current policy πθ using sctx to obtain the corresponding action sequence actx ∈ RL×|A| . Second, to rigorously evaluate the safety and confidence of these actions, we incorporate multidimensional value functions. For each time step tl, we compute the subjective Q-values 
+
+(Qθ, 1, Q θ, 2) generated by the twin critics of the current policy, which reflect its internal confidence and uncertainty. However, subjective Q-values are prone to overestimation during the early stages of reinforcement learning. Therefore, we introduce an objective baseline by querying two pre-trained expert policies πE1 , π E2 , each equipped with twin critics. The comprehensive Q-value feature vector for a specific state-action pair is concatenated as: 
+
+qtl = [ Qθ, 1(stl , a tl ), Q θ, 2(stl , a tl ), Q E1,1(stl , a tl ), Q E1,2(stl , a tl ), Q E2,1(stl , a tl ), Q E2,2(stl , a tl )] T ∈ R6 (15) These vectors form the sequential Q-value feature qctx = ( qt1 , . . . , q tL ) ∈ RL×6. Moreover, a statistical feature vector uctx ∈ R24 comprising the mean, maximum, minimum, and standard deviation of these Q-values is computed to provide robust scalar indicators of the overall scenario risk. 
+
+4.3.3. Capability Prediction Model 
+
+With the multi-modal features constructed, the capability predictor Cω processes these inputs through a hierarchical attention-based architecture. The localized interaction features, including the actions actx and Q-values qctx , are projected into a latent space via multi-layer perceptrons. These latent representations are then concatenated along the feature dimension to form a unified sequential embedding Xseq ∈ RL×dmodel .
+
+Xseq = MLP a(actx ) ⊕ MLP q (qctx ) (16) where ⊕ denotes the concatenation operator, and each MLP consists of a linear transformation, a ReLU activation, and dropout regularization. A multi-head self-attention mechanism (Vaswani et al., 2017), augmented with positional encoding ( PE )and a residual connection, is subsequently applied to model the temporal dependencies within the interaction sequence: 
+
+XP E = Xseq + PE (17) 
+
+Eseq = XP E + Dropout 
+
+
+
+softmax 
+
+ (XP E WQ)( XP E WK )T
+
+√dmodel 
+
+
+
+(XP E WV )
+
+
+
+(18) where WQ, WK , WV ∈ Rdmodel ×dmodel are the learnable linear projection matrices for queries, keys, and values, respectively. The global features, comprising the behavioral fingerprint fθ and the Q-statistics uctx , are encoded into a global embedding Eglobal ∈ Rdmodel .
+
+Eglobal = Wproj 
+
+
+
+MLP f (fθ ) ⊕ MLP u(uctx )
+
+
+
++ bproj (19) where Wproj and bproj are the learnable weight matrix and bias vector of the global projection layer. To effectively fuse the global features with the localized scenario context, we employ a cross-attention mechanism. The global embedding Eglobal serves as the query, while the temporally encoded sequential embedding Eseq serves as both the key and the value. 
+
+Hf usion = softmax 
+
+ (Eglobal WQcross )( Eseq WKcross )T
+
+√dmodel 
+
+
+
+(Eseq WVcross ) (20) where WQcross , WKcross , WVcross ∈ Rdmodel ×dmodel are the learnable projection matrices for the cross-attention mechanism. This architecture enables the global representation of the agent to dynamically attend to the most critical moments within the scenario sequence. Ultimately, the estimated success probability, denoted as ˆp ∈ [0 , 1] , is realized by processing the cross-attention output through a fully connected prediction head with a sigmoid activation function: 
+
+ˆp = Cω (πθ , ˜ϕ) := Cω (fθ , actx , qctx , uctx ) = σ MLP (Hf usion ) (21) 9The parameters ω of the capability predictor are optimized through an offline supervised pre-training paradigm prior to the online adversarial training of the driving policy. We first run independent closed-loop simulations with driving policies saved at different learning stages. For each saved policy, we roll it out over scenarios and record the encountered states, policy actions, value estimates, and episode outcomes. These policy-scenario interaction records form an offline supervised dataset for capability prediction. Specifically, the scenario context sctx is derived from the rollout of the earlier policy πi−1, while the behavioral fingerprint fθ ,current actions actx , and the ground-truth success label y ∈ { 0, 1} are derived from the subsequent policy πi. The predictor is optimized using the binary cross-entropy loss between the predicted probability ˆp and the actual success label y:
+
+Lpred (ω) = −E [y log(ˆ p) + (1 − y) log(1 − ˆp)] (22) Once trained, the predictor Cω is frozen and deployed in the online adversarial training loop to dynamically evaluate the evolving policy and guide the curriculum sampling distribution. 
+
+4.4. Capability-Aligned Curriculum Sampling 
+
+Building upon the resolvability-aligned adversarial generator Gψ and the dynamic capability predictor Cω , we formulate a capability-aligned curriculum learning paradigm driven by the mutual evolution of the autonomous driving agent and the training environment. We first establish a self-expanding scenario library , formulated as ˜Φt = Φ ∪ Φ(t) 
+
+> adv
+
+. Here, Φ represents the static base scenario library and Φ(t) 
+
+> adv
+
+denotes the set of generated adversarial scenarios dynamically maintained at training step t. As the driving policy πθ continuously updates, newly generated adversarial scenarios are iteratively incorporated into the library to progressively scale the environmental difficulty. Then, to efficiently navigate this evolving environment, we dynamically construct a capability-aligned sampling distribution Pθ,ω ( ˜ϕ). Instead of uniformly sampling, our proposed framework leverages the predicted success probability ˆp to prioritize scenarios that expose the current vulnerabilities of the evolving policy πθ from the self-expanding library ˜Φt.To construct the capability-aligned sampling distribution Pθ,ω ( ˜ϕ), we introduce a difficulty-proportional weighting mechanism. For any candidate scenario ˜ϕ ∈ ˜Φt, the capability predictor outputs a continuous success probability ˆp ˜ϕ of the current driving policy πθ . To prioritize the exact vulnerabilities of the policy, the capability-aligned weighting function W( ˜ϕ) is formulated as the complement of the predicted success probability. By assigning higher sampling probabilities to scenarios where the agent is most likely to fail, the framework explicitly forces the policy to concentrate on hard scenarios rather than wasting computational resources on trivially solvable tasks. The sampling weight for a specific scenario is defined as: 
+
+W( ˜ϕ) = 1 − C ω (πθ , ˜ϕ) (23) Consequently, the dynamic curriculum sampling distribution at any given training stage is formalized by normalizing these weights across the entire self-expanding library. Through the synergy of capability-aligned sampling weighting and dynamic library expansion, the training environment continuously strengthens in response to the evolving capability of the driving policy. 
+
+Pθ,ω ( ˜ϕ) = W( ˜ϕ)
+
+P ˜ϕk ∈ ˜Φt W( ˜ϕk) (24) In practical implementations, executing a global prediction across the entire scenario library at every single training step requires substantial computational costs and leads to unnecessary resource waste. To optimize computational efficiency, the capability prediction and the subsequent distribution update are executed periodically at a fixed interval of Neval timesteps. Between two consecutive prediction intervals, the capability-aligned sampling distribution Pθ,ω ( ˜ϕ) is frozen. At the onset of each training episode, the framework determines whether to generate a new adversarial scenario using a time-varying trigger threshold. To gradually increase the frequency of adversarial scenario generation as the policy matures, we define the trigger threshold as: 
+
+ρt = max 
+
+
+
+ρmin , 1 − κ tTmax 
+
+(1 − ρmin )
+
+
+
+, (25) where ρmin denotes the lower bound of the trigger threshold, κ controls the decay rate, and Tmax represents the maximum training horizon. A uniform random variable ut ∼ U (0 , 1) is then sampled, and the binary generation indicator is defined as: 
+
+gt = I(ut > ρ t). (26) 10 Accordingly, the actual probability of generating an adversarial scenario is: 
+
+Pr( gt = 1) = 1 − ρt. (27) When gt = 1 , the generation mechanism is triggered, and the fine-tuned adversarial generator G∗ 
+
+> ψ
+
+is activated to perturb the selected scenario, yielding a newly solvable adversarial scenario ϕ′. The generated scenario is subsequently appended to the dynamic library ˜Φt. Conversely, when gt = 0 , the agent directly trains on the currently sampled scenario without perturbation. To prevent unbounded library expansion and maintain the freshness of the adversarial challenges, we impose a strict capacity limit on the self-expanding library. Specifically, each base scenario ϕ ∈ Φ is permitted to maintain a maximum of Nmax associated adversarial variants. When the generation indicator triggers the synthesis of a new variant and the corresponding base scenario has already reached this capacity limit, a prioritized chronological eviction policy is executed to permanently remove the oldest adversarial variant. This continuous influx of newly generated adversarial scenarios, coupled with the capability-aligned sampling prioritization and strict capacity management, forms a robust closed-loop curriculum. The complete training paradigm of the AlignADV framework, integrating the offline preference optimization, the capability predictor pre-training, and the online capability-aligned curriculum learning, is systematically summarized in Algorithm 1. 
+
+Algorithm 1: AlignADV: Learnability-guided Adversarial Training Framework 
+
+Input: Base scenario library Φ, pre-trained reference generator Gψref , Offline state dataset Dstate , Pre-trained expert critic QE1 , Q E2 , Maximum training steps Tmax , Evaluation interval Neval , Capacity limit Nmax .
+
+Output: Optimal autonomous driving policy π∗
+
+> θ
+
+// Phase 1: Offline Preparation  
+
+> 1
+
+Construct preference dataset Dpref using the rule-based expert policy πE ; 
+
+> 2
+
+Fine-tune generator Gψ ← arg min ψ LDP O (ψ) using Dpref via DPO;  
+
+> 3
+
+Construct probe state set Sprobe via K-Means and TTC analysis on Dstate ; 
+
+> 4
+
+Train capability predictor Cω ← arg min ω Lpred (ω) using multi-modal features; 
+
+// Phase 2: Online Closed-Loop Training  
+
+> 5
+
+Initialize RL policy πθ and replay buffer B; 
+
+> 6
+
+Initialize dynamic scenario library ˜Φ0 ← Φ; 
+
+> 7
+
+Initialize evaluation marker teval ← 0; 
+
+> 8
+
+while total training step t < T max do 
+
+// Predictor Evaluation and Sampling Weight Updating  
+
+> 9
+
+if t − teval ≥ Neval then  
+
+> 10
+
+Extract behavioral fingerprint fθ for current policy πθ using Sprobe ; 
+
+> 11
+
+for each scenario ˜ϕi ∈ ˜Φt do  
+
+> 12
+
+Extract historical context state sequence sctx from ˜ϕi; 
+
+> 13
+
+Query current policy to obtain intended actions: actx ← πθ (sctx ); 
+
+> 14
+
+Use critics to obtain Q-values: qctx ← Qθ (sctx , actx ) ∪ QE (sctx , actx ); 
+
+> 15
+
+Compute statistical features uctx from qctx ; 
+
+> 16
+
+Predict success probability ˆpi ← C ω (fθ , actx , qctx , uctx ); 
+
+> 17
+
+Compute weights W( ˜ϕi) = 1 − ˆpi and update distribution Pθ,ω ( ˜ϕ); 
+
+> 18
+
+Update evaluation marker: teval ← t; 
+
+> 19
+
+Sample a training scenario ˜ϕ ∼ P θ,ω ( ˜ϕ);
+
+// Adversarial Scenario Generation  
+
+> 20
+
+Sample binary generation indicator gt = I(ut > ρ t).; 
+
+> 21
+
+if gt == 1 then  
+
+> 22
+
+Synthesize solvable adversarial scenario ϕ′ 
+
+> new
+
+∼ G ∗ 
+
+> ψ
+
+(·| ˜ϕ); 
+
+> 23
+
+if capacity threshold Nmax is exceeded for the base scenario then  
+
+> 24
+
+Remove the oldest adversarial variant ϕ′ 
+
+> old
+
+from ˜Φt; 
+
+> 25
+
+Append the newly generated scenario: ˜Φt ← ˜Φt ∪ { ϕ′ 
+
+> new
+
+}; 
+
+> 26
+
+Replace current training scenario: ˜ϕ ← ϕ′ 
+
+> new
+
+;
+
+// RL Optimization  
+
+> 27
+
+Reset environment with scenario ˜ϕ and execute episode using policy πθ ; 
+
+> 28
+
+Collect transition tuples (s, a, r, s ′) into replay buffer B and record episode steps ∆t; 
+
+> 29
+
+Update policy parameters θ via standard RL optimization;  
+
+> 30
+
+Accumulate total steps: t ← t + ∆ t; 
+
+> 31
+
+return π∗
+
+> θ
+
+11 5. Experiment 
+
+This section designs comprehensive experiments to evaluate the proposed learnability-guided closed-loop training framework. We first verify the quality of the generated scenarios by analyzing solvability and diversity metrics. We then visualize the extracted behavior fingerprints and evaluate the accuracy of the capability prediction model through comprehensive ablation studies. Finally, we present the adversarial reinforcement learning results by comparing the proposed framework against adversarial training and sampling strategy baselines. 
+
+5.1. Experimental Setup 
+
+All experiments are conducted utilizing the MetaDrive simulator (Li et al., 2022), a lightweight and efficient simulation platform for autonomous driving. We use this simulator to reconstruct real-world traffic logs sourced from the Waymo Open Motion Dataset (WOMD) (Ettinger et al., 2021). This reconstruction allows for closed-loop evaluation, enabling the ego agent to react dynamically to the behaviors of traffic participants. A subset of 480 scenarios from the WOMD dataset is utilized to construct the experimental environment. These scenarios are divided into a training set of 382 scenarios and an independent testing set of 98 scenarios. To ensure high-fidelity vehicle kinematics and realistic traffic interactions, the simulation operates at a control frequency of 10 Hertz. Furthermore, each scenario spans a total temporal horizon of 9 seconds, which incorporates 1 second of historical trajectory data. The autonomous driving policy is trained using the Twin Delayed Deep Deterministic Policy Gradient algorithm (TD3). For the scenario generation module, we employ DenseTNT as the pretrained reference generator. The parameters of TD3 and DenseTNT are defined following the setup in Zhang et al. (2023) and Nie et al. (2025). The implementation of the proposed AlignADV framework necessitates the configuration of several critical hyperparameters. The precise numerical values defined in the solvable scenario generation, dynamic capability prediction, and capability-aligned curriculum sampling modules are systematically summarized in Table 1.                  
+
+> Table 1: Summary of critical hyperparameters for the AlignADV framework.
+> Module Hyperparameter Value
+> Solvable Generation Candidate trajectories ( K)32 Route completion threshold ( ηrc )0.85 Marginal preference threshold ( ϵ)0.02 DPO temperature parameter ( β)0.05 Capability Prediction Standardized probe states ( M)149 Historical state sequence length ( L)20 Curriculum Sampling Maximum training horizon ( Tmax )1×10 6
+> Prediction update interval ( Neval )2.5 ×10 4
+> Base scenario capacity limit ( Nmax )5Boundary trigger threshold ( ρmin )0.1 Adversarial scaling factor ( κ)2
+
+We benchmark the proposed framework against established baseline methods in both scenario generation and sampling domains. In terms of scenario generation, the proposed resolvable generator is compared against a deterministic log replay method and the CAT (Zhang et al., 2023) framework. For scenario sampling, we evaluate against a random sampling baseline, a scenario-based static sampling strategy based on predefined scenario complexity and risk metrics, and a history-based sampling strategy that relies on the historical performance of the ego agent in specific scenarios. The overall performance of the trained driving policies is evaluated using core metrics, including crash rate, route completion rate, average reward, average cost, and convergence speed. 
+
+5.2. Verification of Scenario Solvability 
+
+The primary objective of our scenario generation module is to ensure that the generated adversarial scenarios present critical but resolvable challenges for the autonomous driving policy. To validate the effectiveness of the fine-tuned trajectory prediction model, we first analyze the training dynamics of the preference optimization process. As illustrated in Figure 3, the solvability rate steadily increases and converges near a perfect score, while the expert crash rate experiences a significant and rapid decline. Here, the expert crash rate refers to the collision rate of the privileged rule-based expert when it is rolled out as the ego controller in the generated scenarios. Concurrently, the training loss decreases steadily, indicating that the trajectory prediction model successfully 12 20 40 60 80 100         
+
+> Epoch
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> Solvability Rate
+> 20 40 60 80 100
+> Epoch
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> 0.150
+> Expert Crash Rate
+> 20 40 60 80 100
+> Epoch
+> 0.64
+> 0.65
+> 0.66
+> 0.67
+> 0.68
+> 0.69
+> Training Loss Figure 3: Evolution of key performance metrics during the DPO fine-tuning process.
+
+aligns with the preferences of the rule-based expert. The increasing solvability rate indicates that the generated trajectories for the adversarial vehicles leave at least one solution for the ego agent. A detailed quantitative comparison between the pre-trained and fine-tuned models further validates the effectiveness of our approach, as presented in Table 2. The most prominent improvement lies in the absolute number of unsolvable scenarios, which drops from over six hundred in the pre-trained model to merely twenty in our fine-tuned model. Consequently, the overall solvability rate increases to nearly one hundred percent. Importantly, this enhancement in solvability does not compromise the behavioral diversity of the adversarial vehicles. The diversity metrics, including the Average Pairwise Distance (APD), the Final Pairwise Distance (FPD), and the trajectory variance, remain highly consistent between the two models. The APD measures the mean spatial deviation among the generated trajectories over the entire time horizon, whereas the FPD evaluates the dispersion of the trajectory endpoints. The preservation of these metrics indicates that the fine-tuning process refines the physical feasibility of the trajectories without sacrificing the overall diversity of the adversarial behaviors. 
+
+> Table 2: Quantitative comparison of scenario generation performance between Pre-trained and Fine-tuned models.
+
+Model Unsolvable Scenarios (Count) ↓ Solvability Rate (%) ↑ Average TTC (s) ↓ Diversity Metrics APD (m) ↑ FPD (m) ↑ Variance ↑
+
+Pre-trained 606 96.05 0.582 2.771 8.369 2.696 Fine-tuned 20 99.87 0.577 2.709 8.284 2.779 
+
+Furthermore, it is essential to ensure that the newly generated solvable scenarios remain sufficiently challenging to drive the improvement of the autonomous driving policy. We utilize TTC to quantify the risk level of the generated scenarios. A comparison of the probability density distributions of the minimum TTC is depicted in Figure 4. The average minimum TTC is remarkably stable at approximately 0.58 seconds for both distributions. The distribution profile of the fine-tuned model closely aligns with that of the pre-trained model, which confirms that the optimization process specifically eliminates fundamentally unsolvable corner cases while successfully preserving the overall adversarial value of the training environment. 0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 
+
+> Expert Min TTC (s)
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> Density
+> Mean Pre: 0.58s Mean Ours: 0.58s Pre-trained Ours (Fine-tuned)
+> Figure 4: Density distribution of the minimum TTC for scenarios generated before and after fine-tuning.
+
+The qualitative advantages of our approach are further demonstrated through specific traffic conflict cases. As shown in Figure 5, the pre-trained model frequently produces physically unreasonable situations. For instance, it generates unavoidable side collisions where the background vehicle directly crashes into the ego vehicle from an adjacent lane. Such extreme situations force the ego vehicle into inevitable crashes. In contrast, the fine-tuned 13 model adjusts these behaviors into aggressive cut-ins, high-risk left turns during intersection conflicts, and tight side-by-side negotiations. These refined scenarios demand precise control and advanced anticipation from the ego vehicle, thereby fostering a more robust and capable autonomous driving policy. Ego vehicle Adversarial vehicle Other vehicle 
+
+Scenario 2. Pre-trained: Inevitable Intersection Conflict Scenario 2. Fine-tuned: High-Risk Left Turn Scenario 3. Pre-trained: Head-on Lane Invasion Scenario 3. Fine-tuned: Side-by-Side Negotiation Scenario 1. Pre-trained: Unavoidable Side Collision Scenario 1. Fine-tuned: Aggressive Cut-in 
+
+> Figure 5: Qualitative comparison of adversarial scenarios generated by the pre-trained model and our fine-tuned model.
+
+5.3. Latent Representations of the Behavioral Fingerprint 
+
+To effectively sample scenarios based on the dynamic capabilities of the autonomous driving policy, we propose the behavioral fingerprint mechanism designed to capture the intrinsic driving proficiency of the policy. The foundation of this mechanism relies on a meticulously selected set of probe states. Figure 6 visualizes the uniform manifold approximation and projection of the full state space alongside the selected probe states. The 14 10 5 0 5 10 15 20 
+
+Dimension 1 
+
+> 15
+> 10
+> 5
+> 0
+> 5
+> 10
+> 15
+> Dimension 2
+> Full State Space (sampled) Selected Probe States (N=149)
+
+Figure 6: UMAP Visualization of the Selected Probe States. The scatter plot illustrates the distribution of the 149 selected probe states relative to the full sampled state space. 
+
+selected 149 probe states are thoroughly distributed across the entire sampled state space, ensuring that the resulting behavioral fingerprint comprehensively captures the driving characteristics of the algorithm under diverse and critical conditions. The effectiveness of the behavioral fingerprint is first evidenced by its discriminative power across different training stages. We collect the fingerprints of the policy at regular intervals throughout the training process and compute their pairwise cosine distances, as illustrated in Figure 7a. For two policy checkpoints πθi and πθj
+
+with behavioral fingerprints fθi and fθj , the matrix entry is computed as dij = 1 − f ⊤    
+
+> θifθj
+> |fθi|| fθj|
+
+. The matrix reveals distinct visual patterns characterized by dark regions indicating high similarity and bright regions indicating significant divergence. Specifically, the fingerprints from the early training epochs exhibit immense distances from those in the later epochs, proving that the fingerprint can easily differentiate an untrained policy from a mature policy. Furthermore, the large contiguous dark block in the lower right corner of the matrix indicates that the distances between epochs become negligible during the late stages of training. This phenomenon confirms that the behavioral fingerprint successfully captures the convergence properties and the stabilization of the algorithmic policy. 0 10 20 30 40 50 60 70 
+
+Training Epoch (Policy i)         
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> Training Epoch (Policy  j)
+> 0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 Cosine Distance
+> (a) Cosine distance matrix. 420246810 12
+
+Latent Dimension 1    
+
+> 10.0
+> 7.5
+> 5.0
+> 2.5
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> Latent Dimension 2
+> Rapid Learning (Phase I) Exploration (Phase II) Convergence (Phase III) Start (Random) End (Converged)
+> 010 20 30 40 50 60 70 Training Epoch (b) Evolution of Behavioral Fingerprints.
+
+Figure 7: Evolutionary Analysis of Behavioral Fingerprints. The cosine distance matrix highlights the similarity between policies at different training epochs, showing clear convergence. The t-SNE trajectory visualizes the continuous learning dynamics, distinctly capturing the rapid learning, exploration, and convergence phases. 
+
+To further understand the evolutionary dynamics embedded within the behavioral fingerprints, we project the high-dimensional fingerprint vectors into a two-dimensional space using the t-distributed stochastic neighbor embedding (t-SNE) technique. As depicted in Figure 7b, the temporal sequence of the fingerprints forms a continuous and smooth trajectory rather than a random scattering of points. This trajectory clearly delineates three distinct phases of the training process. The initial rapid descent phase shows the policy quickly departing from its random initialization. This is followed by an exploration phase characterized by oscillatory and 15 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8    
+
+> Ground Truth Success Rate
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> Predicted Success Rate
+> Ideal Prediction (y=x) Samples
+> R2= 0.928
+> MAE = 0.0223
+> RMSE = 0.0310 Figure 8: Correlation between predicted and ground truth success rates.
+
+sweeping movements in the latent space, reflecting the trial-and-error nature of reinforcement learning. Finally, the trajectory enters a convergence phase where the data points become highly clustered, signifying that the driving behavior has stabilized. This structured evolution proves that the fingerprint maps to a physically meaningful feature space that reflects the underlying learning mechanism. The ultimate validation of the behavioral fingerprint lies in its ability to directly predict the actual driving capabilities of the policy. We trained a multilayer perceptron model exclusively utilizing the fingerprint to forecast the average success rate of various policies across a diverse scenario library. Utilizing a dataset of one hundred and forty six distinct policies and employing a five-fold cross-validation method, the prediction model achieves an impressive Mean Absolute Error of 0.0223. The high correlation depicted in the prediction scatter plot in Figure 8 confirms that the fingerprint inherently contains rich semantic information. These results prove that the behavioral fingerprint is a highly effective feature representation, capable of guiding the dynamic scenario sampling process by accurately reflecting the current competence of the autonomous driving algorithm. 
+
+5.4. Evaluation of Capability Prediction 
+
+To comprehensively assess the performance of the capability predictor, we employ a diverse set of evaluation metrics to capture both the overall classification accuracy and the specific requirements of the downstream curriculum sampling task. Best Accuracy and the Area Under the Curve (AUC) serve as fundamental indicators of the overall correctness and the general ability of the model to rank the predicted probabilities across various classification thresholds. Furthermore, we compute the average precision for both failure and positive outcomes to assess the robustness of the predictor. Most critically, the ultimate goal of this predictor is to identify challenging scenarios to guide the curriculum sampling process. Consequently, accurately predicting impending failures is important. To reflect this specific requirement, we introduce the Precision at the top ten percent of negative predictions, which measures the reliability of the model when it is most confident that an agent will fail. A high value in this specific metric indicates that the scenarios prioritized by our sampling strategy are genuinely challenging for the current policy. Building upon these established metrics, we conduct a comprehensive comparison of our proposed model against several heuristic baselines and structural variants. As detailed in Table 3 and illustrated through the radar charts in Figure 9, the multi-modal capability predictor significantly outperforms heuristic approaches such as behavior cloning gap and static average or minimum Q-value estimations. Furthermore, comparing the structural variants reveals that while recurrent architectures like Long Short-Term Memory networks (LSTM) offer improvements over simple Multi-Layer Perceptrons (MLP), they still fall short of our proposed cross-attention fusion mechanism. Most notably, the full model attains an outstanding precision of 0.885 in the top ten percent of negative predictions, fundamentally validating its capacity to reliably guide the curriculum sampler toward the most valuable training scenarios tailored to the evolving weaknesses of the ego vehicle. To validate the architectural design and the contribution of individual feature components, we conduct feature ablation studies. As illustrated in Figure 10 and Table 3, the removal of any designed multimodal feature leads to a distinct degradation in predictive accuracy. The elimination of the behavior fingerprint results in a notable drop in the ability to precisely identify failure cases and significantly decreases the average precision for positive cases, proving that the global representation derived from probe states is essential. Similarly, omitting localized scenario contexts, such as the actual action sequences, the Q-value sequence or the Q-statistics, compromises the precision of the predictor. The ablation results also indicate that relying exclusively on either subjective expert evaluations or objective self-evaluations is less precise than the combined approach. These findings confirm that 16 the localized scenario context and the global policy characteristics are highly complementary, and their fusion is indispensable for precise capability estimation. 
+
+Table 3: Performance comparison of the capability predictor against heuristic baselines and ablation variants. The evaluation metrics include best accuracy, area under the curve, average precision for negative and positive cases, and the precision for identifying the top ten percent most challenging negative scenarios. BC-Gap : Behavior Cloning Gap (Action Similarity); Min-Q : Conservative Q-Estimate; Avg-Q : Average Q-Estimate. The best results are highlighted in bold .
+
+Model Variant Best Acc. AUC AP (Negative) AP (Positive) Prec@Top10% Neg. 
+
+Heuristic Baselines 
+
+BC-Gap 0.575 0.597 0.651 0.516 0.780 Avg-Q 0.636 0.655 0.674 0.593 0.762 Min-Q 0.654 0.674 0.688 0.591 0.796 
+
+Structural Variant 
+
+MLP Backbone 0.713 0.769 0.772 0.727 0.845 LSTM Backbone 0.725 0.782 0.788 0.727 0.861 
+
+Feature Ablation Study 
+
+w/o Action Sequence 0.726 0.777 0.773 0.726 0.856 w/o Q-Value Sequence 0.697 0.754 0.766 0.699 0.865 w/o Behavior Fingerprint 0.728 0.781 0.788 0.721 0.874 w/o Q-Statistics 0.698 0.752 0.757 0.690 0.836 
+
+Q-Value Component Analysis 
+
+w/o Subjective Q (Only Expert) 0.714 0.773 0.780 0.718 0.858 w/o Objective Q (Only Self) 0.718 0.777 0.784 0.718 0.863 
+
+Ours (Full Model) 0.729 0.786 0.788 0.738 0.885 Prec@Top10% Neg. 
+
+AP (Positive) 
+
+Max Accuracy AUC 
+
+AP (Negative) 
+
+> 0.885 0.738 0.729 0.786 0.788
+> Ours w/o Action w/o Q w/o Fingerprint w/o Q Stats w/o Subjective Q w/o Objective Q
+
+(a) Feature ablation variants. Prec@Top10% Neg. 
+
+AP (Positive) 
+
+Max Accuracy AUC 
+
+AP (Negative)  
+
+> 0.885 0.738 0.729 0.786 0.788
+> Ours MLP LSTM BC-Gap Min-Q Avg-Q
+
+(b) Comparison with baseline methods. 
+
+Figure 9: Radar charts comparing the comprehensive performance of different predictor architectures. Ours w/o Action w/o Q w/o Fingerprint w/o Q_Stats 0.82 0.83 0.84 0.85 0.86 0.87 0.88 0.89 0.885 0.856 0.865 0.874 0.836 
+
+Prec@Top10% Neg.  
+
+> Ours w/o Action w/o Q w/o Fingerprint w/o Q_Stats 0.69 0.70 0.71 0.72 0.73 0.729 0.726 0.697 0.728 0.698
+
+Max Accuracy  
+
+> Ours w/o Action w/o Q w/o Fingerprint w/o Q_Stats 0.74 0.75 0.76 0.77 0.78 0.79 0.786 0.777 0.754 0.781 0.752
+
+AUC  
+
+> Ours w/o Action w/o Q w/o Fingerprint w/o Q_Stats 0.68 0.69 0.70 0.71 0.72 0.73 0.74 0.738 0.726 0.699 0.721 0.690
+
+AP (Positive)  
+
+> Ours w/o Action w/o Q w/o Fingerprint w/o Q_Stats 0.75 0.76 0.77 0.78 0.79 0.788 0.773 0.766 0.788 0.757
+
+AP (Negative) 
+
+Figure 10: Ablation Study on Capability Predictor Features. 
+
+5.5. Closed-loop Adversarial Training Results 
+
+The ultimate objective of our proposed framework is to enhance the training efficacy and the performance of the autonomous driving policy through high-quality scenario generation and dynamic curriculum sampling. 17 We systematically evaluate the reinforcement learning training outcomes under both normal and adversarial environmental configurations. Figure 11, Figure 12, Table 4, and Table 5 present a comprehensive comparison between our proposed framework and other baselines. 2 3 4 5 6 7 8 9 10 
+
+Training Steps ×10 5        
+
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> Crash Rate (Normal)  Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> Route Completion (Normal)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> Cost (Normal)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 40
+> 45
+> 50
+> 55
+> Reward (Normal)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> Crash Rate (ADV)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> Route Completion (ADV)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> Cost (ADV)
+> Ours Solvable Adv Vanilla Adv Replay
+> 2345678910
+
+Training Steps ×10 5
+
+> 35
+> 40
+> 45
+> Reward (ADV)
+> Ours Solvable Adv Vanilla Adv Replay
+
+Figure 11: Learning curves of the autonomous driving policy under different scenario generation methods. The solid lines represent the mean performance across multiple random seeds, and the shaded areas indicate the standard deviation. The proposed framework achieves faster convergence and higher performance in both normal and adversarial environments. 2 3 4 5 6 7 8 9 10 
+
+Training Steps ×10 5        
+
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> Crash Rate (Normal)  Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> Route Completion (Normal)
+> Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> Cost (Normal)
+> Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 40
+> 45
+> 50
+> 55
+> Reward (Normal)
+> Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> Crash Rate (ADV)  Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.60
+> 0.65
+> 0.70
+> Route Completion (ADV)
+> Ours Static History
+> 2345678910
+
+Training Steps ×10 5        
+
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> Cost (ADV)
+> Ours Static History
+> 2345678910
+
+Training Steps ×10 5
+
+> 35.0
+> 37.5
+> 40.0
+> 42.5
+> 45.0
+> 47.5
+> Reward (ADV)
+> Ours Static History
+
+Figure 12: Impact of different curriculum sampling strategies on reinforcement learning training. All methods utilize the proposed solvable adversarial scenarios but differ in how scenarios are selected. The curves demonstrate that dynamic capability-aligned sampling accelerates convergence and achieves superior final performance compared to static and history-based sampling methods. 
+
+The advantages of our framework are fundamentally rooted in the introduction of the resolvable adversarial scenario generator. We first evaluate the direct impact of the solvable scenario generation mechanism (Solvable Adv) by comparing it against the Replay and the unconstrained adversarial training baseline (CAT, denoted as Vanilla Adv) under a standard random sampling strategy. Relying solely on replay scenarios results in the lowest overall performance, evidenced by a crash rate of 18.65 % in normal scenarios and 40.31 % in adversarial settings. The unconstrained adversarial baseline reduces the crash rates to 15.95 % and 35.77 %, respectively, while simultaneously increasing the route completion rates. Our resolvable adversarial generator achieves further substantial improvements. The policy trained with solvable scenarios achieves a crash rate of 14.79% and a route completion rate of 77.84% in normal conditions. In the more challenging adversarial environments, the resolvable generator reduces the crash rate to 33.27% and elevates the route completion to 70.10%. These quantitative results 18 confirm that generating solvable adversarial scenarios directly enhances the final performance metrics compared to unconstrained adversarial generation. Building upon the resolvable scenario generator, we evaluate the effectiveness of the dynamic capability predictor in guiding the curriculum sampling distribution. The experimental results demonstrate that predicting the success probability at the current training step yields superior policy performance compared to static or history-based sampling strategies. The static sampling method yields a crash rate of 14.70 % and a route completion rate of 74.47 % in normal scenarios. The historical performance-based sampling achieves a crash rate of 14.85 % and a route completion rate of 77.13 %. In comparison, our proposed dynamic curriculum sampling method achieves the best performance across all metrics. It achieves the lowest overall crash rates of 11.80% in normal scenarios and 31.37% in adversarial scenarios. Concurrently, the route completion rates reach peak values of 79.30% and 71.66% across the two testing environments, validating the functional advantage of capability prediction for scenario selection. Beyond final performance metrics, the integration of the resolvable generator and the dynamic capability predictor fundamentally accelerates the convergence speed of the reinforcement learning process. We quantify training efficiency by recording the number of simulation steps required to reach specific performance thresholds, specifically a crash rate below 16% and a route completion rate above 75% in normal scenarios. The standard replay methods fail to achieve the safety threshold within the maximum allocated training steps. The vanilla adversarial method requires over 950,000 steps to reach the safety target in both environments. By employing our complete proposed framework, the required training duration to reach the crash rate threshold drastically drops to 564,274 steps, translating to a convergence speedup of 1.68 times and a 40.6% savings in training steps compared to the vanilla adversarial baseline. Similarly, the necessary steps to reach the route completion target are reduced to 582,638 steps, saving 32.1% of the required steps over the baseline. Overall, compared to the adversarial training baseline, our fully integrated framework consumed only 59 % of the training steps to reach the established performance thresholds and ultimately improved the final safety performance by delivering a 26 % relative reduction in the crash rate alongside persistent enhancements in route completion.   
+
+> Table 4: Performance evaluation of the trained policies in Normal scenarios. The upper block compares different scenario generation methods (with random sampling), while the lower block compares different curriculum sampling strategies (with our solvable generator). The “Steps Saved” indicates the reduction in training steps required to reach the crash rate threshold relative to the Vanilla Adv baseline.
+
+Method Performance Metrics (Mean ± Std) Training Efficiency (Steps) Crash Rate ↓ Route Comp. ↑ Cost ↓ Reward ↑ Crash Rate (< 0.16 ) ↓ Route Comp. (> 0.75 ) ↓ Steps Saved ↑
+
+Comparison of Generators 
+
+Replay 18.65% ± 2.70% 73.69% ± 1.99% 0.482 ± 0.026 49.01 ± 1.99 > Max Steps > Max Steps –Vanilla Adv 15.95% ± 1.30% 75.73% ± 1.53% 0.461 ± 0.003 50.68 ± 1.84 950,002 858,170 Baseline Solvable Adv 14.79% ± 2.57% 77.84% ± 1.14% 0.432 ± 0.021 53.43 ± 1.53 692,842 601,022 27.1% 
+
+Comparison of Samplers 
+
+Static 14.70% ± 2.32% 74.47% ± 2.44% 0.468 ± 0.043 50.45 ± 2.73 876,497 > Max Steps 7.7% History 14.85% ± 1.07% 77.13% ± 0.69% 0.434 ± 0.024 51.90 ± 1.07 913,249 601,062 3.9% 
+
+Ours 11.80% ± 1.78% 79.30% ± 1.54% 0.404 ± 0.036 54.15 ± 1.36 564,274 582,638 40.6%   
+
+> Table 5: Performance evaluation of the trained policies in Adversarial scenarios. The upper block compares different scenario generation methods (with random sampling), while the lower block compares different curriculum sampling strategies (with our solvable generator).
+
+Method Performance Metrics (Mean ± Std) Training Efficiency (Steps) Crash Rate ↓ Route Comp. ↑ Cost ↓ Reward ↑ Crash Rate (< 0.36 ) ↓ Route Comp. (> 0.67 ) ↓ Steps Saved ↑
+
+Comparison of Generators 
+
+Replay 40.31% ± 1.49% 65.77% ± 1.05% 0.653 ± 0.008 42.23 ± 1.30 > Max Steps > Max Steps –Vanilla Adv 35.77% ± 1.95% 67.68% ± 2.39% 0.634 ± 0.023 43.16 ± 1.96 950,002 839,804 Baseline Solvable Adv 33.27% ± 1.34% 70.10% ± 1.54% 0.601 ± 0.017 45.39 ± 1.57 894,846 619,386 5.8% 
+
+Comparison of Samplers 
+
+Static 35.50% ± 4.37% 66.21% ± 3.69% 0.639 ± 0.030 42.70 ± 2.58 949,956 > Max Steps 0.0% History 34.97% ± 1.85% 69.22% ± 1.31% 0.609 ± 0.027 44.42 ± 1.30 784,701 619,426 17.4% 
+
+Ours 31.37% ± 3.51% 71.66% ± 1.93% 0.588 ± 0.026 46.24 ± 1.91 656,094 582,638 30.9% 
+
+19 6. Conclusion 
+
+In this paper, we propose the AlignADV framework to address the critical limitations of attack-oriented adversarial training, specifically the generation of physically unsolvable scenarios and the capability mismatch between scenario difficulty and policy competence. To improve the resolvability of generated scenarios, we employ DPO to fine-tune the pretrained trajectory generation model. Furthermore, to efficiently match the difficulty of sampled scenarios with the dynamically evolving competence of the ego driving policy, we introduce the mechanism of a behavioral fingerprint and construct a multimodal capability prediction model. The prediction model evaluates the success probability of the current policy across diverse scenarios prior to actual simulation, thereby guiding a capability-aligned dynamic curriculum sampling distribution. Comprehensive closed-loop reinforcement learning experiments demonstrate that our proposed framework reduces the required training steps by 40.6% compared to unconstrained adversarial training baselines. Ultimately, the driving policy trained under the AlignADV framework exhibits substantial reductions in crash rates alongside persistent enhancements in route completion rates across both normal and adversarial traffic conditions. Our findings suggest that the efficacy of adversarial training is not merely a function of attack intensity, but rather of how effectively that attack value is converted into algorithmic learnability. Despite the promising results achieved by the proposed framework, several directions are worth investigating in future research. First, to construct an even more sophisticated preference dataset for scenario generation, the rule-based privileged expert policy can be upgraded to an ensemble of advanced intelligent expert algorithms. Second, the continuous fine-tuning of the capability predictor can be integrated into the online closed-loop driving policy training paradigm. This integration will enable the prediction model to adaptively co-evolve with the autonomous driving agent, maintaining highly accurate and robust capability estimations throughout the entirety of the dynamic curriculum learning process. 
+
+Acknowledgments 
+
+This research was supported by the National Natural Science Foundation of China (52125208, 52232015, and 524B2164). 
+
+Appendix A. Rule-based expert policy 
+
+To evaluate the generated scenarios, the deterministic expert policy πexpert operates utilizing exact environ-mental ground truth. For dynamic interactions, the policy extracts the precise future states of all U background vehicles from the simulation over a discrete prediction horizon H, denoted as su,t +h for the uth vehicle at future step h. Concurrently, the policy simulates its own future states ˆst+h via a kinematic bicycle model. To ensure the ego vehicle harmonizes with the overall traffic flow, the policy calibrates a dynamic reference speed vdyn 
+
+by computing the 75th percentile of the velocity set Vf low collected from valid surrounding vehicles within a specified perception radius. This target speed is also strictly constrained by a predefined speed limit when the ego vehicle approaches an intersection, which is geometrically identified by evaluating the vector dot product of consecutive waypoints along the reference path to detect high curvature segments. Furthermore, a traffic light compliance mechanism overrides vtarget to zero immediately upon detecting a red light signal within the forward trajectory. Based on these forecasted trajectories, the policy implements a proactive collision warning system by conducting geometric intersection tests between the oriented bounding boxes of the ego vehicle and all background entities at each forecasted step. Upon detecting an imminent spatial intersection, the policy classifies the collision threat based on the relative position and the longitudinal relative velocity. For any predicted frontal or lateral collision threats, the policy triggers an emergency braking protocol by forcefully setting vtarget to zero. Conversely, if a rear collision threat is identified where a background vehicle approaches rapidly from behind, and a subsequent check confirms that the forward path is completely clear, the policy executes an evasive acceleration maneuver. The final control execution is achieved through decoupled longitudinal and lateral proportional integral derivative controllers that track the dynamically determined targets. The longitudinal controller calculates the acceleration command aa,t to minimize the error between the final safe target speed vtarget and the current speed vt. The lateral controller determines the steering angle aδ,t by minimizing the heading error relative to a look-ahead waypoint. This waypoint is dynamically sampled from the global reference lane at a look-ahead distance proportional to the current speed vt. The synthesized action at = [ aa,t , a δ,t ]T is then applied to the ego vehicle. 20 References 
+
+Abouelazm, A., Weinstein, T., Joseph, T., Schörner, P., Zöllner, J. M., 2025. Automatic curriculum learning for driving scenarios: Towards robust and efficient reinforcement learning. In: 2025 IEEE Intelligent Vehicles Symposium (IV). IEEE, pp. 2333–2340. Anzalone, L., Barra, P., Barra, S., Castiglione, A., Nappi, M., 2022. An end-to-end curriculum learning approach for autonomous driving scenarios. IEEE Transactions on Intelligent Transportation Systems 23 (10), 19817–19826. Bronstein, E., Srinivasan, S., Paul, S., Sinha, A., O’Kelly, M., Nikdel, P., Whiteson, S., 2023. Embedding synthetic off-policy experience for autonomous driving via zero-shot curricula. In: Conference on Robot Learning. PMLR, pp. 188–198. Cai, X., Cui, Z., Bai, X., Ke, R., Ma, Z., Yu, H., Ren, Y., 2024. Vcat: Vulnerability-aware and curiosity-driven adversarial training for enhancing autonomous vehicle robustness. arXiv preprint arXiv:2409.12997. Chang, W.-J., Pittaluga, F., Tomizuka, M., Zhan, W., Chandraker, M., 2024. Safe-sim: Safety-critical closed-loop traffic simulation with diffusion-controllable adversaries. In: European conference on computer vision. Springer, pp. 242–258. Chen, K., Lei, Y., Cheng, H., Wu, H., Sun, W., Zheng, S., 2024. Frea: Feasibility-guided generation of safety-critical scenarios with reasonable adversariality. arXiv preprint arXiv:2406.02983. Chu, H., Wang, H., Cheng, Y., Li, A., Tian, W., Gao, B., Chen, H., 2025. Decision making for autonomous vehicles: A mixed curriculum reinforcement learning approach and a novel safety intervention method. Transportation Research Part C: Emerging Technologies 181, 105369. Ding, W., Lin, H., Li, B., Zhao, D., 2023a. Causalaf: Causal autoregressive flow for safety-critical driving scenario generation. In: Conference on robot learning. PMLR, pp. 812–823. Ding, W., Xu, C., Arief, M., Lin, H., Li, B., Zhao, D., 2023b. A survey on safety-critical driving scenario generation—a methodological perspective. IEEE Transactions on Intelligent Transportation Systems 24 (7), 6971–6988. Ettinger, S., Cheng, S., Caine, B., Liu, C., Zhao, H., Pradhan, S., Chai, Y., Sapp, B., Qi, C. R., Zhou, Y., et al., 2021. Large scale interactive motion forecasting for autonomous driving: The waymo open motion dataset. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 9710–9719. Feng, S., Yan, X., Sun, H., Feng, Y., Liu, H. X., 2021. Intelligent driving intelligence test for autonomous vehicles with naturalistic and adversarial environment. Nature communications 12 (1), 748. Feng, S., Zhu, H., Sun, H., Yan, X., He, L., Yang, J., Su, G., Li, B., Li, S., Wang, L., et al., 2026. Breaking through safety performance stagnation in autonomous vehicles with dense learning. Nature Communications. Hanselmann, N., Renz, K., Chitta, K., Bhattacharyya, A., Geiger, A., 2022. King: Generating safety-critical driving scenarios for robust imitation via kinematics gradients. In: European Conference on Computer Vision. Springer, pp. 335–352. Li, Q., Peng, Z., Feng, L., Zhang, Q., Xue, Z., Zhou, B., 2022. Metadrive: Composing diverse driving scenarios for generalizable reinforcement learning. IEEE transactions on pattern analysis and machine intelligence 45 (3), 3461–3475. Liu, H., Zhang, L., Hari, S. K. S., Zhao, J., 2024. Safety-critical scenario generation via reinforcement learning based editing. In: 2024 IEEE International Conference on Robotics and Automation (ICRA). IEEE, pp. 14405–14412. Liu, Y., Peng, Z., Cui, X., Zhou, B., 2025. Adv-bmt: Bidirectional motion transformer for safety-critical traffic scenario generation. arXiv preprint arXiv:2506.09485. Mei, Y., Nie, T., Sun, J., Tian, Y., 2025a. Llm-attacker: Enhancing closed-loop adversarial scenario generation for autonomous driving with large language models. IEEE Transactions on Intelligent Transportation Systems. Mei, Y., Nie, T., Sun, J., Tian, Y., 2025b. Seeking to collide: Online safety-critical scenario generation for autonomous driving with retrieval augmented large language models. arXiv preprint arXiv:2505.00972. Nie, T., Mei, Y., Tang, Y., He, J., Sun, J., Shi, H., Ma, W., Sun, J., 2025. Steerable adversarial scenario generation through test-time preference alignment. arXiv preprint arXiv:2509.20102. Peng, Z., Zhou, X., Zheng, L., Wang, Y., Ma, J., 2024. Reward-driven automated curriculum learning for interaction-aware self-driving at unsignalized intersections. In: 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). IEEE, pp. 5088–5095. Qiao, Z., Muelling, K., Dolan, J. M., Palanisamy, P., Mudalige, P., 2018. Automatically generated curriculum based reinforcement learning for autonomous vehicles in urban environment. In: Intelligent Vehicles Symposium. pp. 1233–1238. Qiu, L., Xu, Z., Tan, Q., Tang, W., Yu, C., Wang, Y., 2025. Aed: Automatic discovery of effective and diverse vulnerabilities for autonomous driving policy with large language models. arXiv preprint arXiv:2503.20804. Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S., Finn, C., 2023. Direct preference optimization: Your language model is secretly a reward model. Advances in neural information processing systems 36, 53728–53741. Ransiek, J., Plaum, J., Langner, J., Sax, E., 2024. Goose: Goal-conditioned reinforcement learning for safety-critical scenario generation. In: 2024 IEEE 27th International Conference on Intelligent Transportation Systems (ITSC). IEEE, pp. 2651–2658. Rempe, D., Philion, J., Guibas, L. J., Fidler, S., Litany, O., 2022. Generating useful accident-prone driving scenarios via a learned traffic prior. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 17305–17315. Sheng, Z., Huang, Z., Qu, Y., Leng, Y., Bhavanam, S., Chen, S., 2026. Curricuvlm: Towards safe autonomous driving via personalized safety-critical curriculum learning with vision-language models. Transportation Research Part C: Emerging Technologies 185, 105549. 
+
+21 Song, Y., Lin, H., Kaufmann, E., Dürr, P., Scaramuzza, D., 2021. Autonomous overtaking in gran turismo sport using curriculum reinforcement learning. In: 2021 IEEE international conference on robotics and automation (ICRA). IEEE, pp. 9403–9409. Stoler, B., Yang, J., Francis, J., Oh, J., 2025. Rcg: Safety-critical scenario generation for robust autonomous driving via real-world crash grounding. arXiv preprint arXiv:2507.10749. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L. u., Polosukhin, I., 2017. Attention is all you need. In: Guyon, I., Luxburg, U. V., Bengio, S., Wallach, H., Fergus, R., Vishwanathan, S., Garnett, R. (Eds.), Advances in Neural Information Processing Systems. Vol. 30. Curran Associates, Inc. Xie, Y., Guo, X., Wang, C., Liu, K., Chen, L., 2024. Advdiffuser: Generating adversarial safety-critical driving scenarios via guided diffusion. In: 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). IEEE, pp. 9983–9989. Xu, C., Petiushko, A., Zhao, D., Li, B., 2025a. Diffscene: Diffusion-based safety-critical scenario generation for autonomous vehicles. In: Proceedings of the AAAI conference on artificial intelligence. Vol. 39. pp. 8797–8805. Xu, M., Yang, X., Zhan, J., Liang, W., Zhang, C., Zhu, Y., 2025b. Heterogeneous adversarial play in interactive environments. arXiv preprint arXiv:2510.18407. Zhang, L., Peng, Z., Li, Q., Zhou, B., 2023. Cat: Closed-loop adversarial training for safe end-to-end driving. In: Conference on Robot Learning. PMLR, pp. 2357–2372. 
+
+22
