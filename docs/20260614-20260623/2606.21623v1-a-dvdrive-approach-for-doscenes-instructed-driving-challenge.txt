@@ -1,0 +1,143 @@
+Title: A DVDrive Approach for doScenes Instructed Driving Challenge
+
+URL Source: https://arxiv.org/pdf/2606.21623v1
+
+Published Time: Tue, 23 Jun 2026 01:11:18 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+# A DVDrive Approach for doScenes Instructed Driving Challenge 
+
+## Team MIC Lab Zijian Fu 1, Xiangyang Chu 2, Mengshi Qi 1*, Huadong Ma 1, Guanghao Zhang 2, and Wei Li 2†
+
+> 1
+
+## Beijing University of Posts and Telecommunications, 2 Xiaomi EV 
+
+{zijianfu, qms, mhd }@bupt.edu.cn 
+
+## Abstract 
+
+Instruction-conditioned trajectory prediction is an emerging problem in autonomous driving, where a model predicts the future ego trajectory not only from visual scene context and historical motion, but also from a natural-language maneuver instruction. This paper presents our submission to the doScenes Instructed Driving Challenge, built upon OmniDrive, a vision-language-action driving agent with 3D perception, reasoning, and planning capabil-ities. We adapt OmniDrive to the doScenes setting by train-ing it on instruction-annotated nuScenes scenes and gen-erating a 6-second ego trajectory represented by 12 future waypoints. To improve multi-view visual grounding, we fur-ther introduce a DVPE-style divided-view perception mod-ule into the OmniDrive perception head. Instead of attend-ing globally to all camera features, the proposed module groups query features and image tokens into divided local view spaces and performs visibility-aware cross-attention within each view. This design reduces irrelevant cross-view interference and helps the model better align language in-structions with local driving-relevant visual evidence. The code is publicly available at: https://github.com/ feel12348/doscenes-omnidrive .
+
+## 1. Introduction 
+
+Trajectory prediction is a fundamental component of au-tonomous driving. Given historical ego motion and sur-rounding scene observations, the model is expected to pre-dict a future trajectory that is both geometrically plausible and consistent with the driving context. Most existing tra-jectory prediction benchmarks rely mainly on past motion, perception features, and map information. However, for ego-vehicle planning, the future intention is often available before the maneuver is executed. For example, a human passenger or navigation system may provide an instruc-
+
+> *Corresponding author
+> †Project leader. Work done while Zijian Fu was an intern at Xiaomi EV.
+
+tion such as “turn left at the next intersection” or “change to the right lane.” Such instructions can reduce ambiguity in future motion prediction. The doScenes [19] Instructed Driving Challenge formulates this problem as instruction-conditioned ego-trajectory prediction. This setting is naturally suited for vision-language-action models, as the model is required to jointly inter-pret visual scenes, follow language instructions, and gener-ate spatially grounded trajectory outputs. OmniDrive [24] provides a strong foundation for this task by introducing a holistic driving vision-language framework that integrates 3D perception, reasoning, and planning. It employs sparse queries to lift and compress multi-view visual representa-tions into a compact 3D-aware feature space. However, its global multi-view interaction may still introduce redundant features from spatially irrelevant regions, which can weaken local perception and increase the difficulty of long-horizon trajectory generation. To address this limitation, we further draw inspiration from DVPE [22], which improves multi-view 3D perception by decomposing the global space into divided local views and performing position-aware feature interaction within each view. Building on this idea, our method enhances OmniDrive with divided-view multi-view perception, enabling more effective local spatial reasoning for navigation-conditioned trajectory prediction. 
+
+## 2. Related Work 
+
+2.1. End-to-End Driving and Trajectory Prediction 
+
+Trajectory prediction and motion planning are central to modern autonomous driving systems. Early end-to-end approaches such as ST-P3 [3] learn spatial-temporal fea-tures to jointly perform perception, prediction, and plan-ning from raw sensor inputs. UniAD [4] unifies detection, tracking, mapping, motion, and occupancy prediction into a single planning-oriented framework, while VAD [5] adopts a vectorized scene representation to improve planning ef-ficiency. These methods condition future motion mainly on visual observations and historical states. In contrast, the doScenes [19] setting, built upon nuScenes [1], addi-1
+
+> arXiv:2606.21623v1 [cs.CV] 19 Jun 2026
+
+tionally provides natural-language navigation instructions, which our method exploits to reduce intention ambiguity in long-horizon trajectory prediction. Beyond planning, many techniques have been explored to improve the robustness, reasoning, and safety of driving systems, such as test-time adaptation for robust detection [7], knowledge-graph-based retrieval-augmented generation [27], traffic topology scene-graph reasoning [9], and driver attention prediction [29]. 
+
+2.2. Vision-Language Models for Driving 
+
+Recent work integrates large vision-language models into driving to enable reasoning and language-level inter-action. Talk2Car [2] is among the first to ground natural-language commands in driving scenes. GPT-Driver [10] and DriveGPT4 [26] reformulate planning as language genera-tion, producing trajectories or control signals from textual prompts, while DriveLM [21] introduces graph-structured visual question answering for driving, and LMDrive [20] performs closed-loop driving conditioned on language in-structions. OmniDrive [24] provides a holistic vision-language-action framework with 3D perception, reasoning, and counterfactual planning, which we adopt as our base-line and extend with instruction-conditioned trajectory su-pervision. More broadly, our work connects to the rich lit-erature on multi-modal video understanding, including in-context segmentation [18], audiovisual commonsense rea-soning [11], action quality and form assessment [16, 17], multi-modal 3D human pose estimation [12], temporal ac-tion localization [28], cross-modal video retrieval [13], few-shot video classification [14], and sports video caption-ing [15], all of which highlight the importance of effectively fusing visual and language cues. 
+
+2.3. Multi-View 3D Perception 
+
+Robust 3D perception from surround-view cam-eras is a prerequisite for reliable trajectory prediction. DETR3D [25] introduces 3D-to-2D queries to aggre-gate multi-view features, and BEVFormer [6] builds bird’s-eye-view representations via spatiotemporal atten-tion. PETR [8] encodes 3D position information into image features, and StreamPETR [23] extends this line with object-centric temporal modeling. However, these methods typically perform global cross-attention over all views, which introduces redundant cross-view interactions. DVPE [22] alleviates this issue by dividing the global space into local views with view-specific position em-beddings. Inspired by DVPE, our DVDrive module per-forms visibility-aware divided-view perception within Om-niDrive to strengthen local spatial reasoning for instruction-conditioned trajectory prediction. 
+
+## 3. Method 
+
+3.1. Problem Formulation 
+
+We study the instruction-conditioned ego-trajectory pre-diction task in doScenes. Given multi-view camera ob-servations, historical ego motion, map-related information, and a natural-language driving instruction at the current timestamp t, the model is required to predict the future ego trajectory over the next 6 seconds. Following the of-ficial doScenes evaluation protocol, the future trajectory is sampled at 2 Hz and therefore contains 12 two-dimensional waypoints. 
+
+3.2. Task Adaptation from OmniDrive to doScenes 
+
+We adopt OmniDrive as the baseline framework and adapt it to the doScenes trajectory prediction task. Although OmniDrive provides a strong vision-language-action foun-dation for autonomous driving, its original training setting is not directly aligned with the requirements of doScenes. Specifically, the original OmniDrive training pipeline does not explicitly incorporate navigation instructions as con-ditional inputs for trajectory generation. As a result, the model has limited ability to adjust future motion planning according to language-level navigation intentions. In addi-tion, OmniDrive is mainly trained with short-horizon trajec-tory supervision, where the future trajectory is represented within a 3-second prediction window. In contrast, doScenes requires the model to predict a 6-second future ego trajec-tory, which introduces a longer temporal reasoning require-ment. To bridge this gap, we first reconstruct the training data according to the doScenes evaluation protocol. For each training sample, we extract the future ego trajectory from the corresponding driving scene and extend the supervision horizon from 3 seconds to 6 seconds. This data adaptation enables the model to learn longer-term motion evolution and generate trajectories that are consistent with the target benchmark. Furthermore, during supervised fine-tuning, we randomly sample one navigation instruction associated with the current scene and append it to the textual prompt. In this way, the model is optimized under both visual scene obser-vations and language-based navigation intentions, allowing it to produce future trajectories that are better aligned with the driving context and the given instruction. 
+
+3.3. DVDrive: Divided-View Multi-View Percep-tion 
+
+After adapting OmniDrive to the doScenes trajectory prediction setting, and inspired by DVPE [22], we further introduce a divided-view multi-view perception module, termed DVDrive, to enhance its spatial understanding of 3D driving scenes. The original OmniDrive relies on global multi-view feature interaction to connect visual observa-2tions with the language-action decoder. However, such a global interaction requires each query to attend to image to-kens from all camera views and all spatial regions. Many of these tokens are weakly related to the current local driving context, which may introduce redundant visual interference and increase the optimization difficulty of cross-attention. This problem becomes more evident in long-horizon tra-jectory prediction, where the model needs to capture fine-grained local structures such as lane boundaries, nearby agents, and drivable areas. To address this issue, DVDrive follows the divided-view principle and decomposes the global 3D perception space into multiple local virtual views. Instead of performing cross-attention over the entire multi-view feature space, queries and image tokens are assigned to local views ac-cording to their 3D spatial locations. Each query mainly interacts with visual tokens located in the same local view, allowing the model to focus on geometrically relevant and locally visible image regions. This design reduces inter-ference from unrelated camera views and distant spatial re-gions while preserving the ability to aggregate multi-view information. Given multi-view image features from surrounding cam-eras, 
+
+F = {Fc}Cc=1 , (1) where C denotes the number of cameras, we first project them into a unified Transformer feature space: 
+
+M = Proj (Flatten( F)) ∈ RL×d, (2) where L = C × H × W is the total number of multi-view image tokens and d is the hidden dimension. For each image token, we construct a 3D geometric rep-resentation by sampling multiple depth points along its cor-responding camera ray and projecting these points into the ego-centric coordinate system: 
+
+p3Dj,d = Π −1 
+
+> c
+
+(uj , v j , z d), d = 1 , . . . , D, (3) where (uj , v j ) denotes the image location of the j-th to-ken, zd is the sampled depth value, and Π−1 
+
+> c
+
+(·) denotes the inverse projection from the image plane to the ego-centric 3D space. Compared with conventional 2D image posi-tions, such ray-based 3D coordinates provide richer geo-metric cues for multi-view spatial reasoning. The global 3D perception space is then divided into mul-tiple local virtual views. For the s-th shifted state and the 
+
+v-th local view, the query set and visual token set are de-fined as 
+
+Qsv = {qi | ri ∈ Ωsv }, Ksv = {mj | ¯p3Dj ∈ Ωsv }, (4) where ri is the 3D reference point of query qi, mj is the j-th visual token, ¯p3Dj is the representative 3D position of the visual token, and Ωsv denotes the corresponding local virtual view. In this way, each query mainly interacts with visual features within the same local view, rather than attending to all tokens in the global space. For each local virtual view, both query reference points and visual-token coordinates are transformed into a view-specific coordinate system: 
+
+˜rv,s i = T sv (ri), ˜pv,s j,d = T sv (p3Dj,d ), (5) where T sv (·) denotes the coordinate transformation from the global ego-centric space to the local virtual view. Position embeddings are then generated based on the transformed local coordinates: 
+
+eq,v,s i = ϕq (PE(˜ rv,s i )) , (6) 
+
+ek,v,s j = ϕk
+
+
+
+PE(˜ pv,s j, 1: D )
+
+
+
+, (7) where ϕq and ϕk denote the query position encoder and the visual-token position encoder, respectively. By generating position embeddings in local coordinate systems, the model avoids learning complex spatial relations directly in the en-tire global coordinate space. This helps reduce the difficulty caused by large viewpoint variations across cameras. Within each divided local view, DVDrive performs visibility-aware local cross-attention between queries and valid visual tokens: 
+
+hv,s i = softmax 
+
+ (qi + eq,v,s i )( Ksv + Ek,v,s v )⊤
+
+√d + Asv
+
+
+
+V sv ,
+
+(8) where Ksv and V sv denote the key and value features within the current local view, Ek,v,s v denotes the corresponding lo-cal position embedding, and Asv denotes the valid-region attention mask. The attention operation is restricted to the effective feature set inside the current local view, so each query aggregates information mainly from spatially relevant regions. Compared with global cross-attention, this local in-teraction reduces interference from irrelevant visual tokens and improves the stability of multi-view feature aggrega-tion. In addition, DVDrive retains temporal memory modeling in the perception branch, allowing current-frame features to be aligned and fused with historical scene information. Such temporal context is important for long-horizon trajec-tory prediction, because future ego motion depends not only on the current observation but also on the evolution of sur-rounding agents and road structures over time. 
+
+## 4. Experiments 
+
+4.1. Implementation Details 
+
+We implement our method based on the OmniDrive framework and train it under the doScenes 6-second tra-jectory prediction setting. The model is trained with 12 3Table 1. Validation results on doScenes.             
+
+> Method A@1s A@2s A@3s mADE OmniDrive w/ Nav. 0.151 0.328 0.637 0.372 Ours w/ Nav. 0.145 0.316 0.613 0.358
+
+future waypoints, corresponding to a 6-second prediction horizon. During supervised fine-tuning, doScenes naviga-tion instructions are enabled, and one instruction associated with the current scene is randomly sampled as the language condition. We train the model using AdamW with an initial learning rate of 1 × 10 −4 and a weight decay of 1 × 10 −4.A cosine annealing learning rate schedule is applied, with 500 warm-up iterations and a minimum learning rate ratio of 10 −3. The model is optimized for 6 epochs using an iteration-based runner. The batch size is set to 2 per GPU. All experiments are conducted on 8 NVIDIA RTX A6000 GPUs. The full training process takes approximately 24 hours. 
+
+4.2. Experimental Results 
+
+Since the labels of the official test set are not accessible, we report the evaluation results on the validation set. Fol-lowing the doScenes evaluation protocol, we use ADE@1s, ADE@2s, ADE@3s, and mADE as the main metrics. Here, mADE denotes the average ADE over the evaluated future timestamps. Lower values indicate better trajectory predic-tion performance. As shown in Table 1, our method consistently improves over the navigation-conditioned OmniDrive baseline across all evaluation metrics. Specifically, our model reduces mADE from 0.372 to 0.358, demonstrating the effective-ness of incorporating navigation-conditioned training and DVPE-style divided-view perception. The consistent im-provements at 1s, 2s, and 3s indicate that the proposed per-ception enhancement benefits both short-term and longer-horizon trajectory prediction. 
+
+4.3. Challenge Leaderboard 
+
+We further report the official ranking of the doScenes Instructed Driving Challenge. As shown in Table 2, on the hidden test set of the Full Multimodal track, our sub-mission from Team MIC Lab ranks first among all partic-ipating teams, achieving an ADE of 2.0913 and an FDE of 5.5946 . Compared with the official paper baselines (an ADE of 7.1086 for the history-only baseline and 7.2046 for the instruction baseline), our method reduces the displace-ment error by a large margin. Moreover, our ADE is clearly lower than that of the second-place team ( 2.6774 ), confirm-ing the strong generalization of the proposed navigation-conditioned training and divided-view perception design on unseen scenes. 
+
+Table 2. Official leaderboard of the doScenes Instructed Driving Challenge (Full Multimodal track, hidden test set). Our team, MIC Lab, ranks first. Best results are in bold ; “–” denotes entries not provided on the leaderboard.                        
+
+> Rank Team / Model ADE ↓FDE ↓
+> –History-Only Baseline 7.1086 13.8567 –Instruction Baseline 7.2046 13.9224 1MIC Lab (Ours) 2.0913 5.5946 2NudgeVAD 2.6774 5.5673
+> 3UCF UrbanITY Lab 2.7577 6.3753 4why 3.3309 8.1090
+
+## References 
+
+[1] Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh Vora, Venice Erin Liong, Qiang Xu, Anush Krishnan, Yu Pan, Gi-ancarlo Baldan, and Oscar Beijbom. nuscenes: A multi-modal dataset for autonomous driving. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 11621–11631, 2020. 1 [2] Thierry Deruyttere, Simon Vandenhende, Dusan Grujicic, Luc Van Gool, and Marie-Francine Moens. Talk2car: Taking control of your self-driving car. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Pro-cessing (EMNLP-IJCNLP) , pages 2088–2098, 2019. 2 [3] Shengchao Hu, Li Chen, Penghao Wu, Hongyang Li, Junchi Yan, and Dacheng Tao. St-p3: End-to-end vision-based au-tonomous driving via spatial-temporal feature learning. In 
+
+European Conference on Computer Vision , pages 533–549. Springer, 2022. 1 [4] Yihan Hu, Jiazhi Yang, Li Chen, Keyu Li, Chonghao Sima, Xizhou Zhu, Siqi Chai, Senyao Du, Tianwei Lin, Wenhai Wang, et al. Planning-oriented autonomous driving. In Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 17853–17862, 2023. 1 [5] Bo Jiang, Shaoyu Chen, Qing Xu, Bencheng Liao, Jiajie Chen, Helong Zhou, Qian Zhang, Wenyu Liu, Chang Huang, and Xinggang Wang. Vad: Vectorized scene representa-tion for efficient autonomous driving. In Proceedings of the IEEE/CVF International Conference on Computer Vision ,pages 8340–8350, 2023. 1 [6] Zhiqi Li, Wenhai Wang, Hongyang Li, Enze Xie, Chong-hao Sima, Tong Lu, Yu Qiao, and Jifeng Dai. Bevformer: Learning bird’s-eye-view representation from multi-camera images via spatiotemporal transformers. In European con-ference on computer vision , pages 1–18. Springer, 2022. 2 [7] Dacheng Liao, Mengshi Qi, Liang Liu, and Huadong Ma. Improving batch normalization with tta for robust object de-tection in self-driving. arXiv preprint arXiv:2411.18860 ,2024. 2 [8] Yingfei Liu, Tiancai Wang, Xiangyu Zhang, and Jian Sun. Petr: Position embedding transformation for multi-view 3d object detection. In European Conference on Computer Vi-sion , pages 531–548. Springer, 2022. 2 [9] Changsheng Lv, Mengshi Qi, Liang Liu, and Huadong Ma. T2sg: Traffic topology scene graph for topology reasoning in autonomous driving. In Proceedings of the IEEE/CVF 
+
+4Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [10] Jiageng Mao, Yuxi Qian, Junjie Ye, Hang Zhao, and Yue Wang. Gpt-driver: Learning to drive with gpt. arXiv preprint arXiv:2310.01415 , 2023. 2 [11] Mengshi Qi, Changsheng Lv, and Huadong Ma. Robust disentangled counterfactual learning for physical audiovi-sual commonsense reasoning. IEEE Transactions on Pattern Analysis and Machine Intelligence , 2025. 2 [12] Mengshi Qi, Jiaxuan Peng, Xianlin Zhang, and Huadong Ma. Towards balanced multi-modal learning in 3d human pose estimation. arXiv preprint arXiv:2501.05264 , 2025. 2 [13] Mengshi Qi, Jie Qin, Yi Yang, Yunhong Wang, and Jiebo Luo. Semantics-aware spatial-temporal binaries for cross-modal video retrieval. IEEE Transactions on Image Process-ing , 30:2989–3004, 2021. 2 [14] Mengshi Qi, Jie Qin, Xiantong Zhen, Di Huang, Yi Yang, and Jiebo Luo. Few-shot ensemble learning for video clas-sification with slowfast memory networks. In Proceedings of the 28th ACM International Conference on Multimedia ,2020. 2 [15] Mengshi Qi, Yunhong Wang, Annan Li, and Jiebo Luo. Sports video captioning via attentive motion representation and group relationship modeling. IEEE Transactions on Cir-cuits and Systems for Video Technology , 30(8):2617–2633, 2020. 2 [16] Mengshi Qi, Yeteng Wu, Xianlin Zhang, and Huadong Ma. Explainable action form assessment by exploiting multimodal chain-of-thoughts reasoning. arXiv preprint arXiv:2512.15153 , 2025. 2 [17] Mengshi Qi, Hao Ye, Jiaxuan Peng, and Huadong Ma. Action quality assessment via hierarchical pose-guided multi-stage contrastive regression. arXiv preprint arXiv:2501.03674 , 2025. 2 [18] Mengshi Qi, Pengfei Zhu, Xiangtai Li, Xiaoyang Bi, Lu Qi, Huadong Ma, and Ming-Hsuan Yang. Dc-sam: In-context segment anything in images and videos via dual consistency. 
+
+arXiv preprint arXiv:2504.12080 , 2025. 2 [19] Parthib Roy, Srinivasa Perisetla, Shashank Shriram, Harsha Krishnaswamy, Aryan Keskar, and Ross Greer. doscenes: An autonomous driving dataset with natural language in-struction for human interaction and vision-language naviga-tion. In 2025 IEEE 28th International Conference on In-telligent Transportation Systems (ITSC) , pages 1651–1658. IEEE, 2025. 1 [20] Hao Shao, Yuxuan Hu, Letian Wang, Steven L Waslander, Yu Liu, and Hongyang Li. Lmdrive: Closed-loop end-to-end driving with large language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 15120–15130, 2024. 2 [21] Chonghao Sima, Katrin Renz, Kashyap Chitta, Li Chen, Hanxue Zhang, Chengen Xie, Jens Beißwenger, Ping Luo, Andreas Geiger, and Hongyang Li. Drivelm: Driving with graph visual question answering. In European Conference on Computer Vision , pages 256–274. Springer, 2024. 2 [22] Jiasen Wang, Zhenglin Li, Ke Sun, Xianyuan Liu, and Yang Zhou. Dvpe: Divided view position embedding for multi-view 3d object detection. arXiv preprint arXiv:2407.16955 ,2024. 1, 2 [23] Shihao Wang, Yingfei Liu, Tiancai Wang, Ying Li, and Xi-angyu Zhang. Exploring object-centric temporal modeling for efficient multi-view 3d object detection. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion , pages 3621–3631, 2023. 2 [24] Shihao Wang, Zhiding Yu, Xiaohui Jiang, Shiyi Lan, Min Shi, Nadine Chang, Jan Kautz, Ying Li, and Jose M Al-varez. Omnidrive: A holistic vision-language dataset for autonomous driving with counterfactual reasoning. In Pro-ceedings of the computer vision and pattern recognition con-ference , pages 22442–22452, 2025. 1, 2 [25] Yue Wang, Vitor Campagnolo Guizilini, Tianyuan Zhang, Yilun Wang, Hang Zhao, and Justin Solomon. Detr3d: 3d object detection from multi-view images via 3d-to-2d queries. In Conference on Robot Learning , pages 180–191. PMLR, 2022. 2 [26] Zhenhua Xu, Yujia Zhang, Enze Xie, Zhen Zhao, Yong Guo, Kwan-Yee K Wong, Zhenguo Li, and Hengshuang Zhao. Drivegpt4: Interpretable end-to-end autonomous driving via large language model. IEEE Robotics and Automation Let-ters , 2024. 2 [27] Hao Ye, Mengshi Qi, Zhaohong Liu, Liang Liu, and Huadong Ma. Safedriverag: Towards safe autonomous driv-ing with knowledge graph-based retrieval-augmented gener-ation. In Proceedings of the 33rd ACM International Con-ference on Multimedia , 2025. 2 [28] Wulian Yun, Mengshi Qi, Chuanming Wang, and Huadong Ma. Weakly-supervised temporal action localization by in-ferring salient snippet-feature. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 38, 2024. 2 [29] Pengfei Zhu, Mengshi Qi, Xia Li, Weijian Li, and Huadong Ma. Unsupervised self-driving attention prediction via un-certainty mining and knowledge embedding. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion (ICCV) , pages 8558–8568, 2023. 2 
+
+5

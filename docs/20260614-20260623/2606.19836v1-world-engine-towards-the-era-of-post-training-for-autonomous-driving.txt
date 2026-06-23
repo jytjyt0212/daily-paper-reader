@@ -1,0 +1,818 @@
+Title: World Engine: Towards the Era of Post-Training for Autonomous Driving
+
+URL Source: https://arxiv.org/pdf/2606.19836v1
+
+Published Time: Fri, 19 Jun 2026 00:30:49 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+# World Engine: Towards the Era of Post-Training for Autonomous Driving 
+
+Tianyu Li 4,3* Li Chen 4* Caojun Wang 3* Haochen Liu 7* Kashyap Chitta 5,6* Zhenjie Yang 1* 
+
+Yuhang Lu 1 Naisheng Ye 1 Yihang Qiu 1 Yufei Wang 2 Luoxi Zou 2 Jiaxin Peng 2 Jin Pan 2 Zhaoyu Su 2
+
+Andrei Bursuc 8 Shengbo Eben Li 9 Andreas Geiger 5,10 Peng Su 2†
+
+Hongyang Li 1,4 † 
+
+> 1
+
+The University of Hong Kong 2 Huawei 3 Shanghai Innovation Institute 4 Archon Robotics 5 KE:SAI  
+
+> 6
+
+NVIDIA Research 7 NTU 8 valeo.ai 9 Tsinghua University 10 University of T¨ ubingen and T¨ ubingen AI Center  
+
+> *
+
+Equal contribution † Corresponding authors Contact: hy@archon.tech , p.su@huawei.com 
+
+[ Project Page ] [ Full Code ]
+
+Abstract 
+
+Autonomous vehicles must operate safely in the real world, where errors can have severe consequences. Although modern end-to-end driving policies excel in routine scenarios, their reliability is limited by the scarcity of safety-critical “long-tail” events in real driving datasets. These rare interactions define the practical safety boundary of the learned policy, yet they are difficult to collect at scale in the real world. Here we show that this fundamental limitation can be addressed by post-training pre-trained driving models on synthesized high-stakes interactions. We introduce World Engine, a generative framework that reconstructs high-fidelity interactive environments from real-world logs and systematically extrapolates them into realistic safety-critical variations. This paradigm enables reinforcement-based post-training to align policies with safety constraints, circumventing the physical risks inherent in real-world exploration. On a public benchmark built on nuPlan, World Engine substantially reduces failures in rare safety-critical scenarios and yields significantly larger gains than scaling pre-training data alone. Furthermore, when deployed on a production-scale autonomous driving system, the resulting policy reduces simulated collisions and demonstrates measurable improvements in on-road testing, showing that post-training on synthesized, safety-critical interactions offers a scalable and effective pathway to safer autonomous driving. The full codebase suite, including training, is released to the public. 
+
+# 1 Introduction 
+
+Artificial intelligence is undergoing a fundamental transition from digital cognition to Physical AI. Autonomous driving [ 1, 2, 3 ] stands as one of the most advanced and socially consequential instances of this shift. Unlike virtual agents, autonomous vehicles perceive, reason, and act directly within the physical world, operating under the strict constraint of irreversibility: errors manifest as physical harm, economic loss, or threats to human safety. As such systems increasingly integrate into daily life, the central challenge is no longer basic task capability, but reliability under safety-critical conditions. Modern end-to-end autonomous driving systems, trained on millions of kilometres of fleet logs, can now handle the vast majority of everyday scenarios with human-level proficiency [ 4]. However, this average-case performance masks a critical vulnerability: the operational safety boundary is defined not by the common, but by the “long tail” of rare events [ 5]. While uneventful driving is abundant in training data, the abrupt pedestrian crossings, aggressive cut-ins, and complex adversarial interactions that could cause accidents remain statistically sparse. This scarcity exposes a structural paradox at the heart of autonomous driving: the most safety-critical behaviours must be learned from the scarcest data. Unlike digital domains, where failures can be exhaustively 
+
+1
+
+> arXiv:2606.19836v1 [cs.RO] 18 Jun 2026
+
+explored, autonomous driving operates under rigid ethical, legal, and social constraints, and society cannot afford to collect safety-critical data at scale. Consequently, the most valuable learning signals residing at the boundary of safe control are systematically missing from naturalistic datasets. Addressing this paradox remains the central obstacle to safe autonomy. Scaling data collection alone yields diminishing returns; accumulating millions of uneventful logs does little to improve robustness in rare moments [ 3, 6 ]. Current learning-based systems are thus forced to extrapolate beyond their training distributions, leading to brittle behaviour and unpredictable failures when confronted with novel or compounded risks. For autonomous driving to be safely deployable at scale, the field must move beyond passive data accumulation and establish new learning paradigms that explicitly address this long-tail data regime. A potential solution to this data gap is suggested by the recent evolution of Large Language Models (LLMs). While scaling pre-training on massive corpora yields broad linguistic competence [ 7, 8 ], standard models often struggle with complex, multi-step reasoning—a domain where high-quality natural data is inherently sparse. The field has responded by moving beyond passive pre-training towards post-training paradigms, which use synthesized reasoning chains by prompting [ 9 ] and reinforcement learning [ 10 ] to bridge these gaps. This shift is exemplified by systems such as DeepSeek-R1 [ 11 ] and AlphaProof [ 12 ], which achieve superhuman performance in mathematical problem-solving and Olympiad-level competitions. Their success validates a crucial principle for autonomous driving: when naturally occurring driving data fails to adequately cover rare but safety-critical situations, learning must be actively guided through synthesis to densify the sparse, high-value regions of the data distribution. Drawing on this insight, we introduce World Engine (WE), a learning framework that bridges the gap between the rarity of safety-critical events and the need for structured learning in autonomous driving systems. World Engine discovers failure-prone scenarios from real-world logs, reconstructs them into high-fidelity interactive worlds with diverse traffic variations, and applies reinforcement learning-based post-training to improve planner safety without exposing the real world to additional risk (Fig. 1). To demonstrate the effectiveness of World Engine, we apply it to train and evaluate end-to-end autonomous driving agents on a large-scale open-source real-world driving dataset, including sensor data, HD maps and 3D annotations of traffic objects: nuPlan [ 13 ]. We develop a photorealistic driving simulator using state-of-the-art neural rendering techniques to enable closed-loop evaluations of these agents. On this academic benchmark, we focus on a curated set of safety-critical long-tail scenarios and evaluate models in closed-loop rollouts, where compounding errors and the interactive reactions of other agents can lead to collisions or off-road failures. Across these rare cases, the full World Engine pipeline substantially improves closed-loop driving quality over the supervised pre-trained baseline, achieving higher success rates under imminent hazards. Moreover, our data-scaling study reveals that simply increasing pre-training data yields diminishing returns on rare cases, whereas World Engine post-training delivers substantially larger gains than even doubling the pre-training data; extrapolating the scaling trend suggests that it remains competitive even against an order-of-magnitude ( ∼10 ×) increase in pre-training data (Fig. 2). Furthermore, we validate the proposed framework on a production-scale autonomous driving system. We train an end-to-end planning model on over 80,000 hours of real-world driving logs, resulting in a substantially strong base model. We then apply reinforcement post-training with World Engine to further improve its performance. We evaluate the model using an industry-grade closed-loop simulation platform with over 10,000 scenarios. Results show that, despite the strong baseline, the collision rate is reduced by up to 45.5% after post-training. We further validate the approach through a 200-kilometre real-world on-road test, achieving zero disengagements and improved safety in safety-critical scenarios. These results demonstrate that such post-training paradigms can further enhance the safety of already strong autonomous driving systems in real-world settings. 
+
+# 2 Overview of World Engine 
+
+The autonomous driving problem can be formulated as an end-to-end learning task that maps raw sensor observations to control actions. In this work, we instantiate this formulation using real-world driving logs 
+
+> 2
+
+a
+
+> 10 -4
+> 10 -7
+
+ce    
+
+> Base driving agent
+> 1. Pretraining 2. Long-tail event discovery 3. Post-training with world modeling 4. Simulation & deployment
+> Real-world fleet logs
+> Base driving agent
+> Rare events
+> Reinforcement learning feedback World model Simulation validation Real-world deployment
+
+db  
+
+> Pull-out Side-entry Cut-in Parked Vehicle
+
+Figure 1. World Engine at a Glance. a, The curse of scarcity in autonomous driving makes near-miss events and accidents extremely difficult to collect at scale. b, Paradigm shift from passive data collection to World Engine. Passive data collection yields dense coverage of common driving scenarios but sparsely samples safety-critical events, leaving them outside the operational boundary of learned models. World Engine instead identifies safety-critical cases and synthesizes diverse variants, converting sparse long-tail events into a dense, learnable safety-critical distribution. c, 
+
+Variants of safety-critical driving scenarios generated by World Engine through photorealistic sensor simulation. d, 
+
+Behavioural variations synthesized from a single long-tail scenario by the behaviour world model. e, Conceptual pipeline of World Engine. 1. Pre-train the agent on real-world driving logs. 2. Identify rare, safety-critical events from the logs. 3. Generate safety-critical variants via world modelling and apply reinforcement learning post-training to improve agent safety. 4. Validate the trained agent in closed-loop simulation and real-world deployment. 
+
+(e.g., nuPlan), where sensor data and structured annotations are used to reconstruct interactive environments for training and evaluation. A key challenge lies in the scarcity of safety-critical and long-tail interactions in real-world driving logs, which fundamentally limits planner robustness (Fig. 1a). We introduce World Engine, a unified framework that shifts the closed-loop interactive data distribution toward long-tail scenarios beyond what real-world collection alone can provide, and adapts the end-to-end model through reinforcement learning post-training (Fig. 1b). The framework follows a four-stage pipeline: (1) pre-train a base driving agent on large-scale real-world logs and leverage it to discover failure-prone long-tail events, (2) reconstruct each discovered case into a photorealistic interactive simulation via 3D Gaussian Splatting, (3) augment the reconstructed scenarios with diverse traffic variations through a controllable behaviour world model, and (4) refine the agent via reinforcement post-training on the resulting rollouts (Fig. 1e). The following subsections 
+
+3describe each stage in detail. 
+
+2.1 Pre-training and Long-tail Event Discovery 
+
+The first step in World Engine is to identify the scenarios where learning matters most. Rather than synthesizing rare events from scratch or relying on manually designed scenarios, we ground event discovery in real-world driving logs, as they naturally capture complex multi-agent interactions, contextual dependencies, and realistic edge cases that are difficult to faithfully construct through manual design or synthetic perturbations. We begin by training a base end-to-end autonomous driving model via imitation learning on large-scale driving data. This pre-trained agent serves as both a strong behavioural prior and a diagnostic probe: we feed each logged scenario to the base agent, obtain its planned trajectory, and execute a non-reactive rollout against the logged traffic in a lightweight simulator that operates on 3D bounding boxes and HD maps. Scenarios in which the agent’s trajectory collides with logged objects or departs the road are flagged as safety-critical, as they reveal conditions where the current policy fails. These failure-prone cases constitute the long-tail subset that World Engine targets for augmentation. This discovery strategy offers two advantages. First, the selected events are grounded in real sensor data and real traffic configurations, which ensures that the resulting training distribution remains physically plausible. Second, because the base agent itself defines the boundary of competence, the discovered events are directly aligned with the regions where post-training can yield the largest improvement. 
+
+2.2 Simulation Engine 
+
+Once a long-tail event is identified, the next step is to turn it into a simulation environment where the driving agent can practice and learn. We refer to this component as the simulation engine: it reconstructs each discovered scenario into a photorealistic, interactive world and orchestrates closed-loop rollouts where the ego agent and surrounding traffic interact in real time, enabling novel ego trajectories beyond the original recording. The core of the simulation engine is a 3D Gaussian Splatting (3DGS)-based reconstruction pipeline [ 14 , 15 ]. The simulator directly supplies object-level tracks and 3D bounding boxes for all dynamic agents, which are used to decompose the scene into a compositional scene graph separating the static background (roads, buildings, vegetation) from dynamic foreground objects (vehicles, pedestrians, cyclists). Each element is represented by a set of 3D Gaussians fitted to multi-view observations from the driving logs. This decomposition allows independent manipulation of individual objects—repositioning, removing, or altering the trajectory of any traffic participant—while preserving the photorealistic quality of the static surroundings (Fig. 1c). This capability is critical for generating diverse traffic variations. A key property of this representation is free-viewpoint rendering: once the scene is reconstructed, it can be rendered from any camera pose, not only those recorded in the original log. This is essential for closed-loop simulation, where both the ego vehicle and surrounding traffic agents may follow trajectories that differ from the original log. As the ego agent takes novel actions and other agents are repositioned or re-planned, the simulation engine produces corresponding sensor observations in real time, maintaining visual fidelity to real-world camera data. The real-time rendering capability enables thousands of rollouts per scenario, which is necessary for reinforcement learning post-training at scale. 
+
+2.3 Behaviour World Model 
+
+While the simulation engine provides photorealistic sensor observations, the behaviour of surrounding traffic agents must also be modelled to enable meaningful closed-loop interaction. To achieve this, we introduce the behaviour world model, which generates realistic and diverse trajectories for surrounding agents that respond to the ego vehicle’s actions. At its core, the behaviour world model is a learned diffusion model [ 16 , 17 ] that treats multi-agent trajectory generation as a structured denoising process. Given the current scene context—including map 
+
+> 4
+
+topology, historical agent states, and the ego vehicle’s planned action—the model generates future trajectories for all surrounding agents simultaneously. The stochastic nature of the diffusion process naturally produces diverse behaviour samples: the same initial condition can yield cooperative, aggressive, or hesitant traffic responses depending on the denoising path. Beyond stochastic generation, the model supports controllable behaviour synthesis through two mecha-nisms. First, goal conditioning allows desired endpoints or waypoints to be flexibly specified for individual agents—ranging from explicit constraints for targeted scenario generation to probabilistic sampling for coverage—steering their trajectories toward particular configurations such as cut-in manoeuvres or sudden lane changes. Second, optimization guidance steers the denoising process at each step by evaluating each candidate trajectory against a desired behavioural objective—for instance, favouring interactions that approach collision thresholds or penalising lane departures—and progressively nudging the generation toward compliant outputs. This requires no retraining of the base model, as the guidance operates solely during sampling. For flexibility, the simulation framework also supports alternative traffic models: log replay for deterministic reproduction of recorded behaviour, and an Intelligent Driver Model (IDM) [ 18 ] for rule-based reactive traffic. These modes can be mixed within a single scenario, allowing some agents to follow the learned diffusion model while others replay logged trajectories or follow rule-based control. This combination of stochastic diversity, controllable generation, and flexible traffic modelling enables World Engine to produce counterfactual interactions that probe safety-critical dynamics. A single long-tail scenario can be expanded into hundreds of variations, each presenting different traffic responses that test the ego agent under a broad range of interactive conditions (Fig. 1d). 
+
+2.4 Reinforcement Post-training 
+
+The simulation engine and behaviour world model together produce diverse closed-loop rollouts from long-tail scenarios. Reinforcement post-training closes the loop by using these rollouts to refine the driving agent. We formulate the driving task as a partially observable Markov decision process (POMDP), where the agent receives camera observations, maintains internal state estimates, and outputs driving actions. The objective is to learn a policy that maximizes cumulative reward—reflecting safety (e.g., avoiding collisions and maintaining safe distances), comfort (e.g., smooth acceleration with low jerk), and progress (e.g., forward motion along the route)—while remaining close to the pre-trained policy. This balance is achieved through a behaviour-regularized reinforcement learning formulation, where a KL divergence penalty constrains the post-trained policy to stay near the pre-trained prior. The regularization prevents catastrophic forgetting of common driving competence while allowing targeted improvement in safety-critical regimes. The training data for post-training is drawn from a mixture of two sources: real-world logged trajectories and simulated rollouts generated by World Engine. The real data preserves the distribution of common driving situations, while the simulated data densifies the rare and safety-critical regions. This experience mixing strategy ensures that the agent improves on long-tail events without degrading performance on everyday driving by combining data-level and policy-level regularization: real-world log mixing preserves coverage of common scenarios, while the KL constraint limits deviations from the pre-trained policy. Within the simulated rollout, hard experience mining further selects the most informative frames for supervision. Not all frames in a rollout are equally valuable: we retain those where the current policy exhibits failure or near-failure behaviour, such as imminent collisions, off-road departures, or large deviations from human driving, and use them as prioritized training samples. By focusing supervision on these hard frames, the agent learns disproportionately from the moments where improvement matters most. A dense reward function provides intermediate feedback across safety, efficiency, and comfort objectives, guiding the reinforcement learning process—together with hard experience mining—toward safe and human-aligned driving behaviour. The four components described above—pre-training and long-tail event discovery, simulation engine, behaviour world model, and reinforcement post-training—form a closed-loop pipeline. Starting from a pre-trained agent, World Engine discovers its failure modes, reconstructs the corresponding scenarios into 
+
+> 5
+
+interactive worlds, generates diverse traffic variations, and uses the resulting rollouts for reinforcement post-training. This pipeline enables scalable post-training from rare events grounded in real data. Because every training scenario originates from an actual driving log, the learning signal remains physically plausible. Because the behaviour world model and simulation engine can generate many variations of each scenario, the agent encounters a rich distribution of interactive conditions far beyond what passive data collection can provide. And finally, because reinforcement post-training applies behaviour-regularized reinforcement learning, the resulting policy improves safety in critical regimes without sacrificing competence in common situations. 
+
+# 3 Methods 
+
+3.1 Implementation of World Engine 
+
+In this section, we describe the concrete implementation of World Engine on the publicly available dataset nuPlan, which serves as a reference implementation of our framework and is used for all our controlled ablation studies and quantitative analysis. Building upon this foundation, World Engine is also deployed and evaluated on a mass-produced ADAS development stack. Although the industrial setup involves additional engineering considerations, it preserves the same conceptual pipeline and learning objectives. The academic implementation therefore serves as a faithful abstraction of the system used in practice. 
+
+3.2 Simulation Engine 
+
+The photorealistic simulation engine is the key to enabling online exploration and data curation for training an end-to-end planner. It consists of two parts: reconstruction and controllable rendering. In the reconstruction stage, we reconstruct the driving logs with a 3DGS-based approach. Given a set of images and LiDAR points captured within a spatial-temporal driving log, the reconstruction task aims to learn a 3DGS representation that can faithfully reproduce the observed sensor data while recovering the underlying geometric structure. With the 3D bounding box annotation of traffic agents, the dynamic objects are reconstructed separately from static background through a scene graph-based design [ 19 ]. To ensure high-fidelity novel-view rendering, we incorporate dense geometric constraints, including depth and surface normal supervision during reconstruction, ensuring consistent structure and high-quality extrapolated views under novel camera poses. In the controllable rendering stage, the simulation engine renders the corresponding sensor observations with given input ego pose and sensor extrinsic and intrinsic at timestamp 𝑡 , along with the positions and heading angles of other non-ego vehicles. The 6-degree-of-freedom poses of both ego and non-ego vehicles are calibrated with the ground plane estimated from their trajectories. Controllable rendering is achieved by explicitly manipulating the reconstructed dynamic objects in the scene and rendering the camera observations from the updated ego camera location. Thanks to the efficient rasterization of 3DGS, the simulation engine supports real-time image rendering, enabling closed-loop simulation and scalable online data generation. We next describe the detailed representation, rendering process, and optimization objectives used in the simulation engine. 
+
+Scene representation For each driving scene 𝜏 ∼ 𝑝 , it is represented as a collection of anisotropic 3D Gaussian primitives G = {𝐺 𝑖 }𝑁 𝑖 =1, G ⊂ {S , O} . where each Gaussian 𝐺 𝑖 is parameterized by its spatial and appearance attributes: 𝐺 𝑖 = {x𝑖 , q𝑖 , s𝑖 , 𝛼 𝑖 , 𝜷 𝑖 }. Here, x𝑖 ∈ R3 denotes the centre position, 
+
+q𝑖 ∈ R4 a unit quaternion of orientation, s𝑖 ∈ R3 the anisotropic scale, 𝛼 𝑖 the opacity, and 𝜷 𝑖 the spherical harmonic (SH) coefficients of view-dependent colour. Covariance of each Gaussian is constructed as: 
+
+Σ𝑖 = 𝑅 (q𝑖 ) diag (s𝑖 )2 𝑅 (q𝑖 )⊤, where 𝑅 (q𝑖 ) converts the quaternion into a rotation matrix. To model dynamic driving scenes within a single traversal, Gaussian primitives are organized into a scene graph that separates static background structure from dynamic scene content. Specifically, the scene graph consists of two types of nodes: static nodes Gstatic , representing stationary elements such as roads and 
+
+> 6
+
+buildings, and dynamic nodes Gdyn , capturing moving traffic participants that may appear or disappear over time. This design enables stable reconstruction of the static environment while allowing dynamic objects to be independently manipulated during simulation and rollout. 
+
+Appearance modelling We mitigate photometric inconsistency by two-stage calibration. First, LiDAR-guided exposure alignment is applied to correct global brightness variations by matching colours of projected LiDAR points across views. Second, we introduce learnable per-camera affine colour transforms, parameterized by a channel-wise scale and bias, which are shared across time for each camera and optimized jointly with the scene representation. These affine transforms absorb residual camera-specific photometric differences, improving cross-camera consistency during reconstruction. 
+
+Rendering and objectives Given camera poses 𝐸 𝑡 , 𝐾 𝑡 , each 3D Gaussian is projected into image space as a 2D anisotropic Gaussian: x′ 
+
+> 𝑖
+
+= 𝐾 𝑡 𝐸 𝑡 x𝑖 , Σ′ 
+
+> 𝑖
+
+= 𝐽𝐾 𝑡 𝐸 𝑡 Σ𝑖 𝐸 ⊤ 
+
+> 𝑡
+
+𝐾 ⊤ 
+
+> 𝑡
+
+𝐽 ⊤, where 𝐽 denotes the Jacobian of the projection function. Pixel colours are obtained via alpha compositing in depth order: c𝑝 = Í𝑖 c𝑖, 𝑝 𝛼 𝑖, 𝑝 
+
+Î 𝑗<𝑖 (1 − 𝛼 𝑗, 𝑝 ),
+
+where c𝑖, 𝑝 is the SH-evaluated colour contribution of Gaussian 𝐺 𝑖 at pixel 𝑝 , and 𝛼 𝑖, 𝑝 its projected opacity. During World Engine rollout, deployed simulation engine generates observation through states O = P𝜓 (S) 
+
+in parallel. The Gaussian parameters are further optimized using a weighted combination of reconstruction and regularization objectives. For reconstruction loss, rendered images are supervised using a combination of ℓ1
+
+loss and SSIM. Regularization objectives further introduce depth and normal regularization. Sparse LiDAR depth is incorporated using an inverse-depth loss: 
+
+Ldepth = 1
+
+𝑑 pred 
+
+− 1
+
+𝑑 LiDAR 
+
+. (1) To improve local geometric consistency and prevent overfitting, a patch-wise normalized cross-correlation loss is applied: 
+
+LNCC = 1 − 1
+
+|Ω|∑︁ 𝑝 ∈Ω
+
+> 𝑆 2
+
+∑︁ 
+
+> 𝑠 =1
+
+𝐷 𝑝,𝑠 ¯𝐷 𝑝,𝑠 
+
+¯𝜎 𝑝 𝜎 𝑝 
+
+, (2) where Ω denotes the set of depth patches. For normal regularization, rendered normal maps are regularized using pseudo-normals 𝑁 computed from depth gradients, together with a total variation penalty: 
+
+Lnormal = ˆ𝑁 − 𝑁 + L TV ( ˆ𝑁 ). (3) To prevent degenerate Gaussian shapes, a flattening regularizer is applied: 
+
+Lflatten =∑︁ 
+
+> 𝑖
+
+max 
+
+ max (s𝑖 )
+
+median (s𝑖 ) , 𝑟 
+
+
+
+− 𝑟 + min (s𝑖 ), (4) where s𝑖 denotes the anisotropic scale of Gaussian 𝐺 𝑖 . For transient nodes, Gaussians that fall outside the spatial extent are penalized via: 
+
+Loob = − 1
+
+Goob 
+
+> 𝑇,𝑘
+
+∑︁ 𝐺 𝑖 ∈ G oob 
+
+> 𝑇,𝑘
+
+log (1 − 𝛼 𝑖 ). (5) The final training loss is the weighted sum of all terms: L = 𝜆 𝑟 L1 + ( 1 − 𝜆 𝑟 )L SSIM + 𝜆 depth Ldepth +
+
+𝜆 NCC LNCC + 𝜆 normal Lnormal + 𝜆 flatten Lflatten + 𝜆 oob Loob .
+
+> 7
+
+Details of reconstruction pipeline Reconstruction starts from a driving scenario identified by a key frame within a specific driving log. Given the key frame timestamp, we extract a spatio-temporal clip consisting of 3 seconds of history and 8 seconds of future frames, using sensor data sampled at 10 Hz. If the vehicle trajectory within the extracted time window spans less than 50 meters, we extend the end of the clip until either the accumulated trajectory length reaches 50 meters or the end of the driving log is encountered. This ensures sufficient spatial coverage for stable reconstruction. To avoid redundant static observations caused by prolonged low-speed or stationary periods, we downsample frames in segments where the ego vehicle speed falls below a predefined threshold. In addition, clips extracted from nearby key frames may partially overlap in time and space. To prevent repeated reconstruction of highly similar content, overlapping clips are merged and reconstructed jointly as a single scene instance. 
+
+Handling of image distortion We observe that raw camera images exhibit significant lens distortion, which adversely affects both reconstruction quality and pose estimation. All raw images are undistorted using OpenCV [ 20 ] with an optimal undistortion mode that preserves the original field of view during reconstruction. At inference time, we render the image using the optimal undistorted camera intrinsics, and then map it back to the original distorted image space to match the raw image. 
+
+Simulation platform and metrics We implement a simulation platform that integrates simulation engine with behaviour world model, and serves as the execution backbone for reinforcement post-training and evaluation. The simulator is responsible for generating closed-loop rollouts, computing task-specific metrics and rewards, and recording rollout data for subsequent training and analysis. To ensure compatibility with diverse end-to-end planners, the simulation platform communicates with external planning models through a lightweight file-based interface. At each simulation step, the simulator serializes sensor observations and scene states to disk, while the planner reads these inputs and returns planned trajectories, which are then executed in the simulator. For traffic agent modelling, the simulator supports either log replay or a reactive Intelligent Driver Model (IDM) [ 18 ]. Trajectory tracking is executed using an LQR controller with a bicycle dynamic model [ 21 , 22 ]. For open-loop evaluation, we use the PDM Score introduced in the NAVSIM benchmark [ 23 ]. For closed-loop evaluation in the World Engine simulator, we report both per-scene success rate (SR) and closed-loop PDM Score (PDMS ∗). SR measures whether the ego vehicle completes the episode without collision or off-road failure, while PDMS ∗ evaluates the quality of the closed-loop trajectory under interactive simulation, providing a complementary progress- and safety-aware metric. 
+
+3.3 Behaviour World Model 
+
+While the simulation engine provides photorealistic observation of the surrounding environment, the dynamics of traffic agents still need to be modelled to facilitate a comprehensive traffic simulator for end-to-end model training. This behaviour world model goes beyond traditional rule-based or log-replay simulations by utilizing a generative diffusion framework capable of synthesizing both stochastic and adversarial behaviours. We frame traffic layout simulation as a sequence modelling task, where driving scenarios are represented as structured tokenized states for both agent behaviours and map features, enabling simultaneous prediction of all agent futures. Concretely, the agent behaviours are defined as x ∈ R𝐴 × T × 𝐷 , where 𝐴 denotes the maximum agent capacity, T represents the physical temporal horizon, and 𝐷 signifies the dimensionality of agent attributes. Static environmental features are encoded in the map tensor c ∈ R𝐿 × 𝑁 ×𝐷 ′
+
+, representing 𝐿 
+
+lanes with 𝑁 points per lane and 𝐷 ′
+
+attributes (coordinates and types). Building upon this vectorized representation, the behavioural world model 𝑇 𝜃 employs a Diffusion Transformer (DiT) that generates the agent tensor x by reversing a stochastic differential process. Let x0 ∈ X 
+
+represent a clean agent feature from the distribution 𝑝 (x). Training begins with an initial state x0, which undergoes progressive noise injection over time steps k = [𝑘 𝑎, 𝜏 ] ∈ ( 0, 1] 𝐴 × T where each 𝑘 𝑎, 𝜏 represents the degree of Gaussian noise added to corresponding tokens, until reaching a Gaussian noise distribution at x𝑘 .
+
+> 8
+
+The model is optimized by minimizing the mean-square error (MSE): 
+
+xk = 𝛼 kx0 + 𝜎 k𝜖, 𝜖 ∼ N ( 0, I), x0 ∼ 𝑝 (x), (6) 
+
+∀k ∈ ( 0, 1] 𝐴 × T , min  
+
+> 𝜃
+
+E||( 𝜖 − 𝜖 𝜃 (xk; c, k)) ⊙ m|| 22, (7) where 𝛼 k, 𝜎 k are scale weights that describe the magnitude of the data x0 and the noise 𝜖 at the denoising step 
+
+k, 𝜃 parameterizes the denoiser 𝜖 𝜃 , and c is the map tensor guiding the denoising process. During sampling, all agent tokens are iteratively generated from the standard Gaussian noise with the denoising step. To enable goal-oriented generation, the model sets a keep mask m𝑐 to ensure targets and past tokens remain fixed during sampling: 
+
+𝑝 (xs |xk) = N ( xs |𝜇 (xk, k), Σ(xk, k)) ⊙ ¯m𝑐 + xk ⊙ m𝑐 , (8) where s is the next denoising step, 𝜇 and Σ are determined by DiT 𝜖 𝜃 .To ensure that generated scenarios align with realistic driving priors, we incorporate classifier guidance [ 24 ], adjusting the agent tensor x iteratively to enforce behavioural constraints at each denoising step [ 25 ]. Concretely, we separate overlapping agents along their centreline’s opposite direction to avoid collisions, smooth trajectories, and pull agents toward the nearest lanes for on-road driving. 
+
+3.4 Reinforcement Post-training 
+
+The simulation engine and behaviour world model create diverse counterfactual scenarios, yet these corner cases still need exploratory feedback guided by human priors. The reinforcement post-training stage combines experience curation with reinforcement learning to turn diverse experience into human-aligned improvements. The reinforcement learning task of autonomous driving can be formulated by the POMDP {O , S, A, 𝑟, 𝛾 } ⊂ 
+
+𝜏 over future horizon 𝑇 . 𝑜 ∈ O is the observation (i.e., image) from raw sensors. 𝑠 ∈ S denotes the state information of ego vehicle, traffic participants and map. 𝑎 ∈ A is the driving action. T𝜃 (𝑠 𝑡 +1 |𝑠 𝑡 , 𝑎 𝑡 )
+
+is the world model; 𝑟 : S × A → R denotes the shaped reward, and 𝜋 ref denotes the pre-trained policy distribution. The optimal driving policy 𝜋 𝜙 (𝑎 |𝑜 ) is learned by maximizing the cumulated expected value of reward 𝑅 (𝜏 ) = Í𝑇 𝑡 =0 𝛾 𝑡 𝑟 (𝑠 𝑡 , 𝑎 𝑡 ). We express this objective as a behaviour-regularized reinforcement learning problem: max  
+
+> 𝜙
+
+E𝜏 ∼ 𝑝 [𝑅 (𝜏 ) − 𝜆 
+
+> 𝑇
+
+∑︁ 
+
+> 𝑡 =0
+
+KL (𝜋 𝜙 (·| 𝑜 𝑡 )|| 𝜋 ref (·| 𝑜 𝑡 ))] , (9) where 𝜆 is the regularization weight toward the pre-trained driving expert 𝜋 ref . The experience distribution 𝑝 
+
+is defined as a mixture of real logged trajectories and simulated transitions generated by the world model and simulation engine: 
+
+𝑝 (𝜏 ) = (1 − 𝛼 ) 𝑝 real (𝜏 ) + 𝛼 𝑝 sim (𝜏 | 𝜋 𝜙 , T𝜃 , P𝜓 ). (10) Logged transitions 𝜏 ∼ 𝑝 real are drawn from human driving data. Simulated transitions 𝑝 sim are produced by rolling out the policy 𝑎 𝑡 ∼ 𝜋 𝜙 (· | 𝑜 𝑡 ) within the world model 𝑠 𝑡 +1 ∼ T 𝜃 (· | 𝑠 𝑡 , 𝑎 𝑡 ) and simulation engine 
+
+𝑜 𝑡 ∼ P 𝜓 (𝑠 𝑡 ). This mixture yields a unified experience source and allows the overall objective to be formulated as a regularized policy optimization problem. 
+
+Reward shaping The shaped reward function provides structured feedback that guides the policy toward safe and human-aligned behaviour during post-training. For each trajectory, we compute signals that reflect core driving objectives, including collision avoidance, drivable-area compliance, ego progress along the route, time-to-collision margin, and ride comfort. These rewards help distinguish high-quality behaviours from poor ones and amplify the contribution of informative corner cases. Experiences with higher driving quality naturally yield higher returns, while unsafe or implausible behaviours receive lower values. This ensures the policy learns not only from diverse and counterfactual scenarios but also understands which outcomes are desirable. 
+
+> 9
+
+Hard experience mining Given mixture experience distribution 𝑝 , hard experience mining gathers informative experiences from both logged data and world-model rollouts. We focus on a mixture of scenario clips that reveal rare or safety-critical interactions, such as near collisions, challenging negotiations, recovery manoeuvres, or clear departures from human driving. These mixed samples vary in driving quality, and are assigned different weighted learning curricula. All candidate samples are further checked for physical plausibility. The resulting mixture of high-quality corner cases helps the system learn from instructive experiences while remaining grounded in human driving. 
+
+3.5 Base End-to-End Driving Model 
+
+In recent years, a variety of end-to-end planning methods [ 1, 26 , 27 ] have emerged, leveraging onboard sensor data that typically include surround-view cameras and, optionally, LiDAR inputs, together with ego-vehicle information such as IMU poses, localization, and navigation commands. These models aim to predict the vehicle’s future trajectory over several seconds, which is subsequently used by the control module to control vehicle motion. They are generally trained in a supervised manner by imitating human driving behaviour. To further enhance spatial understanding and overall planning performance, these models are often jointly optimized with multiple auxiliary tasks, such as object detection, map element detection, motion prediction, and occupancy estimation. In this work, we adopt a standardized and robust model architecture. Specifically, we employ a BEVFormer encoder [ 28 ] to process multi-camera inputs and other sensory data, generating a fixed-size BEV feature representation that effectively captures the surrounding spatial context from a bird’s-eye-view perspective. An object tracking decoder and a map segmentation decoder are included for perception supervision following the design of UniAD [ 1]. A scoring-based planning decoder [ 27 ] is included, which selects the best trajectory across a pre-defined trajectory vocabulary, conditioned on BEV feature. 
+
+# 4 Experiment 
+
+We evaluate the proposed World Engine on two test settings: a visually realistic, challenging closed-loop simulation built upon a real-world dataset, and a large-scale closed-loop simulation and field testing on mass-produced Autonomous Driver Assistance System (ADAS). 
+
+4.1 Implementation Details 
+
+NuPlan experiments The nuPlan dataset [ 13 ] comprises 1,282 hours of driving logs, of which approximately 10% include synchronized sensor data. Each vehicle is equipped with 8 surrounding cameras and 5 LiDAR sensors operating at 10 Hz. We adopt the widely used navtrain [ 23 ] split for training, which contains exactly 103,288 scenes, each defined by a key frame with 1.5 seconds of historical context and a 4-second future horizon. Evaluation is performed on the navtest , which consists of 12,146 scenes, as well as a rare-event subset of navtest comprising 288 failure-prone scenarios. The closed-loop simulation and evaluation is conducted on the rare scenes. For data-scaling experiments, the amount of pre-training data is varied from 12.5% to 100% of navtrain .Unless otherwise specified, the base agent used for post-training is pre-trained on navtrain 50 𝑝𝑐𝑡 . The model backbone consists of a ResNet-50 [ 29 ] and a feature pyramid network (FPN) [ 30 ] that takes as input 8 camera views with 4 temporal frames per view. The extracted features are processed by a six-layer BEVFormer [ 28 ]encoder and a six-layer planning decoder, as well as parallel tracking and mapping decoders [ 1 ]. In total, the model contains 58.3 million trainable parameters. Pre-training is carried out on eight NVIDIA H100 GPUs and consists of two stages: perception pre-training for 164 hours over 40 epochs, followed by planning pre-training for 15 hours over 8 epochs. After pre-training, we evaluate the base model on navtrain 50 𝑝𝑐𝑡 and identify 5,340 long-tail scenes. Using World Engine, we generate a dataset of 31,508 frames from these scenarios, which is subsequently used for reinforcement-learning-based post-training. The post-training stage costs 11 hours over 8 epochs. 
+
+> 10
+
+Huawei ADS experiments The pre-training dataset is collected from both internal testing fleets and user vehicles spanning multiple vehicle models. Each vehicle is equipped with a heterogeneous sensor suite, including ten surrounding cameras, a fused LiDAR, radar, GPS, and an inertial measurement unit (IMU). After large-scale data mining, automatic labelling, and dataset balancing, the final dataset used for pre-training comprises approximately 80,000 hours of driving data, organized into more than 10 million clips of 25 seconds each. During post-training, we mix 1.0 million clips generated by World Engine with 5.0 million clips sampled from common driving data. Pre-training is conducted on Ascend 910B Neural Processing Units (NPUs) for a total of 40,000 NPU-hours, followed by 15,000 NPU-hours of post-training. For on-road evaluation, the trained policy is deployed on a Huawei AITO M9 vehicle in development mode. In this setting, minimal post-processing is applied: the model outputs are combined with a lightweight control module and used to directly actuate the vehicle chassis. Although exhaustive route-level deduplication between the pre-training corpus and the on-road test routes is infeasible at this data scale, the specific real-world interactions encountered during testing—including the cut-in event documented in Fig. 5c,d—are inherently non-reproducible and could not have been present in any logged training data, providing a genuine test of out-of-distribution generalisation. 
+
+4.2 Safety-critical Closed-loop Simulation 
+
+To evaluate the effectiveness of World Engine post-training, we construct a fully open-sourced, reproducible benchmark of safety-critical driving scenes built on the publicly available nuPlan dataset [ 13 ], which comprises 128 hours of real-world driving logs, including sensor data, annotated traffic agents, and high-definition maps. The benchmark is constructed from the official test split of nuPlan, ensuring that all evaluation scenarios are disjoint from the data used for pre-training. The benchmark focuses on rare cases—short sequences where baseline models are most likely to fail, such as near-collision, off-road deviation, or abrupt interactions with other agents (Fig. 3b). Each test case represents a localized 3D collision-centric scenario extracted from large-scale driving logs, and faithfully reconstructed within the World Engine simulation environment. Each simulation clip spans 4 seconds, capturing the most failure-prone temporal window in which the driving model must react to an imminent hazard. We perform open-loop evaluation using the metric PDM Score [ 23 ]and closed-loop evaluation in World Engine simulation using the success rate metric (Fig. 3a). A scenario is considered successful if the vehicle passes the four-second episode without a collision or off-road infraction, reflecting its ability to maintain safe and controllable behaviour under stress. To examine the data efficiency of World Engine post-training, we design a scaling experiment that varies the amount of pre-training data from 12k to 103k scenes and evaluates each model on three metrics: open-loop PDM Score on common cases, open-loop PDM Score on rare cases, and closed-loop success rate on rare cases (Fig. 2a). We then apply World Engine post-training starting from the 50k-scene base model and compare the resulting gains against the pre-training scaling curve. While increasing pre-training data yields steady but saturating improvements—particularly on rare cases where safety-critical events are scarce—World Engine post-training produces gains that exceed the scaling trend on all three metrics. The open-loop improvements confirm that the post-trained agent learns better trajectory planning, while the closed-loop gains further show that this improved planning translates into safer interactive behaviour under compounding dynamics. In particular, World Engine post-training on the 50k-scene base model already surpasses the performance of a model pre-trained on more than twice as much data. When extrapolating the scaling curve, achieving comparable closed-loop gains through pre-training alone would require approximately an order-of-magnitude more real-world data, highlighting that targeted post-training on synthesized rare events is a far more data-efficient path to safety improvement than scaling passive data collection. We additionally compare different post-training data sources and interaction models (Fig. 2b–d and Table 1). Post-training on common driving logs provides limited or even negative benefit for rare closed-loop evaluation: although it improves common open-loop PDMS, it slightly reduces rare closed-loop PDMS ∗ from 60.98 to 60.20, indicating that common logs alone do not address long-tail interactive failures. Post-training on rare logged scenes improves rare open-loop PDMS from 47.14 to 59.20, but yields only limited closed-loop gains, suggesting that fixed rare logs are insufficient for robust interactive behaviour. Rare synthetic replays 
+
+> 11 PDM Score
+> Success Rate PDM Score
+> FAIL PASS Base WE
+> FAIL PASS Base WE
+> FAIL PASS Base WE
+
+edcabFigure 2. Improving autonomous driving systems with World Engine in safety-critical scenarios. a, Effect of scaling the pre-training dataset from 12k to 103k scenes. (Left) Performance on common cases improves predictably with data scale. (Middle, right) Performance gains on rare cases saturate due to the scarcity. Starting from a base agent pre-trained on 50k scenes, post-training with safety-oriented rewards leads to substantial open-loop performance improvements on both common and rare cases. Closed-loop performance further improves as the amount of post-training data generated by World Engine increases, achieving comparable gains to those obtained with approximately 14 ×
+
+additional pre-training data. b, Post-training on rare-event logs outperforms post-training on common logs on rare open-loop and rare closed-loop PDMS, highlighting the importance of long-tail event discovery. c, Post-training on long-tail rollouts better preserves common-case performance and improves rare closed-loop PDMS compared with post-training on long-tail synthetic replays, indicating the value of interactive closed-loop experience beyond replayed behaviours. d, Post-training with the behaviour world model further improves rare closed-loop PDMS from 0.673 to 0.701 over post-training without the behaviour world model, showing the benefit of traffic augmentation for closed-loop interaction quality. e, Qualitative comparison between the base agent and the agent post-trained with World Engine. For failure cases, we visualize the frame immediately preceding the collision in simulation. 
+
+further improve rare open-loop PDMS and substantially increase closed-loop success rate, but they yield the lowest ego progress in this comparison, indicating that binary success alone does not fully capture progress-aware closed-loop driving quality. In contrast, rare rollouts without the behaviour world model provide reactive closed-loop experience, better preserve common-case performance, and improve rare closed-loop PDMS ∗ to 67.33. Incorporating augmented traffic interactions through the behaviour world model yields the best overall rare closed-loop performance, achieving the highest PDMS ∗ of 70.12 and the highest success rate of 88.89%, while maintaining strong common open-loop PDMS. Full quantitative results, including success rate, ego progress, and PDMS ∗, are provided in Table 1. 
+
+> 12
+
+a b   
+
+> EGO Planner
+> Offline metrics
+> Non-reactive
+> Planner
+> Reactive
+> Rollout metrics
+> GT Pred.
+> (1) Open-loop testing (2) Closed-loop testing
+> Logged Data
+> Real-time rendering
+
+Figure 3. NuPlan evaluation protocol and safety-critical test-set composition. a, Schematic comparison of open-loop and closed-loop evaluation in nuPlan. In open-loop testing, the planner is evaluated on logged observations with offline metrics, without affecting the future evolution of the scene. In closed-loop testing, the planner interacts with reactive agents in simulation, and performance is measured using rollout-based metrics under real-time rendering. b, 
+
+Distribution of scenario types in the safety-critical test set used for closed-loop evaluation. The set covers a diverse range of challenging traffic situations, including intersections, traffic-light interactions, stop-sign traversals, lane following, and multi-agent encounters. 
+
+4.3 Production-scale Driving Validation 
+
+To validate World Engine at production scale, we apply it to Huawei Advanced Driving System (ADS), an autonomous driving system deployed on over one million vehicles and capable of point-to-point driving in both urban and highway settings. We leverage the development and testing stack of the system, where an end-to-end model directly takes sensor inputs and produces trajectories to the control module to drive the vehicle. We first train the base end-to-end model on more than 80,000 hours of real-world driving data collected from over 100 cities. Following the same pipeline as the earlier experiments, we identify failure-prone scenarios from the training logs, reconstruct them via 3DGS-based rendering, augment traffic interactions through the behaviour world model, and refine the base model through reinforcement post-training. We evaluate the post-trained model using the industrial quality assurance system, which performs asynchronous, hardware-in-the-loop closed-loop simulations on production on-board hardware. In each simulation, rendered sensor streams are fed to the end-to-end model running on the vehicle’s computing unit, forming a full sensor-to-control closed loop. Each test scenario runs for approximately 20 seconds; across all scenarios the simulation totals over 60 hours, equivalent to roughly 3,000 km of driving—all consisting of eventful, interaction-rich situations rather than uneventful cruising. Across six safety metrics spanning general and rare driving scenarios, World Engine post-training consistently reduces failure events (Fig. 4a). In rare interaction scenarios (1,206 test cases), collisions with pedestrians and cyclists decrease by 15.8% and collisions at intersections decrease by 24.1%. In rare cut-in scenarios (643 test cases), cut-in collisions decrease by 45.5% and time-to-collision events decrease by 13.4%. These safety gains do not come at the cost of general driving performance: across 10,986 common cases, dynamic collisions decrease by 13.2% and static collisions by 20.0%, indicating that long-tail post-training also improves everyday driving competence. A representative simulation case is shown in Fig. 4b,c: the base model fails to brake in time and collides with a cut-in vehicle, while the post-trained model decelerates proactively and avoids contact. We further conduct on-road testing over multiple runs totalling approximately 200 km across routes in Shanghai (Fig. 5a,b). Across all three runs, the post-trained model completes the full 200 km with zero disengagements, whereas the base model triggers one safety-critical intervention. Even a single intervention over 200 km remains a substantial reliability failure for deployment, particularly because it occurs in a rare but safety-critical cut-in interaction. Fig. 5c,d illustrate this incident: an adjacent vehicle, unaware of the test vehicle approaching from behind, begins to merge into the ego lane. The base model fails to respond to the cut-in and even attempts to accelerate; the adjacent vehicle is forced to abort its lane change abruptly to avoid a collision (Fig. 5c)—a situation that poses clear safety risks. Under a similar condition, the post-trained model recognizes the cut-in early and smoothly adjusts its speed, allowing the ego vehicle to pass safely without 
+
+> 13
+
+Table 1. Comparison of post-training paradigms on the nuPlan benchmark. We compare different post-training strategies using open-loop PDM Score (PDMS) on common and rare scenarios, and closed-loop metrics on rare scenarios. SR denotes success rate, EP denotes ego progress, and PDMS ∗ denotes the closed-loop PDM Score. The base model achieves 85.64 and 47.14 open-loop PDMS on common and rare cases, respectively, with 73.66% SR, 46.71 EP, and 60.98 PDMS ∗ in rare closed-loop evaluation. Supervised fine-tuning on rare logs provides only modest improvements over the base model. Post-training on common logs improves common open-loop PDMS but degrades rare closed-loop SR and PDMS ∗, reducing SR from 73.66% to 69.62% and PDMS ∗ from 60.98 to 60.20, highlighting the need for long-tail event discovery. Post-training on rare logs substantially improves rare open-loop PDMS to 59.20, but does not improve rare closed-loop SR. Post-training on rare synthetic replays improves rare open-loop PDMS to 62.69 and SR to 87.19%, but reduces common open-loop PDMS to 82.61 and yields the lowest EP of 32.49, suggesting that binary rare-case success can improve while common-case retention and progress-aware driving quality degrade. Post-training on rare rollouts without the behaviour world model recovers strong common open-loop performance and achieves the highest EP of 56.74, together with an improved PDMS ∗ of 67.33. The full World Engine pipeline, which incorporates behaviour-world-model traffic augmentation, achieves the best overall rare closed-loop performance, with the highest SR of 88.89% and the highest PDMS ∗ of 70.12, while also obtaining the highest common open-loop PDMS of 88.95. Relative to the base model, World Engine improves rare closed-loop SR by 15.23 percentage points and PDMS ∗ by 9.14; relative to rare rollouts without the behaviour world model, it improves SR by 10.93 percentage points and PDMS ∗ by 2.79. These results show that combining long-tail event discovery, reactive generated rollouts, and behaviour-model traffic augmentation yields the strongest overall closed-loop safety and driving-quality gains while maintaining strong open-loop performance. 
+
+Method Open-loop PDMS ↑ Closed-loop (rare) common rare SR ↑ EP ↑ PDMS ∗ ↑
+
+base model 85.64 47.14 73.66 46.71 60.98 supervised fine-tuning on rare logs 87.50 52.55 74.51 47.59 61.87 post-training on common logs 87.69 49.36 69.63 51.02 60.21 post-training on rare logs 88.51 59.20 73.35 51.86 62.78 post-training on rare synthetic replays 82.61 62.69 87.20 32.49 63.22 post-training on rare rollouts w/o Behaviour WM 88.53 61.88 77.96 56.74 67.33 post-training with World Engine 88.95 59.83 88.89 47.66 70.12 
+
+requiring evasive action from either party (Fig. 5d). These results, together with additional nighttime driving scenarios (Fig. 6), demonstrate that the safety improvements from World Engine transfer from simulation to real-world deployment on production vehicles. 
+
+# 5 Conclusion and Discussion 
+
+World Engine reframes autonomous driving learning under the long-tail regime as a post-training problem: instead of relying on passive fleet-scale collection to eventually observe rare events, it discovers failure-prone scenarios from real logs, reconstructs them into interactive photorealistic worlds, expands them through counterfactual traffic variations, and improves end-to-end planners via reinforcement learning. Across a safety-critical closed-loop benchmark reconstructed from nuPlan, post-training in World Engine improves success rate and trajectory feasibility, and can deliver closed-loop gains comparable to adding substantially more pre-training data, highlighting a data-efficient path for safety alignment when rare events are the bottleneck. Scaling to a mass-produced ADAS stack, World Engine reduces failure rates in a safety-critical benchmark (up to 45.5% in cut-in tests) while maintaining performance on common cases, suggesting that targeted long-tail post-training can improve safety without sacrificing everyday driving competence. From a practical standpoint, these results carry significant implications for the industry. Our data-scaling analysis shows that World Engine post-training can match the safety gains of approximately 10 × more pre-training data when extrapolating the scaling curve, which in practice would require proportionally larger fleets, longer collection campaigns, and substantially higher annotation costs. By shifting the focus from passive data 
+
+> 14
+
+abc 
+
+> simulation testing (base) T0
+> T1
+> cut-in onset collision
+> simulation testing (WE) T0
+> T1cut-in onset safe pass
+
+Figure 4. Testing results in production-level closed-loop simulation. a, World Engine post-training improves key safety metrics over the ADS base model. b,c, Representative interaction cases comparing the ADS base and World Engine post-trained models in closed-loop simulation. Each case shows BEV and camera snapshots at key moments ( 𝑇 0
+
+and 𝑇 1), together with the ego command acceleration and wheel speed. 
+
+accumulation to targeted synthesis and reinforcement on rare events, World Engine offers a more cost-effective path to resolving long-tail safety problems and can substantially shorten the iteration cycle for improving autonomous driving systems. 
+
+Limitations. We note several limitations of the current framework. First, the long-tail event discovery stage can only identify failure modes that are already present in the collected driving logs. If a safety-critical scenario type has never been recorded—for example, an unusual road geometry or an entirely novel agent behaviour—it cannot be discovered or reconstructed by the current pipeline. Extending discovery beyond logged data, for instance through procedural scenario generation or adversarial search in a learned latent space, remains an open direction. Second, the fidelity of World Engine is bounded by its two simulation components. The 3DGS-based simulation engine produces high-quality images near the recorded trajectories but degrades when the simulated ego path deviates substantially from the original log, introducing visual artefacts that may affect policy learning. The behaviour world model, while capable of diverse traffic generation, does not yet 
+
+> 15
+
+da b
+
+on-road testing (base) T0
+
+> T1
+> cut-in onset cut-in vehicle avoidance manoeuvre
+
+on-road testing (WE) T0
+
+> T1
+> cut-in onset safe pass
+
+c
+
+> Urban Shanghai
+
+Figure 5. Scaling World Engine to production self-driving vehicles. a, On-road test route in Shanghai dominated by urban motorways and elevated roads, approximately 65 km in length, evaluated in two daytime runs. b, On-road test route in urban Shanghai dominated by town and residential roads, approximately 70 km in length, evaluated in one nighttime run. c,d, Representative interaction cases comparing the ADS base and World Engine post-trained models in on-road tests. Each case shows BEV and camera snapshots at key moments ( 𝑇 0 and 𝑇 1), together with the ego command acceleration and wheel speed. 
+
+capture all real-world interaction patterns with high fidelity, particularly those involving pedestrians, cyclists, or unstructured road users. Narrowing this sim-to-real gap is essential for further improving the transfer of post-training gains to deployment. Third, the reward function used in reinforcement post-training is based on principled but manually defined signals, such as collision avoidance, lane adherence, and route progress. These rewards encode general safety and driving objectives, yet they may not capture all the nuances of human driving preferences. Developing learned or verifiable reward functions that can adapt to more complex driving norms is a promising avenue for future work. 
+
+Scalability and iterative refinement. The current framework is validated with a single round of post-training. A natural extension is iterative refinement, where the improved agent is re-evaluated to discover new failure modes, and successive rounds of World Engine post-training are applied. However, in our experiments 
+
+> 16
+
+on-road testing case (WE) - night T0
+
+> T1
+> obstructed lane safe pass
+
+dab
+
+> T0
+> T1
+> low-visibility pedestrian safe pass
+> T0
+> T1
+> construction-narrowed intersection safe pass
+> Radar Radar LiDAR Camera
+
+c on-road testing case (WE) - night on-road testing case (WE) - night  
+
+> LiDAR Camera MDC GPS & IMU Radar By-wire Control
+
+Figure 6. Scaling World Engine to nighttime driving scenarios. a, Sensor configuration of the test vehicle. b, 
+
+Nighttime obstructed-lane scenario, showing safe passage around the obstruction. c, Nighttime low-visibility pedestrian crossing, showing safe yielding and passage. d, Nighttime construction-narrowed intersection, showing safe negotiation through the constrained roadway. Each case shows BEV and camera snapshots at key moments ( 𝑇 0 and 𝑇 1), together with the ego command acceleration and wheel speed. 
+
+17 with the relatively small model (58.3M parameters), we observe that multiple rounds of post-training tend to destabilize the policy, likely because the model lacks sufficient capacity to absorb corrections without interfering with previously learned behaviours. Whether larger models or more sophisticated regularization strategies can support stable multi-round post-training remains an open question. A related observation concerns how failure modes evolve as the base model scales. In the Huawei ADS experiments, where the base model is trained on over 80,000 hours of data, the proportion of scenarios identified as long-tail events is substantially smaller than in the academic setting. Importantly, even with fewer discovered long-tail events, post-training still yields meaningful safety improvements. This finding indicates that World Engine can continue to provide gains as base models grow stronger, targeting an increasingly narrow but consequential set of failure modes. 
+
+Future work on world modelling. In this work, we develop a world modelling framework for autonomous driving that combines 3DGS-based neural rendering with a behaviour world model to generate realistic and controllable behaviours of surrounding agents. The proposed approach satisfies key requirements for post-training, including controllability, realism, efficiency, and robustness. A current limitation arises from imperfections in 3DGS reconstruction, particularly when large deviations occur between simulated rollout trajectories and the original real-world trajectories. As video generation technology continues to advance, this world modelling framework could be extended to video-based world models, which have shown promise in embodied navigation and beyond-the-view scene imagination [ 31 ], offering improved realism, controllability, and diversity. 
+
+Towards general Physical AI. The core insight behind World Engine—that safety-critical learning requires active synthesis rather than passive collection—is not specific to driving. Any Physical AI system that must operate reliably in the real world faces the same structural challenge: the most consequential failures are the hardest to observe in natural data. Robot manipulation systems, legged locomotion policies, and surgical robots all share this property. In these areas, the long tail of rare but high-consequence events defines the practical safety boundary, and is systematically under-represented in training data. The discover–world-modelling–post-train pipeline introduced in this work offers a general template for addressing this challenge. Given a pre-trained policy and a set of recorded task executions, one can identify failure-prone episodes, reconstruct them into interactive worlds, generate diverse variations, and apply reinforcement post-training to improve robustness in the identified regimes. The specific instantiation of each stage will vary across domains—3DGS rendering and behaviour world models may be replaced by video world models [ 32 , 33 ] or physics-based simulation [ 34 , 35 , 36 ] depending on the application—but the overall logic remains the same: ground learning in real failures, expand coverage through controllable synthesis, and refine the policy through targeted reinforcement. We believe that this paradigm of post-training on synthesized rare events, bridging pre-training on broad natural distributions with targeted reinforcement on safety-critical regimes, represents a promising direction for building reliably safe Physical AI systems. 
+
+# 6 Acknowledgments 
+
+This work is in part supported by the JC STEM Lab of Autonomous Intelligent Systems funded by The Hong Kong Jockey Club Charities Trust. We thank Chonghao Sima, Huijie Wang, Jiazhi Yang, Haochen Tian, Yihang Qiu from OpenDriveLab for comments and discussions. We thank Jianzhang Yang, Hengyu Lu and colleagues at Huawei Inc. for their assistance with experiments on the Huawei ADS. 
+
+> 18
+
+# References 
+
+[1] Yihan Hu, Jiazhi Yang, Li Chen, et al. Planning-oriented autonomous driving. In CVPR , 2023. [2] Waymo. Demonstrably safe ai for autonomous driving, 2025. URL https://waymo.com/blog/ 2025/12/demonstrably-safe-ai-for-autonomous-driving .[3] Alexander Naumann, Xunjiang Gu, Tolga Dimlioglu, et al. Data scaling laws for end-to-end autonomous driving. In CVPR , 2025. [4] Kristofer D. Kusano, John M. Scanlon, Yin-Hsiu Chen, Timothy L. McMurry, Tilia Gode, and Trent Victor. Comparison of waymo rider-only crash rates by crash type to human benchmarks at 56.7 million miles. Traffic Inj. Prev. , 26(sup1):S8–S20, 2025. doi: 10.1080/15389588.2025.2499887. [5] Henry X. Liu and Shuo Feng. Curse of rarity for autonomous vehicles. Nat. Commun. , 15(1):4808, 2024. [6] Mustafa Baniodeh, Kratarth Goel, Scott Ettinger, et al. Scaling laws of motion forecasting and planning — technical report, 2025. Preprint at https://arxiv.org/abs/2506.08228 .[7] Jared Kaplan, Sam McCandlish, Tom Henighan, et al. Scaling laws for neural language models, 2020. Preprint at https://arxiv.org/abs/2001.08361 .[8] Jason Wei, Yi Tay, Rishi Bommasani, et al. Emergent abilities of large language models, 2022. Preprint at https://arxiv.org/abs/2206.07682 .[9] Jason Wei, Xuezhi Wang, Dale Schuurmans, et al. Chain-of-thought prompting elicits reasoning in large language models. In NeurIPS , volume 35, pages 24824–24837, 2022. [10] Zhihong Shao, Peiyi Wang, Qihao Zhu, et al. Deepseekmath: Pushing the limits of mathematical reasoning in open language models, 2024. Preprint at https://arxiv.org/abs/2402.03300 .[11] Daya Guo, Dejian Yang, Haowei Zhang, et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. Nature , 645(8081):633–638, 2025. [12] Thomas Hubert, Rishi Mehta, Laurent Sartran, Mikl ´os Z Horv ´ath, Goran ˇZuˇ zi ´c, Eric Wieser, Aja Huang, Julian Schrittwieser, Yannick Schroecker, Hussain Masoom, et al. Olympiad-level formal mathematical reasoning with reinforcement learning. Nature , pages 1–3, 2025. [13] Napat Karnchanachari, Dimitris Geromichalos, Kok Seang Tan, et al. Towards learning-based planning: The nuplan benchmark for real-world autonomous driving. In ICRA , pages 629–636, 2024. doi: 10.1109/ICRA57147.2024.10610077. [14] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3D gaussian splatting for real-time radiance field rendering. ACM Trans. Graph. , 2023. [15] Tianyu Li, Yihang Qiu, Zhenhua Wu, et al. MTGS: Multi-traversal gaussian splatting, 2025. Preprint at https://arxiv.org/abs/2503.12552 .[16] Yunsong Zhou, Naisheng Ye, William Ljungbergh, et al. Decoupled diffusion sparks adaptive scene generation. In ICCV , 2025. [17] Shihao Li, Naisheng Ye, Tianyu Li, et al. Optimization-guided diffusion for interactive scene generation, 2025. Preprint at https://arxiv.org/abs/2512.07661 .[18] Martin Treiber, Ansgar Hennecke, and Dirk Helbing. Congested traffic states in empirical observations and microscopic simulations. Phys. Rev. E , 2000. 
+
+> 19
+
+[19] Julian Ost, Fahim Mannan, Nils Thuerey, Julian Knodt, and Felix Heide. Neural scene graphs for dynamic scenes. In CVPR , pages 2856–2865, 2021. [20] G. Bradski. The OpenCV library. Dr. Dobb’s Journal of Software Tools , 2000. [21] Norman Lehtomaki, Nils Sandell, and Michael Athans. Robustness results in linear-quadratic gaussian based multivariable control designs. IEEE Trans. Autom. Control , 1981. [22] Rajesh Rajamani. Vehicle dynamics and control . Springer Science & Business Media, 2011. [23] Daniel Dauner, Marcel Hallgarten, Tianyu Li, et al. NAVSIM: Data-driven non-reactive autonomous vehicle simulation and benchmarking. In NeurIPS Datasets and Benchmarks , 2024. [24] Chitwan Saharia, William Chan, Saurabh Saxena, et al. Photorealistic text-to-image diffusion models with deep language understanding. In NeurIPS , volume 35, pages 36479–36494, 2022. [25] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. In ICLR ,2021. URL https://openreview.net/forum?id=St1giarCHLP .[26] Bo Jiang, Shaoyu Chen, Qing Xu, et al. VAD: Vectorized scene representation for efficient autonomous driving. In ICCV , 2023. [27] Bo Jiang, Shaoyu Chen, Hao Gao, et al. VADv2: End-to-end autonomous driving via probabilistic planning. In ICLR , 2026. [28] Zhiqi Li, Wenhai Wang, Hongyang Li, et al. BEVFormer: Learning bird’s-eye-view representation from multi-camera images via spatiotemporal transformers. In ECCV , 2022. [29] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In CVPR , 2016. [30] Tsung-Yi Lin, Piotr Doll ´ar, Ross Girshick, et al. Feature pyramid networks for object detection. In 
+
+CVPR , 2017. [31] Hai Zhang, Siqi Liang, Li Chen, Yuxian Li, Yukuan Xu, Yichao Zhong, Fu Zhang, and Hongyang Li. Sparse video generation propels real-world beyond-the-view vision-language navigation. arXiv preprint arXiv:2602.05827 , 2026. [32] NVIDIA, Arslan Ali, Junjie Bai, et al. World simulation with video foundation models for physical ai, 2025. Preprint at https://arxiv.org/abs/2511.00062 .[33] Jiazhi Yang, Kunyang Lin, Jinwei Li, et al. Rise: Self-improving robot policy with compositional world model. In Robotics: Science and Systems , 2026. [34] Alexey Dosovitskiy, German Ros, Felipe Codevilla, Antonio Lopez, and Vladlen Koltun. CARLA: An open urban driving simulator. In CoRL , 2017. [35] Xiaosong Jia, Zhenjie Yang, Qifeng Li, Zhiyuan Zhang, and Junchi Yan. Bench2drive: Towards multi-ability benchmarking of closed-loop end-to-end autonomous driving. In NeurIPS 2024 Datasets and Benchmarks Track , 2024. [36] Yao Mu, Tianxing Chen, Zanxin Chen, et al. Robotwin: Dual-arm robot benchmark with generative digital twins. In CVPR , pages 27649–27660, 2025. [37] Tom Mitchell, William Cohen, Estevam Hruschka, et al. Never-ending learning. Commun. ACM , 61 (5):103–115, 2018. 
+
+> 20
+
+[38] Gido M. Van de Ven, Tinne Tuytelaars, and Andreas S. Tolias. Three types of incremental learning. 
+
+Nat. Mach. Intell. , 4(12):1185–1197, 2022. [39] Hongyang Li, Yang Li, Huijie Wang, et al. Open-sourced data ecosystem in autonomous driving: the present and future, 2023. Preprint at https://arxiv.org/abs/2312.03408 .[40] Alireza Abbaspour, Tejaskumar Balgonda Patil, B. Ravi Kiran, et al. Dataset safety in autonomous driving: requirements, risks, and assurance, 2025. Preprint at https://arxiv.org/abs/2511. 08439 .[41] Scale AI. Upgrading your fleet into an av data engine, 2023. URL https://www.youtube.com/ watch?v=lbOoXI1EeEs . Online video. [42] Tesla. Tesla AI Day 2022, 2022. URL https://www.youtube.com/watch?v=ODSJsviDSU . Online video. [43] Lei Lai, Eshed Ohn-Bar, Sanjay Arora, and John Seon Keun Yi. Uncertainty-guided never-ending learning to drive. In CVPR , pages 15088–15098, 2024. [44] Applied Intuition. Software-defined systems (SDS) for automotive, 2023. URL https://www. appliedintuition.com/sds-for-automotive . Online. [45] Mingfu Liang, Jong-Chyi Su, Samuel Schulter, et al. AIDE: An automatic data engine for object detection in autonomous driving. In CVPR , pages 14695–14706, 2024. [46] Alexander Kirillov, Eric Mintun, Nikhila Ravi, et al. Segment anything. In ICCV , pages 4015–4026, 2023. [47] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. BLIP-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In Proceedings of the International Conference on Machine Learning (ICML) , pages 19730–19742. PMLR, 2023. [48] Vishal Thengane, Salman Khan, Munawar Hayat, and Fahad Khan. CLIP model is an efficient continual learner, 2022. Preprint at https://arxiv.org/abs/2210.03114 .[49] Charles R. Qi, Yin Zhou, Mahyar Najibi, et al. Offboard 3d object detection from point cloud sequences. In CVPR , pages 6134–6144, 2021. [50] Khan Muhammad, Amin Ullah, Jaime Lloret, Javier Del Ser, and Victor Hugo C. De Albuquerque. Deep learning for safe autonomous driving: Current challenges and future directions. IEEE Trans. Intell. Transport. Syst. , 22(7):4316–4336, 2020. [51] Nico Montali, John Lambert, Paul Mougin, et al. The waymo open sim agents challenge. In NeurIPS ,volume 36, pages 59151–59171, 2023. [52] Shuo Feng, Haowei Sun, Xintao Yan, et al. Dense reinforcement learning for safety validation of autonomous vehicles. Nature , 615(7953):620–627, 2023. [53] Shuo Feng, Xintao Yan, Haowei Sun, et al. Intelligent driving intelligence test for autonomous vehicles with naturalistic and adversarial environment. Nat. Commun. , 12(1):748, 2021. [54] Shenyuan Gao, Jiazhi Yang, Li Chen, et al. Vista: A generalizable driving world model with high fidelity and versatile controllability. In NeurIPS , volume 37, pages 91560–91596, 2024. [55] Jiazhi Yang, Kashyap Chitta, Shenyuan Gao, et al. ReSim: Reliable world simulation for autonomous driving. In NeurIPS , 2025. 
+
+> 21
+
+[56] Bohan Li, Jiazhe Guo, Hongsi Liu, et al. UniScene: Unified occupancy-centric driving scene generation. In CVPR , pages 11971–11981, 2025. [57] Ze Yang, Yun Chen, Jingkang Wang, et al. UniSim: A neural closed-loop sensor simulator. In CVPR ,pages 1389–1399, 2023. [58] Wenhao Ding, Yulong Cao, Ding Zhao, Chaowei Xiao, and Marco Pavone. RealGen: Retrieval augmented generation for controllable traffic scenarios. In Proceedings of the European Conference on Computer Vision (ECCV) , pages 93–110. Springer, 2024. [59] Ruiyuan Gao, Kai Chen, Bo Xiao, et al. MagicDrive-V2: High-resolution long video generation for autonomous driving with adaptive control. In ICCV , pages 28135–28144, 2025. [60] Xiaosong Jia, Zhenjie Yang, Qifeng Li, Zhiyuan Zhang, and Junchi Yan. Bench2Drive: Towards multi-ability benchmarking of closed-loop end-to-end autonomous driving. In NeurIPS , volume 37, pages 819–844, 2024. [61] Wenhao Yu, Chengxiang Zhao, Hong Wang, et al. Online legal driving behavior monitoring for self-driving vehicles. Nat. Commun. , 15(1):408, 2024. [62] Jianlan Luo, Charles Xu, Jeffrey Wu, and Sergey Levine. Precise and dexterous robotic manipulation via human-in-the-loop reinforcement learning. Sci. Robot. , 10(105):eads5033, 2025. [63] Cheng Chi, Benjamin Burchfiel, Eric Cousineau, Siyuan Feng, and Shuran Song. Iterative residual policy: for goal-conditioned dynamic manipulation of deformable objects. Int. J. Robot. Res. , 43(4): 389–404, 2024. [64] Agrim Gupta, Silvio Savarese, Surya Ganguli, and Li Fei-Fei. Embodied intelligence via learning and evolution. Nat. Commun. , 12(1):5721, 2021. [65] David Silver and Richard S. Sutton. Welcome to the era of experience. Google DeepMind , 2025. [66] Claudine Badue, R ˆanik Guidolini, Raphael Vivacqua Carneiro, et al. Self-driving cars: A survey. 
+
+Expert Syst. Appl. , 165:113816, 2021. [67] Steffen Hagedorn, Marcel Hallgarten, Martin Stoll, and Alexandru Paul Condurache. The integration of prediction and planning in deep learning automated driving systems: A review. IEEE Trans. Intell. Veh. , 10(5):3626–3643, 2024. [68] Li Chen, Penghao Wu, Kashyap Chitta, Bernhard Jaeger, Andreas Geiger, and Hongyang Li. End-to-end autonomous driving: Challenges and frontiers. IEEE Trans. Pattern Anal. Mach. Intell. , 2024. [69] Chonghao Sima, Katrin Renz, Kashyap Chitta, et al. DriveLM: Driving with graph visual question answering. In Proceedings of the European Conference on Computer Vision (ECCV) , pages 256–274. Springer, 2024. [70] Xiaoyu Tian, Junru Gu, Bailin Li, Yicheng Liu, Yang Wang, Zhiyong Zhao, Kun Zhan, Peng Jia, Xianpeng Lang, and Hang Zhao. Drivevlm: The convergence of autonomous driving and large vision-language models. In CoRL , pages 4698–4726, 2024. [71] Jyh-Jing Hwang, Runsheng Xu, Hubert Lin, et al. EMMA: End-to-end multimodal model for autonomous driving. Transactions on Machine Learning Research , 2024. [72] Zhenjie Yang, Xiaosong Jia, Hongyang Li, and Junchi Yan. LLM4drive: A survey of large language models for autonomous driving. In NeurIPS 2024 Workshop on Open-World Agents , 2024. 
+
+> 22
+
+[73] Yingyan Li, Shuyao Shang, Weisong Liu, et al. DriveVLA-W0: World models amplify data scaling law in autonomous driving, 2025. Preprint at https://arxiv.org/abs/2510.12796 .[74] Long Chen, Oleg Sinavski, Jan H¨ unermann, et al. Driving with LLMs: Fusing object-level vector modality for explainable autonomous driving. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , pages 14093–14100. IEEE, 2024. [75] Zhenjie Yang, Yilin Chai, Xiaosong Jia, Qifeng Li, Yuqian Shao, Xuekai Zhu, Haisheng Su, and Junchi Yan. Drivemoe: Mixture-of-experts for vision-language-action model in end-to-end autonomous driving. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 10678–10688, June 2026. [76] Zewei Zhou, Tianhui Cai, Seth Z. Zhao, et al. AutoVLA: A vision-language-action model for end-to-end autonomous driving with adaptive reasoning and reinforcement fine-tuning. In NeurIPS , 2025. [77] Xiaosong Jia, Bowen Yang, Zuhao Ge, Xian Nie, Yuchen Zhou, Cunxin Fan, Yufeng Li, Yilin Chai, Chao Jing, Zijian Liang, Qingwen Bu, Haidong Cao, Chao Wu, Qifeng Li, Zhenjie Yang, Chenhe Zhang, Hongyang Li, Zuxuan Wu, Junchi Yan, and Yu-Gang Jiang. Guidedvla: Specifying task-relevant factors via plug-and-play action attention specialization. In Robotics: Science and Systems , 2026. [78] Yunpeng Pan, Ching-An Cheng, Kamil Saigol, et al. Imitation learning for agile autonomous driving. 
+
+Int. J. Robot. Res. , 39(2-3):286–302, 2020. [79] Panpan Cai and David Hsu. Closing the planning–learning loop with application to autonomous driving. IEEE Trans. Robot. , 39(2):998–1011, 2022. [80] St ´ephane Ross, Geoffrey J. Gordon, and J. Andrew Bagnell. A reduction of imitation learning and structured prediction to no-regret online learning. In AISTATS , pages 627–635. JMLR Workshop and Conference Proceedings, 2011. [81] Michael Laskey, Jonathan Lee, Roy Fox, Anca Dragan, and Ken Goldberg. DART: Noise injection for robust imitation learning. In CoRL , pages 143–156. PMLR, 2017. [82] Haochen Tian, Tianyu Li, Haochen Liu, Jiazhi Yang, Yihang Qiu, Guang Li, Junli Wang, Yinfeng Gao, Zhang Zhang, Liang Wang, et al. Simscale: Learning to drive via real-world simulation at scale. In 
+
+CVPR , pages 36365–36374, 2026. [83] Zhenghao Peng, Wenjie Mo, Chenda Duan, Quanyi Li, and Bolei Zhou. Learning from active human involvement through proxy value propagation. In NeurIPS , volume 36, pages 77969–77992, 2023. [84] Jun Wu, Zhen Huang, Zhe Hu, and Chen Lv. Toward human-in-the-loop ai: Enhancing deep reinforcement learning via real-time human guidance for autonomous driving. Engineering , 2023. [85] Yongkang Li, Kaixin Xiong, Xiangyu Guo, et al. ReCogDrive: A reinforced cognitive framework for end-to-end autonomous driving, 2025. Preprint at https://arxiv.org/abs/2506.08052 .[86] Ke Guo, Haochen Liu, Xiaojun Wu, Jia Pan, and Chen Lv. iPad: Iterative proposal-centric end-to-end autonomous driving, 2025. Preprint at https://arxiv.org/abs/2505.15111 .[87] Jialv Zou, Shaoyu Chen, Bencheng Liao, et al. DiffusionDriveV2: Reinforcement learning-constrained truncated diffusion modeling in end-to-end autonomous driving, 2025. Preprint at https://arxiv. org/abs/2512.07745 .[88] Peter Karkus, Maximilian Igl, Yuxiao Chen, et al. Beyond behavior cloning in autonomous driving: A survey of closed-loop training techniques, 2025. Preprint at https://research.nvidia.com/publication/2025-12_ beyond-behavior-cloning-autonomous-driving-survey-closed-loop-training .
+
+> 23
+
+[89] Yiren Lu, Justin Fu, George Tucker, et al. Imitation is not enough: Robustifying imitation with reinforcement learning for challenging driving scenarios. In IROS , 2023. [90] Zeming Peng, Wenjie Luo, Yiren Lu, et al. Improving agent behaviors with rl fine-tuning for autonomous driving. In ECCV , pages 165–181. Springer Nature Switzerland, 2024. [91] Dongkun Zhang, Jiaming Liang, Ke Guo, et al. CarPlanner: Consistent auto-regressive trajectory planning for large-scale reinforcement learning in autonomous driving. In CVPR , pages 17239–17248. IEEE/CVF, 2025. [92] Hang Wang, Xin Ye, Feng Tao, Chenbin Pan, Abhirup Mallik, Burhaneddin Yaman, Liu Ren, and Junshan Zhang. AdaWM: Adaptive world model based planning for autonomous driving. In ICLR ,2025. [93] Chengyuan Zhang, Somil Biswas, Kin Wong, et al. Learning to drive via asymmetric self-play. In 
+
+ECCV , pages 149–168. Springer Nature Switzerland, 2024. [94] Yiming Wang, Jiaming He, Linjie Fan, et al. Driving into the future: Multiview visual forecasting and planning with world model for autonomous driving. In CVPR , pages 14749–14759, 2024. [95] Yingyan Li, Yuqi Wang, Yang Liu, Jiawei He, Lue Fan, and Zhaoxiang Zhang. End-to-end driving with online trajectory evaluation via bev world model. In ICCV , pages 27137–27146, 2025. [96] Zhenjie Yang, Xiaosong Jia, Qifeng Li, Xue Yang, Maoqing Yao, and Junchi Yan. Raw2drive: Reinforcement learning with aligned world models for end-to-end autonomous driving (in CARLA v2). In NeurIPS , 2025. [97] A. Jiang, Y. Gao, Y. Wang, et al. IRL-VLA: Training a vision-language-action policy via reward world model, 2025. Preprint at https://arxiv.org/abs/2508.06571 .[98] Qiang Li, Xingyu Jia, Shuo Wang, and Junjie Yan. Think2Drive: Efficient reinforcement learning by thinking with latent world model for autonomous driving (in carla-v2). In ECCV , pages 142–158. Springer Nature Switzerland, 2024. [99] Hao Gao, Shaoyu Chen, Bo Jiang, Bencheng Liao, Yiang Shi, Xiaoyang Guo, Yuechuan Pu, Haoran Yin, Xiangyu Li, Xinbang Zhang, et al. RAD: Training an end-to-end driving policy via large-scale 3DGS-based reinforcement learning. In NeurIPS , 2025. [100] Tianyi Yan, Tao Tang, Xingtai Gui, Yongkang Li, Jiasen Zheng, Weiyao Huang, Lingdong Kong, Wencheng Han, Xia Zhou, Xueyang Zhang, et al. Ad-r1: Closed-loop reinforcement learning for end-to-end autonomous driving with impartial world models. In CVPR , pages 1085–1095, 2026. [101] Chen Ni, Gang Zhao, Xiangyu Wang, et al. ReConDreamer-RL: Enhancing reinforcement learning via diffusion-based scene reconstruction, 2025. Preprint at https://arxiv.org/abs/2508.08170 .[102] Daniel Dauner, Marcel Hallgarten, Andreas Geiger, and Kashyap Chitta. Parting with misconceptions about learning-based vehicle motion planning. In CoRL , 2023. 
+
+> 24
+
+# Supplementary Materials 
+
+# A Related work 
+
+A.1 Data Engine for Autonomous Systems 
+
+Data Engine describes the closed-loop data collection pipeline [ 37 ], where models continuously improve by driving the selection, generation and curation of new data [ 38 ]. In autonomous driving, this idea is already visible in industrial “data flywheels” that couple large fleets with targeted mining and re-annotation [ 39 ]. Data-centric engines trigger from mispredictions in production, operating on focused data collection and relabelling before retraining and redeployment [ 40 , 41 , 42 ]. Similar patterns are designed that identify model weaknesses, prioritize difficult scenes for annotation and close the loop between evaluation and dataset growth [ 43 , 44 ]. Specifically for perception, auto-labelling frameworks [ 45 ] formalize open vocabulary annotations [ 46 ]. VLMs [ 47 ], incremental learning [ 48 ], and model in-the-loop techniques [ 49 ] are integrated to query, label and retrain on the most informative samples to steadily increase coverage and label quality over time. The paralleled line of work focuses on simulation and rendering for system verification [ 50 ]. Earlier works start from manually designed physical engine-based platforms [ 34 ]. Behaviour agents simulate traffic participants with varying degrees of realism [ 51 ] or safety criticality [ 52 , 53 ]. Reconstructed driving scenes from real-world clips are used to generate multi-sensor observations for closed-loop validation [ 54 , 55 , 56 ], and several platforms offer controllable scenario generation [ 57 , 58 , 59 ]. Recent efforts also incorporate regulation- or standards-based testing, including NCAP procedures, NHTSA typologies [ 60 ], and traffic-rule compliance [ 61 ], to ensure legitimacy and safety coverage. Beyond driving, robotics employs analogous data flywheels that use HIL learning [ 62 ], residual tuning [ 63 ], and self-filtered instruction generation to iteratively expand and enhance experience [ 64 ]. Conceptually, the emerging view is that agents should treat the world as an open-ended training set rather than a fixed corpus [ 65 ], and that explicit data engines are essential within autonomous driving stacks to address the remaining coverage gaps at scale. 
+
+A.2 Learning Pipeline in Autonomous Driving 
+
+Autonomous driving systems have traditionally been developed as modular stacks that decouple perception, prediction and planning, with each component trained independently [ 66 ]. Several works attempt to integrate prediction and planning under open or closed-loop formulations [ 67 ]. Still, compounding errors that propagate across modules remain a persistent challenge. End-to-end systems address this by learning a direct mapping from raw sensory inputs to future actions through unified learning frameworks [ 68 ]. Textual and agent-based priors further support interpretability and reasoning through vision-language models [ 69 , 70 , 71 , 72 ]or vision-language-action modelling [ 73 , 74 , 75 , 76 , 77 ]. Learning typically begins in a pre-training setting using open-loop imitation learning on large-scale human demonstrations [ 78 ]. While deployed under closed-loop real-world driving, open-loop pre-trained systems suffer from covariate shift and causal confusions [ 79 ]. To alleviate this mismatch, prior work explores limited forms of end-to-end closed-loop pre-training, such as DAgger rollout co-training [ 80 , 81 , 82 ], on-demand expert [ 83 , 84 ], or RLVR-style feedback scoring [ 85 , 86 , 87 ]. Still, they remain confined in training stability, temporal scope, and interaction diversity [ 88 ]. This motivates a growing body of work on post-training [ 11 ]. A pre-trained policy is further refined through interaction-aware objectives [ 89 ]. Existing post-training techniques span reinforcement learning fine-tuning in simulation [ 90 , 91 ], residual or adapter-based policy updates [ 92 ], distillation from planner-based or privileged experts [ 93 ], test-time adaptation [ 94 , 95 ], and model-based reinforcement learning leveraging learned world models [ 96 , 97 , 98 ]. By operating beyond static demonstrations, post-training enables the policy to correct compounding errors, reason over long-horizon consequences, and improve performance in rare, safety-critical, or counterfactual scenarios that are poorly represented in human data [ 99 , 100 , 101 ]. Nevertheless, current post-training approaches often rely on full-policy optimization, dense reward design, or extensive closed-loop interaction, which can introduce instability, degrade pre-trained behaviours, or overfit to specific simulators or environments. Heavy reliance on online interaction further limits scalability, while 
+
+> 25
+
+unconstrained policy updates risk forgetting the human-aligned priors established during pre-training. 
+
+A.3 Comparisons with Related Work 
+
+Data engines, simulation, and post-training have become established paradigms for extending learning beyond static demonstrations. In most existing systems, however, these components play a supporting role. Data engines are primarily used for dataset expansion or system validation, improving perception and coverage but operating largely in open-loop settings that do not capture the causal effects of policy actions. Simulation and neural rendering enable controllable replay or perturbation of real-world scenes, providing valuable tools for verification and stress testing, yet generated scenarios are typically used to assess robustness rather than to directly guide learning, and behaviour generation is rarely coupled to the evolving weaknesses of the policy. Post-training methods further refine pre-trained planners through reinforcement learning, residual adaptation, or model-based optimization, but are often constrained by simulator bias, dense reward design, or unstable full-policy updates, and are commonly applied as narrow fine-tuning steps tied to specific environments or benchmarks. In contrast, our approach is designed to be both active and integrated, addressing limitations that arise when data generation, simulation, and learning are treated as separate stages. World Engine actively generates experience by rolling out the policy in photorealistic, interactive environments, exposing it to the causal consequences of its own decisions rather than relying on passively collected data or static scenario perturbations. By combining neural scene reconstruction with behaviour-level world modelling, the system synthesizes diverse and counterfactual interactions that systematically populate the long-tail regimes where natural driving data are sparse. Crucially, this experience is not consumed indiscriminately. Experience generation, curation, and optimization are tightly coupled within a single closed loop, allowing reinforcement post-training to prioritize informative corner cases and reinforce behaviour using human-aligned objectives. This integration ensures that post-training is both targeted and stable, avoiding the brittleness associated with narrow fine-tuning or unconstrained reinforcement learning. Rather than serving as an auxiliary refinement or verification tool, post-training in our framework becomes a scalable mechanism for reshaping end-to-end driving behaviour, enabling the system to improve robustness and safety in rare, interaction-driven scenarios while remaining anchored to human intent. 
+
+# B Supplementary methods 
+
+B.1 Behaviour World Model 
+
+The behaviour world model enhances the generative diffusion model by incorporating individual noise levels to generate the realistic, reactive and controllable traffic behaviour, which underpins the World Engine system. 
+
+> B.1.1 Scene Vectorized Representation
+
+Driving scenarios are encoded as structured token representations, consisting of an Agent Tensor for dynamic entities and a Map Tensor for static environment features. We denote the agent tensor as x ∈ R𝐴 × T × 𝐷 , where 
+
+𝐴 is the maximum number of agents, T is the number of physical time steps, and 𝐷 is the dimension of agent attributes. The attribute for each agent includes positional coordinates ( 𝑥 , 𝑦 ), heading ( 𝑠𝑖𝑛 𝛼 , 𝑐𝑜𝑠 𝛼 ), velocities ( 𝑣 𝑥 , 𝑣 𝑦 ), and dimensions ( 𝑙 , 𝑤 ). A valid mask m ∈ B𝐴 × T is initialized to indicate which agents in the agent tensor x are valid at each time step. As for the map information, the map tensor c ∈ R𝐿 × 𝑁 ×𝐷 ′
+
+is used to represent the lanes’ conditions, where 𝐿 , 𝑁 , and 𝐷 ′
+
+stand for the number of lanes, points per lane, and attributes (coordinates and types), respectively. Based on the vectorized representation, sequential modelling of driving scenes can be expressed as generating the future scene tensor x ⊙ m:, 𝜏 :,: given the current time step 𝜏 < T , historical scene tensor x:,:𝜏, :, and global map tensor c. To simplify the model’s learning task, all feature channels are normalized with corresponding means and deviations before concatenating. 
+
+> 26
+
+B.1.2 Decoupled Noise Modelling 
+
+We introduce decoupled triaxial mask modelling, where independent noise levels align across agent indices, temporal time steps, and denoising steps, thereby resolving the causal complexity and efficiency bottlenecks in modelling reactive traffic with diffusion model. Specifically, we denote 𝒙 𝑘 𝑎, 𝜏  
+
+> 𝑎, 𝜏
+
+as the token of 𝑎 -th agent 𝒙 𝑎, 𝜏 
+
+within x𝑘 𝑎, 𝜏 at noise level 𝑘 𝑎, 𝜏 under the forward diffusion process; 𝒙 0 
+
+> 𝑎, 𝜏
+
+and 𝒙 𝑇 𝑎, 𝜏 represent the clean token and the pure noise. The noise level matrix k = [𝑘 𝑎, 𝜏 ] ∈ ( 0, 1] 𝐴 × T of the sequence is assigned a random matrix, representing the degrees of Gaussian noise 𝜖 added to corresponding tokens. The optimizing process of the scene generation model can be written as: 
+
+∀ k ∈ ( 0, 1] 𝐴 × T , min  
+
+> 𝜃
+
+E||( 𝜖 − 𝜖 𝜃 (𝑔 (x0, k); c, k))|| 22, (11) where 𝑔 represents the function that adds noise 𝜖 to x0 using matrix k, where each token is masked to varying degrees. The model is learned by completing the full sequence from soft-masked tokens, following information from low-noise tokens when generating other parts. During sampling, setting history and goals to low noise and others to high noise ensures conditional guidance in scene generation. 
+
+B.1.3 Classifier Guidance for Human-behaviour Alignment 
+
+Diffusion models can generate unrealistic driving scenarios due to randomness, requiring human-guided constraints to enhance scene quality. Specifically, we consider three human-behaviour rubrics: 1) Collision avoidance: At each step 𝑡 , if two vehicles’ bounding boxes overlap, they are pushed apart along their centre-connecting line. It can be written as the following equation: 
+
+𝑓 collision (x𝑡 , 𝑡 ) = x𝑡 
+
+> loc
+
+, x𝑡 , 3: 𝑑 ,
+
+where x𝑡  
+
+> loc
+
+← x𝑡  
+
+> loc
+
++ 𝜆 𝑡 ∑︁ 𝑖 ≠ 𝑗 
+
+I{𝐵 (x𝑡 𝑖 ) ∩ 𝐵 (x𝑡 𝑗 ) ≠ ∅} · x𝑡 𝑖, loc − x𝑡 
+
+> j,loc
+
+∥x𝑡 𝑖, loc − x𝑡 𝑗, loc ∥ , (12) where 𝜆 𝑡 is a scalar coefficient used to control the extent of separation at time 𝑡 . I is an indicator function that takes the value 1 when the bounding boxes of vehicle 𝑖 and vehicle 𝑗 overlap and 0 otherwise. 𝐵 is the function used to form the vehicle’s bounding box. The fractional term represents the unit direction vector of the centreline between vehicle 𝑖 and vehicle 𝑗 .2) Comfort: Enforcing smooth longitudinal and lateral accelerations by averaging adjacent trajectory points. 
+
+𝑓 comfort (x𝑡 , 𝑡 ) = x𝑡 
+
+> loc
+
+, x𝑡 , 3: 𝑑 ,
+
+where x𝑡  
+
+> loc
+
+← x𝑡  
+
+> loc
+
+− 𝜆 𝑡 a𝑡 ,
+
+a𝑡 = 12 (x𝑡 𝜏 −1,loc − 2x𝑡 𝜏, loc + x𝑡 𝜏 +1,loc ).
+
+(13) First, the longitudinal and lateral accelerations 𝑎 𝑡 are approximated using the second-order difference at time 𝜏 and smoothed by averaging adjacent trajectory points. Then, the trajectory is refined by subtracting a proportion 𝜆 𝑡 of the acceleration, reducing abrupt speed changes for smoother motion. 3) On-road driving: Pull the vehicle toward the nearest centreline point when it strays too far. 
+
+𝑓 on road (x𝑡 , 𝑡 ) = x𝑡 
+
+> loc
+
+, x𝑡 , 3: 𝑑 ,
+
+where x𝑡 𝑖, loc ← x𝑡 𝑖, loc + 𝜆 𝑡 I{∥ x𝑡 𝑖, loc − c𝑡 𝑖 ∥ > 𝑑 th } · ( c𝑡 𝑖 − x𝑡 𝑖, loc ),
+
+c𝑡 𝑖 = argmin 𝑙,𝑛 ∥x𝑡 𝑖, loc − c𝑙,𝑛, loc ∥.
+
+(14) The vehicle identifies the closest lane point c𝑡 𝑖 among all points c ∈ R𝐿 × 𝑁 ×𝐷 by minimizing the Euclidean distance using arg min 𝑙,𝑛 . When the deviation exceeds the threshold 𝑑 th , the vehicle adjusts its position by moving from x𝑡 𝑖, loc toward the closest centreline point c𝑡 𝑖 , with the adjustment magnitude controlled by 𝜆 𝑡 .
+
+> 27 B.1.4 Inference Mode
+
+The core objective of the inference mode is to leverage the world model’s robust goal-following capabilities to synthesize a diverse set of safety-critical driving scenes. By doing so, we augment our dataset with valuable corner cases that are often missing from standard data. We employ two distinct generation strategies to achieve this: Scenario Copy and Intent Attack .
+
+Scenario copy strategy. This strategy aims to replicate existing critical scenarios while introducing controlled variations to prevent exact duplication. The process begins by identifying all relevant agents— including the ego vehicle—within a predefined distance threshold (e.g., 10 meters). For each identified agent, we perturb the original trajectory endpoint by adding a random displacement vector. Specifically, the new goal point is sampled uniformly from a circular region with a radius of 1 meter centred on the original goal, formulated as: 
+
+𝐺 𝑛𝑒𝑤 = 𝐺 𝑜𝑟𝑖𝑔𝑖𝑛𝑎𝑙 + 𝛿, where ∥𝛿 ∥ < 1𝑚. (15) The traffic world model is then conditioned on these perturbed goals to generate complete, interactive trajectories for all agents. By applying this controlled perturbation, we produce new scenarios that maintain the fundamental interaction patterns of the original data while introducing meaningful behavioural diversity. 
+
+Intent attack strategy. Complementing the copy strategy, Intent attack is designed to proactively generate safety-critical scenarios by manipulating the intentions of surrounding agents. The primary motivation is to address the scarcity of high-risk interactions—such as aggressive cut-ins—by creating adversarial situations that stress-test the ego vehicle’s planner. In this approach, we randomly select one “adversarial agent” from the 𝐾 -nearest neighbours to the ego vehicle (e.g., 𝐾 = 3). The goal point of this agent is forcibly reassigned to a location near the ego vehicle’s original goal, formulated as: 
+
+𝐺 adversary = 𝐺 ego + 𝜖, where |𝜖 | ≤ Δ. (16) Here, Δ defines a small proximity boundary (e.g., 1–2 meters) to ensure a high likelihood of spatial conflict. The behaviour world model then generates a full scene rollout conditioned on this adversarial goal. This results in a realistic scenario where the selected agent intentionally interferes with the ego vehicle’s path, effectively augmenting the dataset with intent-ambiguous edge cases. 
+
+Validation and post-processing. To ensure physical plausibility and behavioural validity, every generated trajectory undergoes rigorous post-processing. Since raw model outputs may occasionally violate kinematic constraints, we first refine trajectories using an LQR-based tracker. The optimized trajectories are then subjected to two critical checks: (1) Collision detection: Verifying that no unavoidable collisions occur between agents in the initial state. (2) Drivable area verification: Ensuring all vehicles remain within legal road boundaries. Only scenarios that pass both validation checks are deemed successful and added to the dataset. 
+
+Iterative generation framework. These strategies operate within an iterative framework to systematically construct a diverse repository of scenarios. During each iteration, a strategy is randomly selected and applied to a seed scenario. The process terminates when either: (1) the number of validated scenarios reaches a target 𝑁 (e.g., 𝑁 = 10 ), or (2) consecutive generation failures exceed a failure threshold 𝐹 (e.g., 𝐹 = 30 ). This dual-termination mechanism ensures computational efficiency while preventing excessive resource expenditure on difficult seeds, achieving an optimal balance between dataset scale, diversity, and quality. 
+
+B.2 Reinforcement Post-training 
+
+To enable continuous and active improvement of driving performance, reinforcement post-training is built within a scalable framework. The framework integrates curated corner-case sampling and verifiable reward-shaping modules under well-defined optimization objectives, allowing efficient and scalable post-training through large-scale rollouts. 
+
+> 28 B.2.1 Data Sampler
+
+Although large-scale fleet and counterfactual data provide abundant driving experience, the resulting distribution is highly imbalanced. To address this, we adopt a structured corner-case curation and curriculum weighting strategy that explicitly controls both what experiences are sampled and how strongly they influence policy updates during post-training. Corner-case trajectories are curated through a structured data pipeline that integrates heterogeneous sources and long-horizon driving semantics. Candidate experiences are collected and sampled from different sources 𝑢 ∈ U , such as real-world fleet logs, user data, and user-triggered events (e.g., disengagements or near-miss alerts), offline mining of logged data using risk- and uncertainty-based detectors, and counterfactual rollouts generated by the simulation engine and behaviour world model. Each trajectory 𝜏 is associated with a semantic category 𝑐 ∈ C by a series of semantics such as interaction, driving style, or driving manoeuvres. To balance coverage and safety emphasis, sampling is performed from a hierarchical mixture over sources and categories. 
+
+𝑝 cur (𝜏 ) =∑︁ 
+
+> 𝑢 ∈ U
+
+∑︁ 𝑐 ∈ C 
+
+𝑝 U (𝑢 ) 𝑝 C (𝑐 | 𝑢 ) 𝑝 (𝜏 | 𝑐, 𝑢 ), (17) where 𝑝 U and 𝑝 C encode internal sampling weights that maintain diversity in sources and styles. Within each category, planning manoeuvres vary in instructional value. We therefore assign a trajectory-level quality score curricula: 
+
+𝑤 (𝜏 ) = clip 
+
+ 𝑞 (𝜏 ) − 𝑞 min 
+
+𝑞 max − 𝑞 min 
+
+, 𝑤 min , 𝑤 max 
+
+
+
+, (18) which limits the influence of rare but noisy corner cases. Curriculum weighting is then incorporated directly into policy optimization by reweighting the objectives. This formulation cleanly separates coverage control through source- and category-level sampling from trajectory-level curriculum weighting, enabling scalable and conservative post-training focused on informative corner cases. 
+
+Verifiable reward modules To ensure that policy improvement remains aligned with human driving principles during large-scale post-training, we design the reward function 𝑅 (𝜏 ) as a set of verifiable modules with explicit structure and bounded influence. Rather than relying on a single scalar reward, we decompose feedback into interpretable components and combine them through weighted aggregation and multiplicative gating, allowing safety-critical constraints to dominate optimization while softer objectives shape preferences among valid behaviours: 
+
+𝑟 (𝑠 𝑡 , 𝑎 𝑡 ) =
+
+Ö
+
+> 𝑚 ∈ M
+
+𝑟 𝑚 (𝑠 𝑡 , 𝑎 𝑡 ) × 1
+
+Í𝑤 ∈ W 𝛽 𝑤 ∑︁ 𝑤 ∈ W 
+
+𝛽 𝑤 𝑟 𝑤 (𝑠 𝑡 , 𝑎 𝑡 ). (19) 
+
+Safety-critical-constraint gates ( M). We use two binary or partially penalized gates to enforce non-negotiable safety requirements (Table S1).  
+
+> Table S1. Safety-critical-constraint gates used in reinforcement post-training.
+
+Component Definition No-at-fault collision (𝑟 col )Returns 1.0 if the ego vehicle incurs no at-fault collision; 0.5 for a single collision with a static obstacle (for example, a parked vehicle or road furniture); and 0.0 for any collision with a dynamic agent. Drivable-area compli-ance ( 𝑟 dac )Returns 1.0 if all corners of the ego bounding box remain within legal drivable regions (lanes, intersections, or parking areas) throughout the step, and 0.0 otherwise. 
+
+> 29
+
+Because these safety-critical-constraint gates multiplicatively modulate the remaining reward terms, safety-critical violations sharply suppress the overall reward regardless of driving quality elsewhere in the rollout. 
+
+Soft driving objectives ( W). In addition to the hard safety gates, three active components contribute to the weighted average (Table S2).  
+
+> Table S2. Soft driving objectives used in reinforcement post-training.
+
+Component Weight 𝛽 𝑤 Definition Ego progress ( 𝑟 prog ) 5.0 Distance advanced along the route centreline (m), normal-ized by an estimated safe upper bound computed using the search-based planner PDM-Closed [ 102 ], and clipped to 
+
+[0, 1].Time-to-collision (𝑟 ttc )5.0 Binary safety margin: 1.0 if the predicted time-to-collision with all surrounding agents exceeds 1.0 s under constant-velocity extrapolation, and 0.0 otherwise. Comfort ( 𝑟 comf ) 2.0 Binary ride-quality check: 1.0 if longitudinal accelera-tion, lateral acceleration, and steering-angle rate all remain within human-calibrated comfort bounds, and 0.0 other-wise. Ego progress and time-to-collision are assigned equal and highest weight to jointly optimize forward task completion and proactive collision avoidance, two objectives that can otherwise trade off against each other in aggressive cut-in or intersection scenarios. Comfort receives a lower weight to shape policy preference among safe behaviours without penalizing necessary evasive manoeuvres. Empirically, equal weighting between progress and time-to-collision helped avoid degenerate solutions in which the agent either halts indefinitely to minimize collision risk or accelerates through near-miss events to maximize progress. 
+
+> B.2.2 Rollout Platform
+
+The platform supports safe and scalable deployment of post-trained agents while continuously harvesting large volumes of experience. Leveraging the World Engine, massive rollouts are generated via high-throughput rendering and behaviour world modelling, enabling efficient collection of diverse and rare interaction data. Safety signals and performance metrics are closely monitored, and any detected degradation triggers immediate rollback. Deployment is progressively expanded, enabling continuous fleet data collection, engine rollout, curation, and policy improvement loop through World Engine, while maintaining safety and reliability at scale. 
+
+B.3 Simulation Engine: Closed-loop Platform 
+
+To enable scalable and interactive evaluation of end-to-end driving agents over logged scenarios, we introduce a closed-loop autonomous driving testing platform. Unlike existing simulator-centric E2E evaluation frameworks and neural-rendering-based simulators, our platform targets large-scale driving logs and supports richer interaction patterns. By leveraging multi-traversal neural rendering, the platform enables massively parallel rollouts while preserving high-fidelity perceptual feedback in regions critical to decision making. Interaction fidelity is configurable, ranging from fully interactive traffic to optional non-reactive or weakly reactive IDM agents, allowing controlled and reproducible evaluation. This facilitates systematic assessment of end-to-end policies over long horizons, capturing safety, robustness, and compounding-error effects, while aligned with real-world driving data. 
+
+> 30 𝐚 𝐭
+> 𝟐
+> 𝐨 𝐭 #𝟏
+> 𝟐
+> 𝐦 𝐭
+> 𝟐
+> Sim worker -𝟐
+> 𝐚 𝐭
+> 𝐧
+> 𝐨 𝐭 #𝟏
+> 𝐧
+> 𝐦 𝐭
+> 𝐧
+> Sim worker -𝒏
+> 𝐚 𝐭
+> 𝟏
+> 𝐨 𝐭 #𝟏
+> 𝟏
+> 𝐦 𝐭
+> 𝟏
+> Sim worker -𝟏
+> …...
+
+Simulation worker pool Transition buffers 
+
+> Parallelization
+
+Observation 
+
+Buffer 
+
+Action 
+
+Buffer 
+
+Metric 
+
+Buffer 
+
+E2E AD agent worker pool 
+
+# 𝓞 
+
+# 𝓐 
+
+# 𝓜 
+
+...       
+
+> 𝐀 𝐭
+> 𝟏 𝐀 𝐭
+> 𝟐 𝐀 𝐭
+> 𝐦
+> GPU -𝟏 GPU -𝟐 GPU -𝒎
+> Batched post -process modules
+> 𝐎 𝐭
+> 𝟏 𝐎 𝐭
+> 𝟐 𝐎 𝐭
+> 𝐦
+> Observation
+> batch -𝟏
+> Observation
+> batch -𝟐
+> Observation
+> batch -𝒎
+> Batched pre -process modules
+
+Figure S1. Overall pipeline of closed-loop autonomous driving testing platform. 
+
+B.3.1 Platform Setup 
+
+Following the closed-loop formulations of each simulation step, the platform receives actions 𝑎 𝑡 from the end-to-end policy 𝜋 𝜃 , and provides high-fidelity observation 𝑜 𝑡 +1 and states 𝑠 𝑡 +1 for next step rollout. Per-step evaluation metrics 𝑚 𝑡 and termination identifier d𝑡 are also buffered within each simulation loop. Once terminated, testing metrics are calculated. 
+
+State and observation Each evaluation scenario is initialized from logged driving data, maintaining a set of privileged states 𝑠 𝑡 that encode the ego vehicle and all traffic participants over 𝑇 sim simulation steps, together with road topology and dynamic traffic signals. Rendered scene representations are pre-deployed and cached, enabling efficient synthesis of observations O under the ego vehicle’s extrinsic parameters for each simulated state. 
+
+Controller The end-to-end policy 𝜋 𝜃 operates at a fixed control frequency and outputs either the planned waypoints or direct control commands of acceleration 𝑎 and steering angle 𝛿 . For planning waypoints, the platform offers an LQR controller that track the waypoint into executable control. 
+
+State simulation For ego vehicle, given controlling command [𝑎 𝑡 , 𝛿 𝑡 ] through controller, the platform propagates the ego state with a discrete-time kinematic bicycle model: 
+
+𝑥 𝑡 +1 = 𝑥 𝑡 + 𝑣 𝑡 cos (𝜓 𝑡 ) Δ𝑡, 𝑦 𝑡 +1 = 𝑦 𝑡 + 𝑣 𝑡 sin (𝜓 𝑡 ) Δ𝑡, 𝜓 𝑡 +1 = 𝜓 𝑡 + 𝑣 𝑡 
+
+𝐿 tan (𝛿 𝑡 ) Δ𝑡, 𝑣 𝑡 +1 = clip (𝑣 𝑡 + 𝑎 𝑡 Δ𝑡, 0, 𝑣 max ) ,𝛿 𝑡 +1 = clip  𝛿 𝑡 + ¤ 𝛿 𝑡 Δ𝑡, −𝛿 max , 𝛿 max 
+
+ ,
+
+(20) where 𝐿 is the wheelbase, and clip (·) enforces physical bounds on speed and steering. For non-ego traffic participants, we support multiple simulation modes depending on the evaluation setting. Specifically, traffic agents can (i) follow replayed states from logged trajectories for non-reactive simulation, (ii) be controlled by an Intelligent Driver Model (IDM) [ 18 ] to enable reactive longitudinal behaviour along each agent’s local lane direction, or (iii) be generated by a learned behaviour world model with diverse traffic interaction. In closed-loop evaluation, the traffic agents are controlled by IDM. 
+
+31 Termination detection Termination conditions d𝑡 are evaluated online at each step using state-based safety monitors. An episode terminates if any hard constraint is violated, including collision, deviation from navigated routes, or rule violation. Episodes also terminate upon successful route completion or upon reaching a predefined time horizon. 
+
+Platform communication To enable scalable closed-loop evaluation, the platform is implemented as a distributed, modular system that decouples policy inference from state simulation and rendering. Simulation workers advance scenario states and synthesize observations, while inference workers asynchronously consume batched observations from buffered simulation pool, and return corresponding actions. Each evaluation component is registered through a lightweight builder that exposes standardized hooks at key execution points. 
+
+> B.3.2 Testing Metrics
+
+We evaluate planning performance under both open-loop and closed-loop settings, using metrics tailored to the characteristics of each evaluation protocol. 
+
+Open-loop metrics For open-loop evaluation, we follow NAVSIM [ 23 ] and adopt the Predictive Driver Model Score (PDMS) as the primary metric. PDMS is designed to provide a comprehensive assessment of driving quality under a short-horizon, non-reactive simulation, where background agents strictly follow their recorded future trajectories and the ego vehicle is executed via an LQR controller over a 4-second horizon at 10 Hz. PDMS aggregates multiple complementary sub-metrics that capture safety, legality, efficiency, and comfort: 
+
+• No-at-fault Collisions (NC). This metric penalizes collisions for which the ego vehicle is deemed responsible. At-fault cases include (i) collisions with stationary objects, (ii) ego-front collisions with any traffic agent, and (iii) ego-side collisions occurring in intersections or multiple lanes. The score is discrete-valued: NC = 1 if no at-fault collision occurs, 0.5 for a single collision with a static class, and 0 otherwise. 
+
+• Drivable Area Compliance (DAC). DAC enforces adherence to traffic rules by requiring the ego vehicle to remain within drivable regions (e.g., lanes, intersections, or parking areas). If any corner of the ego bounding box leaves the drivable area, the score is set to DAC = 0; otherwise, DAC = 1. 
+
+• Time-to-Collision (TTC). TTC measures near-miss risk by estimating the minimum predicted time before collision under a constant-velocity extrapolation. In NAVSIM, the ego vehicle is projected forward with a fixed velocity and heading at 0.3 s steps, and collisions with surrounding agents are checked. The score is binary: TTC = 1 if the minimum TTC exceeds 0.9 s, and 0 otherwise. 
+
+• Ego Progress (EP). EP evaluates how effectively the ego vehicle advances along the intended route. Progress is normalized by an estimated safe upper bound, obtained via a search-based planner (PDM-Closed [ 102 ]). The resulting ratio is clipped to [0, 1], with negligible or negative progress discarded. 
+
+• Comfort (C). The comfort metric verifies that kinematic quantities such as acceleration and jerk remain within human-calibrated thresholds, following the nuPlan framework. If all thresholds are satisfied, C = 1; otherwise, C = 0. The final PDMS is computed as: PDMS = NC · DAC · 5 TTC + 5 EP + 2 C 12 . (21) 
+
+> 32
+
+Closed-loop metrics While PDMS is well-suited for open-loop evaluation, closed-loop execution introduces compounding interactions over time that are not fully captured by a single-step predictive score. Therefore, we adopt two episode-level metrics for closed-loop evaluation. 
+
+• Success Rate. For each closed-loop rollout 𝜏 , we define a binary validity indicator that requires the ego vehicle to complete the rollout without triggering either a collision or a drivable-area violation: Success (𝜏 ) =
+
+> 𝑇
+
+Ö
+
+> 𝑡 =0
+
+I(NC 𝑡 ) I(DAC 𝑡 ). (22) The reported Success Rate is the dataset average, directly reflecting safety-critical feasibility in closed-loop control. 
+
+• PDMS ∗. To bridge open-loop scoring with closed-loop behaviour, we introduce PDMS ∗. We treat the posterior closed-loop trajectories—including both the ego vehicle and surrounding traffic agents generated during the rollout—as if they were the planner’s predicted trajectories at 𝑡 = 0, and re-evaluate them using the PDMS formulation. PDMS ∗ differs from standard PDMS in two key aspects. First, while standard PDMS normalizes Ego Progress (EP) against an upper bound derived from the PDM-Closed planner, PDMS ∗ instead uses the human-driven ground-truth trajectory as the reference. Second, unlike standard PDMS which assumes non-reactive background agents, PDMS ∗ evaluates the ego trajectory under reactive traffic behaviours that emerge during closed-loop interaction. These modifications enable a more faithful assessment of efficiency and safety in closed-loop settings, while preserving the structure and interpretability of PDMS. 
+
+> B.3.3 Computational Cost
+
+We provide a high-level estimate of the runtime cost of the closed-loop platform based on the representative experiment executed on 8 NVIDIA H200 GPUs with ray-based data parallelism. As summarized in Table S3, the platform processed 576 scenarios in 25.48 minutes, corresponding to 6.63 GPU-hours and an average throughput of 11.59 scenarios per minute. Each scenario consists of 11 simulation steps in total, including 3 history steps used for context initialization (Steps 0–2) and 8 planning steps for closed-loop evaluation (Steps 3–10). 
+
+> Table S3. Runtime cost of the closed-loop platform.
+
+Stage Scenarios Wall time (min) GPU-hours Time/scenario (s) Non-reactive (NR) 288 24.22 3.23 5.05 Reactive (R) 288 25.48 3.40 5.31 Total 576 25.48 † 6.63 –  
+
+> †NR and R stages run in parallel; total wall time equals max (24 .22 ,25 .48 )
+
+At the per-step level, each closed-loop planning step comprises three sequential operations: simulator state advancement ( ∼215–350 ms, 6–9%), 3DGS-based sensor rendering ( ∼490 ms, 15%), and end-to-end model inference ( ∼3,800 ms, 78%). The reactive setting incurs a moderate overhead of 5.5% over the non-reactive setting at the scenario level, primarily attributable to the additional computation in simulator state advancement for reactive traffic generation. Together, these measurements indicate that the closed-loop platform maintains a practical throughput of approximately 11.6 scenarios per minute, confirming its compatibility with large-scale post-training and evaluation. 
+
+> 33
+
+B.4 Rendering and Reconstruction Quality of Simulation Engine 
+
+We reconstruct 12,862 assets spanning the entire navtrain split to assess the stability of the World Engine reconstruction pipeline, as shown in Fig. S2. Image reconstruction quality is evaluated using Peak Signal-to-Noise Ratio (PSNR) and Structural Similarity Index Measure (SSIM), while LiDAR depth quality is assessed using the depth 𝛿 1, defined as the fraction of the predicted depth is within a factor of 1.25 of the ground-truth depth. As shown in Fig. S3, For each reconstructed driving scene, the real logged ego pose and corresponding front-left, front, and front-right camera views are shown in the first row. We then place the ego vehicle at several simulated positions that deviate from the original log trajectory and render the corresponding multi-view observations. The BEV panels show the real ego pose, simulated ego poses, traffic agents, and simulated states. These examples demonstrate that the simulation engine can synthesize realistic camera observations for ego states beyond the logged trajectory, supporting closed-loop simulation and rollout generation.  
+
+> Figure S2. Reconstruction quality distribution across multiple metrics.
+> 34
+
+Real Front-left Front Front-right Sim. 1 Front-left Front Front-right Sim. 2 Front-left Front Front-right 
+
+Sim.1 
+
+Sim.3 Sim.2 Sim. 3 Front-left Front Front-right 
+
+Sim.1 
+
+Sim.2 Sim.3 Real Front-left Front Front-right Sim. 1 Front-left Front Front-right Sim. 2 Front-left Front Front-right Sim. 3 Front-left Front Front-right Simulated state Real ego Simulated ego Traffic agent Simulated state Real ego Simulated ego Traffic agent Figure S3. Visualization of Simulation Engine under simulated states. “Sim.” stands for simulation state. 
+
+35

@@ -1,0 +1,651 @@
+Title: From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+URL Source: https://arxiv.org/pdf/2606.15756v1
+
+Published Time: Tue, 16 Jun 2026 01:30:21 GMT
+
+Number of Pages: 26
+
+Markdown Content:
+## From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+Mohamed Manzour 1 (ahmed.manzour@uah.es), Aditya Kumar 1 (aditya.kumar@uah.es), Augusto Luis Ballardini 1
+
+(augusto.ballardini@uah.es) and Miguel Ángel Sotelo 1 (miguel.sotelo@uah.es)  
+
+> 1
+
+Computer Engineering Department, University of Alcalá, Madrid, Spain 
+
+Corresponding Author: 
+
+Mohamed Manzour San Diego Square, s/n. 28801, Alcalá de Henares, Madrid, Spain Tel: +34 685687603 Email: ahmed.manzour@uah.es 
+
+> arXiv:2606.15756v1 [cs.LG] 14 Jun 2026
+
+# From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+## Mohamed Manzour ∗, Aditya Kumar, Augusto Luis Ballardini and Miguel Ángel Sotelo 
+
+Computer Engineering Department, University of Alcalá, Madrid, Spain 
+
+A R T I C L E I N F O 
+
+Keywords :Lane Change Prediction Causal Inference Structural Causal Modeling Explainable Causal Prediction Autonomous Driving 
+
+A B S T R A C T 
+
+Lane-change prediction is a central task in intelligent vehicles, where early and explainable maneuver anticipation can support safer decision-making. However, many existing approaches mainly learn statistical associations between observed driving variables and future maneuvers, while overlooking the causal dependencies among the input variables themselves. This limits interpretability, especially when physically related variables such as longitudinal gap, relative longitudinal velocity, and Time-To-Collision (TTC) are treated as independent flat inputs. This article presents a causal-inference-based framework for lane-change prediction and explanation. The proposed approach combines linguistic feature construction, expert-constrained causal dis-covery using a constraint matrix, deep structural causal modeling with Deep End-to-end Causal Inference (DECI), intervention-based effect analysis, refutation testing, and recursive causal-chain explanation. The objective is not only to predict the future maneuver, but also to identify candidate variables that directly contribute to the prediction, the upstream factors influencing them, and the causal chains through which these effects propagate. The framework is evaluated for three maneuver classes: left lane change (LLC), lane keeping (LK), and right lane change (RLC). The model achieves average F1-scores above 95% during the first three seconds before the lane-marking crossing event, while still providing maneuver anticipation in the 7–8 s interval before the lane-change event. Beyond prediction accuracy, the framework uses intervention-based effect analysis to distinguish influential from weakly influential variables under the learned causal structure. It further distinguishes candidate direct contributors from mediated effects and generates contrastive causal-chain explanations that clarify why the predicted maneuver is favored and why the alternative maneuvers are less supported. The main contribution is therefore a mechanism-aware lane-change prediction pipeline that moves beyond correlation-based classification toward more interpretable causal reasoning for maneuver prediction. 
+
+## 1. Introduction 
+
+Lane-change prediction is a fundamental task in intelligent vehicles and advanced driver-assistance systems. Anticipating whether a surrounding vehicle will keep its lane, change to the left lane, or change to the right lane allows an automated vehicle to prepare safer and smoother decisions in advance. This is particularly important in dense and dynamic traffic, where delayed or incorrect maneuver anticipation may lead to unsafe braking, uncomfortable control actions, or insufficient time for cooperative responses. Recent lane-change prediction approaches have achieved promising performance using machine learning and deep learning models trained on vehicle trajectory and interaction features. These models commonly use variables such as vehicle speed, relative velocity, longitudinal gap, time headway, Time-To-Collision (TTC), and surrounding traffic density to predict future maneuvers. However, most of these approaches are primarily correlation-driven: they learn statistical associations between input variables and maneuver classes, but they do not explicitly model the physical and causal dependencies among the variables themselves. As a result, the model may predict the correct maneuver while still providing an incomplete or ambiguous explanation of why this maneuver was predicted. This limitation becomes critical because many commonly used lane-change features are not independent. For example, TTC with the preceding vehicle is not an isolated driving variable; it is affected by upstream interaction factors such as the relative longitudinal velocity between the target vehicle (the vehicle whose  
+
+> ⋆
+
+This work has been funded by the SEGVAUTO5G-CM project of the Regional Government of Madrid under reference 2024/ECO-277 and the PREDATOR project of the Regional Government of Madrid under reference IND2024/IND-35292. 
+
+> ∗
+
+Corresponding author 
+
+ahmed.manzour@uah.es (M. Manzour); aditya.kumar@uah.es (A. Kumar); augusto.ballardini@uah.es (A.L. Ballardini); 
+
+miguel.sotelo@uah.es (M.Á. Sotelo) 
+
+> ORCID
+
+(s): 0009-0007-2009-3573 (M. Manzour); 0009-0004-5717-1027 (A. Kumar); 0000-0001-6688-5081 (A.L. Ballardini); 
+
+0000-0001-8809-2103 (M.Á. Sotelo) 
+
+Page 1 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+future maneuver is being predicted) and preceding vehicle (the vehicle in front of the target vehicle), which itself depends on the velocities of both vehicles. Therefore, if a prediction model strongly relies on TTC, this does not necessarily mean that TTC is always the original reason behind the maneuver. In some cases, it may be the main direct contributor; in other cases, it may only mediate the effect of upstream variables such as vehicle speed differences or traffic conditions. A correlation-based model may hide this distinction because it mainly captures which variables are statistically associated with the output, rather than how their effects propagate through the driving interaction. Figure 1 illustrates the motivation using a representative lane-change scenario. The target vehicle, highlighted in white, travels in a lane where the surrounding traffic is relatively dense, while the neighboring vehicles are shown in a different color. As the target vehicle proceeds, it approaches a slower preceding vehicle in the same lane. This interaction produces a higher relative longitudinal velocity between the target and preceding vehicles, which in turn leads to a critical TTC. The semi-transparent positions of the target vehicle indicate the anticipated future maneuver, where the vehicle is expected to perform a left lane change as a consequence of this interaction sequence. Therefore, the prediction is not interpreted as the result of one isolated variable, such as TTC alone, but as the outcome of a causal chain that starts from the traffic context and propagates through vehicle-speed interaction variables toward the final maneuver prediction. This example also highlights the limitation of conventional correlation-based predictors. As shown in traffic density ( high )
+
+(a)  Correlation-based predictor 
+
+> Inputs treated as independent
+
+(b)  Causal-structure-based formulation 
+
+> physical dependencies modeled explicitly
+> target longitudinal
+> velocity ( fast )
+> preceding longitudinal
+> velocity ( slow )
+> target to preceding
+> relative velocity ( faster )
+> TTC ( critical )
+> flat classifier (LLC )
+> traffic density ( high )
+> target longitudinal
+> velocity ( fast )
+> target to preceding
+> relative velocity ( faster )
+> TTC ( critical )
+> causal
+> reasoning
+> module ( LLC )
+> preceding longitudinal
+> velocity ( slow )
+
+Figure 1: Scenario-based motivation for causal lane-change prediction. The white target vehicle encounters dense traffic and a slower preceding vehicle in its lane. This creates a high relative longitudinal velocity and a critical TTC, leading to an anticipated left lane change, shown by the semi-transparent future positions of the target vehicle. In the correlation-based formulation, all variables are treated as independent inputs directly connected to the maneuver classifier, which may hide whether the prediction is mainly driven by TTC, relative velocity, vehicle speeds, or traffic density. In the causal-structure-based formulation, the variables are organized according to their physical dependency path, enabling the prediction to be explained as a causal chain from upstream traffic conditions to the final maneuver decision. 
+
+Figure 1(a), a flat classifier receives traffic density, target velocity, preceding-vehicle velocity, relative velocity, and TTC as independent inputs directly connected to the predicted maneuver. Such a model may learn that critical TTC is strongly correlated with a left lane change, but it cannot explain whether TTC is the main reason in that case, whether it mediates the effect of upstream variables, or whether the maneuver is mainly driven by another factor such as the speed difference or the traffic density. In contrast, Figure 1(b) represents the variables according to their assumed physical dependencies, allowing the prediction to be interpreted through a chain of upstream and intermediate factors rather than through isolated feature associations. This conceptual difference highlights that predictive correlation does not necessarily imply direct causal influence. Motivated by this gap, this article investigates lane-change prediction from a causal-inference perspective. Instead of using the model only to classify future maneuvers, the proposed framework aims to identify which variables directly 
+
+Page 2 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+contribute to the prediction, which upstream factors influence them, and how these effects propagate through causal chains toward the predicted maneuver. In addition, the framework uses intervention-based effect analysis to examine whether changing a given feature produces a meaningful change in the predicted maneuver under the learned causal structure. This allows the model to distinguish variables that are influential for the maneuver prediction from variables whose effect is weak or negligible. The objective is not to claim definitive real-world causality, but to provide a mechanism-aware prediction framework that can distinguish direct contributors, mediating variables, upstream causes, and weakly influential factors under the learned causal structure. The proposed framework combines linguistic feature construction, expert-constrained causal discovery, deep structural causal modeling using Deep End-to-end Causal Inference (DECI), intervention-based effect analysis, refutation testing, and recursive causal-chain explanation. Expert knowledge is incorporated through a constraint matrix that restricts implausible causal directions and prevents the model from learning relationships that contradict the physical structure of the driving scenario. Intervention analysis is then used to estimate the influence of candidate variables on the predicted maneuver, while refutation testing evaluates the stability of these estimated effects under perturbations. The framework is evaluated for three maneuver classes: Left Lane Change (LLC), Lane Keeping (LK), and Right Lane Change (RLC). Beyond prediction accuracy, the proposed approach explains why the predicted maneuver is favored while alternative maneuvers are less supported. To support the reading of the following sections, the terminology used in this article is first made explicit. The target vehicle (shown in white in all figures) is the vehicle whose future maneuver is being predicted; every driving variable and explanation is defined from its perspective. The surrounding vehicles are named according to their position relative to the target vehicle. The preceding vehicle is the vehicle directly ahead of the target in the same lane, and the following vehicle is the one directly behind it in the same lane. Vehicles in the adjacent lanes are named analogously: the left-preceding and right-preceding vehicles are ahead of the target in the left and right adjacent lanes, while the left-following and right-following vehicles are behind it in those lanes. A vehicle traveling next to the target in an adjacent lane is referred to as an alongside (left-alongside or right-alongside) vehicle. Interaction variables such as longitudinal gap, relative longitudinal velocity, and TTC are always computed between the target vehicle and a specified neighboring vehicle; for example, the precedingVehicle TTC denotes the TTC between the target and its preceding vehicle. This convention is used consistently in all subsequent sections, figures, and causal-chain explanations. 
+
+## 2. Literature and Research Foundation 
+
+2.1. Literature Review 
+
+Lane-change prediction has been widely studied in intelligent vehicles and autonomous driving. Existing ap-proaches can be broadly grouped into rule-based models, traditional machine learning models, deep learning models, graph-based models, and more recent explainable or knowledge-driven approaches. Early lane-change prediction methods relied on rule-based formulations, such as gap-acceptance models, where a lane change is assumed to occur when the target vehicle satisfies predefined conditions related to the available gap with front and rear vehicles in the current or adjacent lanes Yang and Koutsopoulos (1996). Although these models are interpretable, their performance is usually limited by the manually defined rules and their ability to represent complex interaction patterns. Data-driven methods were therefore introduced to learn the mapping between observed driving variables and future maneuvers from recorded traffic data. Several works have used traditional machine learning models for lane-change prediction. For example, Woo, Ji, Kono, Tamura, Kuroda, Sugano, Yamamoto, Yamashita and Asama (2017) combined Support Vector Machines (SVMs) and artificial potential field models to detect lane changes using the Next Generation Simulation (NGSIM) dataset, considering features such as distance from the lane centerline, lateral velocity, and potential-field-based information. Similarly, Benterki, Boukhnifer, Judalet and Choubeila (2019) trained SVMs and Artificial Neural Networks (ANNs) models using kinematic variables, including longitudinal and lateral velocities, accelerations, distances to lane markings, yaw angle, and yaw rate. Other works adopted models such as eXtreme Gradient Boosting (XGBoost), logistic regression, random forests, Hidden Markov Models (HMMs), and Bayesian-network-based approaches to predict lane-change intention from numerical trajectory and interaction features Izquierdo, Parra, Munoz-Bulnes, Fernández-Llorca and Sotelo (2017); Yuan, Li and Wang (2018); Xia, Qu, Sun and Li (2021); Li, Wang, Zuo, Liu, Chen and Li (2023b); Zhang, Shi, Zhang and Abraham (2022); Syama and Mala (2022); Ma, Song, Zhang, Xiong and Chen (2021); Li, Dai, Li, Xu and Liu (2019); Liu, Li, Yang and Wu (2024). These methods showed 
+
+> Page 3 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+that trajectory and surrounding-vehicle variables are useful for predicting lane-change maneuvers, but they mostly treat the inputs as flat predictors of the output class. Deep learning methods have also been extensively investigated due to their ability to model temporal driving patterns. Su, Muelling, Dolan, Palanisamy and Mudalige (2018) employed a Long Short-Term Memory (LSTM) model using the target vehicle trajectory and surrounding-vehicle states extracted from the NGSIM dataset. Their inputs included the vehicle’s lateral and longitudinal positions, acceleration, surrounding-vehicle existence indicators, and longitudinal distances to neighboring vehicles. Laimona, Manzour, Shehata and Morgan (2020) and Amer and Elias (2024) both investigated recurrent models for vehicle-intention prediction using the PREdiction of VEhicles iNTentIONs (PREVENTION) dataset. While Laimona et al. (2020) compared Recurrent Neural Networks (RNNs) and LSTMs using sequences of bounding-box centroid coordinates, Amer and Elias (2024) developed a three-layer LSTM model based on using center-point, distance, and yaw-angle features. Image-based and hybrid models were also explored; for instance, Izquierdo, Quintanar, Parra, Fernández-Llorca and Sotelo (2019) proposed Motion History Image–Convolutional Neural Network (CNN) and GoogLeNet–LSTM architectures using visual information from the PREVENTION dataset, while other works used two-stream networks, action-recognition architectures, and efficient environment representations for lane-change classification and prediction Fernández-Llorca, Biparva, Izquierdo-Gonzalo and Tsotsos (2020); Izquierdo, Quintanar, Lorenzo, García-Daza, Parra, Fernández-Llorca and Sotelo (2021); Liang, Wang and Bhalerao (2022); Biparva, Fernández-Llorca, Gonzalo and Tsotsos (2022). These works demonstrate the value of temporal and visual representations, but the learned reasoning process remains difficult to interpret. More recent approaches have integrated lane-change intention prediction with trajectory prediction. Xue, Xing and Lu (2022) used XGBoost for lane-change prediction and LSTM for trajectory prediction on the highD dataset, considering traffic density, vehicle type, and relative trajectory features between the target and surrounding vehicles. Gao, Li, Chen, Hu, Liu, Du and Li (2023) proposed a dual-transformer architecture in which one transformer predicts lane-change intention and the second transformer predicts the future trajectory by combining intention information with historical lateral motion. Interaction-aware models have also been explored using graph-based and transformer-based architectures. For example, Li, Shen, Pan, Liu and Kong (2023a); Lu, Xu, Jiang, Bashir, Gadekallu, Wang and Hu (2025a) modeled inter-vehicle interactions using Graph Neural Networks (GNNs), while Guo, Jia, Huang, Luo, Wang and Mao (2025); Lu, Zhang, Wang, Zhu, Chen, Al-Otaibi, Bashir and Hu (2025b) employed transformer-based models for lane-change prediction using surrounding-vehicle states. More recently, Wu, Wang and Gong (2026) proposed a Dynamic Graph Neural Network (DyGNN) combined with a Transformer to capture time-varying inter-vehicle interactions for trajectory prediction and driving-intention recognition. These methods show the increasing importance of interaction modeling in lane-change prediction; however, the learned relations are mainly used to improve predictive performance rather than to explicitly estimate causal feature influence or generate causal-chain explanations. In parallel, several works have focused on improving interpretability and knowledge integration. Knowledge-based and neuro-symbolic approaches have been proposed to represent driving contexts using linguistic inputs and structured relations. For example, Manzour, Ballardini, Izquierdo and Sotelo (2024) used Knowledge Graph Embeddings (KGEs) and Bayesian inference to predict safe lane changes from linguistic features such as lateral velocity, lateral acceleration, and TTC risk. This direction was later extended by integrating Retrieval Augmented Generation (RAG) to provide natural-language explanations grounded in external knowledge Hussien, Melo, Ballardini, Maldonado, Izquierdo and Sotelo (2025); Manzour, Ballardini, Izquierdo and Sotelo (2025). Large Language Models (LLMs) have also been explored for explainable lane-change intention and trajectory prediction, where textual prompts are used to improve the explainability of the prediction output Peng, Guo, Chen, Chen, Zhu, Chen and Wang (2025). Recent works have also moved toward knowledge-enhanced and physics-informed prediction. Lu, Xu, Wang, Zhang, Liu and Hu (2026) proposed KnowLCP, a Knowledge-Augmented Lane-Change Prediction framework that integrates driving knowledge into intention recognition and trajectory forecasting. Similarly, Shi, Lin, Hua, Wang, Zhang, Zheng, Song, Lu and Lu (2026) proposed a physics-informed framework for three-class lane-change intention prediction, incorporating vehicle kinematics, interaction feasibility, and traffic-safety indicators such as headway, TTC, and gap-related measures. Although these approaches improve interpretability, knowledge usage, or physical consistency, they still do not explicitly learn an expert-constrained Structural Causal Model (SCM), perform intervention-based feature influence analysis, apply refutation-based robustness checks, or generate contrastive causal-chain explanations. Overall, the literature shows that lane-change prediction has progressed from rule-based models to machine learning, deep learning, transformer-based, graph-based, knowledge-enhanced, and explainable approaches. These works have demonstrated the importance of trajectory features, surrounding-vehicle interactions, traffic context, linguistic representations, and physically informed indicators such as time headway and TTC for maneuver prediction. 
+
+> Page 4 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+Causal inference has also been widely studied as a framework for moving beyond statistical association toward estimating the effect of interventions under explicit structural assumptions Pearl (2009). It has been used in domains such as epidemiology, medicine, economics, and policy evaluation, where the objective is not only to predict an outcome, but also to understand whether changing a given variable would produce a meaningful effect on that outcome Athey and Imbens (2017). Recent machine-learning-based causal frameworks, such as DECI, further combine causal discovery and causal inference from observational data, enabling causal graph learning and treatment-effect estimation within a unified framework Geffner, Antoran, Foster, Gong, Ma, Kiciman, Sharma, Lamb, Kukla, Pawlowski et al. (2022). 
+
+2.2. Research Gap 
+
+Despite the progress achieved in lane-change prediction, most existing approaches still formulate the problem mainly as a correlation-based classification task. Traditional machine learning, deep learning, transformer-based, graph-based, knowledge-enhanced, and recent LLM-based models commonly learn associations between trajectory, interaction, and traffic variables and the future maneuver class. However, they do not explicitly model the causal dependencies among the input variables themselves. This is limiting because several commonly used predictors, such as longitudinal gap, relative longitudinal velocity, time headway, and TTC, are physically related rather than independent. As a result, existing models may achieve high prediction accuracy while still being unable to distinguish whether a variable is a direct contributor, an upstream cause, a mediator, or only a weakly influential feature under a learned causal structure. A second gap concerns the limited use of intervention-based and robustness-based analysis in lane-change prediction. Existing explainable approaches may provide interpretable inputs, feature importance scores, or natural-language explanations, but they generally do not test whether changing a given feature produces a meaningful effect on the predicted maneuver under a causal structure. Similarly, refutation tests are rarely used to assess whether the estimated effects remain stable under perturbations, such as placebo treatments, random common causes, or data-subset changes. A third gap is the limited integration of expert driving knowledge into the causal discovery process. In safety-critical driving scenarios, some causal directions are physically implausible and should be prevented during structure learning. However, most existing approaches rely mainly on observational data without explicitly restricting the learning process using domain knowledge. This motivates an expert-constrained causal framework that prevents implausible relationships from being learned while allowing the remaining dependencies to be discovered from data. 
+
+2.3. Research Objective 
+
+This work aims to develop a mechanism-aware lane-change prediction framework that moves beyond correlation-based classification toward causal reasoning, intervention-based effect analysis, and causal-chain explanation. The objective is not to claim definitive real-world causality, but to learn and analyze an expert-constrained structural causal representation that supports prediction, feature influence analysis, robustness checking, and explanation. The specific objectives are: 1. Integrate expert knowledge into causal structure learning: The proposed framework incorporates expert driving knowledge through a constraint matrix that specifies causal directions that should not be learned because they contradict the physical logic of the driving scenario. The DECI model then learns the remaining structural dependencies from observational driving data under these constraints. In this way, the learned causal structure is not purely data-driven or manually fixed, but expert-constrained and data-adaptive. 2. Estimate feature influence through intervention analysis: Intervention-based effect analysis is used to examine whether changing a given feature produces a meaningful influence on the predicted maneuver under the learned causal structure. This allows the framework to distinguish influential variables from weakly influential variables. 3. Evaluate the stability of the estimated effects: Refutation tests are applied to assess whether the estimated effects remain stable under perturbations, such as placebo treatments, random common causes, or data-subset changes. 4. Generate contrastive causal-chain explanations: The learned structure is used to trace causal chains from upstream variables through intermediate factors toward the predicted maneuver, explaining why the predicted maneuver is favored and why alternative maneuvers are less supported. 
+
+> Page 5 of 25
+
+From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+## 3. Methodology 
+
+3.1. Framework Overview 
+
+The proposed methodology is designed to predict lane-change maneuvers while also explaining the causal mech-anisms that support the prediction. The proposed framework first represents the driving variables in an interpretable causal structure. Based on this structure, the framework supports maneuver prediction, causal-effect analysis, and robustness evaluation. Then, it examines not only which maneuver is predicted, but also which variables influence the prediction, and how these variables are connected together. The overall pipeline is illustrated in Figure 2. The framework starts from observed driving data describing the target vehicle, surrounding vehicles, traffic context, and interaction-related variables. These variables include kinematic information, gap-related measures, relative velocity, TTC, and other safety-relevant indicators. Then, the numerical features are converted into interpretable linguistic categories using thresholds derived from the literature and from empirical observation of the dataset distributions. This representation allows the model to reason over human-understandable driving states. After constructing the linguistic Target & Surrounding Vehicles Acceleration & Velocity gap TTC Gaps & Relative Velocity & TTC Speed Limit Day Time Traffic Density Traffic Context Raw Numerical Features                 
+
+> (Examples) Traffic Density
+> Gap
+> Relative Velocity
+> TTC
+> Velocity
+> Acceleration Low/Safe Medium High/Critical Example Linguistic States Expert knowledge blocks physically unrealistic causal directions; remaining candidate directions are left for data-driven learning. Threshold-Based Discretization
+> (Linguistic Categorization) Density Density Maneuver
+> (Predictio) TTC Gap Relative
+> Velocity Relative
+> Velocity Gap TTC Maneuver
+> (Prediction) Deep End-to-end Causal Inference (DECI) learns aStructural Causal Model (SCM) from observational driving data under expert-defined forbidden-edge constraints. Density TTC Gap Relative Velocity Maneuver
+> (LLC/LK/RLC) Learned causal structure (Example) Directed Acyclic Graph (DAG) Learned causal direction
+> (from data supported under constraints) do( TTC risk) ΔP(LLC) ΔP(LK) ΔP(RLC) +0.45 -0.12 -0.33 Intervene on a selected feature and estimate its effect on
+> the prediction.
+> Define strong and weak influential features. DoWhy DoWhy Placebo Test Random Common Cause Subset Test Pass Pass Pass P(LLC)
+> P(LK)
+> P(RLC) Trained DECI model Density TTC Gap Relative Velocity Maneuver
+> (LLC/LK/RLC) Trained DECI model
+
+5Causal Analysis & 
+
+Explanation Forbidden directions blocked Candidate directions left learnable 
+
+> (not a forced edge)
+
+1Observed Driving Data 2Feature Construction & 
+
+Linguistic Representation Numerical features are converted into 
+
+> interpretable linguistic categories
+
+3Expert Knowledge 
+
+Constraint Matrix Not applicable (self causation) Row (Cause) ⟶ Column (Effect) 4DECI-Based Structural 
+
+Causal Learning No causal edges originate from the maneuver. AIntervention-Based Effect Analysis Influence +ve strong -ve strong weak BRefutation / Robustness Testing Assess whether the estimated causal effect is trustworthy. CManeuver Prediction Trained DECI model Linguistic Features Maneuver Probabilities DCausal-Chain Explanation Explain why the predicted maneuver is favored and why 
+
+> alternative maneuvers are not favored. TTC
+> Critical Density
+> High Gap
+> Small Maneuver
+> (LLC) laneID
+> Right Maneuver
+> not (RLC) why LLC? why not RLC?
+
+Figure 2: Overall methodology of the proposed causal-inference-based lane-change prediction and explanation framework. The pipeline starts from observed driving data, including target-vehicle motion, surrounding-vehicle interactions, gap-related variables, TTC, and traffic context. The numerical variables are converted into interpretable linguistic categories using thresholds derived from the literature and from dataset observation. Expert knowledge is then incorporated through a constraint matrix that blocks physically unrealistic causal directions while leaving the remaining candidate directions available for data-driven learning. Under these constraints, DECI learns an SCM represented as a DAG. The learned model is then used for causal analysis and explanation: intervention-based effect analysis and refutation testing are performed using DoWhy, while the trained DECI-based SCM is used to estimate maneuver probabilities and support contrastive causal-chain explanations. 
+
+feature representation, expert driving knowledge is incorporated into the causal structure learning process through a constraint matrix. This matrix specifies causal directions that should not be learned because they contradict the temporal, physical, or definitional logic of the driving scenario. The constraint matrix does not force the model to learn specific causal links; rather, it blocks physically unrealistic directions and leaves the remaining candidate directions available for data-driven learning. In this way, the causal discovery process is neither fully manual nor purely data-driven, but expert-constrained and data-adaptive. DECI is then used to learn an SCM from the observational driving data under the defined expert constraints. The learned structure is represented as a Directed Acyclic Graph (DAG). A DAG is a directed graph in which the edges have a direction, but no directed cycle is allowed. This means that the graph can contain causal paths such as 𝑋 1 → 𝑋 2 → 𝑌 , but it cannot contain a feedback loop such as 𝑋 1 → 𝑋 2 → 𝑋 1, where following the arrows returns to the starting variable. In this graph, nodes correspond to the linguistic driving variables and the maneuver outcome, while directed edges represent the learned causal dependencies among them. Since the maneuver corresponds to a future prediction outcome, no causal edges are allowed to originate from the maneuver node toward the observed input features. The final stage uses the learned SCM for causal analysis and explanation. Intervention-based effect analysis is used to examine whether changing a selected feature produces a meaningful effect on the predicted maneuver. Refutation tests are then applied to assess the robustness of the estimated effects using placebo treatment, random common cause, 
+
+Page 6 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+and subset tests. The trained DECI-based model is also used to estimate the probability of each maneuver class, and the class with the highest probability is selected as the predicted maneuver. Finally, the learned causal structure is recursively traced to generate contrastive causal-chain explanations that clarify why the predicted maneuver is favored and why alternative maneuvers are less supported. 
+
+3.2. Feature Construction and Linguistic Categorization 
+
+The highD naturalistic highway trajectory dataset is used as the source of the observed driving variables. The dataset contains drone-recorded vehicle trajectories on German highways, making it suitable for studying lane-change behavior in dense and realistic traffic conditions Krajewski, Bock, Kloeker and Eckstein (2018). The original numerical feature file contains trajectories of approximately 110 , 000 vehicles, from which interaction, lane-context, and traffic-context variables are extracted. Training samples are extracted 5 seconds before the lane-change event, where the event is defined as the instant when the target vehicle reaches the lane marking during the maneuver. To avoid data leakage, the training and test sets are separated at the track/recording level rather than by randomly splitting individual samples. In other words, samples from the same recording are not shared between training and testing. The experimental setup uses a 75∕25 split, where the training portion is used to fit the DECI model and the held-out portion is used only for test evaluation. After class balancing, the training set contains 450 , 000 samples/frames, with 150 , 000 samples for each maneuver class. The test set contains 150 , 000 samples, with 50 , 000 samples for each class. Therefore, the experimental data used for training and testing contain 600 , 000 samples in total. The numerical data are then converted into linguistic features before being used by the DECI-based causal model. This representation serves two purposes. First, it converts continuous driving measurements into finite categorical states suitable for the categorical formulation used by the causal model. Second, it aligns the input space with interpretable driving concepts, allowing the learned causal relationships to be described using human-understandable states such as safe , critical , close , far , slow , or fast . The selected variables are converted into categorical string-valued features using threshold-based discretization. The final input to the DECI-based causal model consists of 47 linguistic variables and the maneuver label. The selected features cover target vehicle kinematics, including both longitudinal and lateral motion, lane and road context, surrounding-vehicle occupancy, neighboring-vehicle interaction measures, and traffic-density information. Table 1 summarizes the feature groups and their linguistic representations. The numerical-                                         
+
+> Table 1
+> Summary of the linguistic feature groups used as input to the DECI-based causal model.
+> Feature group Representative variables Linguistic representation
+> Target vehicle kinematics Longitudinal speed, longitudinal acceler-ation, lateral velocity, lateral acceleration Speed, acceleration, and lateral-motion variables are converted into ordered motion states such as
+> very_slow ,fast ,hard_braking ,moving_left , and
+> moving_right .Lane and road context Lane rank, posted speed limit, rush-hour flag Road-context variables are encoded using categor-ical states such as rightmost_lane ,center_lane ,
+> leftmost_lane ,no_limit ,130_kmh ,and binary rush-hour states. Surrounding-vehicle occupancy Presence of left/center/right preced-ing/following, left-side, and right-side neighboring vehicles Neighbor availability is encoded using binary states. If a neighboring vehicle is absent, its related inter-action features are encoded as not_applicable .Neighbor interac-tion features Longitudinal gap, neighbor speed, rela-tive longitudinal velocity, and TTC for surrounding vehicles Interaction variables are represented using ordered states such as very_close ,close ,far ,much_slower ,
+> similar ,much_faster ,critical , and safe .Traffic context Ego-lane, left-lane, and right-lane traffic density; ego speed-to-limit ratio Traffic and speed-context variables are encoded us-ing states such as empty ,low ,medium ,congested ,
+> well_below ,near_limit , and well_above .Maneuver label Future maneuver class The prediction target is encoded as one of three classes: LLC ,LK , or RLC .
+
+to-linguistic conversion is performed using threshold-based discretization, with category boundaries derived from common practice in the traffic-safety literature and from empirical observation of the highD dataset distributions Krajewski et al. (2018), following a categorization approach similar to our previous work Manzour et al. (2024, 2025). 
+
+> Page 7 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+As a representative example, TTC is discretized using boundaries at −10 , 0, 4, and 15 s, where negative values indicate diverging interactions, the 4 s boundary represents a commonly adopted critical interaction level Saffarzadeh, Nadimi, Naseralavi and Mamdoohi (2013); Ramezanı-khansarı, Nejad and Moogeh (2020); Manzour et al. (2024), and values above 15 s are treated as non-interacting based on the empirical TTC distribution of the dataset. The remaining variables are discretized in the same manner. Since the linguistic categorization is a preprocessing step and not the main focus of this work, the proposed causal framework can operate over any categorical feature representation, and the investigation of alternative discretization and categorization methods is left for future work. 
+
+3.3. Expert Knowledge Constraint Matrix 
+
+After constructing the linguistic feature representation, expert driving knowledge is incorporated into the causal structure learning process through a constraint matrix. This matrix defines the search space of the causal discovery model by specifying which directed relations are not allowed to be learned. The objective is not to manually impose a complete causal graph, but to prevent the model from selecting directions that contradict the temporal, physical, or definitional logic of the driving scenario. As illustrated in Figure 2, an allowed entry does not represent a forced causal edge; it only indicates that the corresponding direction is left available for data-driven learning if supported by the observational data. The construction of the constraint matrix was supported by two sources of prior knowledge: expert driving-domain reasoning and LLM-assisted causal-direction review using PyWhy-LLM Kiciman, Ness, Sharma and Tan (2023). PyWhy-LLM is a prompt-based causal-analysis support tool that uses external LLMs to suggest or critique causal relationships from natural-language variable descriptions. In this work, it was used as an auxiliary review tool over linguistic and descriptive driving concepts, such as traffic density, rush-hour context, speed-limit context, longitudinal gap, relative velocity, TTC, and maneuver outcome. The LLM output was not used to prove causality or to force edges into the graph. Instead, it supported expert inspection of candidate directions, while the final constraint decisions remained expert-defined. For example, PyWhy-LLM was queried using linguistic driving concepts to compare the candidate directions between traffic density and rush-hour context. The prompt asked whether traffic density causes rush hour, rush hour causes traffic density, or neither relation is more plausible. The model selected the second option and reasoned that rush hour is a temporal traffic condition that can increase the number of vehicles entering the road network, thereby increasing traffic density, whereas traffic density does not determine the rush-hour state. This output supported the expert decision to block the reverse direction from traffic density to rush-hour context, while leaving the direction from rush-hour context to traffic density available for DECI to learn from data. Importantly, this LLM-assisted review only supported the identification of directions that should be excluded from the causal search space. The constraint rules follow several types of domain knowledge. First, temporal constraints are imposed on the maneuver outcome. Since the maneuver represents a future prediction target, it is not allowed to cause any observed input feature. For example, the future maneuver class cannot cause current traffic density, longitudinal gap, relative velocity, TTC, lateral velocity, or surrounding-vehicle states. In contrast, observed driving variables are allowed to influence the maneuver outcome if the learned structure supports such relations. Second, contextual variables are constrained according to their role in the driving scene. For example, rush-hour context may influence traffic density because the time of day can affect congestion patterns, but traffic density cannot cause the rush-hour state. Similarly, road-context variables such as lane rank and speed-limit information are treated as upstream contextual conditions. Therefore, instantaneous interaction variables, such as TTC, relative velocity, or traffic density, are not allowed to cause the posted speed limit or the lane-rank context. However, contextual variables can remain available as candidate causes of downstream traffic or interaction variables when such directions are physically meaningful. Third, definitional and physical dependencies are used to restrict directions among interaction variables. A representative case is TTC. TTC is computed from the longitudinal gap and the relative velocity under closing or diverging conditions. Therefore, directions from longitudinal gap and relative velocity toward TTC are physically meaningful candidate directions, while reverse directions, such as TTC causing the gap or TTC causing the relative velocity, are blocked. This prevents the model from learning causal directions that invert the physical construction of safety-related variables. A similar logic applies to relative velocity, which is derived from the velocities of the interacting vehicles; the derived relative quantity should not be treated as the original cause of the observed speed components. When the relation between two variables is physically possible but uncertain, the corresponding direction is not blocked and left available for DECI to learn from the observational data. Thus, the constraint matrix removes only directions judged to be temporally, physically, or definitionally inconsistent, while preserving a data-adaptive causal discovery process for the remaining candidate dependencies. The resulting learned structure is therefore expert-constrained, but not manually fixed. 
+
+> Page 8 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+3.4. DECI-Based Structural Causal Learning 
+
+After preparing the linguistic feature set and defining the expert constraint matrix, Deep End-to-end Causal Inference (DECI) is used to learn the SCM from the observational driving data. DECI is a deep SCM that jointly learns a directed causal graph and the associated structural mechanisms from observational data under explicit modeling assumptions Geffner et al. (2022). In the proposed framework, DECI receives a categorical data table, where each row represents one traffic sample and each column represents either one linguistic driving variable or the maneuver label. Let 𝐗 = { 𝑋 1, … , 𝑋 𝑑 } denote the set of linguistic driving variables, with 𝑑 = 47 , and let 𝑌 denote the maneuver outcome. The complete set of variables used for causal structure learning is defined as: 
+
+𝐙 = 𝐗 ∪ { 𝑌 }. (1) Therefore, each variable 𝑍 𝑗 ∈ 𝐙 represents either one linguistic driving feature or the maneuver label. DECI describes each variable using the following structural form: 
+
+𝑍 𝑗 = 𝑓 𝑗 
+
+(Pa (𝑍 𝑗 ), 𝜖 𝑗 
+
+) , (2) where 𝑍 𝑗 is the variable being modeled, and Pa (𝑍 𝑗 ) denotes its parents in the learned graph . The parents of a variable are the variables that have directed edges pointing toward it. The function 𝑓 𝑗 (⋅) represents the learned relationship between a variable and its parents. In DECI, this function is learned using neural networks, which allows the model to capture nonlinear relationships without assuming a fixed equation in advance. The term 𝜖 𝑗 is included because the learned parents of a variable usually cannot explain that variable perfectly. In real traffic data, the observed variables may miss some factors, such as measurement uncertainty, or values located close to the discretization thresholds. In a numerical setting, this idea is straightforward. For example, if TTC were modeled as a continuous value using longitudinal gap and relative velocity, a deterministic model without noise would write: 
+
+TTC = 𝑓 (gap , relative velocity) . (3) This means that the same gap and relative velocity would always produce exactly the same TTC value. However, this is usually unrealistic because two traffic situations with similar observed values may still lead to slightly different TTC values. Therefore, the noise term is added: 
+
+TTC = 𝑓 (gap , relative velocity) + 𝜖. (4) In this numerical case, 𝜖 can be understood as the remaining numerical difference between the value predicted from the observed parents and the actual observed value. In this work, however, the variables are linguistic categories rather than continuous numerical values. Therefore, the noise term cannot be added directly to the category. For example, the model cannot compute “ critical + noise”. Without uncertainty, the categorical mechanism would behave deterministically. For instance, if the parent states are gap = small and relative velocity = target_is_faster , the model would always assign: 
+
+𝑃 (TTC = critical ) = 1 .00 , 𝑃 (TTC = cautious ) = 0 .00 , 𝑃 (TTC = safe ) = 0 .00 . (5) This would mean that the same parent categories always produce the category critical . When uncertainty is considered, the same parent states can instead produce a probability distribution over the possible TTC categories: 
+
+𝑃 (TTC = critical ) = 0 .72 , 𝑃 (TTC = cautious ) = 0 .20 , 𝑃 (TTC = safe ) = 0 .08 . (6) Here, 𝜖 𝑗 should be understood as the hidden variation that prevents the observed parent categories from determining one output category with complete certainty. It is not added to the category itself. Rather, its effect appears through the probability distribution: the parent states make critical the most likely TTC category, but other categories remain possible because some relevant information is not fully captured by the observed parents. The learning process can be summarized as follows. First, DECI considers possible DAG structures among the variables in 𝐙 . For notation, let 𝐀 
+
+denote the edge matrix of the learned graph, where 𝐴 𝑖𝑗 = 1 means that the directed edge 𝑍 𝑖 → 𝑍 𝑗 is present, and 
+
+𝐴 𝑖𝑗 = 0 means that this edge is absent. The constraint is written as: 
+
+𝐴 𝑖𝑗 = 0 whenever 𝐶 𝑖𝑗 = 0 . (7) 
+
+> Page 9 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+This means that if the constraint matrix 𝐶 marks a direction as forbidden, DECI cannot learn that edge. After applying these constraints, DECI learns the graph structure and the functions 𝑓 𝑗 from the observational driving data. In other words, the model learns both which variables are connected and how each variable depends on its learned parents. After training, the graph forms an SCM that can be used for later analysis. The trained DECI model provides the structural backbone for the remaining stages of the framework. Using the learned graph and structural mechanisms, the framework first performs intervention-based effect analysis to estimate how selected feature-category changes affect the maneuver distribution. DoWhy library is then used to apply refutation tests in order to assess the robustness of the estimated effects. After this causal-effect analysis stage, the trained DECI model is used to estimate maneuver probabilities and to trace causal chains explaining why one maneuver is favored over the alternative maneuvers. Finally, since this article uses DECI as an existing causal learning model rather than proposing a modification of the DECI algorithm, further details about its probabilistic formulation and training procedure are provided in the original work by Geffner et al. (2022). 
+
+3.5. Causal Role Interpretation for Intervention and Explanation 
+
+After learning the structural causal graph, the next step is to define how this graph will be used in the following causal-analysis stage. The learned graph is not only a visualization of dependencies among variables; it also determines how variables are interpreted during intervention analysis, refutation testing, and causal-chain explanation. This subsection therefore connects the learned graph from Section 3.4 with the causal-analysis procedures in Section 3.6 by defining the practical causal roles used in the rest of the methodology. These roles are introduced to answer three questions. First, when estimating an intervention effect, which variable is being changed and which variable is being measured? Second, when explaining a maneuver prediction, which variables are directly connected to the maneuver and which variables act through intermediate paths? Third, which upstream variables may influence both a selected treatment and the outcome and should therefore be considered during effect estimation? Answering these questions is necessary before applying the intervention and explanation procedures in Section 3.6. In the causal-analysis stage, the variable being actively changed is referred to as the treatment , while the variable whose response is measured is referred to as the outcome . The treatment is not fixed for the whole study; rather, it changes depending on the question being analyzed. For example, when studying the effect of TTC on the maneuver, TTC is the treatment and the maneuver is the outcome. In another analysis, the treatment may be relative velocity and the outcome may be TTC or the maneuver, depending on which downstream effect is being examined. An intervention means setting the treatment to a selected state, such as changing TTC from safe to critical , and then estimating how the selected outcome changes under the learned causal structure. Let 𝑌 denote the maneuver outcome and let 𝑋 𝑖 denote one of the linguistic driving variables. A variable is considered a candidate direct contributor if it has a directed edge toward the maneuver node: 
+
+𝑋 𝑖 ∈ Pa (𝑌 ). (8) For example, if TTC has a direct edge toward the maneuver node, then TTC is interpreted as a candidate direct contributor under the learned graph. This does not mean that TTC is always the original reason behind the maneuver; it means that TTC has a direct connection to the maneuver after considering the learned structure. Other variables may influence the maneuver indirectly through a chain of intermediate variables. In this case, the earlier variables are treated as upstream causes, while the intermediate variables are treated as mediators because they transmit the effect toward the maneuver. For example, a path such as traffic density → gap → TTC → 𝑌 indicates that traffic density acts upstream, while gap and TTC transmit part of this influence toward the maneuver prediction. The learned graph is also used to identify variables that should be considered during effect estimation. For example, if traffic density affects both TTC and the maneuver, then estimating the effect of TTC on the maneuver without considering traffic density may mix the effect of TTC with the effect of the traffic density. In this case, traffic density acts as a confounder for the TTC–maneuver relation. To make these roles concrete, Figure 3 illustrates the two structures using representative driving variables. In Figure 3(a), the relative longitudinal velocity influences the maneuver only through the TTC; the TTC is therefore a mediator that transmits the upstream effect along the path relative velocity → TTC → maneuver .
+
+In Figure 3(b), traffic density affects both the TTC and the maneuver at the same time. It is therefore a confounder of the TTC–maneuver relation: because it drives both variables, part of the apparent association between the TTC and the maneuver is not produced by the TTC itself, but by their shared dependence on traffic density. To avoid attributing this shared influence to the TTC, traffic density must itself be taken into account when the effect of the TTC on the maneuver is estimated, for example by comparing only situations that share the same traffic-density level. These two 
+
+> Page 10 of 25
+
+From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+diagrams are illustrative examples of the concepts; the dependencies actually learned for this study are reported in the next section. By distinguishing these roles (direct contributor, mediator, upstream cause, and confounder) the learned (a) Mediator  (b) Confounder               
+
+> upstream cause
+> The effect of relative velocity on the maneuver passes
+> through the TTC. The TTC is a mediator on the path
+> relative velocity → TTC → maneuver.
+> confounder
+> effect of interest
+> Traffic density drives both the TTC and the maneuver (red), creating a spurious link between them. This shared influence must be accounted for to recover the true effect of TTC → maneuver.
+> mediator treatment outcome
+> Relative
+> velocity TTC Maneuver
+> Traffic
+> density
+> TTC Maneuver
+
+Figure 3: Graphical illustration of a mediator and a confounder using representative driving variables. (a) Mediator: the effect of the relative longitudinal velocity on the maneuver passes entirely through the TTC, so the TTC is a mediator lying on the path relative velocity → TTC → maneuver . (b) Confounder: traffic density influences both the TTC and the maneuver (red arrows). Because it drives both of them at the same time, it creates a spurious (non-causal) association between the TTC and the maneuver; this shared influence must be accounted for — by comparing situations at the same traffic-density level — in order to recover the true TTC → maneuver effect shown by the black arrow. These structures motivate the distinction between direct contributors, mediated effects, and confounded relations used throughout the causal analysis. 
+
+graph helps the framework interpret direct effects, mediated effects, and possible shared upstream influences before applying intervention-based analysis. This makes the learned graph more informative than a flat feature-importance ranking: such a ranking may indicate that TTC is important, but it cannot show whether TTC is a direct contributor, a mediator, or a variable affected by upstream traffic conditions. By organizing the variables into these causal roles, the framework can explain not only which variables are related to the predicted maneuver, but also how their effects propagate through the learned causal structure. More details about these graphical structures and their role in causal inference can be found in Pearl (2009). 
+
+3.6. Causal Analysis and Explanation 
+
+After learning the SCM, the framework uses the trained DECI model for causal analysis and explanation. This stage uses the graph roles introduced in Section 3.5 to examine how selected treatment changes affect downstream outcomes, whether the estimated effects remain robust under refutation tests, which maneuver is predicted by the trained model, and which causal chain explains why this maneuver is favored over the alternatives. Accordingly, this stage consists of intervention-based effect analysis, refutation testing, maneuver prediction, and contrastive causal-chain explanation. This corresponds to the final causal-analysis block in Figure 2. 
+
+3.6.1. Intervention-Based Effect Analysis 
+
+Intervention-based effect analysis estimates how the probability of a selected outcome state changes when a treatment variable is actively set to a different linguistic state under the learned causal structure. The maneuver label is the main outcome of interest, but the same causal-effect formulation can also be applied to intermediate child variables in the learned graph. For example, relative velocity can be treated as the treatment when estimating its effect on TTC, while TTC can later be treated as the treatment when estimating its effect on the maneuver. This allows the framework to analyze not only the final maneuver prediction, but also how effects propagate between intermediate variables. Let 𝑋 𝑖 denote the selected treatment variable and let 𝑌 denote the selected outcome for the current causal query. The Average Treatment Effect (ATE) of changing 𝑋 𝑖 from state 𝑥 to state 𝑥 ′ on an outcome state 𝑦 is defined as the change in the interventional probability of that outcome state: 
+
+ATE 𝑥 →𝑥 ′ (𝑦 ) = 𝑃 (𝑌 = 𝑦 ∣ 𝑑𝑜 (𝑋 𝑖 = 𝑥 ′)) − 𝑃 (𝑌 = 𝑦 ∣ 𝑑𝑜 (𝑋 𝑖 = 𝑥 )) . (9) Here, 𝑑𝑜 (𝑋 𝑖 = 𝑥 ) denotes an intervention that sets the treatment variable 𝑋 𝑖 to the state 𝑥 under the learned SCM. Since the variables are categorical, the ATE is expressed as a difference in probabilities. If the selected outcome 𝑌 
+
+Page 11 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+is the maneuver label, then 𝑦 can be one of the three maneuver classes: LLC, LK, or RLC. If the selected outcome 
+
+𝑌 is an intermediate variable, such as TTC, then 𝑦 can be one of its linguistic states, such as critical , cautious , or 
+
+safe . In practice, estimating this effect may require accounting for confounders. Since the learned graph contains 47 linguistic driving variables and the maneuver label, a selected treatment may have more than one shared upstream variable that also affects the selected outcome. Manually deciding which variables should be considered for every treatment–outcome pair would be difficult and error-prone. Therefore, DoWhy is used with the learned causal graph to identify the required adjustment set — the set of upstream variables that influence both the treatment and the outcome (the confounders), which must be held at the same level when comparing different treatment states so that their shared influence is not mistaken for the effect of the treatment — and to estimate the intervention effect. The resulting intervention effects are used to distinguish influential treatments from weakly influential treatments for the selected outcome. A treatment is considered influential when changing its state produces a meaningful change in the selected outcome distribution; otherwise, its effect is considered weak or negligible under the learned causal structure. 
+
+3.6.2. Refutation and Robustness Testing 
+
+After estimating the intervention-based effects, refutation tests are applied to examine whether the estimated effects behave as expected under controlled diagnostic changes. These tests are not used to prove that the learned causal graph is correct. Instead, they provide additional checks on the reliability of the estimated treatment effect. If an effect behaves unexpectedly under a refutation test, the corresponding treatment–outcome relation should be interpreted with caution and may require further investigation. Refutation testing is performed using DoWhy after the intervention effect has been estimated for a selected treatment–outcome pair. Each test modifies the estimation setting in a different way and checks whether the resulting behavior is reasonable for that test. Therefore, the expected result is not identical for all refutation tests. Three refutation tests are used. The placebo-treatment test replaces the original treatment with an artificial or randomly generated treatment. Since this placebo treatment should not have a meaningful causal effect on the outcome, the estimated effect is expected to become weak or close to zero. If the placebo treatment still produces a strong effect, this suggests that the original treatment–outcome estimate may be influenced by spurious associations in the data. The random-common-cause test adds a randomly generated variable as a simulated additional common cause between the treatment and the outcome. In this case, the estimated effect is expected to remain reasonably close to the original estimate. If adding this simulated common cause substantially changes the estimated effect, this does not mean that the random variable is a real confounder. Rather, it indicates that the estimated effect is sensitive to changes in the adjustment setting, and therefore the corresponding treatment–outcome relation should be interpreted with caution. The data-subset test repeats the effect estimation using a subset of the data. The purpose is to check whether the estimated effect depends strongly on a specific portion of the dataset. If the effect remains similar across subsets, this provides additional support for the robustness of the estimate. If the effect changes strongly, the treatment–outcome relation may be sample-dependent and should be examined further. Overall, the refutation stage provides an additional reliability check for the intervention-based effect analysis. Passing these tests does not prove definitive causality, but it increases confidence that the estimated effect is not simply produced by placebo treatments, random common causes, or a specific subset of the data. Conversely, failing a refutation test does not identify the exact reason for the failure, such as a specific missing confounder or problematic data segment, but it highlights a relation that should be treated cautiously before being used in the causal explanation. 
+
+3.6.3. Maneuver Prediction 
+
+The trained DECI model is also used to predict the future maneuver for each traffic sample. In this step, the outcome is specifically the maneuver label, denoted by 𝑌 . Given the linguistic feature states of the considered sample, the model estimates the probability of each maneuver class: 
+
+𝑃 (𝑌 ∣ 𝐗 ) = [ 𝑃 (𝑌 = LLC ∣ 𝐗 ), 𝑃 (𝑌 = LK ∣ 𝐗 ), 𝑃 (𝑌 = RLC ∣ 𝐗 )] , (10) where 𝐗 denotes the set of linguistic driving variables for the considered sample. The predicted maneuver is selected as the class with the highest probability: ̂𝑌 = arg max  
+
+> 𝑦 ∈{LLC ,LK ,RLC}
+
+𝑃 (𝑌 = 𝑦 ∣ 𝐗 ). (11) The full probability distribution is retained because it provides more information than the final class label alone. It shows not only which maneuver is most likely, but also how strongly the model favors this maneuver compared with 
+
+> Page 12 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+the alternatives. This prediction step is performed using the trained DECI-based SCM, not a separate flat classifier. The learned causal graph is then used in the following explanation stage, where the current linguistic states of the sample are traced through their learned causal parents to explain why the predicted maneuver is supported. 
+
+3.6.4. Contrastive Causal-Chain Explanation 
+
+After predicting the maneuver, the learned graph is used to generate a recursive causal-chain explanation for the predicted class by identifying which observed parent states most strongly support this prediction and which upstream variables explain those parent states. The explanation therefore starts from the maneuver node, ranks its direct parents according to their local interventional effect on the predicted maneuver, and then moves backward through the learned graph to explain the state of the selected parent. Let 𝑋 𝑖 be a parent of 𝑋 𝑗 in the learned graph. For a given sample, suppose that the observed state of the parent is 𝑋 𝑖 = 𝑥 𝑖 and the observed state of the child is 𝑋 𝑗 = 𝑥 𝑗 . The local interventional lift from 𝑋 𝑖 to 𝑋 𝑗 is defined as 
+
+Δ𝑖 →𝑗 (𝑥 𝑗 ) = 𝑃 (𝑋 𝑗 = 𝑥 𝑗 ∣ 𝑑𝑜 (𝑋 𝑖 = 𝑥 𝑖 )) − 𝑃 (𝑋 𝑗 = 𝑥 𝑗 ). (12) Here, 𝑃 (𝑋 𝑗 = 𝑥 𝑗 ) denotes the baseline model-implied probability of the observed child state under the learned SCM, before imposing the observed parent state through an intervention. The explanation is local because 𝑥 𝑖 and 
+
+𝑥 𝑗 correspond to the observed parent and child states in the current sample. Therefore, Δ𝑖 →𝑗 (𝑥 𝑗 ) measures how much the observed parent state increases or decreases the model base probability of the observed child state. For the final edge ending at the maneuver node, 𝑋 𝑗 is the maneuver label 𝑌 . Thus, if the predicted maneuver is ̂ 𝑌 , the framework evaluates 
+
+Δ𝑖 →𝑌 (̂ 𝑌 ) = 𝑃 (𝑌 =̂ 𝑌 ∣ 𝑑𝑜 (𝑋 𝑖 = 𝑥 𝑖 )) − 𝑃 (𝑌 =̂ 𝑌 ). (13) A positive lift means that the observed parent state supports the predicted maneuver, while a negative lift means that it suppresses that maneuver. For example, assume that the predicted maneuver is left lane change, ̂ 𝑌 = LLC , and that one direct parent of the maneuver is the preceding-vehicle TTC, with the observed state TTC prec = critical . If the baseline probability is 𝑃 (𝑌 = LLC) = 0 .24 , and intervening on the observed TTC state gives 
+
+𝑃 (𝑌 = LLC ∣ 𝑑𝑜 (TTC prec = critical)) = 0 .43 ,
+
+then the local lift is 0.43 − 0 .24 = 0 .19 . This means that the critical TTC state increases the model-implied probability of LLC by 0.19, so it is treated as a supporting direct contributor to the prediction. The explanation does not stop at this direct parent. It recursively asks why this parent has its observed state. Continuing the same example, suppose that the current sample has relLongVel prec = target _is _much _faster and TTC prec = critical . The framework then evaluates the effect of the observed relative-velocity state on the observed TTC state. If 
+
+𝑃 (TTC prec = critical) = 0 .18 
+
+and 
+
+𝑃 (TTC prec = critical ∣ 𝑑𝑜 (relLongVel prec = target _is _much _faster)) = 0 .62 ,
+
+then the local lift is 0.62−0 .18 = 0 .44 . This indicates that the observed relative velocity is a strong upstream contributor to the critical TTC state. Accordingly, one possible explanation chain for this prediction is 
+
+relLongVel prec = target _is _much _faster → TTC prec = critical → 𝑌 = LLC . (14) This path indicates that the model does not explain the LLC by TTC alone. Instead, it traces how the current relative-velocity state supports the critical TTC state, and how the critical TTC state supports the predicted LLC. More generally, a causal explanation path is a directed path in the learned graph that ends at the maneuver node: 
+
+𝑋 𝑝 1 → 𝑋 𝑝 2 → ⋯ → 𝑋 𝑝 𝑘 → 𝑌 , (15) where each edge is selected because the observed parent state produces a meaningful local interventional lift for the observed child state or for the target maneuver. For a longer interaction sequence, the explanation may take the form 
+
+traffic density → gap → TTC → LLC . (16) 
+
+> Page 13 of 25
+
+From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+This means that the prediction is interpreted as a mechanism that propagates through upstream traffic and interaction variables, rather than as the isolated effect of one feature. The same mechanism is used for contrastive explanations. For the predicted maneuver, the framework searches for observed parent states with positive lift toward the predicted class. For a “why not” question, it searches for observed parent states with negative lift toward the alternative class. For example, if the question is why the vehicle did not perform an RLC, the framework evaluates direct parents of 𝑌 
+
+that reduce 𝑃 (𝑌 = RLC) . If the current lane-position state is laneRank = rightmost _lane , the baseline probability is 
+
+𝑃 (𝑌 = RLC) = 0 .28 , and the intervention gives 
+
+𝑃 (𝑌 = RLC ∣ 𝑑𝑜 (laneRank = rightmost _lane)) = 0 .08 ,
+
+then the lift is 0.08 − 0 .28 = −0 .20 . This negative lift means that the current lane position suppresses the probability of RLC, making it part of the explanation for why RLC is not selected. By tracing these paths recursively, the framework provides explanations that are more informative than a single feature-importance value. A feature-importance method may indicate that TTC is important, but it does not show whether TTC is a direct contributor, a mediator, or a consequence of upstream traffic conditions. The proposed causal-chain explanation links the predicted maneuver to the learned DECI graph and to local intervention-based probability shifts, explaining both why the selected maneuver is favored and why the alternative maneuvers are less supported under the learned SCM. 
+
+## 4. Results and Analysis 
+
+4.1. Learned Causal Structure 
+
+Before analyzing intervention effects and prediction outcomes, the learned DECI graph is first examined to verify whether the resulting structure is logically consistent with the expert-constrained formulation. The objective of this step is to inspect whether the learned dependencies follow physically and temporally plausible relations among the driving variables. As shown in Figure 4, the learned graph follows the intended causal logic of the problem. First, the maneuver node appears only as a downstream outcome, with no outgoing edges toward the observed traffic variables. This is consistent with the constraint formulation used during training. The figure also shows that not all variables Density Gap Relative Velocity Preceding 
+
+> Velocity Target
+> Velocity Rush
+> Hour TTC Maneuver
+
+Figure 4: Representative subgraph from the learned DECI causal structure. The graph illustrates how contextual variables, such as rush hour , affect the maneuver mainly through intermediate variables rather than only through direct connections. The structure also respects the temporal constraint that no causal edges originate from the maneuver node. Interaction variables such as gap , relative velocity , and TTC appear as key downstream variables that can directly support the maneuver prediction, while upstream variables such as rush hour and vehicle-speed variables can influence the maneuver indirectly through these mediators. 
+
+influence the maneuver in the same way. For example, rush hour does not point directly to the maneuver node; instead, it acts as an upstream contextual variable that affects density . In contrast, density has a direct connection to the maneuver, but it also influences the maneuver indirectly through other interaction variables. For instance, denser traffic may reduce the available gap, affect the target and preceding-vehicle speed states, and contribute to a higher relative velocity when the target vehicle is moving faster than the preceding vehicle. Therefore, density can contribute to the maneuver both directly and through intermediate variables, even if its direct effect may be weaker than more immediate interaction variables. Several intermediate relations learned by the model are also physically meaningful. For example, 
+
+density is connected to preceding velocity , target velocity , and gap , reflecting the idea that denser traffic conditions can reduce available spacing and influence surrounding-vehicle motion. The graph further connects target velocity and 
+
+preceding velocity to relative velocity , and connects gap together with relative velocity to TTC . These relations are 
+
+Page 14 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+consistent with the physical interpretation of the variables, since TTC depends on both spacing and relative motion between vehicles. The learned structure therefore suggests that the maneuver is not driven by a single isolated feature, but by interacting motion and contextual variables. In some situations, the prediction may be mainly supported by a small gap or a critical TTC state; in other situations, the dominant support may come from relative velocity or from broader contextual conditions such as traffic density. This graph therefore shows the possible paths through which the variables can influence the maneuver. After verifying that the learned structure is logically organized, the following subsection uses intervention analysis to quantify how strongly selected variables affect the maneuver probabilities under the learned causal model. 
+
+4.2. Intervention-Based Effect Analysis 
+
+After inspecting the learned causal structure, intervention-based effect analysis is used to quantify how selected feature-state changes affect the maneuver probabilities under the learned DECI-based SCM. Figure 5 ranks the variables according to their largest absolute class-specific probability shift. The strongest effects are obtained for 0.0 0.1 0.2 0.3 0.4 0.5 0.6    
+
+> Maximum absolute maneuver-probability shift, max
+> c|P(c)|
+> Lateral velocity
+> Lateral acceleration
+> Preceding-vehicle relative velocity
+> Right-preceding relative velocity
+> Preceding-vehicle TTC
+> Right-preceding TTC
+> Right-alongside relative velocity
+> Following-vehicle TTC
+> Right-preceding gap
+> Preceding-vehicle gap
+> Right-following gap
+> Right-following relative velocity
+> Left-alongside relative velocity
+> Speed ratio
+> Lane rank
+> Right-lane traffic density
+> Right-following TTC
+> Left-following TTC
+> Left-lane traffic density
+> Left-preceding TTC
+> 0.572
+> 0.568
+> 0.542
+> 0.480
+> 0.438
+> 0.368
+> 0.366
+> 0.266
+> 0.222
+> 0.220
+> 0.202
+> 0.202
+> 0.146
+> 0.140
+> 0.136
+> 0.128
+> 0.116
+> 0.098
+> 0.080
+> 0.076
+
+Figure 5: Intervention-effect magnitude ranking of the driving variables under the learned DECI-based SCM. Each bar shows the maximum absolute maneuver-probability shift produced by intervening on a feature state, computed across the three maneuver classes. Larger values indicate that changing the corresponding feature can produce a stronger change in at least one maneuver probability. 
+
+lateral-motion variables. This is expected because these variables directly describe the lateral movement of the target vehicle, which is highly informative for distinguishing lane keeping from left or right lane changes. However, the 
+
+Page 15 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+ranking also shows that the model does not rely only on lateral motion. Interaction variables, including preceding-vehicle relative velocity, right-preceding relative velocity, TTC, and gap-related variables, also produce large shifts in the maneuver distribution. This indicates that the learned SCM captures both the lateral motion of the target vehicle and the surrounding-vehicle interactions that may motivate a lane-change maneuver. Contextual variables, such as lane rank, speed ratio, and lane-level traffic density, produce smaller shifts compared with the strongest lateral-motion and interaction variables. This is consistent with the interpretation of the learned graph: contextual variables may contribute to the maneuver directly, but they can also affect the maneuver indirectly through downstream interaction variables such as gap, relative velocity, and TTC. Therefore, a smaller direct intervention effect does not necessarily mean that the variable is irrelevant; because maybe the variable influence is partially transmitted through other intermediate variables (mediators). Figure 6 provides a more detailed view of the intervention results by showing the signed probability shifts for representative feature-state changes. This figure is important because it allows the direction of the learned effects to be checked, not only their magnitude. For example, changing lateral velocity from centered to 
+
+moving_right increases the probability of RLC and decreases the probabilities of the other maneuver classes. Similarly, changing lateral acceleration from neutral to strong_right produces a strong positive shift toward RLC. These effects are consistent with the expected interpretation of rightward lateral motion. The same logic appears for interaction-0.6 0.4 0.2 0.0 0.2 0.4 0.6             
+
+> Interventional probability shift P(maneuver class) under the learned DECI structural model
+> Lateral velocity
+> centered moving right
+> Lateral acceleration
+> neutral strong right
+> Preceding-vehicle relative velocity
+> similar much faster
+> Preceding-vehicle gap
+> moderate very close
+> Preceding-vehicle TTC
+> rapidly diverging critical
+> Right-lane traffic density
+> moderate congested
+> Lane rank
+> center lane rightmost lane
+> -0.088
+> -0.122
+> +0.542
+> +0.220
+> +0.290
+> -0.008
+> +0.004
+> -0.484
+> -0.446
+> -0.500
+> -0.218
+> -0.438
+> +0.128
+> +0.132
+> +0.572
+> +0.568
+> -0.042
+> -0.002
+> +0.148
+> -0.120
+> -0.136
+> Shift in maneuver probability, P
+> LLC LK RLC
+
+Figure 6: Signed class-specific intervention effects for representative feature-state changes. Each row shows the change in the probabilities of LLC, LK, and RLC after intervening on a selected feature state under the learned DECI-based SCM. Positive values indicate that the intervention increases the probability of the corresponding maneuver class, while negative values indicate that the intervention decreases it. Since LLC, LK, and RLC form one probability distribution, the class-specific shifts for each intervention sum approximately to zero. 
+
+related variables. When the preceding-vehicle relative velocity changes from similar to much_faster , the probability of LLC increases. This reflects a situation in which the target vehicle is moving much faster than the preceding vehicle, creating pressure to leave the current lane. A similar interpretation applies when the preceding gap changes from 
+
+moderate to very_close ; the reduced spacing increases the support for a lane-change maneuver. Similarly, when the preceding TTC changes from diverging_fast to critical , the probability of lane keeping decreases, indicating that a critical interaction with the preceding vehicle makes maintaining the current lane less supported by the model. The figure also shows that contextual interventions behave consistently with driving constraints. For example, changing lane rank from center_lane to rightmost_lane decreases the probability of RLC. This is logical because a right lane change becomes less feasible or less supported when the vehicle is already in the rightmost lane. The probability mass that is lost from RLC is redistributed to the remaining maneuver classes. This redistribution is expected because the 
+
+Page 16 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+three maneuver probabilities must remain normalized; therefore, the sum of the class-specific probability changes for each intervention is approximately zero. Overall, the intervention results support the causal interpretation of the learned structure. The ranking in Figure 5 identifies which variables can produce the strongest maneuver-probability changes, while Figure 6 shows whether these changes follow a logical direction. Together, the figures show that the learned DECI-based SCM does not only associate variables with the maneuver label, but also produces meaningful changes in the maneuver distribution when feature states are intervened upon. The following subsection therefore evaluates whether these estimated effects remain stable under refutation and robustness tests. 
+
+4.3. Refutation and Robustness Testing 
+
+After estimating the intervention effects, refutation tests are applied to examine whether selected treatment– outcome effects remain reliable under controlled diagnostic changes. This step is important because an intervention effect should not be used for causal interpretation if it appears only because of a random treatment, a specific data subset, or a fragile adjustment setting. In a real driving application, refutation tests are not intended to be executed online for every vehicle sample. Rather, they provide an offline reliability check before using the estimated effects to support causal explanations. If an effect remains stable under these diagnostic tests, it can be interpreted with higher confidence; if it changes strongly, the corresponding treatment–outcome relation should be treated cautiously. The refutation analysis is performed using DoWhy on representative intervention effects obtained from the learned DECI-based SCM. Unlike the previous intervention analysis, which reports class-specific shifts for LLC, LK, and RLC, the refutation analysis is applied here to a binary lane-change outcome. Specifically, LLC and RLC are grouped into one lane-change class, denoted as LC, while LK is treated as the non-lane-change class. This formulation is used because the applied DoWhy refutation diagnostics support binary outcome settings only. Therefore, the reported effects represent changes in the probability of performing a lane change, 𝑃 (LC) = 𝑃 (LLC) + 𝑃 (RLC) , rather than separate shifts for the three maneuver classes. Three refutation tests are considered. The placebo-treatment test replaces the original treatment with a randomly generated placebo treatment; therefore, the resulting effect is expected to be close to zero. The random-common-cause test adds a simulated common cause to the adjustment setting; in this case, the estimated effect should remain close to the original estimate if the result is robust. The data-subset test repeats the estimation on an 80% subset of the data; a stable effect should remain close to the original estimate. Table 2 summarizes representative refutation results for selected treatment contrasts. The original effects in Table 2 are consistent with expected driving behavior. For example, changing Lateral velocity from centered to moving right increases the lane-change probability by approximately 0.498. Similarly, changing Lateral acceleration from neutral to strong right increases the lane-change probability by approximately 0.488. These effects are logical because rightward lateral motion indicates that the vehicle is no longer simply maintaining its lane. The Preceding TTC contrast also has a strong positive effect: changing it                                           
+
+> Table 2
+> Representative DoWhy refutation results for selected intervention effects. The outcome is the binary lane-change probability,
+> 𝑃 (LC) = 𝑃 (LLC) + 𝑃 (RLC) , where LLC and RLC are grouped as lane-change maneuvers and LK is treated as the non-lane-change class. The reported values are probability changes, not raw probabilities.
+> Treatment Contrast Original effect Placebo effect Random common cause Data subset
+> Lateral velocity centered →moving right 0.498 -0.001 0.501 0.505
+> Lateral acceleration neutral →strong right 0.488 -0.002 0.482 0.486
+> Preceding TTC diverging fast →critical 0.451 0.002 0.455 0.445
+> Right-alongside relative velocity much faster →similar -0.452 -0.001 -0.458 -0.455
+> Preceding relative velocity similar →much faster 0.379 -0.000 0.377 0.370
+
+from diverging fast to critical increases the lane-change probability by approximately 0.451, which is consistent with the idea that a critical interaction with the preceding vehicle makes a lane change more likely. In contrast, changing 
+
+Right-alongside relative velocity from much faster to similar decreases the lane-change probability, suggesting that the corresponding right-side interaction becomes less supportive of a lane-change maneuver. The placebo-treatment effects are close to zero for all reported treatment contrasts. This behavior is expected because the placebo treatment is randomly generated and should not explain the lane-change outcome. Therefore, the near-zero placebo effects indicate that the original estimates are not reproduced when the real treatment variable 
+
+> Page 17 of 25
+
+From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+is replaced by an artificial one. The random-common-cause and data-subset tests also show stable behavior for the reported examples. For instance, the effect of changing Lateral velocity from centered to moving right remains close to 0.50 after adding a random common cause and after using an 80% subset of the data. Similarly, changing Preceding TTC from diverging fast to critical produces an original effect of 0.451, while the random-common-cause and subset estimates remain close to this value. These results indicate that the selected effects are not strongly altered by the diagnostic perturbations. It is important to note that passing the refutation tests does not prove definitive real-world causality. Rather, it provides additional support that the reported intervention effects are stable under the tested perturbations. Conversely, effects that produce numerically unstable estimates should be treated cautiously and are not used as primary evidence in the causal explanation. Overall, the refutation results support the reliability of the main intervention effects and the model in order to be used in the subsequent prediction and explanation analysis. 
+
+4.4. Maneuver Prediction Performance 
+
+After evaluating the intervention effects and their robustness, the trained DECI-based SCM is used to predict the maneuver class for each test sample. The objective of this evaluation is to verify that the same structural model used for causal analysis can also provide reliable maneuver probabilities for LLC, LK, and RLC. As shown in Figure 7, prediction performance increases as the target vehicle approaches the lane-marking crossing event. The model achieves strong macro F1-scores in the intervals closest to the event, reaching 96.3%, 96.0%, and 95.4% in the first three seconds before crossing. The score then decreases to 89.3% in the (3 , 4] s interval and 80.9% in the (4 , 5] s interval. This shows that the model remains effective within the main 5 s prediction horizon, while the additional diagnostic intervals beyond 5 s show the expected performance decrease at earlier anticipation times. This trend is reasonable because maneuver-related cues are less explicit far from the crossing event. At earlier intervals, the feature patterns of different maneuver classes may overlap, making the future maneuver harder to distinguish. As 𝑡 = 0 becomes closer, lateral-motion variables and interaction-related variables, such as gap, relative velocity, and TTC, become more informative. This behavior is also consistent with the intervention-analysis results, where lateral-motion and interaction-risk variables produced strong shifts in maneuver probabilities. [-8, -7) [-7, -6) [-6, -5) [-5, -4) [-4, -3) [-3, -2) [-2, -1) [-1, 0) 
+
+> Time to lane-marking crossing interval (s)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Macro F1 score
+> n/class = 2,991
+> LLC F1 = 0.659
+> LK F1 = 0.607
+> RLC F1 = 0.512
+> 0.593
+> n/class = 3,676
+> LLC F1 = 0.709
+> LK F1 = 0.640
+> RLC F1 = 0.630
+> 0.659
+> n/class = 4,372
+> LLC F1 = 0.773
+> LK F1 = 0.698
+> RLC F1 = 0.738
+> 0.737
+> n/class = 4,978
+> LLC F1 = 0.837
+> LK F1 = 0.760
+> RLC F1 = 0.830
+> 0.809
+> n/class = 5,546
+> LLC F1 = 0.916
+> LK F1 = 0.849
+> RLC F1 = 0.913
+> 0.893
+> n/class = 6,144
+> LLC F1 = 0.968
+> LK F1 = 0.928
+> RLC F1 = 0.964
+> 0.954
+> n/class = 6,890
+> LLC F1 = 0.973
+> LK F1 = 0.937
+> RLC F1 = 0.969
+> 0.960
+> n/class = 7,496
+> LLC F1 = 0.973
+> LK F1 = 0.942
+> RLC F1 = 0.973
+> 0.963
+
+Figure 7: Macro F1-score of the DECI-based SCM across time intervals before the lane-marking crossing event. The crossing event is defined as 𝑡 = 0 , and negative intervals indicate time before this event. For example, [−1 , 0) represents the last second before lane-marking crossing, while [−8 , −7) represents the interval from 8 to 7 s before the crossing. The main prediction horizon considered in the experiment is the 5 s interval before the crossing event. 
+
+To position the proposed framework with respect to previous lane-change prediction studies, Table 3 compares reported F1-scores from representative works that also used the highD dataset. The comparison shows that existing highD-based lane-change prediction models achieve strong F1-scores, especially close to the lane-change event. For example, Xue et al. (2022) and Gao et al. (2023) report high performance up to 2 s before the event. The dual-transformer-based approach in Gao et al. (2023) reaches very high scores at 0.5 and 1 s, while its score decreases at 2 s. The knowledge-graph-based approach in Manzour et al. (2024) reports results up to 4 s before the event, where 
+
+Page 18 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+the performance also decreases as the prediction time becomes earlier. The proposed framework follows the same general behavior while reporting performance up to 8 s. Most of the compared studies rely on numerical trajectory and                                                                 
+
+> Table 3
+> Performance comparison of lane-change prediction models on the highD dataset using the F1-score metric. The upper part reports studies using fixed prediction times before the lane-change event, while the lower part reports studies using prediction intervals before the event. Pred. time (s) 0.5 11.5 22.5 33.5 4Xue et al. (2022) 98.2 97.1 96.6 95.2 ––––Gao et al. (2023) 99.2 99.0 97.6 91.8 ––––Manzour et al. (2024) 97.7 97.9 98.1 98.0 97.2 93.6 82.8 66.5 Interval (s) [0,1] (1,2] (2,3] (3,4] (4,5] (5,6] (6,7] (7,8] Peng et al. (2025) 98.5 98.9 98.1 93.0 ––––Manzour et al. (2025) 95.5 95.8 92.4 76.0 ––––Proposed framework 96.3 96.0 95.4 89.3 80.9 73.7 65.9 59.3
+
+interaction features for maneuver prediction. The LLM-based work in Peng et al. (2025) reports strong performance and provides textual explanations, but the explanation is generated from the provided input and the model’s learned language knowledge rather than from an explicit causal structure. In other words, it does not estimate intervention effects, perform causal refutation tests, or identify causal paths among the driving variables. The works in Manzour et al. (2024) and Manzour et al. (2025) move toward a more interpretable representation by converting driving variables into linguistic states. However, these linguistic variables are still mainly used as a flat input feature vector, without explicitly modeling the dependencies among them. In contrast, the proposed framework learns an SCM over the linguistic variables. This allows the relations among motion, interaction, contextual, and maneuver variables to be represented as a graph. Therefore, the contribution is not limited to the reported F1-scores. The same trained model is used for maneuver prediction, causal-effect analysis, refutation testing, and contrastive causal-chain explanation. The prediction results show that the model can produce reliable maneuver probabilities, while the previous intervention and refutation results examine whether the learned feature effects are meaningful and stable under diagnostic perturbations. 
+
+4.5. Diagnostic Validation of Intervention-Based Feature Relevance 
+
+The previous results showed that intervention analysis can identify variables with strong or weak effects on the maneuver probabilities. To further examine whether this interpretation is meaningful, an additional diagnostic experiment is conducted. The objective is to test whether variables that are estimated to have weak intervention effects can be removed without noticeably degrading the prediction performance. For this purpose, the temporal reference is shifted from the lane-marking crossing event to the moment before the vehicle develops lateral motion. In this setting, the model is trained using the 5 s interval before this new reference point, so the analysis focuses on the period before the lateral action becomes visible. First, a DECI-based model is trained using the full feature set, including lateral velocity 
+
+and lateral acceleration . The intervention analysis on this model indicates that these two lateral-motion variables have weak effects on the maneuver label, with ATEs approximately in the range of 0.07–0.09. This is much lower than the effects observed in the lane-marking-crossing reference setting, where the same variables produced effects around 0.4–0.6. Based on this intervention result, a second DECI-based model is trained on the same data after removing 
+
+lateral velocity and lateral acceleration from the input feature set. If the intervention analysis is meaningful, removing variables with weak estimated effects should not cause a clear reduction in prediction performance. Therefore, the comparison between the two models provides a prediction-side validation of the causal-effect interpretation. As shown in Table 4, the prediction performance remains very similar after removing lateral velocity and lateral acceleration .For example, in the last second before the onset reference event, the macro F1-score changes only from 78.5% to 78.1%. Across the remaining intervals, the two configurations also remain close to each other, with no consistent degradation after removing the lateral-motion variables. These results support the output of the intervention analysis. Since the causal-effect analysis estimated weak effects for lateral velocity and lateral acceleration in this setting, their removal was expected to have limited influence on the prediction results. The ablation experiment confirms this expectation: variables that were estimated to have weak effects also had little impact when removed from the model input. This diagnostic study demonstrates the practical value of the intervention-based analysis. A conventional prediction evaluation would only report the final F1-score, but it would not indicate whether each input variable is                            
+
+> Page 19 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+> Table 4
+> Diagnostic prediction results before the onset of lateral motion. The table compares macro F1-scores with and without lateral velocity and lateral acceleration. Values are reported as percentages. The interval [0 ,1] denotes the last second before the onset reference event, while larger intervals denote earlier anticipation windows. Interval (s) [0,1] (1,2] (2,3] (3,4] (4,5] (5,6] (6,7] (7,8] With lateral features 78.5 78.1 77.9 78.3 78.0 76.9 74.4 71.6 Without lateral features 78.1 79.2 77.9 77.9 76.9 76.5 71.8 72.4
+
+actually influential in the considered setting. In contrast, the proposed causal analysis can identify variables with strong or weak effects, and the ablation result shows that this information is reflected in the prediction behavior of the model. Therefore, the intervention analysis is not only an explanatory component; it can also guide feature interpretation and help identify variables that may be ignored without significantly affecting prediction performance. 
+
+4.6. Contrastive Causal-Chain Explanation Results 
+
+This subsection applies the contrastive causal-chain explanation procedure introduced in Section 3.6.4 to individual driving sequences. In that procedure, the explanation starts from the predicted maneuver, identifies observed parent states that support this prediction through positive local intervention effects, and recursively traces upstream variables that explain these parent states. For the alternative maneuver classes, the same mechanism is used to identify observed states that reduce their support. Therefore, the qualitative examples in this subsection do not only show the predicted maneuver over time; they also show why the selected maneuver is favored and why the alternative maneuvers are less supported under the learned DECI-based SCM. For each example, 𝑡 = 0 denotes the lane-marking crossing event, and negative times indicate seconds before this event. The displayed frames therefore illustrate how the model output evolves before the maneuver is visually completed. In all displayed frames, the white vehicle denotes the target vehicle whose future maneuver is being predicted, while the arrow overlaid on the target vehicle indicates the currently predicted maneuver direction. Two examples are considered: one right lane change (RLC) and one left lane change (LLC). The full temporal evolution of both examples is provided as supplementary videos. Figure 8 shows the temporal evolution of the prediction in the RLC example. In Figure 8a at 𝑡 = −7 s, the target vehicle is still mainly interpreted as lane keeping. Around 𝑡 = −4 .52 s, the prediction changes to RLC. Then, the frame at 𝑡 = −4 s shows an RLC probability of 84%. By 𝑡 = −1 s, the target vehicle is already performing the maneuver and the RLC probability reaches 100%. This example therefore shows that the model does not only recognize the maneuver after it becomes obvious, but anticipates it several seconds before lateral motion development. The causal-                    
+
+> (a) 𝑡 = −7 s. The target vehicle is still predicted as LK with high confidence. The overlay indicates that the preceding vehicle has a similar speed to the target, while the right-preceding TTC is critical; however, the evidence is not yet sufficient to favor RLC.
+> (b) 𝑡 = −4 s. The model predicts RLC with 84% confidence, shortly after the first RLC prediction at 𝑡 =−4 .52 s. The displayed cues indicate cautious following TTC and a right-preceding vehicle mov-ing faster than the target, supporting a safe rightward maneuver.
+> (c) 𝑡 = −1 s. The RLC prediction reaches 100% confidence as the maneuver be-comes visually clear. The overlay shows strong rightward lateral acceleration to-gether with cautious following TTC, indi-cating that the vehicle is already executing the right lane change.
+> Figure 8: Representative frames from the RLC sequence. The model initially favors LK at 𝑡 = −7 s, predicts RLC for the first time at 𝑡 = −4 .52 s, and reaches a confident RLC prediction before the lane-marking crossing event. The sequence illustrates that the maneuver is anticipated before it is visually completed.
+
+chain explanation for the RLC example in Figure 8b is shown in Figure 9. Following the explanation procedure in Section 3.6.4, the graph is interpreted from the maneuver node backward through the observed parent states that support the prediction. The orange paths explain why RLC is favored. One branch starts from the right-preceding vehicle longitudinal velocity, which supports the observed relative velocity with the right-preceding vehicle. This relative-velocity state then supports the right-preceding TTC state, which contributes positively to the RLC label. A second branch follows the same logic through the following vehicle: the following-vehicle longitudinal velocity supports the relative velocity with the following vehicle, which then supports the following TTC state and contributes 
+
+> Page 20 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework
+
+to RLC. The contrastive part of the same explanation shows why the alternative maneuver classes are less supported.  
+
+> Figure 9: Contrastive causal-chain explanation for the RLC example. The orange paths support the predicted RLC maneuver. The right-preceding and following vehicle speed states influence their corresponding relative-velocity states, which then influence the right-preceding and following TTC. The blue path shows that the lane-rank state decreases support for LLC, while the green paths show that the current interaction states reduce support for LK.
+
+The blue branch indicates that the lane-rank state reduces support for LLC. This is consistent with the scene because the current lane context makes a left lane change infeasible or less supported. The green branches show that the current interaction states, including the right-preceding TTC, following TTC, and preceding gap, reduce support for LK. Thus, the explanation is not limited to saying that RLC has the highest probability; it also identifies why LLC and LK are less consistent with the observed states in this sample. Figure 10 presents the temporal evolution of the prediction in the LLC example. At 𝑡 = −8 s, the model still assigns the highest probability to LK, indicating that the lane-change intention is not yet dominant in the visible frame. Shortly after this time, the model first predicts LLC at 𝑡 = −7 .16 s. By 𝑡 = −5 s, the LLC probability has increased to 95%, supported by the interaction with a slower preceding vehicle. At 𝑡 = −2 s, the target vehicle is clearly moving left and the model reaches 100% confidence for LLC. The causal-chain explanation for the LLC example in Figure 10b is shown in Figure 11. The blue path explains why LLC is supported in this sample. The chain starts from the speed-limit context, which supports a fast longitudinal velocity for the target vehicle. This target-vehicle velocity contributes to the relative-velocity state with the preceding vehicle, where the preceding vehicle is much slower than the target. This interaction then affects the preceding TTC state, and the resulting chain supports the LLC label. Therefore, the prediction is not explained by a single isolated feature, but by a connected sequence of contextual, kinematic, and interaction-related states. The contrastive branches explain why the alternatives are less supported. The orange branch indicates that the right-preceding interaction path reduces support for RLC. The green branch indicates that the same upstream context and preceding-vehicle interaction reduce support for LK. This is consistent with the situation in which the target vehicle is fast while the preceding vehicle is much slower, making lane keeping less supported than a left lane change. Overall, these qualitative examples demonstrate the role of the contrastive causal-chain explanation stage. 
+
+> Page 21 of 25
+
+From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+(a) 𝑡 = −8 s. The model favors LK with 74% confidence. The overlay shows a pre-ceding vehicle with similar speed and a critical right-preceding TTC, but the left-lane-change evidence has not yet become dominant. 
+
+(b) 𝑡 = −5 s. The model predicts LLC with 95% confidence. The first LLC prediction occurs earlier, at 𝑡 = −7 .16 s. The over-lay indicates that the preceding vehicle is much slower than the target and that the preceding TTC is cautious, supporting a leftward maneuver. 
+
+(c) 𝑡 = −2 s. The LLC prediction reaches 100% confidence as the maneuver be-comes visually clear. The overlay shows a much slower preceding vehicle and strong leftward lateral acceleration, indicating that the vehicle is already executing the left lane change. 
+
+Figure 10: Representative frames from the LLC sequence. The model initially favors LK at 𝑡 = −8 s, predicts LLC for the first time at 𝑡 = −7 .16 s, and maintains a confident LLC prediction before the lane-marking crossing event. 
+
+Figure 11: Contrastive causal-chain explanation for the LLC example. The blue path supports the predicted LLC maneuver. The speed-limit state supports a fast target-vehicle longitudinal velocity, which contributes to a relative velocity state where the preceding vehicle is much slower than the target. This state affects the preceding TTC and supports LLC. The orange and green paths show states that reduce support for RLC and LK, respectively. 
+
+The representative frames show when the maneuver prediction emerges over time, while the causal-chain diagrams explain how the observed states support the selected maneuver and suppress the alternatives. This directly connects the temporal prediction behavior to the learned causal structure and to the local intervention-based explanation mechanism. Therefore, the framework provides sample-level explanations of why RLC or LLC is favored, why LK is less supported, and why the opposite lane-change direction is not selected in the corresponding scenario. 
+
+Supplementary videos. The full temporal evolution of the two qualitative examples is provided as supplementary videos. In addition, an accompanying playlist includes two further qualitative examples to show the prediction and explanation behavior in additional driving situations. The corresponding links are stated in Table 5. 
+
+Table 5 
+
+Supplementary video material for the qualitative causal-chain examples. 
+
+Scenario Content Link 
+
+Right Lane Change Full temporal evolution of the RLC example shown in Figure 8. https://youtu.be/hqUIwALstuw Left Lane Change Full temporal evolution of the LLC example shown in Figure 10. https://youtu.be/vCPD0ok8eWE Additional qualitative examples Playlist containing additional videos for further qualitative inspection. https://www.youtube.com/playlist?list=PLAe K3AuwxenHU5x5tALkMscj-mbkKYVEu Page 22 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+## 5. Conclusion 
+
+This work presented a causal-inference-based framework for lane-change prediction and explanation. The proposed approach converts numerical driving variables into interpretable linguistic states, incorporates expert knowledge through a constraint matrix, and learns an expert-constrained SCM using DECI. This allows the framework to model dependencies among traffic context, vehicle motion, gap, relative velocity, TTC, and the future maneuver, instead of treating all inputs as independent predictors. The results show that the learned causal structure follows physically meaningful relations and that intervention analysis can identify variables with strong or weak effects on the maneuver probabilities. Lateral-motion and interaction-related variables produced the strongest intervention effects, while refutation tests showed that selected effects remained stable under placebo, random-common-cause, and data-subset diagnostics. The trained DECI-based SCM also achieved strong prediction performance close to the lane-marking crossing event, with macro F1-scores above 95% during the first three seconds before crossing, while still providing maneuver anticipation in the 7–8 s interval before the lane-change event. In addition to prediction accuracy, the framework provides contrastive causal-chain explanations for individual samples. The qualitative examples show how the model traces supporting paths for the predicted maneuver and identifies why alternative maneuvers are less supported. A diagnostic ablation experiment further showed that variables estimated to have weak intervention effects can be removed with limited impact on prediction performance, supporting the practical value of the intervention analysis. Overall, the proposed framework combines maneuver prediction, causal-effect analysis, robustness checking, and causal-chain explanation within a unified SCM. Future work will extend the framework to additional datasets and driving environments, incorporate richer temporal causal structures, investigate alternative methods for linguistic feature categorization, and test the model on other safety-related tasks, such as decision-making support and risk-aware maneuver planning. 
+
+## References 
+
+Amer, L., Elias, C.M., 2024. Enhancing highway safety with lstm-based vehicle intention prediction (hvip), in: 2024 International Conference on Computer and Applications (ICCA), IEEE. pp. 1–6. Athey, S., Imbens, G.W., 2017. The state of applied econometrics: Causality and policy evaluation. Journal of Economic perspectives 31, 3–32. Benterki, A., Boukhnifer, M., Judalet, V., Choubeila, M., 2019. Prediction of surrounding vehicles lane change intention using machine learning, in: 2019 10th IEEE International Conference on Intelligent Data Acquisition and Advanced Computing Systems: Technology and Applications (IDAACS), IEEE. pp. 839–843. Biparva, M., Fernández-Llorca, D., Gonzalo, R.I., Tsotsos, J.K., 2022. Video action recognition for lane-change classification and prediction of surrounding vehicles. IEEE Transactions on Intelligent Vehicles 7, 569–578. Fernández-Llorca, D., Biparva, M., Izquierdo-Gonzalo, R., Tsotsos, J.K., 2020. Two-stream networks for lane-change prediction of surrounding vehicles, in: 2020 IEEE 23rd international conference on intelligent transportation systems (ITSC), IEEE. pp. 1–6. Gao, K., Li, X., Chen, B., Hu, L., Liu, J., Du, R., Li, Y., 2023. Dual transformer based prediction for lane change intentions and trajectories in mixed traffic environment. IEEE Transactions on Intelligent Transportation Systems 24, 6203–6216. Geffner, T., Antoran, J., Foster, A., Gong, W., Ma, C., Kiciman, E., Sharma, A., Lamb, A., Kukla, M., Pawlowski, N., et al., 2022. Deep end-to-end causal inference. arXiv preprint arXiv:2202.02195 . Guo, X., Jia, H., Huang, Q., Luo, Q., Wang, N., Mao, Z., 2025. A vehicle driving intention prediction method based on gated dual tower transformer model for autonomous driving. Expert Systems with Applications , 128000. Hussien, M.M., Melo, A.N., Ballardini, A.L., Maldonado, C.S., Izquierdo, R., Sotelo, M.A., 2025. Rag-based explainable prediction of road users behaviors for automated driving using knowledge graphs and large language models. Expert Systems with Applications 265, 125914. Izquierdo, R., Parra, I., Munoz-Bulnes, J., Fernández-Llorca, D., Sotelo, M.A., 2017. Vehicle trajectory and lane change prediction using ann and svm classifiers, in: 2017 IEEE 20th International Conference on Intelligent Transportation Systems (ITSC), IEEE. pp. 1–6. Izquierdo, R., Quintanar, Á., Lorenzo, J., García-Daza, I., Parra, I., Fernández-Llorca, D., Sotelo, M.Á., 2021. Vehicle lane change prediction on highways using efficient environment representation and deep learning. IEEE Access 9, 119454–119465. Izquierdo, R., Quintanar, A., Parra, I., Fernández-Llorca, D., Sotelo, M., 2019. Experimental validation of lane-change intention prediction methodologies based on cnn and lstm, in: 2019 IEEE Intelligent Transportation Systems Conference (ITSC), IEEE. pp. 3657–3662. Kiciman, E., Ness, R., Sharma, A., Tan, C., 2023. Causal reasoning and large language models: Opening a new frontier for causality. Transactions on Machine Learning Research . Krajewski, R., Bock, J., Kloeker, L., Eckstein, L., 2018. The highd dataset: A drone dataset of naturalistic vehicle trajectories on german highways for validation of highly automated driving systems, in: 2018 21st International Conference on Intelligent Transportation Systems (ITSC), IEEE. pp. 2118–2125. doi: 10.1109/ITSC.2018.8569552 .Laimona, O., Manzour, M.A., Shehata, O.M., Morgan, E.I., 2020. Implementation and evaluation of an enhanced intention prediction algorithm for lane-changing scenarios on highway roads, in: 2020 2nd Novel Intelligent and Leading Emerging Sciences Conference (NILES), IEEE. pp. 128–133. Li, J., Dai, B., Li, X., Xu, X., Liu, D., 2019. A dynamic bayesian network for vehicle maneuver prediction in highway driving scenarios: Framework and verification. Electronics 8, 40. 
+
+Page 23 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+Li, P., Shen, G., Pan, Q., Liu, Z., Kong, X., 2023a. Social behavior-aware driving intention detection using spatio-temporal attention network, in: China National Conference on Big Data and Social Computing, Springer. pp. 121–134. Li, Z., Wang, Y., Zuo, Z., Liu, Z., Chen, Y., Li, H., 2023b. Early intention prediction of lane-changing based on dual gaussian-mixed hidden markov models, in: 2023 62nd IEEE Conference on Decision and Control (CDC), IEEE. pp. 4081–4086. Liang, K., Wang, J., Bhalerao, A., 2022. Lane change classification and prediction with action recognition networks, in: European Conference on Computer Vision, Springer. pp. 617–632. Liu, M., Li, Y., Yang, Q., Wu, W., 2024. Peril set-aided lane-change intention inference on highway. IEEE Internet of Things Journal 11, 16647– 16659. Lu, Y., Xu, P., Jiang, X., Bashir, A.K., Gadekallu, T.R., Wang, W., Hu, X., 2025a. Lane change prediction for autonomous driving with transferred trajectory interaction. IEEE Transactions on Intelligent Transportation Systems . Lu, Y., Xu, P., Wang, W., Zhang, Z., Liu, H., Hu, X., 2026. Knowlcp: Knowledge augmented lane change prediction for autonomous driving, in: Proceedings of the AAAI Conference on Artificial Intelligence, pp. 38979–38987. Lu, Y., Zhang, Z., Wang, W., Zhu, Y., Chen, T., Al-Otaibi, Y.D., Bashir, A.K., Hu, X., 2025b. Knowledge-driven lane change prediction for secure and reliable internet of vehicles. IEEE Transactions on Intelligent Transportation Systems . Ma, Y., Song, S., Zhang, L., Xiong, L., Chen, J., 2021. Lane change analysis and prediction using mean impact value method and logistic regression model, in: 2021 IEEE International Intelligent Transportation Systems Conference (ITSC), IEEE. pp. 1346–1352. Manzour, M., Ballardini, A., Izquierdo, R., Sotelo, M., 2024. Vehicle lane change prediction based on knowledge graph embeddings and bayesian inference, in: 2024 IEEE Intelligent Vehicles Symposium (IV), IEEE. pp. 1893–1900. Manzour, M., Ballardini, A., Izquierdo, R., Sotelo, M., 2025. Explainable lane change prediction for near-crash scenarios using knowledge graph embeddings and retrieval augmented generation, in: 2025 IEEE Intelligent Vehicles Symposium (IV), IEEE. pp. 1538–1545. Pearl, J., 2009. Causal inference in statistics: An overview . Peng, M., Guo, X., Chen, X., Chen, K., Zhu, M., Chen, L., Wang, F.Y., 2025. Lc-llm: Explainable lane-change intention and trajectory predictions with large language models. Communications in Transportation Research 5, 100170. Ramezanı-khansarı, E., Nejad, F.M., Moogeh, S., 2020. Comparing time to collision and time headway as safety criteria. Pamukkale Üniversitesi Mühendislik Bilimleri Dergisi 27, 669–675. Saffarzadeh, M., Nadimi, N., Naseralavi, S., Mamdoohi, A.R., 2013. A general formulation for time-to-collision safety indicator, in: Proceedings of the Institution of Civil Engineers-Transport, Thomas Telford Ltd. pp. 294–304. Shi, J., Lin, Y., Hua, Y., Wang, Z., Zhang, Z., Zheng, W., Song, Y., Lu, K., Lu, S., 2026. Multiscenario highway lane-change intention prediction: a physics-informed ai framework for three-class classification, in: International Conference on Smart Transportation and City Engineering (STCE 2025), SPIE. pp. 129–145. Su, S., Muelling, K., Dolan, J., Palanisamy, P., Mudalige, P., 2018. Learning vehicle surrounding-aware lane-changing behavior from observed trajectories, in: 2018 IEEE Intelligent Vehicles Symposium (IV), IEEE. pp. 1412–1417. Syama, R., Mala, C., 2022. An ensemble model for lane change intention inference for autonomous driving, in: 2022 International Conference on Computing, Communication, Security and Intelligent Systems (IC3SIS), IEEE. pp. 1–6. Woo, H., Ji, Y., Kono, H., Tamura, Y., Kuroda, Y., Sugano, T., Yamamoto, Y., Yamashita, A., Asama, H., 2017. Lane-change detection based on vehicle-trajectory prediction. IEEE Robotics and Automation Letters 2, 1109–1116. Wu, S., Wang, Y., Gong, Y., 2026. Dynamic graph neural network for vehicle trajectory prediction and driving intent recognition. Sensors 26, 2826. Xia, Y., Qu, Z., Sun, Z., Li, Z., 2021. A human-like model to understand surrounding vehicles’ lane changing intentions for autonomous driving. IEEE Transactions on Vehicular Technology 70, 4178–4189. Xue, Q., Xing, Y., Lu, J., 2022. An integrated lane change prediction model incorporating traffic context based on trajectory data. Transportation research part C: emerging technologies 141, 103738. Yang, Q.I., Koutsopoulos, H.N., 1996. A microscopic traffic simulator for evaluation of dynamic traffic management systems. Transportation Research Part C: Emerging Technologies 4, 113–129. Yuan, W., Li, Z., Wang, C., 2018. Lane-change prediction method for adaptive cruise control system with hidden markov model. Advances in Mechanical Engineering 10, 1687814018802932. Zhang, Y., Shi, X., Zhang, S., Abraham, A., 2022. A xgboost-based lane change prediction on time series data using feature engineering for autopilot vehicles. IEEE Transactions on Intelligent Transportation Systems 23, 19187–19200. 
+
+Page 24 of 25 From Correlation to Causation in Lane Change Prediction for Automated Driving: A Causal Explanation Framework 
+
+Mohamed Manzour Hussien obtained his bachelor’s degree in Mechatronics from the German University in Cairo (GUC) in 2019. He later worked as a Lecturer Assistant at GUC and completed his master’s degree in Intelligent Transportation Systems (ITS) in 2022 at the Multi-Robot Systems (MRS) research group, focusing on pedestrian behavior prediction. In 2023, he started his Ph.D. in Intelligent Transportation Systems at the INtelligent VEhicles and Traffic Technologies (INVETT) research group, University of Alcalá, Spain. His doctoral research focused on vehicle behavior prediction, particularly lane change prediction. In the same year, he won first place in the IEEE ITSS Student Competition in the Driver Decision Prediction track. He completed his Ph.D. in 2026 and is currently a postdoctoral researcher at the University of Alcalá, continuing his research in intelligent vehicles. 
+
+Aditya Kumar is a PhD candidate with the Intelligent Transportation Systems at the INtelligent VEhicles and Traffic Technologies (INVETT) research group, University of Alcalá, Spain, and currently pursuing his research in the field of intelligent vehicles. In 2024, he graduated with a Master of Technology in Computer Sciences and Technology from Jawaharlal Nehru University (JNU). The IIIT Delhi CHANAKYA Fellowship funded his research during his Master’s program in the area of detecting various road anomalies present in unstructured road environments. Aditya Kumar had previously obtained a degree from Guru Gobind Singh Indraprastha University (GGSIPU) in 2017 in Bachelor of Technology in Electronics and Communication. 
+
+Augusto Luis Ballardini was born in Buenos Aires, Argentina, in 1984. He completed his M.Sc. and Ph.D. degrees in Computer Science from the Università degli Studi di Milano - Bicocca, Italy, in 2012 and 2017 respectively. Following his post-doctoral activities in the IRALAB Research Group for two years, Dr. Ballardini joined the INVETT Research Group at the Universidad de Alcalá, Spain, in 2019. During his time at INVETT, he was awarded a Marie Skłodowska-Curie Actions research grant and a research grant within the Maria Zambrano/NextGenerationEU project from the Spanish Ministry of Science, Innovation, and Universities. His research focuses on developing advanced systems for autonomous vehicle localization and data fusion, using heterogeneous data sources such as digital maps, LiDAR, and image data, combined with cutting-edge computer vision and machine learning algorithms. 
+
+Miguel Ángel Sotelo received the degree in Electrical Engineering in 1996 from the Technical University of Madrid, the Ph.D. degree in Electrical Engineering in 2001 from the University of Alcalá (Alcalá de Henares, Madrid), Spain, and the Master in Business Administration (MBA) from the European Business School in 2008. He is currently a Full Professor at the Department of Computer Engineering of the University of Alcalá (UAH). His research interests include Self-driving cars, Prediction Systems, and Traffic Technologies. He is author of more than 300 publications in journals, conferences, and book chapters. He has been recipient of the Best Research Award in the domain of Automotive and Vehicle Applications in Spain in 2002 and 2009, and the 3M Foundation Awards in the category of eSafety in 2004 and 2009. Miguel Ángel Sotelo has served as Project Evaluator, Rapporteur, and Reviewer for the European Commission in the field of ICT for Intelligent Vehicles and Cooperative Systems in FP6 and FP7. He was Editor-in-Chief of the IEEE Intelligent Transportation Systems Magazine (2014-2016), Associate Editor of IEEE Transactions on Intelligent Transportation Systems (2008-2014), member of the Steering Committee of the IEEE Transactions on Intelligent Vehicles (since 2015), and a member of the Editorial Board of The Open Transportation Journal (2006-2015). He has served as General Chair of the 2012 IEEE Intelligent Vehicles Symposium (IV’2012) that was held in Alcalá de Henares (Spain) in June 2012. He was recipient of the IEEE ITS Outstanding Research Award in 2022, the IEEE ITS Outstanding Application Award in 2013, and the Prize to the Best Team with Full Automation in GCDC 2016. He is a Former President of the IEEE Intelligent Transportation Systems Society. 
+
+Page 25 of 25

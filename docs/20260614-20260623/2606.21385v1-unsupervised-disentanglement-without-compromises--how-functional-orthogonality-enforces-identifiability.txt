@@ -1,0 +1,1214 @@
+Title: Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability
+
+URL Source: https://arxiv.org/pdf/2606.21385v1
+
+Published Time: Tue, 23 Jun 2026 01:02:14 GMT
+
+Number of Pages: 40
+
+Markdown Content:
+# Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Mathieu Cyrille Simon 1 Pascal Frossard 2 Christophe De Vleeschouwer 1
+
+# Abstract 
+
+This paper explores unsupervised disentangled representation learning from a functional perspec-tive. We define latent concepts as factors that influence observations through locally orthogonal directions, formalized as an orthogonality con-straint on the Jacobian of the generative mapping. We prove that this condition yields identifiability of general nonlinear generative models, without requiring statistical independence or causal as-sumptions, provided the latent domain admits all combinations of factor values. Experiments with orthogonality-regularized normalizing flows em-pirically confirm the theory, demonstrate reliable recovery of ground-truth factors, and shed light on the success of VAEs. These findings challenge the prevailing impossibility claims for unsuper-vised disentanglement and provide a principled alternative foundation. 
+
+# 1. Introduction 
+
+In Disentangled Representation Learning (DRL), the main assumption is that data is generated from a small number of underlying low-dimensional latent factors, often referred to as concepts. The objective is to recover a representation that separates these concepts, ideally in an unsupervised manner (Bengio et al., 2013; Wang et al., 2024). For in-stance, in facial images, underlying concepts might include hair length, hair color, or face orientation. But what exactly constitutes a concept? If unsupervised disentanglement is to be meaningful, it presupposes some form of intrinsic, human-free definition of the factors. Many prior works de-fine concepts as statistically independent factors of variation (Higgins et al., 2017; Kim & Mnih, 2018; Chen et al., 2018) similarly to ICA (Lee, 1998; Oja et al., 2003). However, this 
+
+> 1
+
+UCLouvain, ICTEAM, Louvain-la-Neuve, Belgium 2EPFL, LTS4 laboratory, Lausanne, Switzerland. Correspondence to: Mathieu Cyrille Simon <mathieu.simon@uclouvain.be >.
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). 
+
+assumption frequently fails to align with human intuition. Some semantically distinct concepts can be statistically de-pendent, while spurious correlations in the data may give rise to apparent dependencies between otherwise unrelated factors. To address these limitations, some approaches in-troduce causal modeling (Yang et al., 2020; Brehmer et al., 2022; Lippe et al., 2022; Xu et al., 2024; von K ¨ugelgen et al., 2023; Lachapelle et al., 2022), treating factors as nodes in a causal graph. Yet, enforcing causal assumptions requires strong priors and may obscure the practical goal of capturing semantically meaningful factors. Often, the aim is not to recover the true causal structure, but rather to identify and represent the factors and their relationships, especially in cases where the causal link is unclear or difficult to jus-tify. For example, while hair length and gender are clearly distinct concepts, they often exhibit statistical dependence, yet a direct causal link between them is not well-defined. Thus, we propose an alternative perspective on what con-stitutes a concept. We argue that, although concepts may exhibit statistical dependence, they should be understood as factors that influence observations through distinct and inde-pendent variations, not in the statistical sense, but in terms of their functional effects on the generative process. Each factor controls its own distinct aspect of the observation. This perspective aligns closely with the Independent Causal Mechanisms (ICM) principle (Sch ¨olkopf et al., 2021) from causal inference (Pearl, 2009; Peters et al., 2017), which posits that the causal generative process of a system is com-posed of autonomous modules that do not influence each other. Applied outside a causal context, it can be formal-ized as an orthogonality condition on the columns of the Jacobian of the generative function mapping latent factors to observation (Gresele et al., 2021). This captures a form of local decoupling in how each factor contributes to the observed data. Unlike prior works that treat this property as a sufficient condition to recover statistically independent sources (Buchholz et al., 2022; Gresele et al., 2021), we take a stronger stance: we argue that orthogonal influence is an intrinsic defining property of meaningful concepts . In contrast to these approaches, which rely on statistical in-dependence and restricted functional families, we consider general nonlinear mixing functions with orthogonal Jaco-bians and explicitly allow for dependent latent factors. This 1
+
+> arXiv:2606.21385v1 [cs.LG] 19 Jun 2026 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability
+
+perspective moves beyond the “Independent” in ICA and suggests that orthogonality, not independence, is the funda-mental structural property underlying disentanglement. Building on this framework, we show that disentanglement emerges naturally from orthogonal influence , without requir-ing statistical independence or supervision. This challenges the prevailing view that unsupervised disentanglement is fundamentally impossible, and demonstrates instead that meaningful disentanglement can arise without compromise 
+
+provided that one adopts a functionally grounded notion of independence. We support our theoretical findings with empirical results and discuss implications for understanding why models such as Variational Autoencoders implicitly promote disentangled representations. More broadly, our work offers a principled step toward unifying disentangle-ment and causality under a common functional framework. 
+
+# 2. Related Works 
+
+Early approaches to disentangled representation learning were primarily inspired by Independent Component Anal-ysis (ICA) (Lee, 1998; Oja et al., 2003), aiming to recover statistically independent factors of variation from observed data in an unsupervised manner (Kingma & Welling, 2013; Higgins et al., 2017). However, as formalized by (Lo-catello et al., 2019a), purely unsupervised disentanglement is fundamentally impossible without strong inductive bi-ases. Specifically, there exist infinitely many equally valid latent representations that yield identical marginal distri-butions over observations, rendering the generative model non-identifiable. This impossibility statement mirrors classi-cal findings in nonlinear ICA (Hyv ¨arinen & Pajunen, 1999), where disentanglement has been proven to fail in the ab-sence of additional assumptions or supervision (Hyv¨ arinen et al., 2023; 2024; Zheng et al., 2022; Hyvarinen & Morioka, 2017). Consequently, subsequent works have sought to introduce suitable inductive biases, either through archi-tectural constraints (Bouchacourt et al., 2018; Chen et al., 2016; Locatello et al., 2020; Eastwood et al., 2023; Simon et al., 2024), weighting terms (Chen et al., 2018; Kim & Mnih, 2018), or partial supervision via auxiliary variables (Locatello et al., 2019b; Mita et al., 2021; H ¨alv ¨a & Hy-varinen, 2020; Gabbay et al., 2021; Hyvarinen & Morioka, 2016). Comparatively, in this paper, we focus on the fully unsupervised setting, emphasizing the need for a more prin-cipled notion of factors that goes beyond mere statistical independence as used previously and that would lead to an identifiable representation. Several lines of research have explored alternative formula-tions of disentanglement through group theory (Zhu et al., 2021; Higgins et al., 2018), second-order Hessian-based penalties (Peebles et al., 2020), Jacobian regularization (Lezama, 2019) or directly encouraging orthogonality be-tween latent directions (Wei et al., 2021; Cha & Thiya-galingam, 2023). But, the first theoretical framework to for-malize this idea of functional orthogonality was introduced by (Gresele et al., 2021), under the name Independent Mech-anism Analysis (IMA). Subsequent works extended this framework to higher-dimensional latent spaces under the manifold hypothesis (Ghosh et al., 2023) and demonstrated that VAEs implicitly encourage IMA-like structure through their training objective (Reizinger et al., 2022; Allen, 2024), providing a partial explanation for their empirical disentan-gling ability despite the absence of explicit supervision. The original IMA formulation showed that enforcing orthogo-nality in the Jacobian eliminates spurious and degenerate ICA solutions in specific nonlinear settings. Later studies generalized these findings, proving identifiability results for restricted classes of transformations such as conformal mappings (Buchholz et al., 2022; Zheng et al., 2022) or local isometry (Horan et al., 2021). In contrast to these prior efforts, our work provides a comprehensive theoretical treatment of identifiability under the general case of orthog-onal Jacobians, without restricting to specific functional families. Furthermore, whereas previous analyses assumed independent latent factors, we explicitly address the more realistic case of dependent concepts, thereby broadening the applicability of IMA to real-world generative processes and offering a unified framework for disentanglement beyond statistical independence. 
+
+# 3. Problem Formulation 
+
+We start by formalizing the data-generating process. We assume that observations x ∈ Rn result from latent concepts 
+
+z ∈ Rd, with d ≪ n, that have undergone a smooth and invertible mapping f : Rd → Rn which act as a mixing function 
+
+x = f (z), p(z) = Ydi=1 p(zi|z<i ), (1) for any ordering of the components. Crucially, compared to 
+
+Blind Source Separation (BSS) in (Gresele et al., 2021), we do not assume the underlying concepts z to be independent and their distribution might be modeled recursively by a triangular mapping from independent noise, z = ϕ(ϵ), e.g. with the Darmois construction (Darmois, 1953; Hyv ¨arinen & Pajunen, 1999). The goal is to learn an unmixing function 
+
+ˆz = g−1(x) that would inverse f so that we recover the true concepts z up to some tolerable ambiguities. Formally, we adopt the definition of identifiability introduced in (Gresele et al., 2021). 
+
+Definition 1. Let F be the set of all smooth and invertible functions f : Rd → Rn and P be the set of all densities pz
+
+with simply connected support on Rd. M ⊆ F × P defines the subspace of models. The generative process is said to 2Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+be identifiable on M if 
+
+∀(f , p z), (g, p ˆz) ∈ M : f∗pz = g∗pˆz
+
+⇒ ∃ P, t s.t. (f , p z) = ( g ◦ P−1 ◦ t−1, (P ◦ t)∗pˆz). (2) Where f∗pz denotes the pushforward of pz through f , P is an arbitrary permutation, and t is an element-wise reparam-eterization of the concepts. Identifiability (Lehmann & Casella, 1998) expresses the idea that, under suitable assumptions, a learned representation should coincide with the true generative factors up to well-characterized ambiguities: a permutation and a dimension-wise reparameterization.Such ambiguities are acceptable as they preserve the disentangled structure of the represen-tation. Since there is no canonical choice of coordinate system, different parameterizations remain equally valid. Unfortunately, such identifiability cannot be achieved under the current formulation without further constraints. To illus-trate this, consider the case where the latent variables z are generated from independent noise via an arbitrary function 
+
+ϕ, and subsequently mapped to observations via another bi-jection f . In the absence of additional assumptions, any pair 
+
+(ϕ, f ) yielding the same distribution over x is equally valid. This means that z could be any arbitrary entangled trans-formation of the true underlying factors, with dependencies entirely absorbed by ϕ. Consequently, the same observed distribution can be explained by many distinct and incom-patible latent structures. The model is thus underdetermined. This lack of identifiability undermines the interpretability and meaning of the latent factors: if the ground-truth gen-erative process is not uniquely recoverable, then the notion of concepts as fundamental explanatory variables loses its significance. To resolve this ambiguity, additional condi-tions are necessary to restrict the solution space and render the problem well-posed. We argue, following prior works (Buchholz et al., 2022; Gresele et al., 2021), that what is missing is a notion of independence, not in the statistical sense, but in terms of the functional influence that each factor exerts on the observations. Mathematically, we can formalize this as 
+
+Assumption 1. Let Jf denote the Jacobian of the generative function f , and let ∂f /∂z i denote its i-th column. Each concept zi affects the observations through a distinct mode of variation: 
+
+∀f ∈ F , ∀i̸ = j : ∂f
+
+∂z iT ∂f
+
+∂z j
+
+= 0 , (3) i.e., the partial derivatives of f with respect to distinct latent variables are orthogonal at every point. Equivalently, JT 
+
+> f
+
+Jf
+
+is diagonal everywhere. This orthogonality condition enforces that perturbations along different latent dimensions induce locally indepen-dent variations in the data space. It provides a geometric  
+
+> Figure 1. Grid Transformations: Visualizing Orthogonal Jacobians.
+
+form of disentanglement by requiring that the effect of each latent factor on the observations be decoupled from the oth-ers. Importantly, this assumption applies to the entire model class M and is posited as a defining property of meaningful factors. In doing so, it shifts the inductive bias from statis-tical independence of the latent variables to independence of their functional contributions, which we argue is more aligned with the way humans intuitively define and distin-guish concepts. Among the functions satisfying Asm.1, a notable subclass is formed by conformal maps, charac-terized by Jacobians of the form Jf = λ(z)Q(z), where 
+
+λ : Rd → R+ is a smooth scalar field and Q(z) ∈ O(d)
+
+is an orthogonal matrix. Conformal maps preserve local angles. A visualization is provided in Fig.1. Another way to understand this assumption is through the lens of generative invertibility. When the latent variables z
+
+are constructed recursively via a function ϕ from indepen-dent noise ϵ, the Jacobian of ϕ becomes lower triangular due to the autoregressive structure of the dependencies. In this setting, the full generative mapping from noise to observa-tions is x = f ◦ ϕ(ϵ), and its Jacobian is the product Jf · Jϕ.If Jϕ is lower triangular and Jf has orthogonal columns, then this product is reminiscent of a QR decomposition of an invertible matrix. Since the QR decomposition of an invertible matrix is unique up to signs (Golub & Van Loan, 2013), this analogy hints at a form of uniqueness in the factorization of the generative process. By encouraging orthogonality in f , we effectively constrain the overall gen-erative model in a way that helps disambiguate the latent representation. This supports the idea that the orthogonality of functional contributions is not merely a heuristic, but a theoretically grounded principle that facilitates identifiabil-ity in the absence of statistical independence. 
+
+# 4. Identifiability Conditions 
+
+We now turn to the central theoretical contribution of this work: establishing that the orthogonality constraint on the Jacobian of the generative function yields a uniquely recov-erable generative model, up to the usual ambiguities. This 3Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+result highlights that orthogonality is not merely a conve-nient regularization, but rather a fundamental property that defines what constitutes a factor in the generative process .Without identifiability, multiple entangled latent representa-tions can explain the same observed distribution, rendering the notion of “factors” devoid of semantic meaning. Demon-strating identifiability therefore establishes the conceptual and mathematical significance of orthogonal functional in-fluence as the defining criterion for meaningful disentangle-ment. In the following, we analyze identifiability in two stages. We first consider the case where the latent factors are statistically independent. We then relax this assumption and extend the analysis to the more general and realistic case where the latent factors may exhibit statistical dependencies. 
+
+4.1. Identifiability Under the Independence Assumption 
+
+We first consider the case where the latent factors are statisti-cally independent. This setting is closely related to classical BSS and ICA, where the goal is to recover the independent sources that generate the observed data. Here, we extend this principle to the nonlinear setting under the orthogonality constraint introduced in Asm.1. 
+
+Proposition 1. Let the observed data x ∈ Rn lie on a d-dimensional manifold generated by latent variables z ∈ Rd,with d ≪ n, through a smooth and invertible mapping 
+
+f : Rd → Rn satisfying Asm.1. Each latent coordinate 
+
+zi corresponds to a distinct underlying concept. Suppose further that the latent variables are statistically independent, 
+
+p(z) = Q 
+
+> i
+
+p(zi), and that at most one component zi follows a Gaussian distribution. Then, the generative process (f , p z)
+
+is identifiable in the sense of Def.1. 
+
+The complete proof is provided in App.A. Intuitively, we can illustrate it in the special case where f is conformal and show that identifiability follows directly. Indeed, using the same notations as in Def.1, denote h = f −1 ◦ g the function mapping ˆz to z. Independence implies det Jh = 1 
+
+up to a coordinate-wise reparameterization. This, combined with the conformal structure of h (composition of conformal mappings), forces h to be both angle and volume preserving. Hence, h reduces to a rigid transformation (rotation and translation), yielding the same identifiability condition as in linear ICA. This provides a simple and direct proof of identifiability in the conformal case compared to (Buchholz et al., 2022) or (Zheng et al., 2022). More generally, Prop.1 shows that the orthogonality con-straint ensures identifiability even beyond the conformal case for the general orthogonal Jacobian. However, that sim-ple proof reveals a conceptual link between our framework and classical ICA : both aim to recover latent directions that are statistically independent and Asm.1 naturally collapses the nonlinear problem to the identifiable linear ICA regime, recovering the condition that identifiability holds when at most one source is Gaussian. This is consistent with prior re-sults in (Gresele et al., 2021) for restricted functional classes and explains why the same conclusions as ICA apply. In this sense, Asm.1 generalizes the linear orthogonality condition underlying ICA to the nonlinear regime. This connection also relates to Principal Component Analysis (PCA) (Abdi & Williams, 2010), where orthogonality plays a central role, the orthogonal Jacobian assumption can be interpreted as a local, nonlinear analogue of PCA, while statistical indepen-dence extends it globally to ICA. Overall, this result goes beyond SoTA, as it directly chal-lenges the widely accepted impossibility result which as-serts that unsupervised disentanglement is unachievable (Hyv ¨arinen & Pajunen, 1999; Locatello et al., 2019a). Our findings reveal that, when the generative process satisfies a functional independence condition, the generative process becomes identifiable even in the absence of supervision. This helps explain why methods such as VAEs and other architectures implicitly or explicitly enforcing local orthog-onality often succeed empirically in disentangling latent factors, particularly on synthetic or structured datasets that directly satisfy the assumptions. Finally, Prop.1 emphasizes the dual nature of the identifia-bility problem: (1) a local aspect, governed by the Jacobian orthogonality that determines how latent factors influence the observations; and (2) a global aspect, governed by the distribution p(z) that constrains how these factors are sta-tistically organized. Together, these complementary con-straints define a principled pathway to achieving meaningful and identifiable disentanglement. 
+
+4.2. Identifiability Under Dependent Factors 
+
+In practice, and as discussed in the introduction, the as-sumption of statistically independent latent factors rarely holds, either due to inherent relationships or spurious cor-relations in the dataset. It is therefore essential to study identifiability when factors are potentially dependent. In this setting, the data x is still generated by a smooth and invertible mapping f : Rd → Rn satisfying Asm.1, but the latent variables z no longer follow a factorized distribution. Instead, their joint distribution can be modeled recursively as p(z) = Qdi=1 p(zi | z<i ) which can equivalently be ex-pressed through a triangular transformation ϕ : Rd → Rd of independent noise variables ϵ, i.e., z = ϕ(ϵ). Importantly, we do not impose any causal interpretation on ϕ; it merely serves as a generic mechanism to model dependent factors. However, in this more general case, identifiability is no longer guaranteed. As established in Prop.1, identifiabil-ity arises from the interaction of two complementary con-straints: a local geometric constraint and a global statistical constraint . When independence is removed, the global constraint disappears, leaving the model underdetermined. 4Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability            
+
+> Figure 2. Assume we aim to represent the position of a ball on a field as a two-dimensional latent variable. The most direct rep-resentation uses Cartesian coordinates (x, y )(left), regardless of the distribution of positions. However, an equally valid alternative could be a polar representation (r, θ )(right). Without additional assumptions, there is no principled way to identify which repre-sentation is the “true” one: (r, θ )is simply an entangled reparame-terization of (x, y ). Under an independence assumption, however, a privileged representation emerges; for example, if positions are uniformly distributed over the field, this constraint favors the Carte-sian coordinates (x, y ). In the absence of such assumptions, these entangled representations are indistinguishable. Nevertheless, we argue that even without independence, certain representations are preferable. Specifically, those in which all combinations of factor values can in principle occur, as with the (x, y )coordinates in this example (Asm.2).
+
+Indeed, a trivial counterexample illustrates this failure: con-sider f as the identity mapping, which trivially satisfies the orthogonality condition. In this case, x = f (z) = z, and the overall generative model x = f ◦ϕ(ϵ) can represent any data distribution p(x) by appropriately choosing ϕ which can represent any distribution e.g., with the Darmois construc-tion (Darmois, 1953). Thus, the model perfectly explains the data without uncovering any meaningful latent structure. This demonstrates that, in the absence of additional con-straints, the concept of latent factors becomes vacuous: if multiple equally valid generative decompositions exist, then the notion of disentanglement loses its interpretability. An illustration of this degeneracy is provided in Fig.2. A natural way to restore identifiability would be to incorpo-rate auxiliary variables or weak supervision, such as labels or side information, to anchor the latent space and help align the learned axes with meaningful factors (Khemakhem et al., 2020). However, such information is not always available and introduces an undesirable degree of supervision. These limitations motivate the search for a weaker, yet suffi-ciently informative, global constraint that can complement the local orthogonality condition. The key intuition is that orthogonality of the Jacobian already enforces strong geo-metric rigidity. Consequently, even limited global informa-tion about the latent domain may suffice to fully determine the mapping. In the theory of conformal mappings for di-mensions d > 2, Liouville’s theorem (Blair, 2000) implies that any conformal transformation of Rd must be a M ¨obius transformation, i.e., a composition of translations, rotations, dilations, and inversions. When the data lies on a bounded, simply connected domain Ω ⊂ Rd that is not invariant under inversion (a property satisfied by a broad class of supports, including all polytopes and most bounded smooth domains) non-rigid M ¨obius transformations are ruled out. This im-plies that, when the latent support is known, the generative process becomes identifiable, up to the natural rigid sym-metries of that support . Formal statements and illustrative examples are provided in App.B, where we also discuss the special case d = 2 via the Riemann Mapping Theorem. Of course, such detailed geometric knowledge of the latent domain is rarely known a priori. Nevertheless, the above discussion suggests that identifiability can be recovered by introducing a structural assumption on the latent distribution that serves a similar purpose, thereby providing the required global constraint. 
+
+Assumption 2. The latent variables z ∈ Rd follow a dis-tribution pz supported on a bounded, simply connected re-gion Ω ⊂ Rd such that, up to a continuous strictly mono-tone coordinate-wise reparameterization, Ω is a hypercube. Equivalently, The copula associated with pz has full support on [0 , 1] d.Intuitively, Asm.2 states that all combinations of latent fac-tors are possible, that is, each latent coordinate can vary within its range, regardless of the values taken by the others. One may think of the latent dimensions as concept “sliders” that can be adjusted to produce every possible combination of factors. This implies that each factor corresponds to a distinct, manipulable degree of freedom. For example, con-sider the concepts of altitude and temperature. Although these quantities are correlated in nature, it is perfectly pos-sible to observe configurations that break this dependency (e.g., a heated room at high altitude). The ability to real-ize or observe all such combinations is precisely what gives meaning to the notion of separate factors. Hence, Asm.2 can be viewed as a non-causal analog of interventions in causal models, ensuring that the dataset is rich enough to cover the joint range of the latent variables. A detailed discussion of both assumptions is provided in App.A.4. Interestingly, if the factors are statistically independent and supported on a bounded domain, Asm.2 is fulfilled and thus this assumption is a direct generalization of the case of independent factors for bounded latent spaces. Critically, without such a global constraint, many different valid rep-resentations may satisfy the local functional independence enforced by an orthogonal Jacobian. Among these repre-sentations, however, there typically exists a preferential one 5Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+that aligns with the combinatorial structure of the latent domain; this phenomenon is illustrated in Fig.2. Using this conclusion, we obtain the following result. 
+
+Proposition 2. Let the observed data x ∈ Rn lie on a d-dimensional manifold generated by latent variables z ∈ Rd,with d ≪ n, through a smooth and invertible mapping 
+
+f : Rd → Rn satisfying Asm.1. Suppose further that the latent distribution pz satisfies Asm.2. Then, the generative process (f , p z) is identifiable in the sense of Def.1. 
+
+The proof is given in App.A. Together with the local orthog-onality condition, Asm.2 ensures a unique alignment. This result can be interpreted as a general principle: 
+
+Identifiability, and hence the very notion of a “concept” or “factor”, emerges from the dual constraints that define it: 
+
+1. Local constraint (Assumption 1): factors influence the data through orthogonal directions, capturing func-tional independence in the generative mechanism; 2. Global constraint (Assumption 2): the latent domain allows all possible factor combinations;each factor cor-responds to a distinct manipulable degree of freedom. Once these defining properties of latent factors are in place, identifiability follows naturally. This observation forms the central insight of our theoretical framework: disentangle-ment is not an artifact of independence or causality, but a structural property emerging from the interplay between local orthogonality and global combinatorial completeness. 
+
+We next turn to the empirical validation of these results. 
+
+# 5. Experiments 
+
+Theoretical Prop.1 and 2 establish that, under orthogonal functional influence, the generative model becomes identifi-able. In this section, we empirically validate these results by investigating whether models trained solely on observations 
+
+x can recover the underlying latent concepts z up to the admissible ambiguities specified in Def.1. Concretely, we compare models trained with and without an orthogonality constraint on the Jacobian of the generative mapping and evaluate their ability to disentangle latent factors. Details on the experiments are provided in App.C. 
+
+Data Generation : We consider two regimes for the la-tent variables z ∈ Rd, with d ∈ { 3, 6, 9} : (i) Independent factors, latent variables are sampled independently from a uniform distribution on [0 , 1] d (ii) Dependent factors, latent variables are generated using a flexible Normalizing Flow 
+
+(NF) (Kobyzev et al., 2020), that induces strong statistical dependencies while ensuring the resulting copula has full support on [0 , 1] d. This construction explicitly violates in-dependence while satisfying Asm.2. In both cases, latent variables are mapped to observations via a smooth and in-vertible ground-truth mixing f . We consider two classes of generative mappings: (i) conformal M ¨obius transformations; and (ii) more general nonlinear mappings with orthogonal Jacobians of the form Jf = Q(z)D(z), obtained by com-posing conformal and non-conformal transformations. This second class goes strictly beyond conformal mappings and tests identifiability under general orthogonal Jacobians. 
+
+Models : To model the data distribution p(x), we train expressive Residual Flows (Chen et al., 2019) with full Ja-cobians. We learn both Unconstrained baselines with no structural constraints on the Jacobian and Orthogonally con-strained models using the CIMA loss introduced by (Gresele et al., 2021) to regularize the maximum likelihood objective, enforcing Asm.1. In the independent setting, the base distri-bution is a standard Gaussian with diagonal covariance. In the dependent setting, the base distribution is itself learned using a RealNVP flow (Dinh et al., 2016) with a triangular Jacobian, ensuring a full-support copula while modeling dependencies between latent variables. 
+
+Evaluation Metrics : For evaluation, we compute (i) the KL divergence between the learned model and the true data-generating distribution to assess density estimation quality; (ii) the Mean Correlation Coefficient (MCC) between the recovered and ground-truth latent variables (Khemakhem et al., 2020); and (iii) a nonlinear extension of the Amari distance (Gresele et al., 2021) between the true mixing and the learned unmixing. The latter equals zero if and only if the model is identifiable in the sense of Def.1. As all models managed to fit the data and have equivalent KL divergence metrics we only report the MCC and Amari distance to measure disentanglement. 
+
+Results : Fig.3 reports MCC and Amari distances for un-constrained and orthogonally constrained models, across independent and dependent latent variables, for both con-formal and general QD generative mappings. For each configuration, 30 independent runs are performed, yielding a total of 720 trained models. As expected, standard NFs consistently fail to recover the latent factors despite achiev-ing good likelihoods, confirming that the problem remains underdetermined. In contrast, introducing the orthogonality constraint leads to substantial improvements in both MCC and Amari distance, often approaching perfect identifiability. These results empirically validate Prop.1 and 2. Notably, while prior work largely focused on conformal mappings, our results demonstrate that identifiability extends to signifi-cantly more general nonlinear transformations with orthog-onal Jacobians. Strikingly, performance is also comparable in the independent and dependent settings. This provides strong empirical evidence that disentanglement does not fundamentally rely on statistical independence or causal assumptions. Instead, meaningful and identifiable repre-sentations of dependent concepts can be recovered purely from orthogonal functional influence, supporting the central thesis of this work. Additional results and qualitative visual-6Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability        
+
+> Figure 3. MCC and Amari distances quantitative results for d∈ { 3,6,9}in the independent/dependent cases.
+> Figure 4. Qualitative results under various sources domain.
+
+izations are provided in App.D, including comparison with VAEs across standard disentanglement metrics. Finally, Fig.4 presents some qualitative results illustrating the role of global domain information. We generate data with varying latent supports and train a Neural Spline Flow (Durkan et al., 2019) equipped with orthogonal Jacobian constraints. Consistent with the discussion in Sec.4.2, the learned representations are identifiable up to the rigid sym-metries of the latent domain when its structure is known. This behavior aligns with the theoretical analysis in App.B and further illustrates the interplay between local orthogo-nality and global constraints. Overall, these experiments demonstrate that enforcing or-thogonal functional influence is sufficient to enable unsu-pervised disentanglement. The empirical findings closely match the theoretical predictions, providing strong support for the proposed notion of concepts. 
+
+# 6. Discussion and Perspectives 
+
+We now discuss some broader implications of our findings and outline several promising directions for future work. 
+
+Causal Representation : Throughout the paper, we have drawn connections to causal representation learning, whose aim is to recover latent factors together with their causal structure. However, in many applications, enforcing a full causal model is often unrealistic: the causal relations be-tween factors are unclear or not identifiable from observa-tional data alone. Our results show that meaningful fac-tors can nevertheless be recovered by leveraging causally inspired principles, such as ICM, without committing to an explicit causal graph. This suggests an alternative per-spective on causal representation learning, in which causal assumptions are relaxed to prioritize factor recovery. If causal structure is ultimately required, it can be inferred af-ter disentanglement, using additional assumptions, domain knowledge, or limited interventions, effectively deferring causal resolution to a second stage. This “best effort with the available data” philosophy aligns with the practical reality of many machine-learning applications, where full causal supervision is rarely accessible. Overall, our results em-phasize that it is neither statistical independence nor causal directionality that fundamentally defines a latent factor. Importantly, our generative model remains compatible with causal analysis when such structure is desired. In our frame-work, the observation map f has an orthogonal Jacobian, 7Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+while dependencies between latent variables are modeled via a triangular transformation ϕ. In this setting, results by Xi et al. (2023) imply that such models recover representa-tions up to the Markov Equivalence Class. Consequently, our approach can be viewed as a strong starting point for causal discovery, with causal ordering potentially resolvable using only limited interventional information. 
+
+VAE Disentanglement : Finally, we revisit Variational Autoencoders (VAEs) through the lens of our framework. VAEs are among the most widely used models for unsu-pervised disentanglement. A VAE learns a latent vari-able model by jointly optimizing a reconstruction term, 
+
+− log p(x | z), and a regularization term enforcing the ap-proximate posterior q(z | x) to match a factorized Gaussian prior p(z) = N (0 , I ). A well-established belief is that the factorized prior is the primary mechanism responsible for disentanglement. Works such as (Chen et al., 2018; Kim & Mnih, 2018) formalize this viewpoint by decomposing the evidence lower bound (ELBO) as 
+
+LVAE = − log p(x | z) + KL( q(z | x) ∥ p(z)) (4) 
+
+= − log p(x | z)
+
+| {z }
+
+> Reconstruction
+
++ KL 
+
+
+
+q(z) Y 
+
+> j
+
+q(zj )
+
+| {z }
+
+> Total Correlation
+
++ X 
+
+> j
+
+KL( q(zj ) ∥ p(zj )) 
+
+| {z }
+
+> Dimension-wise KL
+
++ I(x; z)
+
+| {z } 
+
+> Mutual Information
+
+. (5) The dimension-wise KL encourages each latent dimension to match a univariate Gaussian, hence simply affecting the reparameterization, and the mutual-information term is un-desirable. In this decomposition, the total correlation term penalizes statistical dependence between latent coordinates and is therefore viewed as the component driving disentan-glement. However, this explanation is incomplete. Indeed, we show here below that models such as Normalizing Flows share exactly the same total-correlation penalty while they do not generally produce disentangled representations. Consider a NF, which learns an invertible mapping h s.t. 
+
+log p(x) = log p(z) + log det(d h(x)/dx) , (6) with p(z) = N (0 , I ). Since the pushforward distribution 
+
+q(z) induced by h does not necessarily match p(z), training effectively minimizes cross-entropy: 
+
+LNF = − log q(z) + KL( q(z) ∥ p(z)) − log det( J) (7) 
+
+= − log p(x) + KL 
+
+
+
+q(z) Y 
+
+> j
+
+q(zj )
+
+| {z }
+
+> Total Correlation
+
++ X 
+
+> j
+
+KL( q(zj ) ∥ p(zj )) 
+
+| {z }
+
+> Dimension-wise KL
+
+. (8) Thus, flows exhibit the same global independence pressure as VAEs. Yet, in practice, flows remain non-disentangled in their standard form (Dinh et al., 2016; Zhai et al., 2024). This discrepancy highlights that factorized priors, or equiv-alently, total-correlation minimization, are insufficient to explain VAE’s natural bias toward disentanglement. The crucial missing ingredient is the factorized approximate posterior which is often overlooked. VAEs simultaneously enforce: 1. a factorized prior p(z), promoting independence across data points (global structure), and 2. a diagonal-covariance approximate posterior q(z |
+
+x) = N (μ(x), σ (x)2I), promoting locally axis-aligned variations within each data point, hence or-thogonality. The fact that the factorized posterior implicitly induces an or-thogonal Jacobian of the encoder has been formally proven in (Reizinger et al., 2022; Allen, 2024). Consequently, dis-entanglement in VAEs arises not merely from independence constraints but from the joint imposition of (i) global in-dependence via the prior and (ii) local orthogonality via the posterior. This dual constraint aligns precisely with the structure promoted by our framework. It also explains why VAEs succeed on datasets with well-separated generative factors, typically synthetic data, and fail on more complex settings, e.g., with dependent structure. To further validate this dual-mechanism explanation, we design additional experiments on standard image disentan-glement benchmarks, namely dSprites (Matthey et al., 2017) and 3DShapes (Burgess & Kim, 2018). In Sec.5, we consid-ered models without orthogonality bias (NFs) and showed that adding this bias improves disentanglement. Here, we follow the complementary approach: we start from a model that includes both independence and orthogonality (a VAE), and we remove the orthogonality bias to evaluate its effect. The mechanism by which VAEs implicitly enforce Jacobian orthogonality has been analyzed in prior work (Reizinger et al., 2022). In simplified terms, the factorized Gaussian posterior enforces a row-orthogonal encoder Jacobian, and in the near-deterministic regime the decoder approximately inverts the encoder, resulting in a column-orthogonal de-coder Jacobian. Based on this observation, we construct a variant of the β-VAE where we replace the diagonal Gaus-sian posterior with a NF posterior. This is a standard tech-nique in the VAE literature to increase expressiveness and better match the prior, thereby improving density modeling (Kingma et al., 2016). However, unlike the factorized Gaus-sian case, this more expressive posterior no longer enforces a diagonal covariance structure, and thus removes the im-plicit Jacobian orthogonality constraint. Importantly, this change leaves the overall objective unchanged, particularly the total-correlation/independence pressure imposed by the prior, thereby isolating the effect of removing the orthogo-8Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability  
+
+> Table 1. Disentanglement performance averaged over 10 random seeds across datasets and models.
+
+Standard VAE models W/ Ortho. J. W/O Ortho. J. Dataset Metric β-VAE FactorVAE β-TCVAE β-FlowVAE dSprites DCI dis. 0.1879 ± 0.0967 0.2527 ± 0.0617 0.2963 ± 0.0905 0.0975 ± 0.0307 
+
+MIG 0.1070 ± 0.0706 0.1643 ± 0.0654 0.1783 ± 0.0689 0.0443 ± 0.0194 
+
+SAP 0.0465 ± 0.0338 0.0673 ± 0.0119 0.0663 ± 0.0141 0.0195 ± 0.0062 
+
+β-VAE score 0.8238 ± 0.0758 0.8548 ± 0.0225 0.8628 ± 0.0345 0.7329 ± 0.0665 
+
+FactorVAE score 0.6523 ± 0.1018 0.7354 ± 0.0973 0.7312 ± 0.1204 0.6020 ± 0.0997 
+
+3DShapes DCI dis. 0.5349 ± 0.3034 0.6762 ± 0.0847 0.6539 ± 0.3033 0.1844 ± 0.0386 
+
+MIG 0.2279 ± 0.1791 0.2977 ± 0.1344 0.2899 ± 0.2412 0.0617 ± 0.0215 
+
+SAP 0.0662 ± 0.0460 0.0707 ± 0.0320 0.0811 ± 0.0490 0.0265 ± 0.0112 
+
+β-VAE score 0.9675 ± 0.0621 0.9477 ± 0.0741 0.9756 ± 0.0520 0.8031 ± 0.0596 
+
+FactorVAE score 0.8386 ± 0.1014 0.8234 ± 0.0676 0.8725 ± 0.1403 0.7142 ± 0.0834 
+
+nality bias while preserving the independence mechanism. We implement this model following (Locatello et al., 2019a) and reproduce standard β-VAE results. We then train the exact same model, with identical architecture and training procedure, but using a flow-based posterior (denoted β-flowVAE). The results are reported in Tab.1. If orthogonal-ity were not important, this more expressive model should yield improved disentanglement, since it better matches the prior hence improving independence. However, we observe a systematic substantial decrease in disentanglement perfor-mance. The key difference is precisely the removal of the orthogonality bias. This provides direct empirical evidence that independence alone is not sufficient, and that orthogo-nality plays a crucial role, further confirming our claims on the sources of disentanglement. 
+
+Beyond VAE’s : Although VAEs remain the canonical model for disentanglement, they suffer from the well-documented information preference or posterior collapse 
+
+phenomenon (Chen et al., 2016; Zhao et al., 2017). In-tuitively, due to the explicit minimization of the mutual information I(x; z) in Eq.4, VAEs trade off expressive re-construction against informative latent representations, often resulting in blurry reconstructions, weak generative fidelity, and latent variables that carry minimal semantic signal. Our analysis shows that disentanglement relies on inde-pendence and orthogonality constraints, not on the VAE objective per se. This opens the door to transplanting these inductive biases into alternative generative models that avoid VAE-specific limitations. In Fig.3, we demonstrated that NFs, which do not naturally produce disentangled represen-tations, can be endowed with disentanglement capabilities simply by augmenting them with an orthogonal regulariza-tion. Unlike VAEs, flows optimize exact likelihoods and do not include a mutual information penalty in Eq.7, thereby avoiding the same reconstruction–information trade-off. This perspective reinforces the relevance of recent ap-proaches such as orthogonality regularized GANs (Wei et al., 2021) or diffusion models (Chen et al., 2024; Po et al., 2024). Our framework provides a theoretical justification for why these methods succeed. We argue that orthogonality should be viewed as a fundamental design principle for concept-structured and disentangled representations. By clarifying the mechanisms through which disentanglement arises, our framework illuminates how to systematically design new models that embody these principles. Overall, these insights indicate a promising direction for future research aimed at developing principled generative models with inherently dis-entangled representations. In particular, developing scalable methods to enforce or approximate Jacobian orthogonality efficiently in high-dimensional settings remains an impor-tant open problem, and a natural next step toward making the theoretical guarantees established in this work practi-cally applicable at scale. 
+
+# 7. Conclusion 
+
+We showed that disentanglement can be achieved without statistical independence or causal supervision by defining concepts through orthogonal functional influence. Under this notion, nonlinear generative models with orthogonal Jacobians are identifiable up to standard ambiguities, even with dependent latent factors, extending prior identifiability results to the general orthogonal case. This framework explains the empirical disentanglement observed in models such as VAEs, clarifies why likelihood-based models fail without geometric constraints, and establishes orthogonality as a fundamental principle for identifiable and meaningful representation learning. 9Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+# Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+# Acknowledgments 
+
+Mathieu Cyrille Simon is a Research Fellow of the Fonds de la Recherche Scientifique - FNRS of Belgium. Com-putational resources have been provided by the supercom-puting facilities of the Universit ´e catholique de Louvain (CISM/UCL) and the Consortium des ´Equipements de Calcul Intensif en F ´ed ´eration Wallonie Bruxelles (C ´ECI) funded by the Fonds de la Recherche Scientifique de Bel-gique (F.R.S.-FNRS) under convention 2.5020.11 and by the Walloon Region 
+
+# References 
+
+Abdi, H. and Williams, L. J. Principal component analysis. 
+
+Wiley interdisciplinary reviews: computational statistics ,2(4):433–459, 2010. Allen, C. Unpicking data at the seams: Understanding dis-entanglement in vaes. arXiv preprint arXiv:2410.22559 ,2024. Amari, S.-i., Cichocki, A., and Yang, H. A new learning algorithm for blind signal separation. Advances in neural information processing systems , 8, 1995. Bengio, Y., Courville, A., and Vincent, P. Representation learning: A review and new perspectives. IEEE transac-tions on pattern analysis and machine intelligence , 35(8): 1798–1828, 2013. Blair, D. E. Inversion theory and conformal mapping , vol-ume 9. American Mathematical Soc., 2000. Bouchacourt, D., Tomioka, R., and Nowozin, S. Multi-level variational autoencoder: Learning disentangled represen-tations from grouped observations. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 32, 2018. Brehmer, J., De Haan, P., Lippe, P., and Cohen, T. S. Weakly supervised causal representation learning. Advances in Neural Information Processing Systems , 35:38319– 38331, 2022. Brouwer, L. E. Beweis der invarianz der dimensionenzahl. 
+
+Mathematische Annalen , 70(2):161–165, 1911. Buchholz, S., Besserve, M., and Sch ¨olkopf, B. Function classes for identifiable nonlinear independent component analysis. Advances in Neural Information Processing Systems , 35:16946–16961, 2022. Burgess, C. and Kim, H. 3d shapes dataset. https://github.com/deepmind/3dshapes-dataset/, 2018. Cha, J. and Thiyagalingam, J. Orthogonality-enforced latent space in autoencoders: An approach to learning disen-tangled representations. In International Conference on Machine Learning , pp. 3913–3948. PMLR, 2023. Chen, R. T., Li, X., Grosse, R. B., and Duvenaud, D. K. Isolating sources of disentanglement in variational au-toencoders. Advances in neural information processing systems , 31, 2018. Chen, R. T., Behrmann, J., Duvenaud, D. K., and Jacobsen, J.-H. Residual flows for invertible generative modeling. 
+
+Advances in neural information processing systems , 32, 2019. Chen, S., Zhang, H., Guo, M., Lu, Y., Wang, P., and Qu, Q. Exploring low-dimensional subspace in diffusion mod-els for controllable image editing. Advances in neural information processing systems , 37:27340–27371, 2024. Chen, X., Kingma, D. P., Salimans, T., Duan, Y., Dhariwal, P., Schulman, J., Sutskever, I., and Abbeel, P. Variational lossy autoencoder. arXiv preprint arXiv:1611.02731 ,2016. Darmois, G. Analyse g ´en ´erale des liaisons stochastiques: etude particuli `ere de l’analyse factorielle lin ´eaire. Revue de l’Institut international de statistique , pp. 2–8, 1953. Dinh, L., Sohl-Dickstein, J., and Bengio, S. Density esti-mation using real nvp. arXiv preprint arXiv:1605.08803 ,2016. Durkan, C., Bekasov, A., Murray, I., and Papamakarios, G. Neural spline flows. Advances in neural information processing systems , 32, 2019. Eastwood, C. and Williams, C. K. A framework for the quantitative evaluation of disentangled representations. In International conference on learning representations ,2018. Eastwood, C., von K ¨ugelgen, J., Ericsson, L., Bouchacourt, D., Vincent, P., Sch ¨olkopf, B., and Ibrahim, M. Self-supervised disentanglement by leveraging structure in data augmentations. arXiv preprint arXiv:2311.08815 ,2023. Gabbay, A., Cohen, N., and Hoshen, Y. An image is worth more than a thousand words: Towards disentanglement in the wild. Advances in Neural Information Processing Systems , 34:9216–9228, 2021. 10 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Ghosh, S., Gresele, L., von K ¨ugelgen, J., Besserve, M., and Sch ¨olkopf, B. Independent mechanism analysis and the manifold hypothesis. arXiv preprint arXiv:2312.13438 ,2023. Golub, G. H. and Van Loan, C. F. Matrix computations, forth edition, 2013. Gresele, L., Von K ¨ugelgen, J., Stimper, V., Sch ¨olkopf, B., and Besserve, M. Independent mechanism analysis, a new concept? Advances in neural information processing systems , 34:28233–28248, 2021. H ¨alv ¨a, H. and Hyvarinen, A. Hidden markov nonlinear ica: Unsupervised learning from nonstationary time series. In 
+
+Conference on Uncertainty in Artificial Intelligence , pp. 939–948. PMLR, 2020. Hauke, J. and Kossowski, T. Comparison of values of pearson’s and spearman’s correlation coefficients on the same sets of data. Quaestiones geographicae , 30(2):87– 93, 2011. Higgins, I., Matthey, L., Pal, A., Burgess, C., Glorot, X., Botvinick, M., Mohamed, S., and Lerchner, A. beta-vae: Learning basic visual concepts with a constrained variational framework. In International conference on learning representations , 2017. Higgins, I., Amos, D., Pfau, D., Racaniere, S., Matthey, L., Rezende, D., and Lerchner, A. Towards a defi-nition of disentangled representations. arXiv preprint arXiv:1812.02230 , 2018. Horan, D., Richardson, E., and Weiss, Y. When is unsu-pervised disentanglement possible? Advances in Neural Information Processing Systems , 34:5150–5161, 2021. Hyvarinen, A. and Morioka, H. Unsupervised feature ex-traction by time-contrastive learning and nonlinear ica. 
+
+Advances in neural information processing systems , 29, 2016. Hyvarinen, A. and Morioka, H. Nonlinear ica of temporally dependent stationary sources. In Artificial intelligence and statistics , pp. 460–469. PMLR, 2017. Hyv ¨arinen, A. and Pajunen, P. Nonlinear independent com-ponent analysis: Existence and uniqueness results. Neural networks , 12(3):429–439, 1999. Hyv ¨arinen, A., Khemakhem, I., and Morioka, H. Nonlinear independent component analysis for principled disentan-glement in unsupervised deep learning. Patterns , 4(10), 2023. Hyv ¨arinen, A., Khemakhem, I., and Monti, R. Identifiability of latent-variable and structural-equation models: from linear to nonlinear. Annals of the Institute of Statistical Mathematics , 76(1):1–33, 2024. Khemakhem, I., Kingma, D., Monti, R., and Hyvarinen, A. Variational autoencoders and nonlinear ica: A unify-ing framework. In International conference on artificial intelligence and statistics , pp. 2207–2217. PMLR, 2020. Kim, H. and Mnih, A. Disentangling by factorising. In 
+
+International conference on machine learning , pp. 2649– 2658. PMLR, 2018. Kingma, D. P. and Welling, M. Auto-encoding variational bayes. arXiv preprint arXiv:1312.6114 , 2013. Kingma, D. P., Salimans, T., Jozefowicz, R., Chen, X., Sutskever, I., and Welling, M. Improved variational infer-ence with inverse autoregressive flow. Advances in neural information processing systems , 29, 2016. Kobyzev, I., Prince, S. J., and Brubaker, M. A. Normalizing flows: An introduction and review of current methods. 
+
+IEEE transactions on pattern analysis and machine intel-ligence , 43(11):3964–3979, 2020. Kumar, A., Sattigeri, P., and Balakrishnan, A. Variational inference of disentangled latent concepts from unlabeled observations. arXiv preprint arXiv:1711.00848 , 2017. Lachapelle, S., Rodriguez, P., Sharma, Y., Everett, K. E., Le Priol, R., Lacoste, A., and Lacoste-Julien, S. Dis-entanglement via mechanism sparsity regularization: A new principle for nonlinear ica. In Conference on Causal Learning and Reasoning , pp. 428–484. PMLR, 2022. Lee, T.-W. Independent component analysis. In Independent component analysis: Theory and applications , pp. 27–66. Springer, 1998. Lehmann, E. L. and Casella, G. Theory of point estimation .Springer, 1998. Lezama, J. Overcoming the disentanglement vs reconstruc-tion trade-off via jacobian supervision. In International Conference on Learning Representations , 2019. Lippe, P., Magliacane, S., L ¨owe, S., Asano, Y. M., Cohen, T., and Gavves, S. Citris: Causal identifiability from tem-poral intervened sequences. In International Conference on Machine Learning , pp. 13557–13603. PMLR, 2022. Locatello, F., Bauer, S., Lucic, M., Raetsch, G., Gelly, S., Sch ¨olkopf, B., and Bachem, O. Challenging common assumptions in the unsupervised learning of disentangled representations. In international conference on machine learning , pp. 4114–4124. PMLR, 2019a. 11 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Locatello, F., Tschannen, M., Bauer, S., R ¨atsch, G., Sch ¨olkopf, B., and Bachem, O. Disentangling fac-tors of variation using few labels. arXiv preprint arXiv:1905.01258 , 2019b. Locatello, F., Poole, B., R ¨atsch, G., Sch ¨olkopf, B., Bachem, O., and Tschannen, M. Weakly-supervised disentangle-ment without compromises. In International conference on machine learning , pp. 6348–6359. PMLR, 2020. Matthey, L., Higgins, I., Hassabis, D., and Lerchner, A. dsprites: Disentanglement testing sprites dataset. https://github.com/deepmind/dsprites-dataset/, 2017. Mita, G., Filippone, M., and Michiardi, P. An identifiable double vae for disentangled representations. In Interna-tional Conference on Machine Learning , pp. 7769–7779. PMLR, 2021. Oja, E., Karhunen, J., Valpola, H., S ¨arel ¨a, J., Inki, M., Honkela, A., Ilin, A., Raju, K., Ristaniemi, T., and Bing-ham, E. Independent component analysis and blind source separation. Helsinki Univ. Technol., Espoo, Fin-land, Tech. Rep , 2003. Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., et al. Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems , 32, 2019. Pearl, J. Causality . Cambridge university press, 2009. Peebles, W., Peebles, J., Zhu, J.-Y., Efros, A., and Torralba, A. The hessian penalty: A weak prior for unsupervised disentanglement. In European conference on computer vision , pp. 581–597. Springer, 2020. Peters, J., Janzing, D., and Sch ¨olkopf, B. Elements of causal inference: foundations and learning algorithms . The MIT press, 2017. Po, R., Yang, G., Aberman, K., and Wetzstein, G. Orthog-onal adaptation for modular customization of diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 7964–7973, 2024. Reizinger, P., Gresele, L., Brady, J., Von K ¨ugelgen, J., Zi-etlow, D., Sch ¨olkopf, B., Martius, G., Brendel, W., and Besserve, M. Embrace the gap: Vaes perform indepen-dent mechanism analysis. Advances in Neural Informa-tion Processing Systems , 35:12040–12057, 2022. Sch ¨olkopf, B., Locatello, F., Bauer, S., Ke, N. R., Kalch-brenner, N., Goyal, A., and Bengio, Y. Toward causal representation learning. Proceedings of the IEEE , 109(5): 612–634, 2021. Simon, M. C., Frossard, P., and Vleeschouwer, C. D. Se-quential representation learning via static-dynamic con-ditional disentanglement. In European Conference on Computer Vision , pp. 110–126. Springer, 2024. von K ¨ugelgen, J., Besserve, M., Wendong, L., Gresele, L., Keki ´c, A., Bareinboim, E., Blei, D., and Sch ¨olkopf, B. Nonparametric identifiability of causal representations from unknown interventions. Advances in Neural Infor-mation Processing Systems , 36:48603–48638, 2023. Walsh, J. L. History of the riemann mapping theorem. The American Mathematical Monthly , 80(3):270–276, 1973. Wang, X., Chen, H., Tang, S., Wu, Z., and Zhu, W. Dis-entangled representation learning. IEEE Transactions on Pattern Analysis and Machine Intelligence , 46(12): 9677–9696, 2024. Wei, Y., Shi, Y., Liu, X., Ji, Z., Gao, Y., Wu, Z., and Zuo, W. Orthogonal jacobian regularization for unsupervised disentanglement in image generation. In Proceedings of the IEEE/CVF international conference on computer vision , pp. 6721–6730, 2021. Xi, Q., Gonzalez, S., and Bloem-Reddy, B. Triangular monotonic generative models can perform causal discov-ery. In Causal Representation Learning Workshop at NeurIPS 2023 , 2023. Xu, D., Yao, D., Lachapelle, S., Taslakian, P., Von K ¨ugelgen, J., Locatello, F., and Magliacane, S. A sparsity principle for partially observable causal representation learning. 
+
+arXiv preprint arXiv:2403.08335 , 2024. Yang, M., Liu, F., Chen, Z., Shen, X., Hao, J., and Wang, J. Causalvae: Structured causal disentanglement in vari-ational autoencoder. arXiv preprint arXiv:2004.08697 ,2020. Zhai, S., Zhang, R., Nakkiran, P., Berthelot, D., Gu, J., Zheng, H., Chen, T., Bautista, M. A., Jaitly, N., and Susskind, J. Normalizing flows are capable generative models. arXiv preprint arXiv:2412.06329 , 2024. Zhao, S., Song, J., and Ermon, S. Towards deeper un-derstanding of variational autoencoding models. arXiv preprint arXiv:1702.08658 , 2017. Zheng, Y., Ng, I., and Zhang, K. On the identifiability of nonlinear ica: Sparsity and beyond. Advances in neural information processing systems , 35:16411–16422, 2022. Zhu, X., Xu, C., and Tao, D. Commutative lie group vae for disentanglement learning. In International Conference on Machine Learning , pp. 12924–12934. PMLR, 2021. 12 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+# Appendix 
+
+A Proofs and Detailed Derivations 13 A.1 Preliminary Results 13 A.2 Proof of Proposition 1 18 A.3 Proof of Proposition 2 20 A.4 Discussion on Assumption 1 and Assumption 2 22 
+
+B Disentanglement Under General Latent Domains 24 B.1 Proof and Geometric Interpretation 24 B.2 The Two-Dimensional Case 27 
+
+C Experimental Setup 29 C.1 Datasets and Generative Processes 29 C.2 Evaluation Metrics 30 C.3 Models, Architectures, and Training Objectives 31 C.4 Boundary Behavior and Optimization Issues 32 C.5 Experiments with Varying Latent Domains 33 
+
+D Additional Results and Experiments 33 
+
+# A. Proofs and Detailed Derivations 
+
+This appendix provides the formal proofs of the main theoretical results stated in Sec.4. We begin by introducing auxiliary results that will be used throughout the proofs. We then establish identifiability under the independence assumption (Prop.1) and discuss its connection to classical Independent Component Analysis (ICA). Finally, we present the proof of identifiability under dependent latent factors (Prop.2) and highlight the key differences with respect to the independent case. Throughout this appendix, as specified in Def.1, all functions are assumed to be sufficiently smooth, and all mappings are assumed to be invertible on their respective domains unless stated otherwise. 
+
+A.1. Preliminary Results Preliminary. Let ψ : [0 , 1] d → [0 , 1] d be a smooth and invertible diffeomorphism that maps the hypercube onto itself and sends boundary points to boundary points. for every u ∈ [0 , 1] d, the Jacobian of ψ admits a factorization 
+
+Jψ (u) = D1(u) R(u) D2(u), (9) where D1(u) and D2(u) are invertible diagonal matrices and R(u) ∈ O(d). Additionally, the Jacobian field Jψ satisfies the integrability condition corresponding to a globally defined smooth mapping. Then there exists a signed permutation matrix 
+
+P and smooth, strictly monotone functions φi : [0 , 1] → [0 , 1] such that 
+
+ψ(u1, . . . , u d) = P  φ1(u1), . . . , φ d(ud). (10) In particular, up to a fixed signed permutation of coordinates, ψ is a global coordinate-wise (unitwise) reparametrization of the hypercube. 
+
+Proof. By construction, the Jacobian of ψ admits, at every point u ∈ [0 , 1] d, the factorized form 
+
+Jψ (u) = D1(u) R(u) D2(u), (11) where D1(u) and D2(u) are invertible diagonal matrices, and R(u) ∈ O(d) is an orthogonal matrix. This decomposition holds smoothly on the entire domain, including its boundary. In particular, for each boundary point u ∈ ∂[0 , 1] d, there exists a neighborhood on which the Jacobian preserves this diagonal–orthogonal–diagonal structure. Let F ± 
+
+> i
+
+denote the (d − 1) -dimensional faces of the hypercube defined by 
+
+F − 
+
+> i
+
+= {u ∈ [0 , 1] d | ui = 0 }, F + 
+
+> i
+
+= {u ∈ [0 , 1] d | ui = 1 }. (12) 13 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+For any point p ∈ F ± 
+
+> i
+
+, the image ψ(p) lies on the boundary ∂[0 , 1] d, and hence belongs to some face F ± 
+
+> k
+
+for a certain index 
+
+k ∈ { 1, . . . , d }. The tangent space at p to the face F ± 
+
+> i
+
+is given by 
+
+TpF ± 
+
+> i
+
+= span {ej | j̸ = i}, (13) where {e1, . . . , e d} is the canonical basis of Rd. Since ψ maps ∂[0 , 1] d onto itself, its differential must map tangent directions along a face to tangent directions of the image face. Equivalently, the differential maps the normal vector to a face to a vector normal to the image face, up to a nonzero scalar factor. Let ni = ±ei denote the unit normal vector to F ± 
+
+> i
+
+at p. Then 
+
+Jψ (p) ni = D1(p) R(p) D2(p) ni = λi D1(p) R(p) ei, (14) for some nonzero scalar λi corresponding to the ith diagonal entry of D2(p). Because the image of ni must be normal to the image face F ± 
+
+> k
+
+, the vector R(p)ei must be colinear with ±ek. As R(p) is orthogonal, this implies that its (k, i )-entry satisfies Rki (p) = ±1, and all other elements in the ith column and kth row of R(p) vanish. Hence, locally, R(p) acts as a signed permutation matrix exchanging coordinates i and k (possibly flipping their orientation). Since ψ (and therefore R(u)) is continuous, and the set of signed permutation matrices is discrete, the local signed permutation structure of R(u) must remain constant on each connected component of the boundary where it is defined. As each face F ± 
+
+> i
+
+of the hypercube is connected, this implies that ψ maps each face F ± 
+
+> i
+
+diffeomorphically onto a single face 
+
+F ± 
+
+> k
+
+, with the correspondence between indices (i, k ) determined by a fixed signed permutation. To simplify the notation, we now restrict our attention to the three-dimensional case ( d = 3 ); the argument extends verbatim to arbitrary dimensions. Moreover, without loss of generality, we assume that the signed permutation describing the correspondence between boundary faces is the identity. This assumption merely fixes the coordinate labeling and does not affect the generality of the proof, since any other signed permutation can be factored out and reintroduced at the end of the argument. Let F1, F2, and F3 denote the three faces of the cube [0 , 1] 3 intersecting at the origin, so that each face Fi is orthogonal to the coordinate axis ei, with outward normal vector ni = −ei. The pairwise intersections of these faces correspond to the coordinate axes, and their triple intersection corresponds to the origin. As established in the previous section (Eq.14), the Jacobian matrix of ψ restricted to each face must preserve the tangent directions of that face. For u ∈ F1, F2, or F3, the Jacobian therefore admits the following face-specific structures: 
+
+Jψ|F1 (u) = 
+
+
+
+d1,1(u) 0 00 d1,2(u) 00 0 d1,3(u)
+
+
+
+1 0 00 a b
+
+0 c d
+
+
+
+d2,1(u) 0 00 d2,2(u) 00 0 d2,3(u)
+
+ , (15) 
+
+Jψ|F2 (u) = 
+
+
+
+d1,1(u) 0 00 d1,2(u) 00 0 d1,3(u)
+
+
+
+a 0 b
+
+0 1 0
+
+c 0 d
+
+
+
+d2,1(u) 0 00 d2,2(u) 00 0 d2,3(u)
+
+ , (16) 
+
+Jψ|F3 (u) = 
+
+d1,1(u) 0 00 d1,2(u) 00 0 d1,3(u)
+
+a b 0
+
+c d 00 0 1
+
+d2,1(u) 0 00 d2,2(u) 00 0 d2,3(u)
+
+ . (17) At the pairwise intersections of these faces (that is, along the coordinate axes) and at their triple intersection (the origin), the orthogonal component necessarily satisfies R(u) = I3. Consequently, the Jacobian at these intersection points simplifies to a purely diagonal form: 
+
+Jψ|intersection (u) = 
+
+
+
+1 0 00 1 00 0 1
+
+
+
+d∗
+
+> 1
+
+(u) 0 00 d∗
+
+> 2
+
+(u) 00 0 d∗
+
+> 3
+
+(u)
+
+ , (18) where d∗ 
+
+> i
+
+(u) denote the diagonal entries of the product of D1(u) and D2(u). If the global signed permutation of faces were not the identity, the same conclusion would hold up to a fixed permutation and possible sign changes of these diagonal components. 14 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+While we must validate the orthogonal shape of the jacobian constraint everywhere, there is also another constraint that must be validated by the mapping. For ψ to be globally realizable as a smooth diffeomorphism, the Jacobian field Jψ (u)
+
+must satisfy the standard integrability condition , which ensures that it corresponds to the gradient of a smooth mapping. Specifically, for each i, j, k ∈ { 1, 2, 3}, the mixed partial derivatives must commute: 
+
+∂2ψi
+
+∂u j ∂u k
+
+= ∂2ψi
+
+∂u k ∂u j
+
+. (19) When the second partial derivatives are continuous, this follows from Schwarz’s theorem, which implies that the Hessian matrices of the coordinate functions of ψ are symmetric. In differential form, this condition can be equivalently expressed as 
+
+∂J ψ
+
+∂u j
+
+ek = ∂J ψ
+
+∂u k
+
+ej , (20) ensuring that the curl of each row of Jψ vanishes. This integrability constraint imposes compatibility relations among the entries of D1(u), D2(u), and R(u), ensuring that the Jacobian structure defined above is not only pointwise valid but also arises from a globally consistent smooth mapping ψ.At the corner of the cube, where all three faces intersect, we have already established that R(u) = I3. Furthermore, since 
+
+R(u) remains the identity along each pairwise intersection of faces, its value is fixed and constant in all directions emanating from the corner. Applying the integrability condition in this setting thus constrains the diagonal components of the Jacobian. Writing 
+
+Jψ|corner (u) = 
+
+
+
+d∗
+
+> 1
+
+(u) 0 00 d∗
+
+> 2
+
+(u) 00 0 d∗
+
+> 3
+
+(u)
+
+ , (21) the mixed partial symmetry condition ∂ui ∂uj ψk = ∂uj ∂ui ψk implies that cross-derivatives of distinct coordinates must vanish. Consequently, each diagonal entry d∗ 
+
+> i
+
+(u) can depend only on its corresponding coordinate ui, yielding 
+
+d∗
+
+> 1
+
+(u) 0 00 d∗
+
+> 2
+
+(u) 00 0 d∗
+
+> 3
+
+(u)
+
+ =
+
+d∗
+
+> 1
+
+(u1) 0 00 d∗
+
+> 2
+
+(u2) 00 0 d∗
+
+> 3
+
+(u3)
+
+ . (22) Hence, near the corner, ψ reduces to a unitwise reparametrization of the coordinates, meaning that each coordinate function 
+
+ψi depends solely on its corresponding input variable ui. Showing how the integrability condition affects the possible mapping at the corners of the hypercube and thus the importance of this condition. We now apply the integrability condition to the restriction of ψ on a boundary face, for instance F1 = {u1 = 0 }. On this face, the Jacobian admits the form 
+
+Jψ|F1 (u) = 
+
+
+
+d1,1(u) 0 00 d1,2(u) 00 0 d1,3(u)
+
+
+
+1 0 00 a b
+
+0 c d
+
+
+
+d2,1(u) 0 00 d2,2(u) 00 0 d2,3(u)
+
+ , (23) where R(u) = 
+
+ 1 0 0 0 a b  
+
+> 0c d
+
+
+
+acts as the local orthogonal component on F1. By construction, R(u) fixes both its first column and its first row across the entire face, reflecting the fact that the normal direction e1 is invariant under ψ along F1.Since R(u) is constant with respect to u2 and u3 in its first column and row, differentiating Jψ|F1 along the tangent directions 
+
+u2 and u3 does not alter the components corresponding to e1. The integrability condition, 
+
+∂J ψ
+
+∂u i
+
+ej = ∂J ψ
+
+∂u j
+
+ei, ∀ i, j ∈ { 1, 2, 3}, (24) then enforces that the mixed derivatives involving u1 and any tangent direction to F1 vanish in the corresponding entries of 
+
+Jψ . In particular, the entries associated with the tangent scaling factors (d1,2, d 1,3, d 2,2, d 2,3) must satisfy 
+
+∂d 1,2
+
+∂u 1
+
+= ∂d 1,3
+
+∂u 1
+
+= ∂d 2,2
+
+∂u 1
+
+= ∂d 2,3
+
+∂u 1
+
+= 0 . (25) 15 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Consequently, these quantities cannot depend on u1, i.e. 
+
+d1,2(u) = d1,2(u2, u 3), d1,3(u) = d1,3(u2, u 3), (26) 
+
+d2,2(u) = d2,2(u2, u 3), d2,3(u) = d2,3(u2, u 3). (27) Geometrically, this expresses the fact that along the face F1, variations parallel to the face (in u2 and u3) occur independently of the normal coordinate u1, since the orthogonal component R(u) preserves the orientation of the normal direction. The integrability constraint thus enforces that the scaling along tangent directions to a face cannot depend on the coordinate normal to that face. The foregoing discussion applies mutatis mutandis to every face, so that analogous conclusions hold for F2 and F3. In particular, on the pairwise intersection F1 ∩ F3 we have (recall that R = I on intersections) 
+
+Jψ|F1∩F3 (u) = I3
+
+
+
+d∗
+
+> 1
+
+(u) 0 00 d∗
+
+> 2
+
+(u) 00 0 d∗
+
+> 3
+
+(u)
+
+ = I3
+
+
+
+d∗
+
+> 1
+
+(u1, u 2) 0 00 d∗
+
+> 2
+
+(u2) 00 0 d∗
+
+> 3
+
+(u2, u 3)
+
+ , (28) where the displayed functional dependencies record the constraints obtained from applying integrability on the adjacent faces. Thus, when one moves along the intersection curve (which is parametrized by u2), the mapping acts as a unitwise reparametrization in the u2–direction; perpendicular variations may still modify the scalings d∗ 
+
+> 1
+
+and d∗ 
+
+> 3
+
+through their explicit dependence on u2. At the triple intersection (the corner) this specialization reduces to the purely unitwise reparametrization obtained earlier, which is coherent with what we obtained earlier. Consider now, at that intersection F1 ∩ F3, parameterized by the coordinate u2, along which the Jacobian takes the simplified form (28), the integrability condition in the e3-direction on this one-dimensional curve, namely 
+
+∂J ψ
+
+∂u 2
+
+e3 = ∂J ψ
+
+∂u 3
+
+e2. (29) Because on F1 ∩ F3 we have R(u) = I3 (by construction) and Jψ (u) = D∗(u) is diagonal, we can explicitly compute for the left-hand side, 
+
+∂J ψ
+
+∂u 2
+
+e3 = ∂∂u 2
+
+
+
+00
+
+d∗
+
+> 3
+
+(u2, u 3)
+
+ =
+
+
+
+00
+
+∂d ∗
+
+> 3
+
+(u2, u 3)
+
+∂u 2
+
+ . (30) For the right-hand side, differentiation is taken along the u3-direction, which is tangent to the face F1. In this case, R(u)
+
+retains its first row and column fixed (as established earlier), but the remaining entries of R(u) may vary smoothly with u3.Thus we obtain ∂J ψ
+
+∂u 3
+
+e2 = ∂∂u 3
+
+ R(u)D∗(u)e2 = ∂R (u)
+
+∂u 3
+
+D∗(u)e2 + ∂D ∗(u)
+
+∂u 3
+
+e2. (31) The second term in (31) vanishes when evaluated on e2 (because d∗
+
+> 2
+
+(u) depends only on u2 along the intersection). Hence, we are left with ∂J ψ
+
+∂u 3
+
+e2 = ∂R (u)
+
+∂u 3
+
+d∗
+
+> 2
+
+(u2)e2, (32) Since R(u) fixes e1 and its first row/column and is fixed in u2, ∂R (u) 
+
+> ∂u 3
+
+is a smooth matrix-valued function depending only on 
+
+u3 along the intersection. Equating the two sides of (29) then yields the scalar constraint 
+
+∂d ∗
+
+> 3
+
+(u2, u 3)
+
+∂u 2
+
+= ξ(u3) d∗
+
+> 2
+
+(u2), (33) where ξ(u3) is a scalar function determined by the infinitesimal rotation of R(u) in the (e2, e 3)-plane. Eq.33 expresses that 
+
+d∗ 
+
+> 3
+
+must vary with u2 according to a first-order linear relation whose coefficient depends only on u3.Finally, recall that the intersection F1 ∩ F3 contains the corner point where ψ reduces to a unitwise reparametrization. At this corner, the function d∗ 
+
+> 3
+
+must coincide with the corresponding unitwise scaling, which enforces ∂d ∗  
+
+> 3(u2,u 3)
+> ∂u 2
+
+= 0 . However, 16 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+d∗
+
+> 2
+
+(u2)̸ = 0 as the function is smooth and invertible everywhere. Hence, ξ(u3) = 0 at the corner and thus also on the whole intersection F1 ∩ F3 parametrized by u2. As the same proof can be applied to d∗
+
+> 1
+
+, overall we obtain that 
+
+Jψ|F1∩F3 (u) = I3
+
+
+
+d∗
+
+> 1
+
+(u1) 0 00 d∗
+
+> 2
+
+(u2) 00 0 d∗
+
+> 3
+
+(u3)
+
+ . (34) This shows that along F1 ∩ F3, the mapping remains a unitwise reparametrization: each coordinate evolves independently. This conclusion is consistent with the earlier analysis at the corner and extends the unitwise reparametrization property to all intersection curves between adjacent faces F1, F 2, F 3.Eq.28 established that on the intersections of adjacent faces, the Jacobian reduces to a diagonal form, corresponding to a coordinate-wise (unitwise) reparametrization, possibly composed with a fixed signed permutation. However, this constraint initially applies only along the intersection curves themselves; a priori, when moving in a direction perpendicular to such a curve—i.e., transversally to the intersection of two faces—the mapping need not remain a pure reparametrization. The refined condition (34) strengthens this conclusion. Indeed, along the intersection F1 ∩ F3, the integrability condition has shown that not only along the curve (parameterized by u2) but also infinitesimally in directions orthogonal to it, the orthogonal component R(u) remains fixed and equal to I3. This means that the differential of ψ is purely diagonal in a full neighborhood of each intersection curve: 
+
+Jψ (u) = I3
+
+
+
+d1(u1) 0 00 d2(u2) 00 0 d3(u3)
+
+ for u in a neighborhood of Fi ∩ Fj . (35) In such a neighborhood, infinitesimal displacements along coordinate directions remain aligned with the coordinate axes. In particular, straight coordinate lines on the boundary, defined by fixing all but one coordinate, are mapped by ψ to straight coordinate lines in the image, with no curvature introduced. Now, consider moving an infinitesimal step du away from the intersection curve into the interior of the cube. Because 
+
+R(u) is continuous, R(u) = I3 along the intersection, and the set of orthogonal matrices is discrete in a neighborhood of the identity under the signed permutation constraint, the orthogonal component must remain constant in a connected neighborhood: 
+
+R(u) = I3 for all u in a connected neighborhood of Fi ∩ Fj . (36) Hence, within this neighborhood, ψ continues to act as a unitwise reparametrization: 
+
+Jψ (u) = diag  d1(u1), d 2(u2), d 3(u3). (37) Starting from one intersection curve (say F1 ∩ F3), we can apply the same argument to adjacent intersection curves F1 ∩ F2
+
+and F2 ∩ F3. Each of these intersections is connected and shares a corner point where R(u) = I3, ensuring compatibility across overlaps. By continuity and connectedness of the cube [0 , 1] 3, these local neighborhoods form a connected cover of the entire domain. Consequently, the property (37) extends globally throughout [0 , 1] 3.Therefore, on the whole cube, the Jacobian of ψ has a globally diagonal structure with each diagonal element depending only on its corresponding coordinate: 
+
+Jψ (u) = 
+
+
+
+d1(u1) 0 00 d2(u2) 00 0 d3(u3)
+
+ . (38) Integrating this expression along each coordinate direction yields 
+
+ψ(u1, u 2, u 3) =  φ1(u1), φ 2(u2), φ 3(u3), (39) where each φi : [0 , 1] → [0 , 1] is a smooth, strictly monotone reparametrization function. In summary, the integrability and continuity conditions jointly ensure that the local unitwise reparametrization property propagates from intersections of faces to their neighborhoods and ultimately to the entire cube. Thus, the diffeomorphism ψ
+
+on [0 , 1] 3 must be a global coordinate-wise reparametrization (up to a fixed signed permutation, if present), concluding the proof. □
+
+17 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+A.2. Proof of Proposition 1 Proposition 1. Let the observed data x ∈ Rn lie on a d-dimensional manifold generated by latent variables z ∈ Rd, with 
+
+d ≪ n, through a smooth and invertible mapping f : Rd → Rn satisfying Asm.1. Each latent coordinate zi corresponds to a distinct underlying concept. Suppose further that the latent variables are statistically independent, p(z) = Q 
+
+> i
+
+p(zi), and that at most one component zi follows a Gaussian distribution. Then, the generative process (f , p z) is identifiable in the sense of Def.1. 
+
+Proof. Assume g : Rd → Rn is a smooth diffeomorphism satisfying Asm.1 (the columns of its Jacobian are orthogonal) and that 
+
+f∗pz = g∗pˆz (40) where pˆz = Qdi=1 pˆzi i.e., the latent coordinates ˆz ∈ Rd are independent. We must show that g recovers f up to the ambiguities allowed in Def.1 (a permutation and element-wise reparameterizations). Because f and g are diffeomorphisms onto the same d-dimensional manifold, define 
+
+h := f −1 ◦ g : Rd → Rd. (41) By the pushforward identity we have 
+
+h∗pˆz = pz. (42) Thus h is a smooth bijection that transforms the product density pˆz into the product density pz.Fix u ∈ Rd and let v = h(u). By Asm.1, at the corresponding points the Jacobians of f and g admit the column-orthogonal factorization 
+
+Jf (v) = Qf (v)Df (v), Jg(u) = Qg(u)Dg(u), (43) where for each argument Qf (v), Q g(u) ∈ Rn×d have orthonormal columns ( QT Q = Id), and Df (v), D g(u) ∈ Rd×d are diagonal matrices. Because f is a local diffeomorphism, the derivative of f −1 at x = f (v) equals the left inverse of Jf (v):
+
+D(f −1)( x) = ( Jf (v)) + = ( Jf (v)T Jf (v)) −1Jf (v)T = Df (v)−1Qf (v)T (44) where we used Jf = Qf Df and QT 
+
+> f
+
+Qf = Id. Consequently, the Jacobian of h at u is 
+
+Jh(u) = D(f −1)( g(u)) Jg(u) = Df (v)−1Qf (v)T Qg(u), D g(u). (45) Since f (v) = g(u) is the same point x on the embedded manifold, the column spaces of Qf (v) and Qg(u) form both an orthogonal basis for the tangent space Tx of the embedded manifold at x. In this tangent space they have orthonormal columns (rows) and thus also orthonormal rows (columns). Hence there exists a d × d orthogonal matrix 
+
+R(u) := Qf (v)T Qg(u) (46) with R(u)T R(u) = R(u)R(u)T = Id. Therefore the Jacobian of h admits the pointwise decomposition 
+
+Jh(u) = Df (v)−1R(u)Dg(u), (47) i.e. a diagonal–orthogonal–diagonal factorization valid for every u.Now, because both pz and pˆz factorize into independent distributions, introduce the coordinatewise CDF maps (which are smooth, strictly monotone) 
+
+τ := ( Fz1 , ..., F zd ) : Rd → (0 , 1) d, ˆτ := ( F ˆz1 , ..., F ˆzd ) : Rd → (0 , 1) d, (48) which push the marginals to independent Unif(0 , 1) coordinates. Define 
+
+ψ := τ ◦ h ◦ ˆτ −1 : (0 , 1) d → (0 , 1) d. (49) The maps τ and ˆτ are coordinatewise (their Jacobians are diagonal), hence the pointwise structure (47) is preserved up to diagonal pre- and post-multiplication: the Jacobian Jψ has the same diagonal–orthogonal–diagonal form as Jh (with possibly different diagonal factors). 18 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Next, we will show that such a mapping ψ will need to be a signed permutation. Recall that ψ : (0 , 1) d → (0 , 1) d is a smooth diffeomorphism whose Jacobian admits, at every point, a diagonal–orthogonal–diagonal factorization. This transformation extends continuously and smoothly to a diffeomorphism of the closed hypercube [0 , 1] d onto itself. In particular, ψ is a continuous bijection with a continuous inverse on [0 , 1] d, and thus a homeomorphism. By classical topological results (Brouwer (1911) Domain Invariance Theorem), any homeomorphism between subsets of Rd maps interiors onto interiors and boundaries onto boundaries. Consequently, ψ maps the hypercube [0 , 1] d onto itself and sends boundary points of the hypercube to boundary points. Moreover, since h is globally defined and smooth, the Jacobian field Jψ satisfies the usual integrability conditions corresponding to a globally defined diffeomorphism. We are therefore exactly in the setting of the Preliminary result in Sec.A.1. Applying it to ψ, we conclude that there exists a fixed signed permutation matrix P and smooth, strictly monotone univariate functions φi : [0 , 1] → [0 , 1] such that 
+
+ψ(u1, . . . , u d) = P  φ1(u1), . . . , φ d(ud), (50) for all (u1, . . . , u d) ∈ (0 , 1) d. In other words, up to a fixed signed permutation of coordinates, ψ is a global coordinate-wise reparameterization of the unit hypercube. We now invoke the statistical definition of ψ: by construction, ψ pushes each marginal of the original distribution to the uniform distribution on (0 , 1) . Formally, if U = ψ(X) and X = ( X1, X 2, X 3) denotes a random vector with continuous marginals, then for each i ∈ { 1, 2, 3},
+
+Ui = ψi(X) ∼ Unif(0 , 1) , (51) and the mapping ψ is monotone and invertible along each coordinate. From the geometric analysis above, we have established that ψ must take the globally diagonal form 
+
+ψ(u1, u 2, u 3) =  φ1(uσ(1) ), φ 2(uσ(2) ), φ 3(uσ(3) ), (52) for some smooth, strictly increasing univariate functions φi : [0 , 1] → [0 , 1] and some permutation σ of {1, 2, 3} (encoding the fixed signed permutation of coordinate axes identified earlier). Because ψ maps each marginal distribution to the uniform law on (0 , 1) , each component φi must itself transform a 
+
+Unif(0 , 1) random variable into another Unif(0 , 1) random variable. The only smooth, strictly monotone maps on (0 , 1) 
+
+satisfying this invariance are the identity and its reflections t 7 → 1 − t, corresponding to the two possible signed orientations. Hence, 
+
+φi(t) ∈ { t, 1 − t }, ∀i ∈ { 1, 2, 3}. (53) Therefore, under the statistical and geometric constraints, the diffeomorphism ψ reduces to a signed permutation of the coordinates .Now, undoing the marginal transforms (i.e. returning from uniform coordinates to the original coordinates) gives 
+
+h = τ −1 ◦ ψ ◦ ˆτ = τ −1 ◦ P ◦ ˆτ (54) Hence, h acts as a permutation of coordinates composed with elementwise reparameterizations. In other words, h operates independently on each coordinate of ˆz through a unitwise reparameterization t (given by the composition of τ and ˆτ , up to permutation) s.t. 
+
+pz = h∗pˆz = t∗pˆz. (55) It is important to note that this is not equivalent to z = t(ˆz). Indeed, the equality is between distributions. h acts as a unitwise reparameterization on ˆz such that the distributions match and thus the axis could still be unaligned. However, because both pz and pˆz are factorized into independent components and because a unitwise reparameterization t preserves independence, the transformed variables t(ˆ z) remain mutually independent. And thus, there is at most an additional global orthogonal transformation Q acting on the coordinates, 
+
+z = Q ◦ t(ˆ z). (56) This ambiguity corresponds to the well-known indeterminacy in Independent Component Analysis (ICA), where the independent components are recoverable only up to scaling, permutation, and orthogonal rotation when multiple Gaussian sources are present. 19 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+However, under the additional assumption that at most one latent variable follows a Gaussian distribution, the ICA indeterminacy reduces to permutations and elementwise reparameterizations only. In this case, the orthogonal rotation Q
+
+must necessarily be a permutation matrix P, since any non-trivial rotation would induce statistical dependence among the coordinates, contradicting the independence of pz. Consequently, we obtain 
+
+z = P ◦ t(ˆ z), (57) which is precisely the form of identifiability stated in Def.1. Therefore, the generative process (f , p z) is identifiable up to permutation and coordinate-wise invertible reparameterizations of the latent variables, completing the proof. □
+
+Discussion. This proof makes explicit that Prop.1 can be viewed as a nonlinear generalization of classical Independent Component Analysis (ICA), where identifiability emerges from the interplay between a geometric constraint on the mixing function and a statistical constraint on the latent distribution. In linear ICA, identifiability follows from the fact that a linear mixing matrix with orthogonal columns preserves angles, while statistical independence restricts the admissible transformations to permutations and scalings, except in the presence of multiple Gaussian sources. Our analysis shows that the same logic extends to the nonlinear setting when the Jacobian of the generative mapping satisfies a pointwise orthogonality constraint. From a geometric perspective, Asm.1 enforces a strong form of functional independence: at every point in latent space, each latent coordinate influences the observations along an orthogonal direction in the tangent space of the data manifold. This local orthogonality plays the role of a nonlinear analogue of linear orthogonal mixing. The key technical step of the proof shows that any alternative generative explanation inducing the same observed distribution must differ from the true one by a diffeomorphism whose Jacobian admits a diagonal–orthogonal–diagonal factorization everywhere. Such mappings form a highly restricted class, and when combined with global statistical independence, they collapse to coordinate-wise transformations up to permutation. The use of marginal CDF transforms highlights this collapse particularly clearly. By reducing the problem to diffeomorphisms of the unit hypercube that preserve independence and admit the same Jacobian structure, the identifiability question becomes purely geometric and topological. The result that such transformations must be signed permutations with coordinate-wise reparameterizations mirrors the classical ICA argument that only trivial symmetries preserve independence. The additional assumption that at most one latent variable is Gaussian then removes the residual orthogonal ambiguity, exactly as in linear ICA. Importantly, this argument clarifies why nonlinear ICA is generally non-identifiable in the absence of further constraints, as shown in prior impossibility results, and why Asm.1 fundamentally changes the situation. Rather than attempting to recover independent components from arbitrary nonlinear mixtures, the orthogonal Jacobian assumption restricts the functional class of admissible generative models to those that behave locally like orthogonal linear maps. In this sense, Asm.1 can be interpreted as a structural prior that collapses the nonlinear ICA problem back into an identifiable regime. Conceptually, Prop.1 demonstrates that identifiability does not rely on linearity per se, but on the preservation of orthogonal functional influence combined with a global statistical constraint. This perspective unifies linear ICA and the more general orthogonal-Jacobian setting studied here under a single principle: disentanglement becomes identifiable whenever local geometric independence and global statistical independence act in concert. This insight also explains why empirical methods that enforce orthogonality or decorrelation in the Jacobian often succeed in practice, even in nonlinear models, when the underlying generative process approximately satisfies these assumptions. 
+
+A.3. Proof of Proposition 2 Proposition 2. Let the observed data x ∈ Rn lie on a d-dimensional manifold generated by latent variables z ∈ Rd, with 
+
+d ≪ n, through a smooth and invertible mapping f : Rd → Rn satisfying Asm.1. Suppose further that the latent distribution 
+
+pz satisfies Asm.2. Then, the generative process (f , p z) is identifiable in the sense of Def.1. 
+
+Proof. Assume g : Rd → Rn is a smooth diffeomorphism satisfying Asm.1 (the columns of its Jacobian are orthogonal) and that 
+
+f∗pz = g∗pˆz (58) 20 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+where pˆz satisfies Asm.2. We must show that g recovers f up to the ambiguities allowed in Def.1 (a permutation and element-wise reparameterizations). Because f and g are diffeomorphisms onto the same d-dimensional manifold, define 
+
+h := f −1 ◦ g : Rd → Rd. (59) By the pushforward identity we have 
+
+h∗pˆz = pz. (60) Thus h is a smooth bijection that transforms the density pˆz into the density pz.Fix u ∈ Rd and let v = h(u). By Asm.1, at the corresponding points the Jacobians of f and g admit the column-orthogonal factorization 
+
+Jf (v) = Qf (v)Df (v), Jg(u) = Qg(u)Dg(u), (61) where for each argument Qf (v), Q g(u) ∈ Rn×d have orthonormal columns ( QT Q = Id), and Df (v), D g(u) ∈ Rd×d are diagonal matrices. Because f is a local diffeomorphism, the derivative of f −1 at x = f (v) equals the left inverse of Jf (v):
+
+D(f −1)( x) = ( Jf (v)) + = ( Jf (v)T Jf (v)) −1Jf (v)T = Df (v)−1Qf (v)T (62) where we used Jf = Qf Df and QT 
+
+> f
+
+Qf = Id. Consequently, the Jacobian of h at u is 
+
+Jh(u) = D(f −1)( g(u)) Jg(u) = Df (v)−1Qf (v)T Qg(u), D g(u). (63) Since f (v) = g(u) is the same point x on the embedded manifold, the column spaces of Qf (v) and Qg(u) form both an orthogonal basis for the tangent space Tx of the embedded manifold at x. In this tangent space they have orthonormal columns (rows) and thus also orthonormal rows (columns). Hence there exists a d × d orthogonal matrix 
+
+R(u) := Qf (v)T Qg(u) (64) with R(u)T R(u) = R(u)R(u)T = Id. Therefore the Jacobian of h admits the pointwise decomposition 
+
+Jh(u) = Df (v)−1R(u)Dg(u), (65) i.e. a diagonal–orthogonal–diagonal factorization valid for every u.Now, because both pz and pˆz satisfy Asm.2, there exist smooth, strictly monotone coordinate-wise reparameterizations mapping their supports to the unit interval. More precisely, Asm.2 ensures the existence of smooth diffeomorphisms 
+
+τ := ( τ1, . . . , τ d) : Rd → (0 , 1) d, ˆτ := (ˆ τ1, . . . , ˆτd) : Rd → (0 , 1) d, (66) where each τi, ˆτi : R → (0 , 1) is strictly monotone. These maps are not assumed to be unique, nor to push pz and pˆz to the same distribution on (0 , 1) d; they merely provide a common normalized range. Define the mapping 
+
+ψ := τ ◦ h ◦ ˆτ −1 : (0 , 1) d → (0 , 1) d. (67) By construction, ψ is a smooth diffeomorphism of the open unit hypercube. Since both τ and ˆτ act independently on each coordinate, their Jacobians are diagonal everywhere. Consequently, conjugation by τ and ˆτ preserves the diagonal– orthogonal–diagonal structure of the Jacobian (with possibly different diagonal factors). Next, we will show that such a mapping ψ will need to be a signed permutation and coordinate-wise reparametrization. Recall that ψ : (0 , 1) d → (0 , 1) d is a smooth diffeomorphism whose Jacobian admits, at every point, a diagonal–orthogonal– diagonal factorization. This transformation extends continuously and smoothly to a diffeomorphism of the closed hypercube 
+
+[0 , 1] d onto itself. In particular, ψ is a continuous bijection with a continuous inverse on [0 , 1] d, and thus a homeomorphism. By classical topological results (Brouwer (1911) Domain Invariance Theorem), any homeomorphism between subsets of Rd
+
+maps interiors onto interiors and boundaries onto boundaries. Consequently, ψ maps the hypercube [0 , 1] d onto itself and sends boundary points of the hypercube to boundary points. Moreover, since h is globally defined and smooth, the Jacobian field Jψ satisfies the usual integrability conditions corresponding to a globally defined diffeomorphism. We are therefore 21 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+exactly in the setting of the Preliminary result in Sec.A.1. Applying it to ψ, we conclude that there exists a fixed signed permutation matrix P and smooth, strictly monotone univariate functions φi : [0 , 1] → [0 , 1] such that 
+
+ψ(u1, . . . , u d) = P  φ1(u1), . . . , φ d(ud), (68) for all (u1, . . . , u d) ∈ (0 , 1) d. In other words, up to a fixed signed permutation of coordinates, ψ is a global coordinate-wise reparameterization of the unit hypercube. 
+
+Now, undoing the marginal normalizations (i.e. returning to the original coordinates) yields 
+
+h = τ −1 ◦ ψ ◦ ˆτ = τ −1 ◦ P ◦ ϕ ◦ ˆτ , (69) where P is a fixed permutation matrix and ϕ(u1, . . . , u d) = ( ϕ1(u1), . . . , ϕ d(ud)) is a coordinate-wise smooth, strictly monotone reparameterization of (0 , 1) d.Consequently, h acts as a permutation of coordinates composed with element-wise reparameterizations. Equivalently, there exists a coordinate-wise invertible map t : Rd → Rd such that 
+
+pz = h∗pˆz = t∗pˆz. (70) It is important to emphasize that this equality holds at the level of distributions: it does not imply the pointwise identity 
+
+z = t(ˆ z). Indeed, a unit-wise reparameterization may map distributions correctly even if the coordinate axes of z and ˆz are not aligned. However, both pz and pˆz satisfy Asm.2. In particular, since they have bounded support that are hypercubes up to a reparametrization, their supports must coincide with a compact hyperrectangle, and their copulas have full support on the interior of this domain. As a consequence, the diffeomorphism h extends continuously to the boundary of the support and maps boundary points to boundary points and interior points to interior points. Under these conditions, any smooth bijection mapping pˆz to pz through a coordinate-wise reparameterization must preserve the axis-aligned structure of the support. Indeed, any nontrivial mixing of coordinates would necessarily map a boundary face of the hyperrectangle to a set intersecting the interior, or would destroy the full-support property of the copula, contradicting Asm.2. Therefore, the only admissible transformations are coordinate-wise reparameterizations composed with permutations of the coordinate axes. We can thus conclude that h is identifiable up to a permutation and coordinate-wise invertible reparameterizations of the latent variables. Consequently, the generative process (f , p z) is identifiable in the sense of Def.1, completing the proof. □
+
+Discussion. The proof of Prop.2 makes explicit the mechanisms underlying identifiability in the dependent case, and in particular clarifies the respective roles played by support geometry and distributional assumptions. Building on these insights, the full-support copula assumption can be viewed as a natural generalization of the independence setting: requiring that all combinations of latent coordinates occur ensures that no factor is functionally constrained by the others, which is precisely what enables disentanglement. However, in contrast to the independent case, this assumption alone is not sufficient unless the latent variables are supported on a bounded domain. This additional requirement is essential for identifiability. When the latent space is Rd, there exist infinitely many smooth, monotone transformations that map Rd onto a bounded domain such as the hypercube (0 , 1) d. For instance, applying sigmoid-type transformations along arbitrary directions yields different embeddings of an unbounded domain into the same bounded support, all of which are compatible with the same observed distribution. As a result, the geometry of the latent space cannot be uniquely recovered from data in this setting. By contrast, when the latent variables are supported on a bounded domain with full copula support, the boundary structure of the support becomes identifiable and constrains the class of admissible transformations, leading to disentanglement up to coordinate-wise reparametrization and permutation. The independent case does not require such a boundedness assumption because independence provides strictly stronger information: it fixes not only the support geometry but also the factorization structure of the distribution, thereby ruling out these additional ambiguities even when the latent space is Rd.
+
+A.4. Discussion on Assumption 1 and Assumption 1 
+
+This section elaborates on the practical scope and interpretation of Asm.1 and 2. These assumptions are not only theoretically motivated but also well-grounded in widely accepted principles and common practices in representation learning; we 22 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+therefore view them as structural abstractions that enable studying identifiability beyond the classical independence setting. In what follows, we discuss each assumption in turn, clarifying its conceptual grounding, its relationship to standard causal representation learning settings, and the conditions under which it can be expected to hold in practice. 
+
+Assumption 1 (Orthogonal Jacobian). Asm.1 should be understood not as an empirical property to be verified in a given dataset, but as a definitional criterion for what constitutes a meaningful latent concept: each factor contributes a functionally independent mode of variation, decoupled from all others in its local effect on the observations. This view is strongly aligned with the Independent Causal Mechanisms (ICM) principle from causal inference (Sch ¨olkopf et al., 2021), a widely accepted foundation which posits that the mechanisms governing the components of a system operate autonomously and do not inform one another. Applied outside a strictly causal context, Asm.1 can be understood as a functional, non-parametric instantiation of ICM: instead of requiring independence in a causal graph, it requires decoupling in the generative Jacobian. This connection is well-supported by the theoretical analysis in Gresele et al. (2021), where orthogonal Jacobian structure was introduced precisely to capture this notion. Beyond its theoretical motivation, Asm.1 finds direct empirical support in practical settings. Wei et al. (2021) successfully leveraged Jacobian orthogonality constraints for unsupervised disentanglement in image generation, demonstrating that such structural priors are not only theoretically meaningful but also empirically effective on realistic data. Moreover, as discussed in Sec.6, VAEs implicitly encourage a related structure through their factorized approximate posterior (Reizinger et al., 2022; Allen, 2024), which helps explain their empirical disentanglement ability on structured datasets. In summary, Asm.1 is best understood not as an empirical property to be verified in any given dataset, but as a structural design criterion for what kind of representation one seeks to learn: one in which each factor’s functional influence on the observations is orthogonal to that of all others. 
+
+Assumption 2 (Full-Support Copula). Asm.2 formalizes the combinatorial richness of the latent factors, capturing the idea that each factor should, in principle, be independently manipulable. Many latent variables (e.g., position, orientation, lighting) naturally vary across bounded ranges, and datasets are often explicitly constructed to explore these variations, making this assumption well-aligned with common practices in representation learning. A fundamental distinction, however, is that Asm.2 is a dataset-level property of the support of the latent distribution, rather than a property of any underlying causal or generative model. The existence of a causal model does not, by itself, guarantee that the resulting dataset will be rich enough to satisfy it. To illustrate this, consider two latent factors (Z1, Z 2) with a causal dependency Z1 → Z2:• Deterministic mechanism : if Z1 = 0 implies Z2 = 0 and Z1 = 1 implies Z2 = 1 , then combinations such as 
+
+(Z1 = 0 , Z 2 = 1) never occur. The dataset lacks full combinatorial coverage, violating Asm.2, even though a valid causal model is present. • Probabilistic mechanism : if Z1 = 0 yields P (Z2 = 0) = 0 .9 and P (Z2 = 1) = 0 .1, then every combination of 
+
+(Z1, Z 2) appears with non-zero probability. Causal dependencies exist and the variables are statistically dependent, yet Asm.2 is perfectly satisfied because the joint latent space has full support. This shows that Asm.2 can be satisfied in typical causal representation learning settings, provided the dataset is sufficiently diverse. Moreover, even when natural observational data lacks certain combinations, interventions — either explicit or through deliberate dataset design — can restore the required combinatorial richness. Crucially, this highlights that causal structure and Asm.2 are orthogonal : our work does not rely on any causal assumptions, but rather focuses on the combinatorial richness of the dataset, regardless of how the data was generated (causally or not). This formalizes the idea that each latent factor should correspond to a distinct, manipulable degree of freedom (”concept slider”). If two variables can never be varied separately in the observed data, they cannot be identified as separate entities without further supervision. Thus, while Asm.2 defines the conditions under which disentanglement is theoretically possible, it may not be achieved in every real-world scenario, particularly if the dataset is not sufficiently rich or lacks the necessary interventional samples to make these separate degrees of freedom visible to the disentanglement model. For instance, variables such as temperature and altitude may not span all possible combinations in observed data, even though such combinations are physically plausible. So the assumption should be interpreted as a property of the underlying generative domain, not a guarantee about any finite dataset. Even so, the assumption provides a critical theoretical foundation: it delineates when disentanglement is possible, by ensuring that distinct latent factors are identifiable in principle. In other words, while actual datasets may be incomplete, Asm.2 highlights the necessary richness required to make independent degrees of freedom visible to the model, grounding identifiability results in realistic, physically plausible factor spaces. 23 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+# B. Disentanglement Under General Latent Domains 
+
+In the main text, we argued that identifiability does not necessarily require strong distributional assumptions such as statistical independence. Instead, limited but appropriate global information about the latent domain may already suffice to fully determine the generative mapping. In particular, when the latent variables are supported on a known, bounded, simply connected domain Ω ⊂ Rd, the generative process can become identifiable up to the natural rigid symmetries of that support. In the main body of the paper, this idea was instantiated through Asm.2, which restricts the latent domain (up to coordinate-wise reparameterization) to a hypercube. However, the above observation suggests that identifiability can be achieved under substantially more general geometric conditions. The purpose of this appendix is to formalize and extend this claim by studying disentanglement when the latent domain is known but not necessarily a hypercube. For clarity, we restrict our analysis in this appendix to the class of conformal generative mappings. This setting allows us to leverage classical results from geometric function theory and to make precise statements about how domain geometry constrains admissible transformations. In particular, for conformal mappings in dimensions d ≥ 3, the knowledge of a small amount of global geometric information—such as the support of the latent variables or the correspondence of a few salient points—is already sufficient to uniquely determine the mapping up to rigid symmetries. This intuition is formalized in the following proposition, which establishes identifiability under mild geometric assumptions on the latent support. 
+
+Proposition 3. Let the observed data x ∈ Rn lie on a d-dimensional manifold generated by latent variables z ∈ Rd, with 
+
+3 ≤ d ≪ n, through a smooth and invertible mapping f : Rd → Rn that is conformal everywhere on the domain in an open subset. Suppose further that the latent variables follow a distribution pz supported on a known, bounded, simply connected region Ω ⊂ Rd. For any c ∈ Rd, there exist u, v ∈ Sd−1 such that, denoting by (r1(u), r 2(u)) and (r1(v), r 2(v)) 
+
+the intersections of Ω with the rays emanating from c, one has r1(u)r2(u)̸ = r1(v)r2(v). Then, the generative process 
+
+(f , p z) is identifiable in the sense of Def.1, up to a rigid transformation that is a symmetry of Ω.
+
+The key theoretical ingredient underlying Prop.3 is Liouville’s theorem for conformal mappings in dimensions d > 2 (Blair, 2000). This result implies that any conformal transformation of Rd must be a M ¨obius transformation, i.e., a composition of translations, rotations, dilations, and inversions. Among these components, inversion is the only source of nonlinearity. When the latent domain Ω is bounded, simply connected, and not invariant under inversion (a property satisfied by a broad class of supports including all polytopes and most bounded smooth domains), non-rigid M ¨obius transformations cannot preserve Ω. The geometric condition imposed in Prop.3 precisely excludes this possibility by ensuring that no inversion can map Ω onto itself. As a result, the only admissible transformations are rigid motions (rotations and translations) that are symmetries of the domain. This establishes that identifiability can be achieved under substantially weaker assumptions than those imposed in the main text. In particular, it shows that disentanglement is possible for a wide class of known latent supports—not only hypercubes, provided that the domain geometry sufficiently constrains admissible conformal symmetries. Only highly symmetric sets, such as perfect spheres, violate this condition and admit non-rigid self-transformations. We empirically illustrate this phenomenon in Fig.4 of the main paper and in Figs.15 and 16 of App.D, where we observe identifiability up to rigid rotations for several non-cubic latent domains. In the following sections, we provide a proof of Prop.3 along with additional geometric intuition and visualizations. We then treat separately the special case d = 2 , where conformal mappings exhibit fundamentally different behavior. 
+
+B.1. Proof and Geometric Interpretation 
+
+We now prove Prop.3 and provide geometric intuition for the role played by the latent domain geometry. Let f , g : Rd → Rn be smooth, invertible mappings that are conformal on an open neighborhood of a bounded, simply connected domain Ω ⊂ Rd, with d ≥ 3. Assume that the induced data distributions coincide, i.e., 
+
+f∗pz = g∗pˆz, (71) where both pz and pˆz are supported on Ω.Since f and g are diffeomorphisms onto the same d-dimensional data manifold, we define 
+
+h := f −1 ◦ g : Rd → Rd. (72) 24 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+By construction, h is a smooth bijection. Using the pushforward identity, we obtain 
+
+h∗pˆz = pz, (73) which implies that h maps Ω onto itself almost everywhere. Hence, h is an automorphism of the latent domain Ω.Because conformality is preserved under inversion and composition, and both f and g are conformal, the map h is itself conformal on an open neighborhood of Ω. The identifiability problem therefore reduces to characterizing all conformal automorphisms of Ω.For dimensions d ≥ 3, Liouville’s theorem (Blair, 2000) states that any conformal map between open subsets of Rd must be a M¨ obius transformation. Consequently, h must be of the form 
+
+h(x) = b + αA (x − a)
+
+∥x − a∥ε , (74) where a, b ∈ Rd, α ∈ R \ { 0}, A ∈ O(d) is an orthogonal matrix, and ε ∈ { 0, 2}. Here, a denotes the center of inversion, b
+
+a translation, α a uniform dilation, and A a rotation or reflection. The case ε = 0 corresponds to affine conformal maps (no inversion), while ε = 2 corresponds to M¨ obius transformations involving inversion. Geometrically, M ¨obius transformations admit a classical interpretation via stereographic projection. Specifically, they can be obtained by projecting Rd onto the d-sphere, applying a rigid motion of the sphere, and projecting back via stereographic projection. A visualization of this construction is provided in Fig.5. In this representation, inversion corresponds to a transformation that exchanges a point a with infinity: when ε = 2 , the point x = a is mapped to infinity, and infinity is mapped to b. When ε = 0 , infinity is preserved.       
+
+> Figure 5. Geometric interpretation of M ¨obius transformations via stereographic projection. Points in Rdare projected onto the sphere, transformed by a rigid motion of the sphere, and mapped back to Rdvia inverse stereographic projection. Plot generated using a visualization tool created by Juan Carlos Ponce Campuzano on Geogebra
+
+We now analyze which M¨ obius transformations can be automorphisms of the bounded domain Ω.First, consider the case ε = 0 . In this case, h reduces to an affine conformal map, 
+
+h(x) = b + αA (x − a). (75) Translations, rotations, and dilations preserve the global shape of a domain. Since Ω is bounded, h cannot involve arbitrary translations or dilations while remaining an automorphism. Consequently, h must reduce to a rigid transformation belonging to the symmetry group of Ω. This yields identifiability up to rigid symmetries. We now turn to the only source of nonlinearity: the case ε = 2 , corresponding to inversion. All other components of a M ¨obius transformation—translations, rotations, and dilations—preserve the qualitative shape of a domain. Therefore, if a M ¨obius transformation is to act as a nontrivial automorphism of Ω, the inversion component must itself preserve the domain. 25 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Without loss of generality, we may reduce the analysis to inversion with respect to the unit sphere, 
+
+I(x) = x
+
+∥x∥2 , (76) since any other inversion can be obtained by composing I with translations, rotations, and dilations. Inversion has two fundamental geometric effects. First, it exchanges the interior and exterior of the unit sphere: points inside the sphere are mapped outside, and vice versa. Second, the center of inversion is sent to infinity, and infinity is sent to the center. Since Ω is bounded, the center of inversion must lie outside Ω; otherwise, points in Ω would be mapped to infinity, which is incompatible with h being an automorphism. For inversion to preserve Ω, the domain must therefore intersect the inversion sphere. Moreover, the portion of Ω inside the sphere must be exactly the inversion image of the portion outside the sphere, while the intersection of Ω with the sphere itself remains invariant. This implies that Ω must cross the inversion sphere in a highly structured way: one part of the domain lies inside, one part lies outside, and these two parts are mapped onto each other by the inversion. This construction characterizes all possible counterexamples in which a nontrivial inversion acts as a domain automorphism. We visualize such configurations in Fig.6, where the interior and exterior components are exact inversion images of one another.  
+
+> Figure 6. Method for constructing counterexamples. Any domain exhibiting inversion symmetry can be generated in this way.
+
+Crucially, aside from the points lying exactly on the inversion sphere, no point can remain fixed. Thus, for any other point in 
+
+Ω, the existence of an automorphism involving inversion requires the existence of a corresponding point on the opposite side of the inversion sphere. It is precisely this requirement that is excluded by the geometric condition of Prop.3. Indeed, the condition in Prop.3 ensures that for any potential inversion center c, there exist directions along which the radial structure of Ω is incompatible with inversion symmetry. Prop.3 excludes all domains that are invariant under an inversion. As a result, no inversion can map Ω onto itself. This situation is illustrated in Fig.7. We conclude that the inversion case ε = 2 is ruled out under the assumptions of Prop.3. Therefore, any conformal automorphism of Ω must be affine, and hence a rigid symmetry of the domain. It follows that 
+
+g = f ◦ h, (77) 26 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability           
+
+> Figure 7. The condition in Prop.3 directly targets the defining geometric invariant of inversion. For a fixed center c, inversion about a sphere centered at cpreserves, along every ray direction u, the product of the two intersection distances r1(u)r2(u)with the domain boundary. Domains that are invariant under inversion, such as disks or spheres, are characterized by the fact that this product is constant across all directions. Prop.3 explicitly excludes this possibility by requiring the existence of at least two directions for which the radial products differ, thereby breaking the invariance required for inversion symmetry. Since any M ¨obius transformation involving inversion must preserve this radial structure for some center c, the condition rules out all non-rigid M ¨obius automorphisms. Consequently, only affine conformal maps can act as automorphisms of the latent domain.
+
+where h is a rigid transformation preserving Ω. This establishes identifiability of the generative process up to the natural rigid symmetries of the latent domain, completing the proof of Prop.3. Most latent domains do not admit invariance under inversion; only highly specific and strongly symmetric sets, such as perfect spheres or disks, possess this property. For such exceptional geometries, non-rigid M ¨obius symmetries may persist, leading to multiple valid generative solutions. We illustrate this phenomenon in Fig.8 with the case of a disk, whose inversion symmetry yields multiple admissible solutions, and in Fig.9 with a crescent-shaped domain, where inversion symmetry gives rise to exactly two distinct solutions. Importantly, such cases are rare: for the vast majority of bounded, simply connected domains, inversion invariance does not hold. Consequently, identifiability extends well beyond the hypercube setting considered in the main text, demonstrating that disentanglement can be achieved for a broad class of latent supports whenever the domain geometry sufficiently constrains admissible conformal symmetries.  
+
+> Figure 8. Visualization of a disk automorphism induced by an inversion. The disk is mapped onto itself, confirming that the transformation is indeed an automorphism. The mapping is nonlinear and produces a visibly deformed geometry.
+
+B.2. The Two-Dimensional Case 
+
+The two-dimensional case exhibits fundamentally different behavior from the higher-dimensional setting discussed above. This distinction arises from the markedly greater flexibility of conformal mappings in dimension d = 2 , which contrasts 27 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability  
+
+> Figure 9. Qualitative disentanglement results for crescent-shaped domains. From top to bottom: ground-truth sources sampled from the structured domain, corresponding observations, and reconstructions obtained using the orthogonally constrained model. Due to inversion symmetry, two equivalent solutions are observed.
+
+sharply with the rigidity imposed by Liouville’s theorem for d ≥ 3.In two dimensions, conformal mappings coincide with holomorphic or anti-holomorphic functions with non-vanishing derivative. As a result, the space of conformal self-maps of planar domains is infinite-dimensional, rather than being restricted to M ¨obius transformations as in higher dimensions. This increased flexibility is formalized by the classical 
+
+Riemann Mapping Theorem (RMT) (Walsh, 1973). 
+
+Riemann Mapping Theorem. The Riemann Mapping Theorem states that any simply connected, proper open subset 
+
+Ω ⊂ C (i.e., Ω̸ = C) is conformally equivalent to the open unit disk D. That is, there exists a bijective conformal map 
+
+ϕ : Ω → D. (78) Moreover, such a map is unique up to composition with a conformal automorphism of the disk, i.e., a M ¨obius transformation preserving D.This result implies that, in dimension two, any simply connected domain can be conformally deformed into a disk, regardless of its geometric shape. Consequently, unlike the case d ≥ 3, domain geometry alone is insufficient to restrict conformal symmetries to rigid motions. The group of conformal automorphisms of the disk is infinite-dimensional, allowing for highly non-rigid transformations. At first glance, this suggests that identifiability under conformal generative models should fail in two dimensions. However, this conclusion is overly pessimistic in the present setting, for several important reasons. 
+
+1) Role of boundary behavior. The Riemann Mapping Theorem applies to open domains and makes no guarantees about the behavior of the conformal map on the boundary ∂Ω. In general, the conformal equivalence provided by the RMT does 
+
+not extend continuously, let alone smoothly, to the boundary. As a result, many conformal maps that exist in the interior of a domain are incompatible with prescribed boundary correspondences. In our setting, the generative mapping f is assumed to be smooth and invertible on an open neighborhood of the latent domain, which implicitly constrains its behavior near and on the boundary. When the boundary geometry of Ω is taken into 28 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+account—particularly when it contains salient geometric features such as corners, edges, or extremal points—the class of admissible conformal automorphisms is drastically reduced. 
+
+2) Fixing boundary points and rigidity. A classical result in complex analysis states that a conformal automorphism of the unit disk is uniquely determined by the images of three distinct boundary points. Equivalently, any conformal automorphism of a planar domain that fixes three non-collinear points must be the identity. This observation has direct implications for identifiability. If the latent domain Ω possesses three or more geometrically distinguished boundary points—such as the vertices of a triangle, the corners of a square or rectangle, or other extremal points—then any conformal automorphism preserving these points is necessarily rigid. In such cases, the freedom predicted by the Riemann Mapping Theorem disappears once boundary correspondence is enforced. For example, if Ω is a polygonal domain, the interior angles at its vertices are conformal invariants. Any conformal automorphism that preserves the domain must therefore map vertices to vertices while preserving angles, which leaves only rigid motions as admissible transformations. Similar reasoning applies to domains with sufficiently rich boundary structure. 
+
+Implications for identifiability in practice. Although two-dimensional conformal geometry admits greater theoretical flexibility, the combination of smoothness, invertibility, and implicit boundary constraints imposed by the generative model typically rules out non-rigid conformal automorphisms. As a result, even in d = 2 , identifiability often holds up to rigid transformations for most practically relevant latent domains. In this sense, the two-dimensional case represents a boundary regime: while conformal maps are theoretically more expressive, the conditions required for non-identifiability are fragile and rarely satisfied in structured or bounded domains. Thus, once boundary regularity or correspondence is taken into account, the identifiability conclusions obtained for d ≥ 3
+
+extend, in practice, to the two-dimensional setting as well. This completes the discussion of the d = 2 case and highlights that the apparent loss of rigidity predicted by the Riemann Mapping Theorem does not fundamentally undermine identifiability in the present framework. 
+
+# C. Experimental Setup 
+
+This appendix details the experimental setup used throughout the paper, including dataset generation, ground-truth mixing functions, model architectures, training objectives, and evaluation metrics. All experiments are implemented in Python using PyTorch (Paszke et al., 2019), leveraging automatic differentiation to compute full Jacobians and enforce orthogonality constraints during training. 
+
+C.1. Datasets and Generative Processes 
+
+To make the dataset for the experiments we start by generating data sources. We consider latent variables z ∈ Rd with 
+
+d ∈ { 3, 6, 9} and generate datasets under two distinct regimes: independent and dependent factors. In the independent setting , latent variables are sampled i.i.d. from a uniform distribution on the hypercube, 
+
+z ∼ U ([0 , 1] d). (79) In the dependent setting , we generate complex statistical dependencies while preserving Asm.2 (full-support copula). We first sample ϵ ∼ N (0 , I ) and transform it using an untrained autoregressive normalizing flow composed of 20 RealNVP-style coupling layers (Dinh et al., 2016). A coordinate-wise sigmoid nonlinearity maps the samples to [0 , 1] d. To ensure full support, we mix this distribution with a uniform component: 
+
+pz = α p NF + (1 − α) U([0 , 1] d), (80) with α ∈ [0 , 1] . This guarantees a minimum density of 1 − α everywhere on the hypercube, hence full support. Typically 
+
+α = 0 .75 is chosen. This construction explicitly violates independence while satisfying Asm.2. For each configuration, we sample 10 000 latent points. Once we have the sources, latent variables are then mapped to observations x ∈ Rn using smooth, invertible transformations satisfying Asm.1. 29 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+We consider two classes of mixing functions. First, we use conformal mappings based on generalized M ¨obius transforma-tions, 
+
+f (z) = b + α A (z − a)
+
+∥z − a∥ε , (81) where A is orthogonal, α > 0, a, b ∈ Rd, and ε = 2 . This choice yields non-isometric but conformal transformations, preserving angles while allowing local scaling. Second, to test identifiability beyond the conformal case, we construct a broad class of nonlinear mixing functions whose Jacobians are of the form Jf (z) = Q(z)D(z), but which are not globally conformal. These mappings are generated compositionally, exploiting the fact that the composition of QD transformations remains QD if composed block-wise. Concretely, we partition the latent space into blocks of three dimensions. Within each block, we first apply a nonlinear two-dimensional transformation acting on the first two coordinates, chosen among polar, elliptic, parabolic, or rigid transformations. This 2D mapping is then composed with a 2D M ¨obius transformation, yielding a flexible yet analytically tractable deformation with orthogonal Jacobian structure. The resulting 2D surface is subsequently embedded into three dimensions, either by directly appending the third coordinate or by constructing a surface of revolution around it. In the latter case, a point (u, v, ϕ ) is mapped according to 
+
+x = X(u, v ) cos ϕ, y = X(u, v ) sin ϕ, z = Z(u, v ), (82) where (X(u, v ), Z (u, v )) denotes the output of the preceding 2D transformation. Each three-dimensional block is then further composed with a 3D M ¨obius transformation. After processing all blocks independently, we apply an additional global M ¨obius transformation across all dimensions to induce cross-block interactions and ensure full mixing. At each stage, transformation parameters are sampled within bounded ranges to avoid singularities (e.g., degeneracies associated with M ¨obius inversions), and intermediate outputs are normalized to ensure comparable scales across dimensions. Examples of transformations from the hypercube are provided in Fig.10  
+
+> Figure 10. Example of transformations in 3D.
+
+This construction yields highly expressive nonlinear mixing functions with orthogonal Jacobians that go far beyond simple coordinate reparameterizations such as spherical or cylindrical coordinates. While M ¨obius transformations alone form a relatively restricted subclass, their block-wise and hierarchical composition produces a much larger family of admissible QD 
+
+mappings. As a result, these generative processes are substantially more challenging to disentangle than purely conformal ones, providing a stringent empirical test of the proposed identifiability theory. 
+
+C.2. Evaluation Metrics 
+
+We evaluate both density estimation accuracy and disentanglement quality. Since the true data-generating distribution is known, we compute the Kullback–Leibler divergence between the true distribution and the learned model by evaluating likelihoods using the inverse ground-truth mapping. Concretely, since 30 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+we have access to the ground-truth mixing function f and can compute its Jacobian via automatic differentiation, the true data log-density is tractable at any point. The learned normalizing flow provides a tractable model density. The KL divergence is then estimated by a standard Monte Carlo average over samples from the true distribution. This metric purely assesses goodness of fit and is not used to measure disentanglement. All models achieve comparable KL values, confirming successful density estimation. Disentanglement is assessed using the Mean Correlation Coefficient (MCC) (Khemakhem et al., 2020). We compute the pairwise correlation matrix between ground-truth latent variables and recovered representations, solve a maximum-weight assignment problem, and report the mean of the matched correlations. We use Spearman correlation (Hauke & Kossowski, 2011), which is invariant to monotonic coordinate-wise reparameterizations, consistent with Def.1. We also report the nonlinear Amari distance introduced by Gresele et al. (2021) that directly compares the Jacobians of the true mixing and the learned unmixing. Given the true mixing f and learned unmixing g, it is defined as 
+
+dn-Amari (g, f ) = Ex∼px
+
+h
+
+dAmari 
+
+ Jg (x) Jf (f −1(x)) i
+
+. (83) where dAmari is the classical Amari distance metric used in linear ICA (Amari et al., 1995). This metric equals zero if and only if g ◦ f differs from the identity by a permutation and coordinate-wise reparameterization (i.e., the product of Jacobians is a scale and permutation matrix), exactly matching the equivalence class of Def.1. Together, MCC and nonlinear Amari distance quantify whether the learned representation recovers the true factors up to the admissible ambiguities. 
+
+C.3. Models, Architectures, and Training Objectives 
+
+Given observations x, the objective is to recover latent representations corresponding to the unknown sources, without access to the true generative factors. To this end, we train expressive normalizing flows on the observed data and evaluate whether the resulting latent variables exhibit a disentangled structure. Our main architecture is a Residual Flow (Chen et al., 2019), defined by the transformation 
+
+y = f (x) = x + h(x), (84) where h : Rd → Rd is a neural network constrained to be Lipschitz-continuous, which guarantees invertibility and ensures that the Jacobian 
+
+Jf (x) = I + Jh(x) (85) is full and expressive. Residual flows are universal density approximators and allow for highly flexible transformations while retaining tractable log-determinants. We use 64 residual flow layers, each parameterized by a 3-layer multilayer perceptron with hidden dimension 128. Models are trained using Adam with learning rate 10 −3 and batch size 256 until convergence. We consider two settings depending on whether the latent sources are independent or dependent. In the independent setting, the base distribution of the residual flow is a logistic distribution with diagonal scale matrix, 
+
+pbase (z) = Logistic (0, I ), (86) which provides full support on Rd and matches standard assumptions in nonlinear ICA. In the dependent setting, we allow the base distribution to be complex and learned. Specifically, we train an additional normalizing flow to model the prior distribution. This prior flow consists of three affine coupling layers, each implemented by a 3-layer MLP with hidden size 64. To guarantee full support and avoid degeneracies, we define the base distribution as a mixture 
+
+pbase = β p logistic + (1 − β) pprior NF , β ∈ (0 , 1) . (87) This construction exploits the fact that pushforwards preserve mixtures: 
+
+f#(βP + (1 − β)Q) = β f #P + (1 − β) f#Q. (88) 31 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+As a result, the learned latent distribution is a mixture between a flexible learned component and a simple reference distribution. Intuitively, after applying a sigmoid map, the logistic component corresponds to a uniform distribution on 
+
+[0 , 1] d, ensuring non-vanishing density everywhere. This guarantees full support in the latent space and therefore enforces Asm.2 inherently during training. It is important to note that the base distribution lives on Rd, whereas the true sources are supported on [0 , 1] d. Consequently, even in the ideal case, recovery is only possible up to coordinate-wise reparameterizations. The learned latent variables are therefore not expected to match the source distribution directly. Sigmoid mappings to [0 , 1] d are applied solely for visualization purposes and are never used during training. Unconstrained models are trained by maximizing the standard log-likelihood 
+
+log p(x) = log p(g(x)) + log |det Jg (x)|. (89) Orthogonally constrained models use the regularized objective proposed by Gresele et al. (2021), 
+
+L = log p(x) − CIMA , CIMA =
+
+> d
+
+X
+
+> i=1
+
+log ∥[Jg−1 ]i∥ − log |det Jg−1 |. (90) This penalty is non-negative and vanishes if and only if the Jacobian is of the form QD , i.e., its columns are mutually orthogonal up to scaling. Geometrically, the columns of the Jacobian Jg correspond to the partial derivatives ∂g/∂s i. The determinant |Jg | measures the volume of the d-dimensional parallelepiped spanned by these vectors, while the product of their norms corresponds to the volume of an axis-aligned box with side lengths ∥∂g/∂s i∥. These two volumes coincide if and only if the columns are orthogonal (Gresele et al., 2021). Minimizing CIMA therefore explicitly pushes the Jacobian toward an orthogonal-diagonal structure. In our experiments, orthogonality is enforced by recovering the full Jacobian of the learned unmixing g via automatic differentiation by feeding canonical basis vectors through vector-Jacobian products using PyTorch autograd , and then applying the CIMA regularization term to the resulting columns. This procedure guarantees that the orthogonality condition is effectively enforced during training and that no confounding factors are introduced. While this allows us to precisely control the conditions and observe the effect of orthogonality, it requires computing the full d × d Jacobian at each training step, which scales poorly with the dimensionality of the latent space and renders direct application to high-dimensional observations such as images computationally prohibitive. In practice, efficiently enforcing orthogonal Jacobians in a scalable way is still an open research question, one that goes beyond the scope of this paper. Overall, we train expressive residual flows that accurately model the data distribution. In the orthogonal setting, the additional regularization enforces a QD Jacobian structure, aligning the learned transformation with the assumptions of our theoretical framework. Despite the complexity of the data-generating process, this approach yields disentangled latent representations up to coordinate-wise reparameterization. 
+
+C.4. Boundary Behavior and Optimization Issues 
+
+In theory, identifiability requires the learned latent distribution to exactly match the assumed prior and, in particular, to satisfy Asm.2 on the support of the latent variables. In practice, however, optimization and finite model capacity can prevent this condition from being met. Even when using a prior with full support, training may converge to suboptimal solutions in which the learned latent domain folds onto itself. Such configurations can achieve relatively high likelihood, remain close to the target prior, and yet violate the assumptions required by the theory. Once trapped in these configurations, continued training typically results in further local deformations of the latent space rather than convergence to the true prior, explaining most of the observed failure cases. This also explains the observed degradation in MCC for higher latent dimensions ( d = 9 ): as dimensionality increases, the 
+
+CIMA loss becomes harder to satisfy globally, and the optimization landscape grows more complex, making it more likely to converge to solutions where the latent domain is locally consistent with orthogonality but globally distorted. This is a limitation of the practical implementation rather than of the theory itself. This gap highlights a fundamental difference between the theoretical setting, which assumes exact matching of the prior, and practical optimization, where approximate matching may be insufficient. To better align practice with theory, we introduce an additional mechanism to explicitly enforce correct domain geometry. The key observation is that for smooth invertible 32 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+mappings, the boundary of a domain must be mapped to the boundary, and interior points must be mapped to interior points. Consequently, by enforcing correct behavior on the boundary, one indirectly constrains the entire interior of the domain. Operationally, we identify samples lying close to the empirical boundary of the latent domain and introduce an auxiliary loss that penalizes mappings sending these points outside the expected support. This boundary-aware regularization encourages the learned transformation to respect the global geometry of the domain and prevents self-intersections and holes. While this procedure requires mild prior knowledge about the data domain, it is only used to ensure that the assumptions of the identifiability theorem are met. Importantly, the method can still succeed without this regularization, but in such cases training is more prone to becoming trapped in suboptimal solutions that fall outside the theoretical regime we aim to validate empirically. 
+
+C.5. Experiments with Varying Latent Domains 
+
+As discussed in Sec.4 and further detailed in App.B, when the latent support is known, the generative process becomes identifiable, up to the natural rigid symmetries of that support. To support that analysis, we perform additional experiments where the latent support is known but non-cubical. Latent variables are sampled uniformly from various bounded domains and mixed using conformal M ¨obius transformations. For each configuration, 10 000 samples are generated. The task of the model is to recover the original latent structure solely from the observations. For these experiments, we use Neural Spline Flows (Durkan et al., 2019), which parameterize monotonic rational-quadratic spline transformations and provide high expressivity with stable training. The model consists of 12 flow layers, each implemented by a 3-layer MLP with hidden size 256, using 27 spline bins and a tail bound of 12. To avoid optimization issues associated with sharp, bounded supports, we design a shape-aware base distribution that matches the geometry of the true latent domain. Specifically, the base density is defined as a soft-edged distribution whose density is proportional to 
+
+exp 
+
+
+
+− dist( z, Ω) 2
+
+2ε2
+
+
+
+, (91) where Ω denotes the target latent domain and ε controls boundary sharpness. For large values of ε, the distribution has very smooth edges and provides gradients far outside the domain, while for small ε it approaches a uniform distribution over 
+
+Ω. Points lying outside the domain experience strong gradients pulling them inward. During training, we progressively decrease ε, making the boundary increasingly sharp and, at the end of training, enforcing the target domain almost exactly. Orthogonality regularization is applied as in previous experiments. Overall, this setup corresponds to a standard Neural Spline Flow trained with a specially designed base distribution encoding the known latent support, combined with the same orthogonality regularization used in previous experiments. This controlled setting allows us to systematically investigate the role of domain knowledge in identifiability and to empirically validate the theoretical predictions under varying and nontrivial latent geometries. 
+
+# D. Additional Results and Experiments 
+
+In this appendix, we present additional quantitative and qualitative results complementing the experiments reported in the main paper. 
+
+D.1. Quantitative Comparison 
+
+The primary goal of our experiments was to validate our theoretical results, not to establish normalizing flows as state-of-the-art disentanglement models. Flows were used because they satisfy the conditions of the propositions. Since VAEs already incorporate an implicit orthogonal bias (Sec.6), including them as a baseline was less central to our theoretical validation. Nonetheless, we provide here a comparison for d = 6 with independent latent variables, since the VAE prior imposes independent terms, making this the most natural setting for such a comparison. Our initial choice of Amari distance and MCC was deliberate and aligned with prior work (Gresele et al., 2021), where these metrics are commonly used and sufficient to assess whether latent factors are successfully recovered. To further strengthen our evaluation, we additionally report standard disentanglement metrics: FactorVAE (Kim & Mnih, 2018), MIG (Chen et al., 2018), SAP (Kumar et al., 2017), and DCI (Eastwood & Williams, 2018). 33 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Results are reported in Table 2. As expected from the analysis in Sec. 6, VAEs achieve stronger disentanglement than unconstrained flows, likely due to their inherent orthogonal bias, but perform worse than constrained normalizing flows, likely due to the information preference property and the detrimental MI term. Across all additional metrics, the conclusions are consistent with those drawn from Amari distance and MCC, confirming that the learned representations are well disentangled and supporting the central claims of this work. 
+
+β-TCVAE obtains results closer to constrained NFs than standard VAEs, which is consistent with our explanation in Sec. 6. Indeed, β-TCVAE reduces or removes the MI term while retaining (i) the total correlation penalty and (ii) a factorized posterior, thereby alleviating posterior collapse without affecting the two mechanisms responsible for disentanglement: global independence and local orthogonality. This further supports our claim that disentanglement does not arise from MI minimization, but from the joint imposition of these two inductive biases, and that they can be made explicit and transferred beyond VAEs through orthogonality regularization. This also clarifies the comparison with unconstrained NFs: despite sharing the same total correlation pressure as VAEs, they lack the implicit orthogonality constraint induced by the factorized posterior, explaining why adding an explicit orthogonality regularization is sufficient to recover strong disentanglement.  
+
+> Table 2. Averaged disentanglement metrics across experiments.
+
+Metric d=6, ind. NF Unconstrained NF Constrained (Ortho.) VAE β-TCVAE MCC spearman 0.7091 ± 0.0492 0.9575 ± 0.0544 0.8213 ± 0.0868 0.8880 ± 0.0759 
+
+MCC pearson 0.7086 ± 0.0496 0.9510 ± 0.0545 0.8138 ± 0.0846 0.8799 ± 0.0785 
+
+MIG 0.0760 ± 0.0389 0.6138 ± 0.1429 0.2011 ± 0.0907 0.3279 ± 0.1201 
+
+SAP 0.0266 ± 0.0133 0.1356 ± 0.0236 0.0609 ± 0.0245 0.1078 ± 0.0348 
+
+DCI D 0.1474 ± 0.0596 0.8887 ± 0.1346 0.4819 ± 0.1536 0.6766 ± 0.1665 
+
+DCI C 0.1545 ± 0.0623 0.8898 ± 0.1326 0.5106 ± 0.1299 0.6824 ± 0.1469 
+
+DCI I 0.9753 ± 0.0049 0.9978 ± 0.0019 0.9589 ± 0.0456 0.9734 ± 0.0335 
+
+FactorVAE 0.7195 ± 0.1279 0.9770 ± 0.0629 0.8463 ± 0.1182 0.9040 ± 0.0893 
+
+D.2. Qualitative Results 
+
+Figs.11 and 12 show representative reconstructions of latent variables in the case of independent sources, comparing unconstrained normalizing flows with their orthogonally constrained counterparts. Similarly, Figs.13 and 14 report qualitative results for the dependent sources setting. Across all cases, the results are consistent with the quantitative boxplot comparisons presented in Fig.3. Models trained with orthogonality constraints on the Jacobian are generally able to recover the underlying sources up to the expected ambiguities, whereas unconstrained models, while successfully learning the data distribution, typically fail to disentangle the true generative factors. Beyond confirming the behavior observed in the main experiments, these results demonstrate that our approach is not limited to conformal transformations or to independent source models, as considered in much of the previous literature. Instead, it successfully disentangles substantially more complex generative processes, including dependent factors and highly nonlinear, non-conformal mixings. This highlights that enforcing an orthogonal Jacobian is not merely an auxiliary regularization or architectural constraint, but rather captures a fundamental structural property of latent factors underlying identifiability in these settings. In addition, we report results for latent domains with shapes other than the hypercube, demonstrating that our approach extends beyond standard axis-aligned supports. The experimental setup for these experiments is described in App.C.5, and the corresponding qualitative results are shown in Figs15 and 16. As predicted by the theory (Sec.4 and App.B), the learned representations recover the sources up to the rigid symmetries of the domain, namely global rotations and reflections. This confirms that identifiability holds whenever the latent support is known, even for nontrivial geometries. 34 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 11. Qualitative disentanglement results for independent sources. From left to right: ground-truth sources, observed variables, latent reconstructions obtained with the orthogonally constrained model, and latent reconstructions obtained with the unconstrained model. Reconstructed latents are visualized after a sigmoid transformation for clarity. 
+
+35 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 12. Additional qualitative results for independent sources. Columns correspond to ground-truth sources, observations, recon-structions from the constrained model, and reconstructions from the unconstrained model, respectively. Reconstructions are shown after sigmoid reparameterization. 
+
+36 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 13. Qualitative disentanglement results for dependent sources. From left to right: ground-truth sources, source density, observed variables, latent reconstructions obtained with the orthogonally constrained model, and latent reconstructions obtained with the uncon-strained model. Reconstructions are visualized after sigmoid transformation. 
+
+37 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 14. Additional qualitative results for dependent sources. Columns show ground-truth sources, source density, observations, and latent reconstructions from the constrained and unconstrained models, respectively. 
+
+38 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 15. Qualitative disentanglement results for non-cubical latent domains. From left to right: ground-truth sources sampled from a structured domain, observations, reconstructions obtained with the orthogonally constrained model, and reconstructions obtained with the unconstrained model. 
+
+39 Unsupervised Disentanglement Without Compromises : How Functional Orthogonality Enforces Identifiability 
+
+Figure 16. Additional results for non-cubical latent domains. The constrained model successfully recovers the sources up to rigid transformations of the domain, while the unconstrained model fails to preserve the latent geometry. 
+
+40

@@ -1,0 +1,581 @@
+Title: DenseControl: Instance-Level Controllable Synthesis of Dense Crowd Image
+
+URL Source: https://arxiv.org/pdf/2606.15592v1
+
+Published Time: Tue, 16 Jun 2026 01:00:15 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+> JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 1
+
+# DenseControl: Instance-Level Controllable Synthesis of Dense Crowd Image 
+
+Juncheng Wang, Lei Shang, Wang Lu, Baigui Sun, Shujun Wang Big Normal 
+
+Small Tiny 
+
+Lego Style SNK Style 
+
+Minecraft Style GTA Style 
+
+Sunny Snowy 
+
+Foggy Rainy 
+
+Knight Race 
+
+Hat Age 
+
+(a) Scale Variance (b) Style Variance (c) Background Variance (d) Instance Variance 
+
+Fig. 1: DenseControl is able to control the instance position and scale in generating crowd images under arbitrary scenarios, including different (a) scales, (b) styles, (c) backgrounds, and (d) instances. Best viewed zoomed in and in color. 
+
+Abstract —In this paper, we introduce DenseControl, a novel pipeline for generating dense crowd images. Specifically, DenseC-ontrol meticulously positions and sizes each generated instance to align precisely with the predefined coordinates and scales. Based on this, we further allow for control over the background, style, and attributes of instances. The motivation behind DenseControl stems from the observation of two main challenges in synthesizing crowd images: controlling signal embedding and maintaining topological integrity when imparting instance scale guidance. To address these, we first introduce the Isolated Object Embedding (IOE) map, a novel representation that facilitates spatial location control while mitigating the difficulties associated with learning projections for model. Secondly, we propose an Implicit Scale Embedding (ISE) strategy that seamlessly integrates with the IOE map to encode precise scale information. To further enhance the efficacy of combining ISE with the IOE map, we incorporate a Position Shortcut mechanism that enhances cross-attention to alleviate projection challenges. We evaluate DenseControl through two lenses: synthesis quality and applicability in latent applications. Experiments across different control conditions demonstrate DenseControl achieves state-of-the-art results in dense crowd image synthesis. Furthermore, we showcase applica-tions in augmenting crowd analysis under data scarcity, transfer learning, and weather generalization scenes, to highlight the practical utility of DenseControl. The codebase will be released. 
+
+Index Terms —Crowd Image Synthesis, Instance Controllable Synthesis, Diffusion Model, Crowd Analysis. 
+
+Corresponding to: Shujun Wang. Juncheng Wang is with the department of Biomedical Engineering, the Hong Kong Polytechnic University, Hong Kong (email: wjc2830@gmail.com); Lei Shang, and Baigui Sun are with Tongyi lab, Alibaba Group, Hangzhou, China; Wang Lu is with Tsinghua University, Beijing, China; Shujun Wang is with the Department of Biomedical Engineering, the Hong Kong Polytechnic University, Hong Kong SAR, China. 
+
+I. I NTRODUCTION 
+
+Crowd analysis [1]–[9] is an essential field in the realm of computer vision, significantly influencing urban planning and public safety. One of the key obstacles in crowd analysis is the dense clustering of individuals within a space. Addressing this issue typically requires a collection of varied and extensive training datasets that can contain dense crowds and adequately cover various scenarios and environmental conditions. How-ever, collecting and annotating high-quality, extensive crowd datasets are expensive and logistically complex, especially un-der challenging conditions like adverse weather or rare events. Moreover, ethical and privacy concerns add another layer of difficulty in gathering sensitive data. Reliance on publicly available datasets can introduce biases and limitations, as these datasets may not adequately reflect the real-world diversity of crowd scenes. Consequently, overcoming the challenges of obtaining extensive, cost-effective, yet high-quality data is crucial for the advancement of automated crowd analysis. To this end, generating synthetic crowd images with user pre-defined annotation could be the solution. Previous work like GCC [10] proposes to utilize electronic game engine to create simulated crowd datasets. However, the realism of game engine-generated data remains questionable, as it relies on predefined instances and scenes determined by the game’s developers, thus failing to satisfy our specific requirements. In the search for more adaptable solutions, the potential of generative models, such as Stable Diffusion [11], [12], has come to the fore, demonstrating unparalleled capability in generating realistic visually novel content. Traditionally, image generation with Stable Diffusion is guided by textual prompts    
+
+> arXiv:2606.15592v1 [cs.CV] 14 Jun 2026 JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 2Controlling Signals
+> (Instance location & scale)
+> Text Image
+> “A photo of a
+> crowd of people”
+> Initial
+> weight
+> Control
+> Denoising Loss
+> Ground -truth Images
+> Text Image
+> Control
+> User Provided
+> “A photo of a
+> crowd of people”
+> Novel Image
+> Training
+> Inference
+> Instance location & scale matched
+
+Fig. 2: The DenseControl Pipeline Overview. During the training phase, DenseControl is fed with pairs of crowd images and corresponding control signals. The model employs the conventional diffusion denoising loss to complete its training. Upon completion, users can specify arbitrary combinations of locations and scales to generate new, customized images. [13]–[17], which, while providing a high-level direction, lack the fine-grained instance information in crowd. 
+
+Hence, refining the precision with which we can guide diffusion models has become a critical endeavor. Existing methods such as DenseDiffusion [18], BoxDiff [19], and Free-Control [20] have made strides in directing the model’s atten-tion to specific regions of interest without requiring retraining, yet their ability to control dense instances remains inconsistent. In contrast, the proposed ControlNet [21] has shown promise, enabling the embedding of control signals directly into the Stable Diffusion framework via additional control maps. These maps, which can depict depth, edges, or density, allow users to precisely define the characteristics of the desired output image. However, [22] has demonstrated that it remains challenging to use plain ControlNet for generating crowd images with instance-level annotations. Considering these, our paper asserts there are two primary challenges hindering controlling images generation for crowd scenes: 1) efficient representation of dense objects in controlling map to instruct instance location; 2) injecting instance scale information to instruct instance size. Specifi-cally, we demonstrate that ControlNet [21] is actually learning a projection from controlling space to the Stable Diffusion latent space. When we opt for an arbitrary representation of dense object, the disparate spaces incurs the hardness in controlling instance spatial location. Moreover, we empirically observe that the strong correlation between instance scale fea-ture and spatial feature incurs the instance scales in generating images without providing additional scale guidance overfit to that in training set. To navigate these challenges, we introduce DenseControl, whose framework is shown in Fig. 2, that generates crowd images from user provided control over both the locations and scales of individual instances. DenseControl employs an Isolated Object Embedding (IOE) map as input to Control-Net [21], representing each object with a distinct indicator positioned at the relevant instance location on the IOE map. Utilizing this IOE map as a control signal input simplifies the learning objective into a linear transformation, streamlining the projection into the Stable Diffusion latent space for enhanced spatial control. Additionally, we formulate an Implicit Scale Embedding (ISE) method to infuse scale information into the representation of instances, integrating the scale vector with the location indicators in the IOE map. Despite the complexity introduced by integrating scale embeddings, our novel Position Shortcut mechanism augments ControlNet’s original cross-attention functionality, significantly bolstering training efficiency. Through comprehensive experimentation, we demonstrate that DenseControl achieves state-of-the-art in precisely controlling both the location and scale of instances in generated images. A comparative evaluation with ControlNet and various control map approaches underscores the superior efficacy of DenseControl. Moreover, we also show that based on precise control, DenseControl still shows strong textual instruction following capacity. Later, by leveraging the images synthesized by DenseControl, we significantly augment the performance of leading-edge crowd analysis models across scenarios of data scarcity, transfer learning, and weather adaptation. In summary, our key contributions are:  
+
+> •
+
+The introduction of DenseControl, a novel framework enabling precise instance-level manipulation in creating dense crowd images.  
+
+> •
+
+The development of three innovative mechanisms: Iso-lated Object Embedding (IOE) for spatial control, Im-plicit Scale Embedding (ISE) for scale control without losing topological integrity, and a Position Shortcut for enhancing object projection.  
+
+> •
+
+Demonstrated superior performance in image synthesis quality and control precision, with practical applications that extend to data augmentation and transfer learning, showcasing DenseControl’s broad utility. II. R ELATED WORK 
+
+A. Crowd Analysis 1) Crowd Counting: Crowd counting aims to estimate the number of people in images directly, primarily by generating density maps through a Gaussian-blurred annotation of heads, which neural networks then use for pixel-wise prediction. Key studies such as [23]–[30] have successfully adopted this approach. The method effectively sums the density map values for a total count but falls short in distinguishing between indi-viduals, as the density representations blend together, making discrete information extraction difficult. 
+
+2) Crowd Localization: In contrast, crowd localization fo-cuses on individually identifying and counting people, allow-ing for the extraction of spatial data on crowd constituents. Early attempts utilized object detection techniques [31], but these faced challenges in dense crowds due to object overlap. JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 3
+
+Subsequent models like [2] refined detection by consider-ing aspects such as resolution and context, whereas [1], [8] enhanced performance through multi-scale analysis and unique feature exploitation. Alternatively, methods like [4], [9] explore new frameworks bypassing traditional detection shortcomings, with strategies ranging from specialized density maps to novel distance mappings for improved localization. Despite advancements, pure density-based approaches exhibit limitations in precise localization. Recent innovations like [5], [6] address these by delineating individuals as separate areas via segmentation, offering finer localization accuracy. Additionally, [7] proposes specific solutions for handling scale variations in instance-specific tasks. These developments illustrate the field’s ongoing methodological evolution and diversification in crowd analysis. 
+
+B. Controllable Image Diffusion Models 
+
+The evolution of diffusion models [32] in image gener-ation has been marked by pivotal advancements aimed at optimizing computational efficiency and enhancing image quality [33], [34]. To enhance performance, latent diffusion models (LDM) [11] propose transitioning the diffusion pro-cess into a latent space through Variational Autoencoders (VAE) [35]. Innovative solutions, such as Denoising Diffusion Implicit Models (DDIM) [36], aim to streamline this process by reducing the number of required steps to merely tens. Further developments, including [37]–[39], have introduced methodologies to distill the lengthy step diffusion processes into significantly shorter ones, vastly improving efficiency. 
+
+1) Text-Guided Diffusion Models: The inception of text-guided diffusion models marked a significant milestone in gen-erating high-quality, controllable images. Initial techniques, such as Classifier guidance [34], leveraged classifiers to dictate the category of the generated image, with subsequent methods like [40] introducing the addition of unconditional noise into the denoising process for enhanced control. Efforts to attain finer control over generation led to the incorporation of CLIP-extracted [41] text embeddings into the noise prediction network by Glide [42], and Stable Dif-fusion [11], enabling arbitrary text-guided generation. Text Inversion [13] and Dreambooth [14] further personalized text-guided diffusion models. To improve adherence to textual instructions, researchers explored various strategies, including prompt adjustment, CLIP feature manipulation, and modifica-tion of cross-attention mechanisms [43]–[48]. Recently, some approaches have combined diffusion models with autoregres-sive prediction architectures to achieve high-quality text-to-content generation, including for images [49], videos [50], human motion [51], and audio [52]. Nevertheless, these ap-proaches sometimes fall short in controlling the spatial distri-bution of generated content. 
+
+2) Spatial-Controllable Diffusion Models: Building on the text-guided diffusion model framework, further research aimed at manipulating generated images’ spatial attributes. Methods such as [53], [54] demonstrated how manipulating noise or enhancing classifier-free similarity could achieve concept manipulation or inpainting at a regional level. Systems like [18], [19], [55] have capitalised on augmenting or adjusting the UNet’s [56] self-attention or cross-attention maps to influence spatial characteristics directly. Innovations like FreeControl [20] introduced frameworks for decoupling spatial control into separate appearance and structure components or for maintaining consistency in spatial distribution according to a controlling map. MIGC [57] ad-dressed the challenge of multi-instance generation by breaking it down into subtasks for targeted enhancement. Based on these prior works, BoxDiff [19] and DenseDiffusion [18] propose to enhance the cross-attention maps between the region of interest with corresponding textual prompt. ControlNet [21] proposes a unified framework, that can generate images with consistency spatial distribution with the any input controlling map. However, despite these advancements, simultaneously controlling instance locations and scales in densely populated images remains a challenge yet to be fully addressed. Recently, diffusion transformers [58] or generative trans-formers [59] have emerged as powerful foundational base models. To endow them with spatial control capabilities, various methods have been proposed, including Generic Lay-out [60], RAGD [61], ART [62], and ControlAR [63]. Despite achieving superior performance, transformer-based architec-tures impose a heavy computational burden, making them less efficient than the ControlNet series [21], [64]–[66] or agentic generation paradigms [67]. III. M ETHODOLOGY 
+
+In this section, commencing from preliminary on Control-Net [21], we respectively identify and address two fundamen-tal limitations of ControlNet in the context of generating crowd images, leading to our proposition of DenseControl. 
+
+A. Preliminary on Stable Diffusion based ControlNet 
+
+Stable diffusion [11] processes involve generating images corresponding to user-provided text descriptions. This is achieved through a variational autoencoder (VAE) [35] that encodes an image x ∈ R3×H×W into a latent representation 
+
+z ∈ R4× H   
+
+> 8×W
+> 8
+
+. Gaussian noise ϵ is subsequently added in 
+
+T steps until zT becomes purely noise. At each step t, a denoising diffusion probabilistic model (DDPM) based on UNet [56], Eθ , predicts the added noise ϵt from the noisy latent 
+
+zt−1, conditioned on time embedding and a textual prompt y,processed by a CLIP [41] text encoder τθ (y) ∈ Rdc×lc , where 
+
+dc is feature dimension and lc is the text length. Training of DDPM UNet follows 
+
+LDDP M = Ez,y,ϵ ∼N (0 ,1) ,t ∥ϵ(t) − ϵθ [zt, t, τ θ (y)] ∥2 . (1) To implement control, ControlNet, whose pipeline is illustrated by Fig. 2, integrates an additional encoder, Ec, alongside an input control map h ∈ RCd×Hc×Wc to guide image generation, conditioned on textual embedding τθ (y). During each forward pass, features from corresponding layers in the main and control UNets are summed before proceeding to the subse-quent layer. This enables modified cross-attention mechanisms JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 4: !"##$% '"(ℎ    
+
+> “A photo of a crowd
+> of people ”
+> “A photo of a crowd
+> of children ”
+> “A photo of a crowd
+> of women ”
+
+!!
+
+!!                        
+
+> “A photo of a crowd
+> of men ”
+> Support Embeddings
+> PCA
+> !!(#"#$ )
+> %%&' &!!(#"#$ )
+> Identity Mapping:
+> !!(#"#$ )
+> Linear Trans.:
+> %%&' &!!(#"#$ )
+> Discard
+> Step 1 Learning Projection
+> Scale Scalars
+> {((,(),(*}Scale Encoding
+> +,
+> Step 3Implicit Scale Embedding
+> Scale Embeddings
+> {+, (((),+, (()),+, ((*)}
+> Original Images -
+> Step 2Isolated Object Map
+> Step 4 Control Input Assembly
+> =+'(-()* )
+> Control Map
+> Position Hint
+
+Shrink 
+
+Box 
+
++
+
+> Point -wise
+> Region -wise
+> QK
+> V
+
+Step 5 Training Process 
+
+control net    
+
+> QK
+> V
+> VAE
+> Decoder
+> latent !!latent !!"#
+
+… …  
+
+> Original Images
+> Synthesis Images
+> VAE
+> Encoder
+> CLIP
+> !!
+> “A photo of
+> a crowd
+> of people ”
+> Input Prompt A
+> photo
+> people
+> .
+> .
+> .
+
+!!"# 
+
+!!"$  
+
+> latent !!
+
+QKV in DDPM UNet 
+
+> Cross Attention Maps
+> : dot product
+> : add
+> : frozen
+> : trainable
+
+…
+
+!!"$ 
+
+> Copy
+> Position Hint
+
+DDPM UNet   
+
+> of
+> 1
+> 2
+> 3
+> 12
+> 3: flow order
+
+Position Shortcut 
+
+…
+
+Fig. 3: Pipeline of proposed DenseControl. The whole pipeline is divided into 5 steps, where the first 4 steps are finished before training. Step 1 and step 2 illustrate our proposed Isolated Object Embedding (IOE) to address Challenge 1 we raised in this paper, which is the difficulty of projection in controlling instance location. Step 3 and step 4 show the devised Implicit Scale Embedding (ISE), which is to cope with Challenge 2, injecting scale knowledge. Then, step 5 details our proposed Location Shortcut, which is to alleviate difficulty incurred by assembling IOE with ISE, and it also illustrates the detailed training flow. incorporating h, enhancing correspondence between generated image features and textual descriptions, as shown by Eq. 2: 
+
+S = Softmax ( ftoq (Eθ (zt) + Ec(h)) · ftok (τθ (y)) ⊤
+
+√d ), (2) where ftoq &ftok denote the linear projections, d is the hidden dimension. This hybrid approach effectively combines stable diffusion with user-specified controls, anchored by the same loss function in Eq. 1, to optimize only the control net Ec.
+
+B. Cumbersomeness of ControlNet 
+
+The primary objective of the control net is to generate im-ages in alignment with a control map h, enhancing spatial con-sistency through targeted augmentation of the cross-attention mechanism with textual embeddings. This process results in a distribution of attention maps {s1, . . . , slc }, where each map coordinate sxy i signifies the likelihood of representing a textual concept yi at that location (x, y ). Consequently, the training objective of control network is designed to enhance attention in regions indicated by the control map while minimizing attention elsewhere, formalized as 
+
+X
+
+> obj
+
+max ftoq 
+
+
+
+ϵobj θ (zt) + Eobj c (h)
+
+
+
+· ftok 
+
+ τθ (y)obj ⊤ +min ftoq 
+
+
+
+ϵobj θ (zt) + Eobj c (h)
+
+
+
+· ftok 
+
+
+
+τθ (y)obj ⊤
+
+, (3) where obj and obj elucidate guided by controlling map h,the locations with or without the intended object, respectively. Hence, given the same control net Ec, the final controlling per-formance greatly depends on the representation in controlling map h. To better control crowd image synthesis, we assert there are two main challenges. 
+
+Challenge 1: Efficient Representation to Instruct Instance Location To represent an instance, we can decouple into latent and spatial parts, which indicate the channel and width&height in the controlling map respectively. For the latent part, exist-ing h usually has a channel of 3 with arbitrary content, whose latent space is far away from stable diffusion. As a result, to optimize the objective of control net, namely Eq. 3, the Ec
+
+must learn to align the h space towards the stable diffusion space first, which requires an amount of training data and steps, and this is also supported by the empirical observation JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 5
+
+in ControlNet [21]. For the spatial part, as shown by Fig. 4, conventional representation formats (point, density, and box maps) cannot provide sufficient granularity. Concretely,  
+
+> •
+
+Point maps are overly sparse, hindering effective control signal capture.  
+
+> •
+
+Density maps lack clear object boundaries, failing to convey precise instance-level detail.  
+
+> •
+
+Box maps , with overlapping bounding boxes, compromise the topological continuity of objects, obscuring individual instance guidance. Moreover, while fine-grained maps (e.g., edge, depth, heat maps) offer detailed spatial cues, their granularity may ex-cessively constrain the user ability to provide novel control signals, thereby limiting generalizability. Thus, how to effi-ciently represent an instance in controlling map hinders the precise instruction to location. 
+
+Challenge 2: Injecting Instance Scale Information to Instruct Instance Size For crowd images, studies have demonstrated a strong correlation between instance scale, lo-cation, and background [7]. Consequently, if explicit instance scale information is not provided during the training of Con-trolNet, this correlation may introduce bias, compromising the diversity of synthesized images. However, the most common method for explicitly representing scale information is to use a bounding box. Yet as discussed earlier, this approach disrupts topological structures, rendering it a failure case. Hence, how to inject instance scale knowledge without breaking original information becomes the second challenge. 
+
+C. DenseControl 
+
+We design DenseControl, illustrated as Fig. 3. Specifically, we introduce Isolated Object Embedding (steps 1 and 2) to address challenge 1, Implicit Scale Embedding and Position Shortcuts (steps 3 and 4) for better incorporating scale infor-mation for challenge 2. 
+
+1) Isolated Object Embedding (IOE): The IOE is composed of latent and spatial aspects. 
+
+a) Latent Projection Objective: To tackle the projection difficulty incurred by distant latent spaces from controlling input of stable diffusion, we propose two variants of IOE to advance the projection of control net Ec(h) by learning an identity mapping and learning a linear transformation, respectively. 
+
+Learning an Identity Mapping Considering the target space is the VAE latent space of stable diffusion, we can simplify the projection by directly using the corresponding latent representation for each instance. However, the VAE latent representation is highly uncertain due to probabilistic sampling, making it unsuitable for our purposes here. To cope with that, we can utilize the CLIP text embedding for the concept of people to represent an instance. Formally, given 
+
+N instances represented by I = {(xi, y i)}Ni , where (xi, y i)
+
+is the coordinate, the controlling map h ∈ Rdc×H×W can be generated by 
+
+ hxy = τθ (yobj ) , where (x, y ) ∈ I ,
+
+hxy = 0 , where (x, y ) /∈ I . (4) (a) Original Image (b) Point Represent (d) Box Represent (e) Isolated Object (c) Density Represent 
+
+Fig. 4: Three levels of object representation granularity in crowd images for the same image (a): point representation (b) is overly sparse, density representation (c) obscures instance boundaries, and bounding box representation (d) introduces topological errors due to overlap. Our proposed isolated box (e) strikes a balance among these granularities. The pre-trained stable diffusion effectively aligns the CLIP textual space with the VAE latent space, enhancing the simi-larity score in Eq. 3. To this end, the projection objective for control net Ec can be an identity mapping. 
+
+Learning a Linear Transformation Despite the significant simplification provided by Eq. 4, maintaining a control map with the same dimensionality as the CLIP text embedding is costly in terms of both hard disk and GPU storage. Empir-ically, a single control map using double-precision floating-point numbers to guide the generation of a 512 × 512 im-age requires 1.5Gb of space. Furthermore, as this control map serves as input for a trainable control network that necessitates gradient computation, even an 80 Gb A100 GPU cannot support training with a batch size of 1. As a result, we propose performing dimension reduction on the original CLIP text embedding. During this, it is crucial to guarantee that this dimension reduction should be some easy-to-learn transformations. Given this requirement, we employ principal component analysis (PCA) [68] to reduce the dimensionality of the embedding. However, in the task of crowd analysis, there is only a single object category, namely people . A single category does not provide a sufficient subspace for PCA to operate effectively. Therefore, we leverage a large language model (LLM) like GPT-4 [69] to generate text related to crowd scenes. These texts, combined with our category of interest, people , are used to construct a PCA subspace and facilitate dimension reduction. Formally, the controlling map 
+
+h ∈ Rdp×H×W can be derived by 
+
+ hxy = Wpca · τθ (yobj ) , where (x, y ) ∈ I ,
+
+hxy = 0 , where (x, y ) /∈ I , (5) where Wpca = PCA [τθ (yobj ), τ θ (LLM (yobj ))] .
+
+In this way, the final projection involves learning a linear transformation based on PCA, which presents a level of complexity that is still manageable for the control network to learn effectively. 
+
+b) Spatial Representation: Due to the convolutional ar-chitecture of the control net, a controlling map with overly coarse granularity may result in excessively sparse gradients, complicating the optimization process. Furthermore, the gran-ularity of the annotated bounding boxes is excessively coarse, as previously mentioned. To attain an optimal granularity bal-ance, we draw inspiration from IIM [6] and propose represent-ing each object with a distinct bounding box, iteratively refined to eliminate overlaps by shrinking the boxes. In this approach, JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 6
+
+we can generate a binary mask, denoted as M, where each object is represented by a distinct foreground region derived from its correspondingly shrunk bounding box. Then, recalling the controlling map, for ith independent region, we can fill it up with the hi = Wpca · τθ (yobj ).
+
+2) Implicit Scale Embedding: To tackle Challenge 2, which involves the incorporation of scale knowledge, we embed the scalar representing the instance scale into an embedding vector and add it with the above PCA-reduced embedding. To ensure that the embedding relationship across various scales is readily mappable and thus easily learnable by the control network, we employ cosine-sine embeddings to represent scale as a scalar input vector. Specifically, complementing the instances set as 
+
+I = {(xi, y i), a i}Ni , where the ai denotes the instance scale area. The controlling map h ∈ Rdp×H×W is generated by 
+
+ hxy = Wpca · τθ (yobj ) + SE (a) , where (x, y ) ∈ I ,
+
+hxy = 0 , where (x, y ) /∈ I ,
+
+(6) 
+
+ SE (a)2i = sin( a 
+
+> 10000 2i/dp
+
+),
+
+SE (a)2i+1 = cos( a 
+
+> 10000 2i/dp
+
+). (7) 
+
+Position Shortcut Through Eq. 6, we incorporate instance-wise scale information into the controlling map. However, it increases the complexity of projecting the embedding into our target space. To mitigate this challenge, we propose enhancing the cross-attention mechanism for the object of interest by introducing explicit location information through a Position Shortcut. Specifically, referring to the control map in Eq. 4, which is composed of the original CLIP text embedding and contains explicit location information, we can optimize the use of this location information by reducing its resolution to match that of the VAE latent space. To achieve this, we define the location hint as bh, sharing the same spatial dimension with the VAE latent that is H 
+
+> 8
+
+× W 
+
+> 8
+
+. It is composed of 
+
+( bhx′y′ = τθ (yobj ) , where (x′ × 8, y ′ × 8) ∈ I ,
+
+bhx′y′ = 0 , where (x′ × 8, y ′ × 8) /∈ I . (8) Then, the modified cross-attention scores can be computed by 
+
+S = Softmax 
+
+ (Q + R) · K⊤
+
+√d
+
+
+
+, where K = ftok (τθ (y)) ,
+
+R = ftok (bh), Q = ftoq (zt + Ec(Wpca · τθ (yobj ) + SE (a))) .
+
+(9) In Eq. 9, the final cross-attention score to the yobj is enhanced by the Position Shortcut of R. Hence, incorporating it with the controlling map could achieve easier projection with introducing additional scale information. 
+
+D. DenseControl User Guidance 
+
+To facilitate practical adoption of DenseControl for instance-level dense crowd image synthesis, we provide clear, actionable guidelines tailored to user-specific control signal design and scenario requirements. These guidelines ensure reproducibility and maximize the framework’s utility across real-world applications. 
+
+a) Instance Scale Customization: DenseControl supports full flexibility in per-instance scale definition—no uniformity constraints are imposed. Stability for extreme scale combi-nations is guaranteed by training on datasets with naturally diverse scale distributions. No additional hyperparameter tun-ing is required for scale customization—each instance’s scale is independently encoded via the Implicit Scale Embedding (ISE) module. 
+
+b) Density Configuration Recommendations: DenseCon-trol imposes no fixed density requirements, enabling free design of crowd layouts. Rare edge cases (e.g., ultra-dense layouts with ultra-large instances, or ultra-sparse layouts with ultra-tiny instances) may cause minor performance degra-dation due to limited real-world data coverage. However, core controllability (instance location/scale accuracy) remains uncompromised. 
+
+c) Guaranteed Background in Empty Regions: Regions left empty in the control map exclusively generate background 
+
+(no unintended crowd instances). This behavior is enforced by the IOE module’s design:  
+
+> •
+
+The IOE map establishes a one-to-one correspondence between control signals (instance locations/scales) and generated objects.  
+
+> •
+
+Empty regions in the IOE map provide no activation to the diffusion model, which defaults to synthesizing back-ground content (e.g., “empty sky” for outdoor scenes, “empty floor” for indoor scenes). This guarantee is critical for scenarios requiring precise crowd exclusion (e.g., “crowd only in the stadium stands, not on the field”). IV. E XPERIMENT 
+
+A. Experimental Setting 1) Datasets: a) Test-Set Split Strategy: To comprehensively validate DenseControl’s performance across diverse crowd scenarios and ensure experimental reproducibility, we design a multi-dimensional test-set splitting strategy based on two core at-tributes of crowd scenes: instance scale and crowd density .This strategy aligns with the statistical distribution of real-world crowd datasets and covers both common and edge-case scenarios. There are six mainstream datasets for crowd analysis used in this paper, including SHHA [23], SHHB [23], SHRGBD [70], NWPU [71], JHU [72], and QNRF [73]. All datasets provide instance-level head bounding box annotations (officially [70]– [72] or from Wang, et al [74]), which we use to quantify scale and density metrics. With above dataset, we define two objective, annotation-based metrics to avoid subjective bias: 1) Instance Scale : The average area of head bounding boxes per image (in pixels 2), denoted Savg . This metric directly reflects the physical size of individuals (e.g., foreground heads have larger Savg than background heads). JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 7
+
+TABLE I: Comparison with other controllable image generators. The smaller the values, the better the performance. ∗ means an 80 Gb GPU cannot support the memory allocation.                                                                                   
+
+> Testing Set BigFew SmallFew BigMany SmallMany Method F ID ↓M AE ↓rM SE ↓N AE ↓F ID M AE rM SE N AE F ID M AE rM SE N AE F ID M AE rM SE N AE
+> BoxDiff [19] 45.71 300.23 371.43 33.97 59.35 254.71 312.7 20.35 out of memory ∗out of memory
+> DenseDiffusion [18] 38.53 318.49 540.48 38.09 45.12 142.55 294.66 11.42 out of memory out of memory
+> MIGC [57] 43.10 77.20 197.54 9.67 41.74 138.67 324.69 10.93 out of memory out of memory
+> FreeControl [20] 54.39 607.04 668.96 71.83 60.52 665.57 727.78 59.42 46.72 657.18 727.79 12.65 55.12 674.01 765.68 14.53
+> DenseControl (ours) 33.17 5.34 25.64 0.72 39.58 82.36 300.23 10.38 27.86 2.93 5.37 0.04 35.47 194.97 345.53 4.46
+
+Depth Canny Point Density Ours 
+
+> Controlling
+> Signa l
+> Generated
+> Image s
+
+Fig. 5: Visulization results of comparison of different control-ling signals, including depth, canny, point, and density. 2) Crowd Density : The total number of instances per im-age, denoted Ctotal . This metric captures crowd spar-sity/density (e.g., Ctotal < 20 for small groups, Ctotal >
+
+100 for packed crowds). The test set is partitioned into four mutually exclusive categories (BigFew, SmallFew, BigMany, SmallMany) via a 
+
+data-driven median split .
+
+2) Evaluation Metrics: We assess the performance of the proposed DenseControl method on two primary criteria: 1) the quality of the data it generates and 2) its efficacy in real-world crowd localization applications. For criteria 1), we utilize four metrics following other generation works [11], [12], [21]. Fr´ echet Inception Distance (F ID ) [75] is to compare the similarity between the generated image and ground-truth image. Human Preference (HP ) [21] compares images generated by different ControlNet representations but conditioned by the same controlling signal. Average Precision 50 (AP @50 ) measures the position and scale controlling precision by comparing boxes in the controlling signal with that by human-annotated. Attribute Retrieval (AR ) judges whether the attributes included in the instruction are generated. For criteria 2), we utilize F1-measure (F1), Precision (P re. ), and Recall (Rec. ) to measure the localization performance, while Mean Absolute Error (M AE ), rooted Mean Square Error (rM SE ), and Normed Absolute Error (N AE ) are to measure counting performance, following previous crowd analysis works [5], [6]. 
+
+B. Comparison with Other Controllable Image Generators 1) Setting: We measure the quality of generated images over both different instance scales ( Big/Small ) and counts (Many/Few ). Specifically, we split the test sets of aforemen-tioned datasets into the following four categories: BigFew, TABLE II: Quantitative comparison with other kinds of rep-resentation formats as the control signal to generate crowd images.                                         
+
+> Overall Quality Global Control Instance Control Represent F ID ↓HP ↓M AE ↓rM SE ↓N AE ↓AP @50 ↑
+> Canny 125.86 4.20 10.54 15.41 0.49 14.96 Depth 71.68 4.81 28.53 53.56 1.81 20.04 Point 23.05 3.19 37.93 46.89 3.4 2.69 Density 21.81 2.82 26.38 31.78 2.36 3.22 DenseControl (ours) 4.98 1.36 4.42 11.72 0.28 32.94
+
+SmallFew, BigMany, and SmallMany. Among them, BigMany indicates instances on a large scale and a high quantity. 
+
+2) Result Analysis: Table I shows our method outperform-ing state-of-the-art generative models, including BoxDiff [19], DenseDiffusion [18], MIGC [57], and FreeControl [20], over different scales and counts under previous defined four cate-gories. We observe two primary insights:  
+
+> •
+
+Superior generative performance in FID: Across all scenarios, our approach yields the lowest F ID scores, improving over the runner-up by non-trivial improvement, indicating unmatched result quality.  
+
+> •
+
+Adaptability and efficiency under constraints: While each method has its preferred application conditions, ours proves especially effective in large-scale, high-density settings, overcoming memory limitations that hinder BoxDiff, DenseDiffusion, and MIGC. It also consis-tently delivers the most precise head counts, showing its potential for crowded scene synthesis despite slightly underperforming in the SmallFew rMSE metric. 
+
+C. Comparison among Different Representations 1) Setting: Considering our baseline method ControlNet being adaptable with variant controlling representation for-mats, in this section, we train ControlNet on SHRGBD [70] with Depth, Canny, Point, and Density map [22] as represen-tation formats to control image generation process. 
+
+2) Result Analysis: In Fig. 5, it is obvious that our proposed representation as the control signal could generate clearer and more consistent images compared with other formats (Depth, Canny, Point, and Density). Our quantitative assessment in TABLE II, solidifies this finding across three metrics:  
+
+> •
+
+Overall Quality: Our representation format achieves the best F ID score, an improvement of approximately 16 points over the nearest competitor, correlating with higher Human Preference ratings. JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 8Controlling Signal                                 
+
+> In a snowy day
+> A photo of a crowd of people, + [instructions]
+> In a cinema In a rainy day In a foggy day Chinese painting Oil painting Van Goph painting Lego style
+> In outdoor At night In a desert In summer Chinese painting Oil painting GTA 5 style Minecraft style
+> With beard Black people Wearing hat In red cloth Wearing sunglasses White people In a stadium Asian people
+> Has no hair With beard Has red hair Wearing hat Van Goph painting Chinese painting Lego style GTA 5 style
+
+Fig. 6: Controlling with any textual instructions in generating crowd images. Given a kind of controlling signal, including instances locations and scales, we can generate corresponding crowd images following the additionally provided textual instructions. Best view in color and zoom.  
+
+> •
+
+Global Control: Our method, emphasizing accurate in-stance counts, showcases significant progress by exceed-ing the second-best performance by 6.12 points on M AE . 
+
+> •
+
+Instance Control: When comparing controlled boxes against human annotations, DenseControl achieves no-table improvements over other methods, with a 12.9% increase in AP @50 .
+
+3) Why not shrinking density or scaling point?: We chose to shrink the bounding box rather than using points or density for the following reasons: 1) Bounding box (our solution): The bounding box is an effective representation for indicating the precise location and spatial extent of an object. By shrinking the bounding box, we maintain a clear spatial represen-tation of the object while avoiding overlap with adjacent instances. 2) Points : Using points alone is not ideal for dense object distributions, as they tend to be too sparse and fail to provide sufficient spatial cues. Points do not explicitly represent the extent or boundaries of an object, which would complicate spatial control. 3) Density : Using density for shrinking is problematic because pixel values vary within the same object region. This inconsistency could lead to blurred boundaries and an imprecise representation of object locations. Shrinking with density would thus blur the distinctions between objects, violating the requirement for clear object boundaries. Thus, shrinking the bounding box provides a reliable and straightforward method to preserve object independence while maintaining clear boundaries, which is crucial for subsequent TABLE III: The performance on instruction following in generating crowd images.                      
+
+> Instruction Type Generation Detection Counting
+> AR (%) ↑AP @50 (%) ↑M AE ↓rM SE ↓
+> Background 93.21 9.91 20.48 36.39 Style 100.00 40.56 4.05 7.11 Instance 66.83 27.35 5.89 12.12
+
+operations in the model. 
+
+D. Performance Evaluation on the Instruction Following 1) Setting: We use different textual instructions for crowd image generation to observe whether the method could un-derstand and execute the instructions, based on our proposed spatial and scale control. In this paper, we utilize three different types of instructions, indicating background, instance, and scale. For each type instructions, we utilize GPT-4 to generate 20 different instructions. During inference, we add these instructions with original prompt to generate images. 
+
+2) Result Analysis: Fig. 6 showcases our method’s ad-herence to provided instructions with high consistency. Our quantitative evaluation (Table III) reveals:  
+
+> •
+
+Background and Style Attributes: We achieve remarkable accuracy, reaching 93 .21% for background attributes and a perfect score of 100% for style, underscoring robust control in image generation.  
+
+> •
+
+Instance Generation: Despite challenges in instance di-versity, our accuracy stands at 66% . Lower performance is achieved with background type (e.g., in a rainy JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 9
+
+TABLE IV: Crowd localization and counting results when augmenting diffusion models generated images under data scarcity scenario.                                                      
+
+> Method SHHA NWPU QNRF
+> F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓
+> IIM 63.0 / 63.3 / 62.7 109.2 / 185.9 37.2 / 41.7 / 33.5 353.9 / 900.3 44.7 / 57.8 / 36.4 461.4 / 1125.7
+> IIM+DenseControl 65.1 / 67.1 / 63.1 111.3 / 189.1 42.4 / 46.7 / 38.8 303.4 / 785.7 47.1 / 59.0 / 39.1 422.2 / 1032.7 STEERER 61.3 / 50.2 / 78.7 91.8 / 131.3 61.5 / 66.4 / 57.3 223.5 / 790.9 61.6 / 58.3 / 65.3 168.2 / 271.0
+> STEERER+DenseControl 63.7 / 55.1 / 75.4 99.3 / 145.8 60.5 / 70.5 / 53.0 180.4 / 508.8 62.1 / 59.7 / 64.7 195.0 / 328.9
+
+TABLE V: Ablation studies of DenseControl, which are con-ducted on augmenting SHHA crowd localization environment.                                            
+
+> Module Isolated Box IOE ISE PS F1/P re. /Rec. (%) ↑MAE / rMSE ↓
+> Point RGB 60.4 / 55.4 / 66.5 152.2 / 259.6 IB+RGB ✓63.9 / 65.0 / 62.7 112.5 / 194.1 Point+IOE ✓60.4 / 56.0 / 65.5 152.2 / 238.2 IB+IOE ✓✓64.4 / 65.5 / 63.4 112.7 / 188.0 IB+ISE ✓✓64.2 / 70.2 / 59.2 116.8 / 218.2 Point+IOE+ISE ✓✓63.1 / 61.1 / 65.3 125.5 / 218.1 IB+IOE+ISE ✓✓✓64.7 / 64.7 / 64.8 112.1 / 193.8 DenseControl ✓✓✓✓65.1 / 67.1 / 63.1 111.3 / 189.1
+
+day ). According to feedback from human annotators, this should be blamed on umbrella occlusions. 
+
+E. Data Augmentation under Data Scarcity Scenario 1) Setting: We randomly sample about 10% , 5% , and 1% 
+
+training samples from the training set of SHHA, QNRF, and NWPU. We conduct experiments on crowd localization models: IIM and STEERER, with or without training on the synthesized images from DenseControl as data augmentation. 
+
+2) Result Analysis: As evidenced by Table IV, our method consistently outperforms the IIM algorithm and the Den-sity augmentation method across all datasets in terms of the F1Score, with enhancements of 2% , 5% , and 3% and marginal gains of 0.6% , 0.3% , and 0.5% , respectively. While it shows variegated results against the STEERRER method—progressing on the SNHA and QNRF yet receding on the NWPU, likely due to noise in the images—our approach emerges as a promising solution for few-shot learning chal-lenges. However, similar to Table I, we observe oscillations in MAE and rMSE metrics, indicating count inaccuracies that could affect model training. Future explorations will delve into fusing noise-resilient algorithms to mitigate this, highlighting an exciting direction for our subsequent work. 
+
+F. Ablation Studies 1) Setting&Results: Later, we conducted ablation analysis experiments through enhancement in the data scarcity sce-nario. As shown in Table V, each component of our model contributes significantly to its overall performance. Notably, the Isolated Box module results in an improvement of 3.5
+
+percentage points when used with naive RGB projection, and 
+
+1.6 percentage points when combined with our novel Object Embedding technique, compared to the point representation approach. Moreover, our proposed IOE provides a substantial enhancement, boosting performance by 4.3 percentage points over the baseline model. The inclusion of ISE further increases the model’s efficacy, adding an additional improvement of 
+
+0.3 percentage points. Lastly, the integration of the Position Shortcut module contributes an increase of 0.4 percentage points. These results underscore the effectiveness of each proposed module in refining the model’s performance. By combining all modules, our method achieved the best Crowd Localization Performance and the smallest Counting Error. 
+
+2) Further intuitive explanation: The choice of IOE + ISE is driven by the failure of existing representations to simultaneously satisfy the scale and location control. Below, we elaborate on how each component fills critical gaps: 
+
+a) IOE: Fixing Spatial and Topological Limitations: 
+
+IOE addresses the spatial precision and topological integrity 
+
+failures of points, density maps, and bounding boxes:  
+
+> •
+
+Shrunk Non-Overlapping Boxes : Unlike standard bound-ing boxes, IOE uses iteratively shrunk boxes (adapted from IIM [6]) to eliminate overlaps in dense scenes. This ensures each instance occupies a unique spatial region, allowing the diffusion model’s cross-attention to map exactly one instance to one region (see Fig. 5: IOE avoids the “merged heads” of bounding boxes).  
+
+> •
+
+Latent Alignment : IOE uses PCA-reduced CLIP embed-dings (Eq. 5) instead of raw RGB values. This aligns the control map’s latent space with Stable Diffusion’s VAE latent space, reducing the projection learning burden to a linear transformation (vs. non-linear for density maps).  
+
+> •
+
+Granularity Balance : IOE avoids the “too sparse” issue of points (insufficient cues) and “too blurred” issue of density maps (ambiguous boundaries) by using region-wise embeddings. Each shrunk box provides enough spatial context to generate a complete instance without over-constraining appearance diversity (e.g., hair color, clothing). 
+
+b) ISE: Disentangling Scale from Location: ISE solves the scale disentanglement problem that plagues all prior rep-resentations:  
+
+> •
+
+Explicit Scale Encoding : Unlike bounding boxes (scale = box size) or density maps (scale = density magnitude), ISE embeds scale as a separate cosine-sine vector. This breaks the “location → scale” bias (e.g., background = small) and allows users to define arbitrary scale-location pairs (e.g., “large heads in the background”—impossible with prior methods).  
+
+> •
+
+Smooth Generalization : Cosine-sine embedding ensures a continuous scale space. For example, the model can interpolate between 10 pixels 2 (small) and 50 pixels 2
+
+(large) without retraining, whereas linear encoding would require discrete thresholds (limiting flexibility).  
+
+> •
+
+IOE Compatibility : ISE is added directly to IOE’s latent vector, preserving spatial-topological information while JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 10 
+
+TABLE VI: Crowd localization and counting results when augmenting diffusion models generated images under transfer-dataset scenario.                                                         
+
+> Method SHHA →SHHB SHHA →QNRF SHHA →NWPU
+> F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓
+> IIM 61.6 / 57.1 / 67.0 39.4 / 50.8 50.8 / 53.9 / 48.1 356.9 / 627.0 47.4 / 50.2 / 44.8 221.7 / 734.0 IIM+DenseControl 67.0 / 64.7 / 69.5 29.3 / 41.1 54.7 / 63.3 / 48.2 298.8 / 569.6 51.3 / 54.6 / 48.4 195.5 / 637.3 STEERER 58.1 / 49.6 / 69.9 38.6 / 54.5 40.0 / 27.2 / 75.9 244.8 / 663.8 33.6 / 22.0 / 71.2 466.8 / 1087.8 STEERER+DenseControl 64.9 / 61.3 / 64.2 33.4 / 50.8 45.5 / 33.4 / 71.4 288.6 / 537.9 39.2 / 28.2 / 64.4 506.8 / 1046.1
+
+TABLE VII: Crowd localization and counting results when transferring sunny scenes trained model to bad weather scenes.                                                                                    
+
+> Setting Sunny →Sunny (InD) Sunny →Rainy Sunny →Snowy Sunny →Foggy
+> F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓F1/P re. /Rec. (%) ↑MAE /rM SE ↓
+> IIM-VGG16 41.6 / 42.7 / 40.5 181.3 / 412.3 25.1 / 44.1 / 17.5 242.8 / 676.1 24.9 / 44.1 / 17.4 176.5 / 914.8 23.0 / 50.0 / 15.0 245.9 / 666.1 +Sunny Aug 42.6 / 42.3 / 43.0 176.3 / 389.49 25.6 / 44.6 / 18.0 240.2 / 643.2 25.2 / 44.3 / 17.6 177.3 / 914.6 23.2 / 47.7 / 15.3 238.8 / 630.9 +Rainy Aug 40.5 / 35.6 / 46.7 197.9 / 350.8 26.7 / 30.7 / 23.6 274.7 / 662.8 28.6 / 30.4 / 27.1 208.6 / 913.6 27.4 / 40.0 / 20.9 219.3 / 589.5 +Snowy Aug 41.0 / 38.0 / 44.6 195.3 / 392.6 26.1 / 35.3 / 20.7 254.9 / 660.5 28.9 / 32.4 / 26.1 188.4 / 910.8 26.9 / 44.3 / 19.3 224.4 / 614.1 +Foggy Aug 42.2 / 40.2 / 44.5 188.1 / 388.5 26.7 / 37.7 / 20.6 242.9 / 657.4 28.2 / 34.1 / 24.0 179.7 / 910.2 28.7 / 42.1 / 21.8 215.4 / 583.9
+
+injecting scale. This avoids the “scale-spatial conflict” of methods that modify spatial representations (e.g., resizing boxes) to encode scale— which corrupts location preci-sion. 
+
+G. Data Augmentation in Dataset Transfer Scenarios 1) Experimental Setup: We investigate dataset transfer across three scenarios: training on SHHA and testing on SHHB, QNRF, and NWPU, respectively. Comparative anal-ysis is performed on crowd localization models, IIM and STEERER, assessing performance with and without the inclu-sion of generated images from DenseControl as augmentation. 
+
+2) Results and Discussion: As indicated in Table VI, our approach significantly improves the performance of IIM and STEERER algorithms in transfer scenarios. Specifically, the IIM algorithm’s F1 score increases by approximately 5% , 4% ,and 4% across three scenarios, while the MAE is reduced by 10, 58, and 26, respectively. These enhancements are likely due to the diverse data generated by our method, underscoring its potential for robust crowd analysis across different datasets. 
+
+H. Data Augmentation under Weather Transfer Scenario 1) Setting: We conduct an investigation into weather trans-fer across four distinct scenarios: training on sunny scenes and subsequently testing on sunny, rainy, snowy, and foggy condi-tions. Following this, we employ DenseControl to synthesize images based on instructions specific to these four weather scenarios, which serves as a method of data augmentation for the crowd localization model, IIM. The effectiveness of this approach is evaluated by assessing the model’s performance with images generated from varying instructions. 
+
+2) Reult Analysis: From Table VII, we have the following observations: 1) In most cases, data augmentation through our method leads to improvements in Crowd Localization Performance. Targeted enhancement for specific scenarios (e.g. +Rainy Aug for Sunny −→ Rainy) can yield the best transfer effects, which aligns completely with our understanding. 2) In terms of head counting, our method may have a negative impact, as discussed earlier. This is primarily due to the noise present in the generated data. V. C ONCLUSION AND FUTURE WORK 
+
+In this study, we introduce DenseControl, a pioneering approach for the controllable synthesis of dense crowd images at the instance level. DenseControl addresses key challenges in embedding control signals into the generation process, notably through the novel Isolated Object Embedding map and Implicit Scale Embedding. These innovations simplify spatial control and enhance scale precision respectively. Our development of the Position Shortcut mechanism further re-fines the projection process, optimizing cross-attention within diffusion models and further improving synthesis quality. Rig-orous testing across varied conditions confirms DenseControl superior performance in generating high-quality images and its effectiveness in practical applications like data scarcity augmentation and weather generalization. Moving forward, we see immense potential in expanding DenseControl for instance-level attribute editing, leveraging our advancements in spatial and scale accuracy. LIMITATIONS 
+
+A. Dependence on the Quality of Instance Annotations 
+
+DenseControl requires accurate instance-level annotations (location + approximate head scale) to construct the control map. If the annotations contain large errors or missing labels, the synthesis quality may degrade. 
+
+B. Dependence on the Basic Generation Capacity of Founda-tional Diffusion Model 
+
+DenseControl is built on top of a Stable-Diffusion–based foundation model. Therefore, the overall image fidelity and diversity are partly constrained by the capability of the under-lying diffusion backbone. This means that when the founda-tional model has limited expressiveness in certain scenes (e.g., rare artistic domains), our output quality may also plateau. REFERENCES [1] D. B. Sam, S. V. Peri, M. N. Sundararaman, A. Kamath, and R. V. Babu, “Locate, size, and count: accurately resolving people in dense crowds via detection,” IEEE TPAMI , vol. 43, no. 8, pp. 2739–2751, 2020. JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 11 
+
+[2] P. Hu and D. Ramanan, “Finding tiny faces,” in CVPR , 2017, pp. 951– 959. [3] C. Liu, X. Weng, and Y. Mu, “Recurrent attentive zooming for joint crowd counting and precise localization,” in CVPR , 2019, pp. 1217– 1226. [4] D. Liang, W. Xu, Y. Zhu, and Y. Zhou, “Focal inverse distance transform maps for crowd localization,” IEEE TMM , 2022. [5] S. Abousamra, M. Hoai, D. Samaras, and C. Chen, “Localization in the crowd with topological constraints,” in AAAI , vol. 35, no. 2, 2021, pp. 872–881. [6] J. Gao, T. Han, Q. Wang, Y. Yuan, and X. Li, “Learning independent instance maps for crowd localization,” arXiv preprint arXiv:2012.04164 ,2020. [7] J. Wang, J. Gao, Y. Yuan, and Q. Wang, “Crowd localization from gaussian mixture scoped knowledge and scoped teacher,” IEEE TIP ,vol. 32, pp. 1802–1814, 2023. [8] S. Wu and F. Yang, “Boosting detection in crowd analysis via underuti-lized output features,” in CVPR , 2023, pp. 15 609–15 618. [9] T. Han, L. Bai, L. Liu, and W. Ouyang, “Steerer: Resolving scale vari-ations for counting and localization via selective inheritance learning,” in ICCV , 2023, pp. 21 848–21 859. [10] Q. Wang, J. Gao, W. Lin, and Y. Yuan, “Learning from synthetic data for crowd counting in the wild,” in CVPR , 2019, pp. 8198–8207. [11] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer, “High-resolution image synthesis with latent diffusion models,” in CVPR , 2022, pp. 10 684–10 695. [12] I. Han, S. Yang, T. Kwon, and J. C. Ye, “Highly personalized text embedding for image manipulation by stable diffusion,” in ICML , 2024. [13] R. Gal, Y. Alaluf, Y. Atzmon, O. Patashnik, A. H. Bermano, G. Chechik, and D. Cohen-Or, “An image is worth one word: Person-alizing text-to-image generation using textual inversion,” arXiv preprint arXiv:2208.01618 , 2022. [14] N. Ruiz, Y. Li, V. Jampani, Y. Pritch, M. Rubinstein, and K. Aberman, “Dreambooth: Fine tuning text-to-image diffusion models for subject-driven generation,” in CVPR , 2023, pp. 22 500–22 510. [15] Y. Liu, C. Yu, L. Shang, Z. Wu, X. Wang, Y. Zhao, L. Zhu, C. Cheng, W. Chen, C. Xu et al. , “Facechain: A playground for identity-preserving portrait generation,” arXiv preprint arXiv:2308.14256 , 2023. [16] P. Qiao, L. Shang, C. Liu, B. Sun, X. Ji, and J. Chen, “Facechain-sude: Building derived class to inherit category attributes for one-shot subject-driven generation,” in CVPR , 2024. [17] C. Xu, Y. Liu, J. Xing, W. Wang, M. Sun, J. Dan, T. Huang, S. Li, Z.-Q. Cheng, Y. Tai et al. , “Facechain-imagineid: Freely crafting high-fidelity diverse talking faces from disentangled audio,” in CVPR , 2024. [18] Y. Kim, J. Lee, J.-H. Kim, J.-W. Ha, and J.-Y. Zhu, “Dense text-to-image generation with attention modulation,” in ICCV , 2023, pp. 7701–7711. [19] J. Xie, Y. Li, Y. Huang, H. Liu, W. Zhang, Y. Zheng, and M. Z. Shou, “Boxdiff: Text-to-image synthesis with training-free box-constrained diffusion,” in ICCV , 2023, pp. 7452–7461. [20] S. Mo, F. Mu, K. H. Lin, Y. Liu, B. Guan, Y. Li, and B. Zhou, “Freecontrol: Training-free spatial control of any text-to-image diffusion model with any condition,” in CVPR , 2024. [21] L. Zhang, A. Rao, and M. Agrawala, “Adding conditional control to text-to-image diffusion models,” in ICCV , 2023, pp. 3836–3847. [22] Z. Wang, Y. Li, J. Wan, and N. Vasconcelos, “Diffusion-based data augmentation for object counting problems,” arXiv preprint arXiv:2401.13992 , 2024. [23] Y. Zhang, D. Zhou, S. Chen, S. Gao, and Y. Ma, “Single-image crowd counting via multi-column convolutional neural network,” in CVPR ,2016, pp. 589–597. [24] Y. Li, X. Zhang, and D. Chen, “Csrnet: Dilated convolutional neural networks for understanding the highly congested scenes,” in CVPR ,2018, pp. 1091–1100. [25] Z. Ma, X. Wei, X. Hong, and Y. Gong, “Bayesian loss for crowd count estimation with point supervision,” in ICCV , 2019, pp. 6142–6151. [26] L. Liu, J. Jiang, W. Jia, S. Amirgholipour, Y. Wang, M. Zeibots, and X. He, “Denet: A universal network for counting crowd with varying densities and scales,” IEEE TMM , 2020. [27] M. K. K. Reddy, M. Rochan, Y. Lu, and Y. Wang, “Adacrowd: Unlabeled scene adaptation for crowd counting,” IEEE TMM , 2021. [28] Z. Yan, R. Zhang, H. Zhang, Q. Zhang, and W. Zuo, “Crowd count-ing via perspective-guided fractional-dilation convolution,” IEEE TMM ,2022. [29] Q. Song, C. Wang, Y. Wang, Y. Tai, C. Wang, J. Li, J. Wu, and J. Ma, “To choose or to fuse? scale selection for crowd counting,” in AAAI ,2021, pp. 2576–2583. [30] Q. Wang, J. Wang, J. Gao, Y. Yuan, and X. Li, “Counting like human: Anthropoid crowd counting on modeling the similarity of objects,” arXiv preprint arXiv:2212.02248 , 2022. [31] N. Carion, F. Massa, G. Synnaeve, N. Usunier, A. Kirillov, and S. Zagoruyko, “End-to-end object detection with transformers,” in 
+
+ECCV , 2020. [32] J. Sohl-Dickstein, E. Weiss, N. Maheswaranathan, and S. Ganguli, “Deep unsupervised learning using nonequilibrium thermodynamics,” in ICML ,2015, pp. 2256–2265. [33] D. Kingma, T. Salimans, B. Poole, and J. Ho, “Variational diffusion models,” in NeurIPS , vol. 34, 2021, pp. 21 696–21 707. [34] P. Dhariwal and A. Nichol, “Diffusion models beat gans on image synthesis,” in NeurIPS , vol. 34, 2021, pp. 8780–8794. [35] D. P. Kingma and M. Welling, “Auto-encoding variational bayes,” arXiv preprint arXiv:1312.6114 , 2013. [36] J. Song, C. Meng, and S. Ermon, “Denoising diffusion implicit models,” in ICLR , 2021. [37] Y. Balaji, S. Nah, X. Huang, A. Vahdat, J. Song, Q. Zhang, K. Kreis, M. Aittala, T. Aila, S. Laine et al. , “ediff-i: Text-to-image diffu-sion models with an ensemble of expert denoisers,” arXiv preprint arXiv:2211.01324 , 2022. [38] T. Salimans and J. Ho, “Progressive distillation for fast sampling of diffusion models,” arXiv preprint arXiv:2202.00512 , 2022. [39] C. Meng, R. Rombach, R. Gao, D. Kingma, S. Ermon, J. Ho, and T. Salimans, “On distillation of guided diffusion models,” in CVPR ,2023, pp. 14 297–14 306. [40] J. Ho and T. Salimans, “Classifier-free diffusion guidance,” arXiv preprint arXiv:2207.12598 , 2022. [41] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin, J. Clark et al. , “Learning transferable visual models from natural language supervision,” in ICML , 2021, pp. 8748–8763. [42] A. Nichol, P. Dhariwal, A. Ramesh, P. Shyam, P. Mishkin, B. McGrew, I. Sutskever, and M. Chen, “Glide: Towards photorealistic image gen-eration and editing with text-guided diffusion models,” arXiv preprint arXiv:2112.10741 , 2021. [43] O. Avrahami, D. Lischinski, and O. Fried, “Blended diffusion for text-driven editing of natural images,” in CVPR , 2022, pp. 18 208–18 218. [44] O. Gafni, A. Polyak, O. Ashual, S. Sheynin, D. Parikh, and Y. Taig-man, “Make-a-scene: Scene-based text-to-image generation with human priors,” in ECCV , 2022, pp. 89–106. [45] A. Hertz, R. Mokady, J. Tenenbaum, K. Aberman, Y. Pritch, and D. Cohen-Or, “Prompt-to-prompt image editing with cross attention control,” arXiv preprint arXiv:2208.01626 , 2022. [46] G. Kim, T. Kwon, and J. C. Ye, “Diffusionclip: Text-guided diffusion models for robust image manipulation,” in CVPR , 2022, pp. 2426–2435. [47] B. Kawar, S. Zada, O. Lang, O. Tov, H. Chang, T. Dekel, I. Mosseri, and M. Irani, “Imagic: Text-based real image editing with diffusion models,” in CVPR , 2023, pp. 6007–6017. [48] G. Parmar, K. Kumar Singh, R. Zhang, Y. Li, J. Lu, and J.-Y. Zhu, “Zero-shot image-to-image translation,” in SIGGRAPH , 2023, pp. 1–11. [49] T. Li, Y. Tian, H. Li, M. Deng, and K. He, “Autoregressive image generation without vector quantization,” Advances in Neural Information Processing Systems , vol. 37, pp. 56 424–56 445, 2024. [50] Z. Feng, Q. Guo, X. Xiao, R. Xu, M. Yang, and S. Zhang, “Unified video generation via next-set prediction in continuous domain,” in Proceedings of the IEEE/CVF International Conference on Computer Vision , 2025, pp. 19 427–19 438. [51] L. Xiao, S. Lu, H. Pi, K. Fan, L. Pan, Y. Zhou, Z. Feng, X. Zhou, S. Peng, and J. Wang, “Motionstreamer: Streaming motion generation via diffusion-based autoregressive model in causal latent space,” arXiv preprint arXiv:2503.15451 , 2025. [52] S.-w. Yang, B. Kim, K.-P. Huang, Q. Tang, H. Phan, B.-R. Lu, H. Sundar, S. Ghosh, H.-y. Lee, C.-C. Kao et al. , “Generative audio language mod-eling with continuous-valued tokens and masked next-token prediction,” 
+
+arXiv preprint arXiv:2507.09834 , 2025. [53] N. Kumari, B. Zhang, S.-Y. Wang, E. Shechtman, R. Zhang, and J.-Y. Zhu, “Ablating concepts in text-to-image diffusion models,” in ICCV ,2023, pp. 22 691–22 702. [54] B. Yang, S. Gu, B. Zhang, T. Zhang, X. Chen, X. Sun, D. Chen, and F. Wen, “Paint by example: Exemplar-based image editing with diffusion models,” in CVPR , 2023, pp. 18 381–18 391. [55] R. Tang, L. Liu, A. Pandey, Z. Jiang, G. Yang, K. Kumar, P. Stenetorp, J. Lin, and F. Ture, “What the daam: Interpreting stable diffusion using cross attention,” in ACL , 2023. [56] O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional networks for biomedical image segmentation,” in MICCAI , 2015, pp. 234–241. JOURNAL OF L ATEX CLASS FILES, VOL. 18, NO. 9, SEPTEMBER 2020 12 
+
+[57] D. Zhou, Y. Li, F. Ma, Z. Yang, and Y. Yang, “Migc: Multi-instance generation controller for text-to-image synthesis,” in CVPR , 2024. [58] W. Peebles and S. Xie, “Scalable diffusion models with transformers,” in Proceedings of the IEEE/CVF international conference on computer vision , 2023, pp. 4195–4205. [59] J. Wang, C. Xu, C. Yu, Z. Hu, H. Xie, G. Yu, L. Shang, and S. Wang, “Language model based text-to-audio generation: Anti-causally aligned collaborative residual transformers,” in Proceedings of the 2025 Confer-ence on Empirical Methods in Natural Language Processing , 2025, pp. 26 036–26 054. [60] K. Wu, J. Chen, Z. Liang, Y. Wang, J. Li, C. Zhang, B. Wang, and Y. Yuan, “Hybrid layout control for diffusion transformer: Fewer annota-tions, superior aesthetics,” in Proceedings of the IEEE/CVF International Conference on Computer Vision , 2025, pp. 17 930–17 940. [61] Z. Chen, Y. Li, H. Wang, Z. Chen, Z. Jiang, J. Li, Q. Wang, J. Yang, and Y. Tai, “Ragd: Regional-aware diffusion model for text-to-image generation,” in Proceedings of the IEEE/CVF International Conference on Computer Vision , 2025, pp. 19 331–19 341. [62] Y. Pu, Y. Zhao, Z. Tang, R. Yin, H. Ye, Y. Yuan, D. Chen, J. Bao, S. Zhang, Y. Wang et al. , “Art: Anonymous region transformer for variable multi-layer transparent image generation,” in Proceedings of the Computer Vision and Pattern Recognition Conference , 2025, pp. 7952–7962. [63] Z. Li, T. Cheng, S. Chen, P. Sun, H. Shen, L. Ran, X. Chen, W. Liu, and X. Wang, “Controlar: Controllable image generation with autoregressive models,” arXiv preprint arXiv:2410.02705 , 2024. [64] C. Qin, S. Zhang, N. Yu, Y. Feng, X. Yang, Y. Zhou, H. Wang, J. C. Niebles, C. Xiong, S. Savarese et al. , “Unicontrol: A unified diffusion model for controllable visual generation in the wild,” arXiv preprint arXiv:2305.11147 , 2023. [65] M. Li, T. Yang, H. Kuang, J. Wu, Z. Wang, X. Xiao, and C. Chen, “Controlnet++: Improving conditional controls with efficient consistency feedback: Project page: liming-ai. github. io/controlnet plus plus,” in 
+
+European Conference on Computer Vision . Springer, 2024, pp. 129– 147. [66] J. Wang, C. Xu, C. Yu, L. Shang, Z. Hu, S. Wang, and L. Bo, “Syn-chronized video-to-audio generation via mel quantization-continuum decomposition,” in Proceedings of the Computer Vision and Pattern Recognition Conference , 2025, pp. 3111–3120. [67] Y. Feng, J. Wang, C. Xu, Y. Qian, H. Wang, W. Hou, Y. Liu, B. Sun, Y. Liu, and S. Wang, “Newton: Agentic planning for physically grounded video generation,” arXiv preprint arXiv:2605.18396 , 2026. [68] J. Shlens, “A tutorial on principal component analysis,” arXiv preprint arXiv:1404.1100 , 2014. [69] J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman, D. Almeida, J. Altenschmidt, S. Altman, S. Anadkat et al. , “Gpt-4 technical report,” arXiv preprint arXiv:2303.08774 , 2023. [70] D. Lian, X. Chen, J. Li, W. Luo, and S. Gao, “Locating and counting heads in crowds with a depth prior,” IEEE TPAMI , vol. 44, no. 12, pp. 9056–9072, 2021. [71] Q. Wang, J. Gao, W. Lin, and X. Li, “Nwpu-crowd: A large-scale benchmark for crowd counting and localization,” IEEE TPAMI , vol. 43, no. 6, pp. 2141–2149, 2020. [72] V. A. Sindagi, R. Yasarla, and V. M. Patel, “Jhu-crowd++: Large-scale crowd counting dataset and a benchmark method,” IEEE TPAMI , vol. 44, no. 5, pp. 2594–2609, 2020. [73] H. Idrees, M. Tayyab, K. Athrey, D. Zhang, S. Al-Maadeed, N. Rajpoot, and M. Shah, “Composition loss for counting, density map estimation and localization in dense crowds,” in ECCV , 2018, pp. 532–546. [74] J. Wang, L. Shang, Z. Liu, W. Lu, X. Hu, Z. Hu, J. Wang, and S. Wang, “Exploring scale shift in crowd localization under the context of domain generalization,” International Journal of Computer Vision , vol. 134, no. 3, p. 97, 2026. [75] M. Heusel, H. Ramsauer, T. Unterthiner, B. Nessler, and S. Hochreiter, “Gans trained by a two time-scale update rule converge to a local nash equilibrium,” in NeurIPS , 2017.

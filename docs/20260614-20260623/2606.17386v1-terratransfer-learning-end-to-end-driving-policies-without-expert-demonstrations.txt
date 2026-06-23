@@ -1,0 +1,771 @@
+Title: TerraTransfer: Learning End-to-End Driving Policies Without Expert Demonstrations
+
+URL Source: https://arxiv.org/pdf/2606.17386v1
+
+Published Time: Wed, 17 Jun 2026 00:20:53 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+## TerraTransfer: Learning End-to-End Driving Policies Without Expert Demonstrations 
+
+Zikang Xiong 1, Weixin Li 1, Zhouchonghao Wu 1, Akshay Rangesh 1, Saarth Bonde 1,Grantland Hall 1, Chen Tang 2, Yihan Hu 1, Wei Zhan 1,3 
+
+> 1
+
+Applied Intuition 2UCLA 3UC Berkeley 
+
+Abstract: End-to-end autonomous driving has achieved state-of-the-art perfor-mance on benchmarks and real-world deployments. Its standard training recipe, however, is expensive across all stages: collecting and labeling millions of driving frames is costly, and closed-loop RL on images is bottlenecked by the per-step cost of photorealistic rendering plus a forward pass through a large vision backbone. Self-play in vectorized simulators changes the economics: millions of rollout steps per second, and a state distribution naturally rich in collisions, near-misses, and recoveries that no driving log contains. Our approach exploits this asymmetry by decoupling learning to drive from learning to see . We pretrain a single policy by self-play, then align its latent space with a pretrained vision backbone, through the action KL divergence and a batch-relational low-rank structural loss. The action target comes from the self-play policy, so alignment never supervises against a logged trajectory: a paired dataset of (image, scene-state) frames suffices, with no need for the curated expert demonstrations that imitation pretraining is built on. On photorealistic 3D Gaussian splatting closed-loop scenarios, the resulting end-to-end policy matches or exceeds prior end-to-end methods. Project page: 
+
+https://zikang-xiong-ai.github.io/terratransfer .
+
+Keywords: End-to-End Autonomous Driving, Self-Play Reinforcement Learning 
+
+1 Introduction 
+
+Autonomous driving has received a surge of interest in the last decade, spurred by both academic research and industrial commercialization [1, 2, 3]. Among the many proposed solutions, end-to-end driving, which maps raw sensor inputs ( e.g. , camera images) directly to control commands, has been widely adopted for its simplicity and effectiveness unlocked by the deep learning revolution and the availability of large-scale labeled driving data [4, 5, 6, 2, 3]. It now attains state-of-the-art performance across a range of benchmarks and real-world deployments [7, 8, 9, 10, 11, 12]. This capability, however, comes at a steep price. The de facto training recipe proceeds in several stages: large-scale imitation pretraining on logged human driving, followed by some form of fine-tuning, either supervised adaptation on curated demonstrations to match the deployment domain [5, 7, 8, 9], open-loop reinforcement learning (RL) against expert trajectories to inject prior knowledge that shapes the policy’s behavior in addition to the human demonstrations [13], or closed-loop RL in a sensor-rendering simulator to counter covariate shift, in which compounding errors drive the policy into states that deviate from the demonstration distribution [14, 15, 16, 17, 9, 13]. All these stages are expensive. Imitation pretraining at production scale rests on expert demonstrations. The 
+
+sine qua non of the recipe, collection of multi-camera logs on the order of hundreds of thousands of hours, is bottlenecked by fleet operation, sensor calibration, and 3D label annotation [6, 2, 3, 13]. Each fine-tuning variant inherits a comparable burden: supervised fine-tuning and open-loop RL both demand carefully curated, high-quality, rare-event-heavy in-domain demonstrations, while closed-loop image RL adds a compute bottleneck, rendering each observation photorealistically and pushing it through a heavy vision backbone at every environment step [14, 15, 16, 17, 9, 11, 13]. 
+
+> arXiv:2606.17386v1 [cs.CV] 16 Jun 2026 Fleet logs
+> (labels+calib.)
+> Imitation
+> Pretraining
+> Pretrained
+> E2E Policy
+> Fine-Tuning
+> Curated
+> Demos
+> Rendered
+> Sensor
+> Simulation
+> Supervised
+> fine-tuning
+> Open-loop
+> RL
+> Closed-loop
+> RL
+> Final
+> E2E Policy
+
+(a) Conventional end-to-end training workflow Vectorized  
+
+> Simulator
+> (2M steps/s)
+> Self-play
+> RL
+> Vector Policy
+> (Vector Encoder +
+> Planning Head)
+> Paired Dataset
+> {(images, state)}
+> Vision Encoder
+> Alignment
+> E2E
+> Policy
+> Vision
+> Encoder
+
+(b) Proposed workflow 
+
+Figure 1: Conventional vs. proposed training paradigm. (a) Conventional recipes begin with imitation pretraining on fleet-scale logs, then add supervised fine-tuning, open-loop RL on logged trajectories, or closed-loop image RL in sensor simulators, each path requiring expensive human-driving data or photorealistic rendering. (b) Our two-phase paradigm decouples learning to drive 
+
+from learning to see : Phase 1 trains a teacher policy by self-play via efficient simulation (2M+ steps/s); Phase 2 aligns a vision student to the frozen teacher on a paired (image, scene-state) dataset via action-distribution and structural feature losses, both without any expert demonstrations. Recently, self-play has emerged as a markedly cheaper route to driving competence. Through ef-ficient, large-scale simulation in vectorized state spaces, it attains robust and naturalistic driving without expert demonstrations, eliminating the need for expensive human-driving data and photore-alistic rendering [18, 19, 20, 21]. It is also well suited to the long tail: the multi-agent distribution it induces is naturally rich in collisions, near-misses, and recoveries that logged traffic seldom con-tains. Together, these properties raise the prospect of learning robust, naturalistic policies with no human in the loop, at a cost orders of magnitude below the conventional workflow. Yet self-play, for all its promise, does not yield a deployable end-to-end driving policy per se : it consumes vec-torized scene state rather than raw sensors, and so has remained largely confined to traffic simula-tion [18, 19, 20, 21, 22, 23]. In this work, we unite the strengths of self-play and end-to-end driving in a single paradigm that learns driving policies without expert demonstrations, exploiting the cost and modality asymmetry between vector-state self-play RL and demonstration-dependent end-to-end recipes. This is moti-vated by the fact that the optimal action in a specific situation depends on the scene state, not on the modality used to perceive it or on whether the action at that state was produced by a human. For this, we propose to break the observation dependency by decoupling learning to drive from learning to see , where no stage of the pipeline is supervised against logged human driving. We first train a planning head tabula rasa by multi-agent self-play in TerraZero, our in-house vectorized driving simulator, in the spirit of GigaFlow [18]: a single parameter set controls every agent in every scene, and the head learns from the long-tail distribution of its own behavior, never imitating a human tra-jectory. We then freeze this head and train an image-conditioned encoder atop a pretrained vision backbone [24] to replace its set-valued road and partner inputs, supervised by the frozen head’s per-state action distribution together with a feature-level structural loss. Compared to the canonical end-to-end recipe, our framework is remarkably frugal in both data and compute, yet preserves the naturalistic driving competence inherent to self-play, and, as we show, matches or exceeds prior end-to-end methods on aggregate closed-loop HD-Score over photoreal-istic evaluation benchmarks. The cost of learning to drive moves upstream into self-play, but this one-time compute is efficient and reusable: the planning head is trained in 96 hours on 16 A100 GPUs (over 2.4B kilometers of simulated driving) with no human demonstrations, and can there-after supply alignment supervision for a range of vision frontends, alignment datasets, sensor stacks, and downstream specializations. During alignment, the only signal the vision encoder receives is the frozen head’s per-state action distribution on a paired dataset of (image, scene-state) frames, a strictly weaker requirement than collecting and labeling the expert demonstrations a behavior-2cloning loss would learn from. In our case, the encoder is aligned over 1.83M paired frames on 8 A100 GPUs in 10 hours. Figure 1 contrasts our paradigm with the conventional workflow. In summary, our contributions in this work include the following: • A demonstration-free recipe for end-to-end driving: a planning head trained by self-play in a vectorized simulator, followed by image-conditioned encoders that learn to consume raw images—with no logged-trajectory supervision at any stage. • A batch-relational low-rank structural loss that matches the pairwise scene similarities the teacher induces within its low-rank feature subspace, motivated by the empirical finding that the teacher’s features are low-rank and redundant (§4.4). • Closed-loop results on photorealistic 3D Gaussian splatting scenarios [11] showing that the resulting end-to-end policy matches or exceeds prior end-to-end methods—with an align-ment phase that needs no expert demonstrations or logged-trajectory labels, only paired (image, scene-state) frames and the frozen teacher’s action distribution. 
+
+2 Related Work 
+
+Learning to Drive: Imitation vs. Self-Play. End-to-end driving policies are predominantly trained by imitation on logged human driving, optionally followed by fine-tuning—supervised fine-tuning on curated demonstrations, open-loop RL against logged trajectories, or closed-loop RL in a rendered simulator; UniAD [7] and VAD [8] jointly supervise perception, prediction, and plan-ning from multi-camera video, and SMART [25] casts motion prediction as next-token generation over agent trajectories. All such variants ultimately depend on logged human driving—directly for imitation, SFT, and open-loop RL, and indirectly for closed-loop RL through the imitation-pretrained initialization and the logged scenes used to reconstruct the simulator—so they suffer covariate shift on the rare, safety-critical states absent from the demonstration distribution and stay bounded by expert quality [13]. The closed-loop variant, typically privileged-teacher distillation in CARLA [14, 15, 16, 17, 9], stays rare because each step requires photorealistic rendering and a heavy vision-backbone pass, only recently eased by 3D Gaussian splatting simulators [11, 26, 27]. A parallel line of work sidesteps this dependence with multi-agent self-play in vectorized, object-level simulators—world state as bounding boxes, lane polylines, and partner kinematics rather than pixels—reaching high-fidelity driving without any human demonstrations: GigaFlow [18] from 1.6 billion simulated kilometers, SPACeR [19] via KL-anchoring to a reference, Seong et al. [20] via group relative policy optimization, and CorrectionPlanner [21] via autoregressive self-correction, all underpinned by efficient simulators [28, 22, 23] and echoing self-play’s success in drone racing [29] and open-ended program evolution [30]. These methods consume vectorized scene state, however, and none has been extended end-to-end to image observations at the scales they reach in vector form—the gap our work closes. 
+
+Policy Distillation and Cross-Modal Alignment. Aligning representations across modalities is well-studied—CLIP [31], ALIGN [32], and BLIP-2 [33] align vision with language—as is policy distillation in RL, where a student reproduces teacher policies for compression or multi-task consol-idation [34, 35, 36, 37]. Closest to us is privileged teacher–student training, where a teacher on priv-ileged simulator state is distilled into a student restricted to onboard observations—across legged locomotion [38, 39, 40], agile flight [41], in-hand manipulation [42], off-road driving [43], and CARLA [15, 16, 17, 9]—with knowledge distillation [44] supplying the soft-label tooling. Within driving, planner-centric methods supervise intermediate representations by their downstream effect on planning rather than module-level metrics: PKL [45] and TIP [46] score perception through a frozen planner, and LTF [9] distills a frozen planning head into a vision student. These teachers, however, are scripted or privileged-state experts whose students are cloned on actions or hand-designed targets by behavior cloning or DAgger-style relabeling. In contrast, our teacher is a self-play policy that never imitates, and the student is aligned by a relational structural loss [47] rather than by cloning teacher actions. 3Multi-agent Simulator 
+
+Partner !
+
+Road !
+
+Ego !
+
+Action 
+
+Head 
+
+!
+
+Self-play Vector Policy 
+
+NuPlan 
+
+Dataset 
+
+Log Frame 
+
+1: Self-play Learns Embedding + Planner with PPO  2: Align Pre-trained Vision Encoder to Planner Embedding 
+
+Back Propagate 
+
+No Gradient Flow 
+
+Image Inputs 
+
+Vector Inputs 
+
+Partner ❄
+
+Road ❄
+
+Ego ❄
+
+Action Head 
+
+❄
+
+Self-play Vector Policy 
+
+Ego ❄
+
+DinoV3 
+
++
+
+Adapter !
+
+Action Head 
+
+❄
+
+End-to-End Policy (Deployed) 
+
+<latexit sha1_base64="jkcenJNHuAuP0F7m8nWD9gx9hJ8=">AAAB8nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2m3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVjDdZLGPdCajhUijeRIGSdxLNaRRI3g7GtzO//cS1EbF6wEnC/YgOlQgFo2ilbm9EMQunfXxM+uWKW3XnIKvEy0kFcjT65a/eIGZpxBUySY3pem6CfkY1Cib5tNRLDU8oG9Mh71qqaMSNn81PnpIzqwxIGGtbCslc/T2R0ciYSRTYzojiyCx7M/E/r5tieO1nQiUpcsUWi8JUEozJ7H8yEJozlBNLKNPC3krYiGrK0KZUsiF4yy+vktZF1atVa/eXlfpNHkcRTuAUzsGDK6jDHTSgCQxieIZXeHPQeXHenY9Fa8HJZ47hD5zPH7KwkYs=</latexit> ˆf p
+
+t
+
+<latexit sha1_base64="uLOVRgNJj0RQbAbrixwBr1NscyQ=">AAAB8nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2m3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVjDdZLGPdCajhUijeRIGSdxLNaRRI3g7GtzO//cS1EbF6wEnC/YgOlQgFo2ilbm9EMQunfXzU/XLFrbpzkFXi5aQCORr98ldvELM04gqZpMZ0PTdBP6MaBZN8WuqlhieUjemQdy1VNOLGz+YnT8mZVQYkjLUthWSu/p7IaGTMJApsZ0RxZJa9mfif100xvPYzoZIUuWKLRWEqCcZk9j8ZCM0ZyokllGlhbyVsRDVlaFMq2RC85ZdXSeui6tWqtfvLSv0mj6MIJ3AK5+DBFdThDhrQBAYxPMMrvDnovDjvzseiteDkM8fwB87nD7W4kY0=</latexit> ˆf r
+
+t
+
+<latexit sha1_base64="MDv+huTHOg9VaYCiHONri3/Q+H0=">AAAB8nicbVBNS8NAEN3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2k3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVHJo8lrHuBMyAFAqaKFBCJ9HAokBCOxjfzvz2E2gjYvWAkwT8iA2VCAVnaKVub8QwC6d9fIR+ueJW3TnoKvFyUiE5Gv3yV28Q8zQChVwyY7qem6CfMY2CS5iWeqmBhPExG0LXUsUiMH42P3lKz6wyoGGsbSmkc/X3RMYiYyZRYDsjhiOz7M3E/7xuiuG1nwmVpAiKLxaFqaQY09n/dCA0cJQTSxjXwt5K+YhpxtGmVLIheMsvr5LWRdWrVWv3l5X6TR5HkZyQU3JOPHJF6uSONEiTcBKTZ/JK3hx0Xpx352PRWnDymWPyB87nD6IEkYA=</latexit> ˆf e
+
+t
+
+<latexit sha1_base64="MDv+huTHOg9VaYCiHONri3/Q+H0=">AAAB8nicbVBNS8NAEN3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2k3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVHJo8lrHuBMyAFAqaKFBCJ9HAokBCOxjfzvz2E2gjYvWAkwT8iA2VCAVnaKVub8QwC6d9fIR+ueJW3TnoKvFyUiE5Gv3yV28Q8zQChVwyY7qem6CfMY2CS5iWeqmBhPExG0LXUsUiMH42P3lKz6wyoGGsbSmkc/X3RMYiYyZRYDsjhiOz7M3E/7xuiuG1nwmVpAiKLxaFqaQY09n/dCA0cJQTSxjXwt5K+YhpxtGmVLIheMsvr5LWRdWrVWv3l5X6TR5HkZyQU3JOPHJF6uSONEiTcBKTZ/JK3hx0Xpx352PRWnDymWPyB87nD6IEkYA=</latexit> ˆf e
+
+t
+
+<latexit sha1_base64="jkcenJNHuAuP0F7m8nWD9gx9hJ8=">AAAB8nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2m3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVjDdZLGPdCajhUijeRIGSdxLNaRRI3g7GtzO//cS1EbF6wEnC/YgOlQgFo2ilbm9EMQunfXxM+uWKW3XnIKvEy0kFcjT65a/eIGZpxBUySY3pem6CfkY1Cib5tNRLDU8oG9Mh71qqaMSNn81PnpIzqwxIGGtbCslc/T2R0ciYSRTYzojiyCx7M/E/r5tieO1nQiUpcsUWi8JUEozJ7H8yEJozlBNLKNPC3krYiGrK0KZUsiF4yy+vktZF1atVa/eXlfpNHkcRTuAUzsGDK6jDHTSgCQxieIZXeHPQeXHenY9Fa8HJZ47hD5zPH7KwkYs=</latexit> ˆf p
+
+t
+
+<latexit sha1_base64="MDv+huTHOg9VaYCiHONri3/Q+H0=">AAAB8nicbVBNS8NAEN3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2k3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVHJo8lrHuBMyAFAqaKFBCJ9HAokBCOxjfzvz2E2gjYvWAkwT8iA2VCAVnaKVub8QwC6d9fIR+ueJW3TnoKvFyUiE5Gv3yV28Q8zQChVwyY7qem6CfMY2CS5iWeqmBhPExG0LXUsUiMH42P3lKz6wyoGGsbSmkc/X3RMYiYyZRYDsjhiOz7M3E/7xuiuG1nwmVpAiKLxaFqaQY09n/dCA0cJQTSxjXwt5K+YhpxtGmVLIheMsvr5LWRdWrVWv3l5X6TR5HkZyQU3JOPHJF6uSONEiTcBKTZ/JK3hx0Xpx352PRWnDymWPyB87nD6IEkYA=</latexit> ˆf e
+
+t
+
+<latexit sha1_base64="uLOVRgNJj0RQbAbrixwBr1NscyQ=">AAAB8nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2m3bpZhN2J0IJ/RlePCji1V/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVjDdZLGPdCajhUijeRIGSdxLNaRRI3g7GtzO//cS1EbF6wEnC/YgOlQgFo2ilbm9EMQunfXzU/XLFrbpzkFXi5aQCORr98ldvELM04gqZpMZ0PTdBP6MaBZN8WuqlhieUjemQdy1VNOLGz+YnT8mZVQYkjLUthWSu/p7IaGTMJApsZ0RxZJa9mfif100xvPYzoZIUuWKLRWEqCcZk9j8ZCM0ZyokllGlhbyVsRDVlaFMq2RC85ZdXSeui6tWqtfvLSv0mj6MIJ3AK5+DBFdThDhrQBAYxPMMrvDnovDjvzseiteDkM8fwB87nD7W4kY0=</latexit> ˆf r
+
+t
+
+<latexit sha1_base64="kflOiS7Voj7kRprbMP3qYjomaFQ=">AAAB/XicbVDLSsNAFJ34rPUVHzs3g0VwVRKR6rLoxoWLCvYBbQiT6aQdOpmEmRuhhuKvuHGhiFv/w51/46TNQlsPDBzOuZd75gSJ4Boc59taWl5ZXVsvbZQ3t7Z3du29/ZaOU0VZk8YiVp2AaCa4ZE3gIFgnUYxEgWDtYHSd++0HpjSP5T2ME+ZFZCB5yCkBI/n2YS8iMKREZLcTP9OgUgoT3644VWcKvEjcglRQgYZvf/X6MU0jJoEKonXXdRLwMqKAU8Em5V6qWULoiAxY11BJIqa9bJp+gk+M0sdhrMyTgKfq742MRFqPo8BM5ln1vJeL/3ndFMJLL+MySYFJOjsUpgJDjPMqcJ8rRkGMDSFUcZMV0yFRhIIprGxKcOe/vEhaZ1W3Vq3dnVfqV0UdJXSEjtEpctEFqqMb1EBNRNEjekav6M16sl6sd+tjNrpkFTsH6A+szx+MRZX0</latexit> Lstruct 
+
+<latexit sha1_base64="bP7d+5V6y6uGmhF/+t4w76476Xg=">AAAB+nicbVDLSsNAFL3xWesr1aWbwSK4KolIdVl048JFBfuANoTJdNoOnUzCzEQpMZ/ixoUibv0Sd/6NkzYLbT0wcDjnXu6ZE8ScKe0439bK6tr6xmZpq7y9s7u3b1cO2ipKJKEtEvFIdgOsKGeCtjTTnHZjSXEYcNoJJte533mgUrFI3OtpTL0QjwQbMoK1kXy70g+xHhPM09vMTzHRmW9XnZozA1ombkGqUKDp21/9QUSSkApNOFaq5zqx9lIsNSOcZuV+omiMyQSPaM9QgUOqvHQWPUMnRhmgYSTNExrN1N8bKQ6VmoaBmcyDqkUvF//zeokeXnopE3GiqSDzQ8OEIx2hvAc0YJISzaeGYCKZyYrIGEvTgGmrbEpwF7+8TNpnNbdeq9+dVxtXRR0lOIJjOAUXLqABN9CEFhB4hGd4hTfryXqx3q2P+eiKVewcwh9Ynz/cf5Rp</latexit> Lact 
+
+<latexit sha1_base64="BEydi0DeybhVxpOtVijENrUTZBw=">AAAB7nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lEqseiF48V7Ae0sWy2m3bpZhN2J0IJ/RFePCji1d/jzX/jts1BWx8MPN6bYWZekEhh0HW/ncLa+sbmVnG7tLO7t39QPjxqmTjVjDdZLGPdCajhUijeRIGSdxLNaRRI3g7GtzO//cS1EbF6wEnC/YgOlQgFo2ildhZO+/io++WKW3XnIKvEy0kFcjT65a/eIGZpxBUySY3pem6CfkY1Cib5tNRLDU8oG9Mh71qqaMSNn83PnZIzqwxIGGtbCslc/T2R0ciYSRTYzojiyCx7M/E/r5tieO1nQiUpcsUWi8JUEozJ7HcyEJozlBNLKNPC3krYiGrK0CZUsiF4yy+vktZF1atVa/eXlfpNHkcRTuAUzsGDK6jDHTSgCQzG8Ayv8OYkzovz7nwsWgtOPnMMf+B8/gCoZ4/M</latexit> f r
+
+t
+
+<latexit sha1_base64="GZ0Y0cyhnd1R+gxRm7e0ckHSagU=">AAAB7nicbVBNS8NAEJ3Ur1q/qh69BIvgqSQi1WPRi8cK9gPaWDbbTbt0s1l2J0IJ/RFePCji1d/jzX/jts1BWx8MPN6bYWZeqAQ36HnfTmFtfWNzq7hd2tnd2z8oHx61TJJqypo0EYnuhMQwwSVrIkfBOkozEoeCtcPx7cxvPzFteCIfcKJYEJOh5BGnBK3UzqJpHx9Vv1zxqt4c7irxc1KBHI1++as3SGgaM4lUEGO6vqcwyIhGTgWblnqpYYrQMRmyrqWSxMwE2fzcqXtmlYEbJdqWRHeu/p7ISGzMJA5tZ0xwZJa9mfif100xug4yLlWKTNLFoigVLibu7Hd3wDWjKCaWEKq5vdWlI6IJRZtQyYbgL7+8SloXVb9Wrd1fVuo3eRxFOIFTOAcfrqAOd9CAJlAYwzO8wpujnBfn3flYtBacfOYY/sD5/AGlX4/K</latexit> f p
+
+tFigure 2: Two-phase training pipeline. Flame icons mark trainable modules and snowflakes mark frozen ones; red arrows carry gradients and blue arrows do not. Phase 1 (left): A single self-play vector policy is trained end-to-end with PPO in a multi-agent vectorized simulator. The ego, map, and partner encoders, and the action head are jointly optimized, and the same parameter set controls every agent in the scene so the interaction distribution co-evolves with the policy. Phase 2 (right): 
+
+The Phase-1 policy is frozen (bottom) and used purely as a source of per-frame supervision for the deployed end-to-end policy (top). For each log frame drawn from the nuPlan dataset, the student receives the camera image plus ego kinematics and a navigation signal: a frozen DINOv3 backbone extracts image features, and two linear adapters map them to the road and partner features, while the ego encoder is inherited and kept frozen. Two losses tie the student to the teacher: a structural loss 
+
+on the joint embedding and an action loss on the output action distribution. No logged ego trajectory is ever used as a supervision target. 
+
+3 Method 
+
+3.1 Self-Play Pretraining Setup. We pretrain a driving policy πθ by self-play in TerraZero. A single set of parameters θ
+
+controls all agents in every scene; all transitions are pooled into one on-policy buffer. Each agent’s “surrounding traffic” is therefore other instances of the current policy, so the multi-agent interaction distribution evolves with the policy itself. 
+
+Policy architecture. At each step an agent observes its own ego state oet (its kinematics together with the per-episode reward-weight vector w(n) introduced below), a variable-sized set of road ele-ments Ort = {ort,i }Mr
+
+i=1 , and a variable-sized set of partner agents Opt = {opt,j }Mp
+
+j=1 . Three encoders process these inputs in parallel: 
+
+ˆf et = Eego (oet ), ˆf rt = Er (Ort ), ˆf pt = Ep(Opt ), (1) where Eego is an MLP and Er , E p are DeepSets [48] encoders, Er (Ort ) = maxpool i ϕr (ort,i ) + br
+
+and likewise for Ep, whose learned biases br , b p provide a well-defined output when the correspond-ing set is empty. The three features are concatenated and fed through a shared MLP and an actor head to produce a categorical distribution over a discrete action set A (see Appendix A.4): 
+
+πθ (· | ot) = softmax 
+
+
+
+Wa · MLP shared 
+
+ [ ˆf et , ˆf rt , ˆf pt ]
+
+. (2) 
+
+Reward. The per-step reward R(n)
+
+t for agent n is a weighted sum of K driving-quality terms (goal-reaching, collision, comfort, lane alignment, lane centering, velocity, traffic-rule compliance, etc.; see Appendix A.3): 
+
+R(n)
+
+t = XKk=1 w(n)
+
+k · r(k)
+
+t
+
+ o(n)
+
+t , a (n)
+
+t
+
+. (3) 4Following the domain-randomization scheme of GigaFlow [18], the weights w(n) 
+
+> k
+
+∼U(wmin  
+
+> k
+
+, w max  
+
+> k
+
+) are resampled per agent per episode and exposed to the policy as part of its ego observation oet , so a single πθ is conditioned on, and trained to act consistently across, a continuum of driver preferences. 
+
+Objective. We optimize the clipped PPO [49] surrogate with a value loss and entropy bonus: 
+
+L(θ) = −Et
+
+h
+
+min  ρt ˆAt, clip( ρt, 1−ϵ, 1+ ϵ) ˆAt
+
+i
+
++ cv LV (θ) − cH H[πθ (· | ot)] , (4) where ρt = πθ (at | ot)/π θold (at | ot) and ˆAt is the GAE [50] advantage. After training, πθ serves a dual role in the next phase: it is the frozen teacher that supplies per-frame supervision, and its shared MLP and actor head are inherited verbatim as the student’s planning head. 
+
+3.2 Vision Alignment 
+
+The student must drive the self-play policy from images, whereas the policy was trained on vector state. The obvious bridge is a cascade : train a perception module to recover the teacher’s vec-tor inputs—bounding boxes, lane polylines, partner kinematics—from the image, then feed them through the frozen policy. We avoid it. The teacher’s set encoders pool each variable-size scene into a single fixed-dimensional feature, a lossy and many-to-one map: many detection sets yield the same feature, and only that feature drives the policy. A cascade thus solves a harder problem than necessary: recovering one detection set when we can instead predict the pooled feature the policy consumes directly. This pooled feature is the alignment target we adopt. In addition, we observe that the pooled feature’s informative variation is sharply low-rank and redundant (§4.4); accord-ingly, the structural loss below matches these features only within their low-rank subspace rather than across all coordinates. Lastly, an action loss additionally ties the student’s policy distribution to the teacher’s. 
+
+Setup. The pretrained teacher πTθ is frozen. We replace its two set-valued encoders — road and partner — with image-conditioned counterparts Evis  
+
+> r
+
+, E vis  
+
+> p
+
+, while inheriting the teacher’s ego encoder 
+
+Eego , shared MLP, and actor head verbatim. Both vision encoders share a single DINOv3 [24] backbone with two linear adapters (Fig. 2); this choice gave the strongest closed-loop performance in our backbone ablation (Appendix E). Given an image It paired with the teacher’s vector observation 
+
+ot, the student and teacher features are 
+
+ f rt , f pt
+
+ =  Evis  
+
+> r
+
+(It), E vis  
+
+> p
+
+(It),   ˆf rt , ˆf pt
+
+ =  Er (Ort ), E p(Opt ), (5) where Er , E p are the frozen DeepSets encoders from Eq. 1, so the teacher features ˆf rt , ˆf pt are exactly those produced during self-play, while the student’s f rt , f pt are their vision-derived counterparts. Passing either feature pair through the shared frozen head yields a policy distribution πS (· | It) or 
+
+πT (· | ot). We supervise the student with two objectives. 
+
+Structural alignment. Rather than forcing the student to memorize the teacher’s absolute feature coordinates, we train it to reproduce the teacher’s relational structure —how the teacher arranges different driving scenes relative to one another [47]. Furthermore, as shown in §4.4, the informative variation in the teacher’s features is sharply low-rank. Matching all absolute coordinates directly would undesirably force the student to fit the structureless tail—the low-variance directions that an optimal low-rank denoiser discards as noise [51]. Therefore, we align the features strictly within their principal subspace. Formally, for a batch of size B and each encoder ∗ ∈ { r, p }, we first mean-center the student and teacher features into matrices ¯F∗, ¯ˆF∗ ∈ RB×d. To extract the informative subspace, we compute a per-batch basis using the top-k∗ right singular vectors of the stop-gradient teacher matrix: 
+
+¯ˆF∗
+
+> SVD
+
+= U∗Σ∗V ⊤∗ , V (k∗) 
+
+> ∗
+
+=  v∗,1, . . . , v ∗,k ∗
+
+ ∈ Rd×k∗ .
+
+5This basis V (k∗) 
+
+> ∗
+
+captures the dominant axes of variation across the current scenes. We then project both the student and teacher features onto this subspace, obtaining Z∗ = ¯F∗V (k∗) 
+
+> ∗
+
+and 
+
+ˆZ∗ = ¯ˆF∗V (k∗) 
+
+> ∗
+
+∈ RB×k∗ .Next, we capture the relational geometry by computing the cosine-similarity matrix among the B
+
+scenes for both sides: 
+
+S∗ = ˜Z∗ ˜Z⊤∗ , ˆS∗ = ˜ˆZ∗ ˜ˆZ⊤∗ ∈ RB×B , ˜Z∗,i = Z∗,i 
+
+∥Z∗,i ∥ .
+
+Here, ˆS∗,ij encodes the angle between scenes i and j in the teacher’s subspace—effectively repre-senting which scenes the teacher treats as alike. The student learns to replicate this geometry by minimizing the Frobenius norm of their difference: 
+
+L(∗) 
+
+> struct
+
+= 1
+
+B2 S∗ − ˆS∗ 
+
+> 2
+> F
+
+, Lstruct = L(r) 
+
+> struct
+
++ L(p)
+
+> struct
+
+.
+
+Because the basis V (k∗) 
+
+> ∗
+
+and target matrix ˆS∗ are recomputed per batch under a stop-gradient, the student focuses purely on matching pairwise scene relationships within the active subspace, leaving both the absolute coordinate frame and the orthogonal noise complement free. We use kp = 13 and 
+
+kr = 9 (the 80% cumulative-energy cutoffs of the partner and road teacher spectra, §4.4), and ablate this subspace rank alongside a full-coordinate baseline in Appendix D. 
+
+Action alignment. Beyond the features, we match the student’s action distribution to the teacher’s by forward KL divergence, 
+
+Lact = KL  πT (· | ot) ∥ πS (· | It), (6) which provides a global, policy-level consistency signal: whatever the student does to its road/partner features, the resulting actor logits must end up close to the teacher’s. 
+
+Total loss. The alignment phase optimizes: Lalign = Lact + λ Lstruct . We set λ = 0 .5, to which performance is largely insensitive (Appendix D). 
+
+4 Experiments 
+
+We evaluate whether a vision policy aligned to a self-play teacher, with no supervision from any logged trajectory, can drive competitively in closed loop. Our headline comparison (§4.2) shows that the aligned vision student matches or outperforms imitation-trained end-to-end pipelines and comes close to its own teacher, even though it is aligned on nuPlan and evaluated on nuScenes-derived scenarios. We then quantify how little paired data this takes (§4.3): with no trajectory labels and roughly 40% of the nuPlan frames that the state-of-the-art baseline fine-tunes on, the student already surpasses it. Finally, we trace the method back to a property of the teacher (§4.4): its features are low-rank, which is what makes matching only a relational low-rank subspace an effective alignment target. Remaining design choices and detail-level ablations are deferred to the appendix: the loss ablation (Appendix D), the vision backbone (Appendix E), and the sensitivity of alignment to the rollout policy used to collect paired frames (Appendix F). 
+
+4.1 Setup 
+
+We evaluate on HUGSim [11], a photorealistic 3D Gaussian splatting closed-loop benchmark built from nuScenes-derived scenarios and split into Easy, Medium, Hard, and Extreme tiers. We report the benchmark’s aggregate HD-Score; metric definitions are provided in Appendix B. Because our policy emits one immediate action at a time, the native open-loop time-to-collision (TTC) and comfort (COM) definitions, which assume an explicitly planned future trajectory, are not directly applicable. We therefore use closed-loop versions of these two metrics computed from the realized rollout, while leaving the rest of the HD-Score computation unchanged. Appendix B details this conversion; Appendix C provides a more detailed evaluation of the self-play teacher policy. 64.2 Closed-Loop Comparison with End-to-End Baselines 
+
+Table 1: Our vision policy approaches the self-play teacher and outperforms published end-to-end baselines on HUGSim. Closed-loop HD-Score (§4.1) across the four HUGSim [11] difficulty tiers on the 88 nuScenes-derived scenarios. Higher is better; bold marks the best per column among comparison methods. The italicized self-play baseline is the teacher we distill from—unlike every other row, it drives from privileged vectorized scene state rather than camera images—included as a reference and excluded from best-per-column counts.                                         
+
+> Method Easy Medium Hard Extreme All UniAD [7] 0.367 0.198 0.249 0.109 0.224 VAD [8] 0.400 0.228 0.242 0.095 0.239 LTF [9] 0.634 0.391 0.289 0.098 0.360 ECO Smoothing-only [12] 0.764 0.416 0.405 0.255 0.452 ECO Smoothing + Re-time [12] 0.720 0.388 0.342 0.236 0.415
+> Self-play baseline (ref.) 0.780 0.497 0.639 0.185 0.520
+> Ours 0.769 0.501 0.560 0.150 0.490
+
+Table 1 compares closed-loop HD-Score on the HUGSim nuScenes scenarios. Our aligned vision policy is the strongest method on aggregate: it reaches 0.490 , outperforming the best imitation-trained end-to-end baseline, LTF, by 0.130 , and the strongest published ECO variant by 0.038 . It is also close to the self-play teacher ( 0.520 ), indicating that the vision alignment transfers most of the teacher’s driving competence without logged-trajectory supervision. The main exception is Extreme, where ECO leads by 0.105 . These scenarios are strongly out of distribution: surrounding vehicles may actively collide with the ego, and in some cases pass through other vehicles before doing so. Our policy responds conservatively, which preserves safety behavior but often sacrifices route completion; the resulting low Rc pulls down the aggregate HD-Score on this split. 
+
+4.3 Alignment Data Efficiency 
+
+The paired dataset is needed only to teach the vision frontend how to reproduce the frozen teacher’s behavior. The headline run uses ≈ 1.83 M paired (image, scene-state) frames from nuPlan [3] ( 7,129 
+
+shards of 256 frames; ∼51 hours at 10 Hz). At every frame, the target is the teacher’s action dis-tribution on the reconstructed scene; the logged ego trajectory is never used. These frames come from nuPlan, whereas HUGSim is built from nuScenes scenarios (§4.1)—distinct datasets with dif-ferent sensor rigs and locations—so the closed-loop scores here additionally reflect cross-dataset generalization rather than in-distribution replay. Figure 3 sweeps the paired-data fraction ρ ∈ { 0.2, 0.4, 0.6, 0.8, 1.0} of our 1.83 M frames while holding the alignment recipe fixed. For reference it also places ECO, the strongest published base-line, at ρ ≈ 1.6: on top of large-scale imitation pretraining, ECO fine-tunes on the full nuPlan training split ( ∼2.8M frames), well beyond our budget. Our student needs far less in-domain data and no trajectory labels: it already surpasses ECO at ρ = 0 .6 (0.461 vs. 0.452 , roughly 40% of ECO’s nuPlan frames), stays around that level at ρ = 0 .8 (0.445 ), and reaches 0.490 at full data, surpassing ECO by 0.038 .
+
+4.4 Effective Rank of Latent Features 
+
+Figure 4 explains why the structural loss aligns a low-rank subspace rather than all feature coor-dinates. The teacher’s map and partner features live in a much smaller effective space than their 
+
+D = 64 -dimensional parameterization: the map spectrum captures 80% of its energy in the first 
+
+9 directions, and the partner spectrum in the first 13 . The entropy-based effective ranks [52] are similarly low, about 15 for map and 18 for partner. 70 0.2 0.4 0.6 0.8 1.0 1.6     
+
+> ρ
+> 0.0  0.5  1.0
+> CL HD-Score  All ( N= 88 )Ours (end-to-end) Self-play teacher ECO Smoothing-only
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> ρ
+> 0.0  0.5  1.0
+> CL HD-Score  Easy
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> ρ
+> Medium
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> ρ
+> Hard
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> ρ
+> Extreme
+
+Figure 3: Alignment data efficiency. Closed-loop HD-Score vs. relative nuPlan training data ρ (our full alignment set = 1 .83 Mframes ⇒ ρ = 1 ), for the All set (top) and each HUGSim tier (bottom) on nuScenes; bands are ±1 per-scene std. The self-play teacher (§4.2) uses no nuPlan data and sits at ρ = 0 (horizon-tal dashed line) in every panel; ECO Smoothing-only is placed at 
+
+ρ ≈ 1.6 (∼2.8M nuPlan frames vs. our 1.83M), All set only, for reference. 0 20 40 60        
+
+> singular value index
+> 10 1
+> 10 2
+> i (centered, log scale)
+> Teacher fp/fr
+> fp(partner) kp=13
+> fr(map) kr=9
+
+Figure 4: Singular value spectra of the teacher features. Centered SVD of teacher 
+
+fp (partner) and fr (map) over the align-ment manifest. Dashed lines mark the 80% 
+
+cumulative-energy index ( kp = 13 partner, 
+
+kr = 9 map), the truncations used in §3.2. 
+
+This makes the rank truncation in §3.2 an empirical choice rather than a free hyperparameter. We set kr = 9 and kp = 13 to retain the structured part of the teacher representation while avoiding the long tail of small singular directions, where matching absolute coordinates would mostly ask the vision student to fit weakly structured variation. Appendix D ablates this low-rank subspace loss against a full-rank variant to confirm the truncation on 80% energy helps closed-loop performance. 
+
+5 Limitations 
+
+Our current approach faces three main limitations stemming from the simulated training environ-ment. First, training solely on bounding boxes means the policy misses fine-grained visual cues, such as brake lights or hand signals, which we plan to resolve through supervised fine-tuning on real-world data. Second, because the simulator currently uses only vehicle kinematics models, the policy has limited exposure to mixed traffic involving pedestrians and cyclists. Finally, incomplete support for signalized intersections means the system has yet to learn complex right-of-way rules. We expect to mitigate these simulation constraints in future work by expanding the environment’s supported entities and traffic logic. 
+
+6 Conclusion 
+
+We presented a demonstration-free recipe for end-to-end driving: instead of imitating logged human trajectories, we learn to drive once by self-play in TerraZero, our vectorized simulator, and then transfer that competence to a vision policy in a single alignment stage. Phase 1 trains a planning head by multi-agent self-play on vector state. Phase 2 freezes it and aligns a vision frontend to it on paired (image, scene-state) frames, supervised by an action-distribution loss and a batch-relational low-rank structural loss, never against a logged trajectory. The resulting raw-image policy comes within 0.03 
+
+aggregate HD-Score of its self-play teacher and outperforms imitation-trained end-to-end pipelines, edging out the strongest published baseline on aggregate, on photorealistic closed-loop scenarios. The recipe moves the cost of learning to drive upstream into self-play, which is demonstration-free, scalable, one-time, and reusable. In essence, this work highlights simulation-driven self-play as a highly effective, data-efficient path forward for end-to-end autonomous driving. 8References 
+
+[1] B. Paden, M. ˇ C´ ap, S. Z. Yong, D. Yershov, and E. Frazzoli. A survey of motion planning and control techniques for self-driving urban vehicles. IEEE Transactions on Intelligent Vehicles ,1(1):33–55, 2016. [2] P. Sun, H. Kretzschmar, X. Dotiwalla, A. Chouard, V. Patnaik, P. Tsui, J. Guo, Y. Zhou, Y. Chai, B. Caine, V. Vasudevan, W. Han, J. Ngiam, H. Zhao, A. Timofeev, S. Ettinger, M. Krivokon, A. Gao, A. Joshi, Y. Zhang, J. Shlens, Z. Chen, and D. Anguelov. Scalability in perception for autonomous driving: Waymo open dataset. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. [3] H. Caesar, J. Kabzan, K. S. Tan, W. K. Fong, E. Wolff, A. Lang, L. Fletcher, O. Beijbom, and S. Omari. nuPlan: A closed-loop ML-based planning benchmark for autonomous vehicles. 
+
+arXiv preprint arXiv:2106.11810 , 2021. [4] M. Bojarski, D. D. Testa, D. Dworakowski, B. Firner, B. Flepp, P. Goyal, L. D. Jackel, M. Mon-fort, U. Muller, J. Zhang, X. Zhang, J. Zhao, and K. Zieba. End to end learning for self-driving cars. arXiv preprint arXiv:1604.07316 , 2016. [5] F. Codevilla, E. Santana, A. M. L´ opez, and A. Gaidon. Exploring the limitations of behavior cloning for autonomous driving. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2019. [6] H. Caesar, V. Bankiti, A. H. Lang, S. Vora, V. E. Liong, Q. Xu, A. Krishnan, Y. Pan, G. Baldan, and O. Beijbom. nuScenes: A multimodal dataset for autonomous driving. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. [7] Y. Hu, J. Yang, L. Chen, K. Li, C. Sima, X. Zhu, S. Chai, S. Du, T. Lin, W. Wang, L. Lu, X. Jia, Q. Liu, J. Dai, Y. Qiao, and H. Li. Planning-oriented autonomous driving. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. [8] B. Jiang, S. Chen, Q. Xu, B. Liao, J. Chen, H. Zhou, Q. Zhang, W. Liu, C. Huang, and X. Wang. VAD: Vectorized scene representation for efficient autonomous driving. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2023. [9] K. Chitta, A. Prakash, B. Jaeger, Z. Yu, K. Renz, and A. Geiger. TransFuser: Imitation with transformer-based sensor fusion for autonomous driving. IEEE Transactions on Pattern Anal-ysis and Machine Intelligence , 45(11):12878–12895, 2023. [10] D. Dauner, M. Hallgarten, T. Li, X. Weng, Z. Huang, Z. Yang, H. Li, I. Gilitschenski, B. Ivanovic, M. Pavone, A. Geiger, and K. Chitta. NAVSIM: Data-driven non-reactive au-tonomous vehicle simulation and benchmarking. In Advances in Neural Information Process-ing Systems (NeurIPS) Datasets and Benchmarks Track , 2024. [11] H. Zhou, L. Lin, J. Wang, Y. Lu, D. Bai, B. Liu, Y. Wang, A. Geiger, and Y. Liao. HUGSIM: A real-time, photo-realistic and closed-loop simulator for autonomous driving. arXiv preprint arXiv:2412.01718 , 2024. [12] B. Zhang, M. Golchoubian, I. Gilitschenski, B. Ivanovic, and K. Chitta. Endpoint constrained trajectory optimization for driving foundation models. In ICCV RealADSim Workshop , 2025. [13] P. Karkus, M. Igl, Y. Chen, K. Chitta, J. Packer, B. Douillard, T. Tian, A. Naumann, G. Garcia-Cobo, S. Tan, A. Degirmenci, A. Popov, N. Smolyanskiy, U. Muller, B. Ivanovic, and M. Pavone. Beyond behavior cloning in autonomous driving: a survey of closed-loop training techniques. IEEE Transactions on Pattern Analysis and Machine Intelligence , 2025. [14] A. Dosovitskiy, G. Ros, F. Codevilla, A. Lopez, and V. Koltun. CARLA: An open urban driving simulator. In Proceedings of the Conference on Robot Learning (CoRL) , 2017. 9[15] D. Chen, B. Zhou, V. Koltun, and P. Kr¨ ahenb¨ uhl. Learning by cheating. In Proceedings of the Conference on Robot Learning (CoRL) , 2019. [16] Z. Zhang, A. Liniger, D. Dai, F. Yu, and L. Van Gool. End-to-end urban driving by imitating a reinforcement learning coach. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2021. [17] P. Wu, X. Jia, L. Chen, J. Yan, H. Li, and Y. Qiao. Trajectory-guided control prediction for end-to-end autonomous driving: A simple yet strong baseline. In Advances in Neural Information Processing Systems (NeurIPS) , 2022. [18] M. Cusumano-Towner, D. Hafner, A. Hertzberg, B. Huval, A. Petrenko, E. Vinitsky, E. Wij-mans, T. Killian, S. Bowers, O. Sener, P. Kr¨ ahenb¨ uhl, and V. Koltun. Robust autonomy emerges from self-play. arXiv preprint arXiv:2502.03349 , 2025. [19] W.-J. Chang, A. Rangesh, K. Joseph, M. Strong, M. Tomizuka, Y. Hu, and W. Zhan. SPACeR: Self-play anchoring with centralized reference models. In Proceedings of the International Conference on Learning Representations (ICLR) , 2026. [20] H. Seong, J.-K. Lee, H. Myeong, Y. Shin, H.-M. Cho, D. H. Kim, P. Desai, and M. Surana. Post-training and test-time scaling of generative agent behavior models for interactive au-tonomous driving. arXiv preprint arXiv:2512.13262 , 2025. [21] Y. Guo, D. Ye, S. Chen, A. Liu, and X. Liu. CorrectionPlanner: Self-correction planner with reinforcement learning in autonomous driving. arXiv preprint arXiv:2603.15771 , 2026. [22] F. Konstantinidis, M. Sackmann, U. Hofmann, and C. Stiller. Toward efficient and robust behavior models for multi-agent driving simulation. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2026. [23] E. Ahmadi, H. Schofield, B. Khamidehi, F. Arasteh, J. Shan, L. Mou, K. Rezaee, and D. Bai. RLFTSim: Realistic and controllable multi-agent traffic simulation via reinforcement learning fine-tuning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2026. [24] O. Sim´ eoni, H. V. Vo, M. Seitzer, F. Baldassarre, M. Oquab, C. Jose, V. Khalidov, M. Szafraniec, S. Yi, M. Ramamonjisoa, F. Massa, D. Haziza, L. Wehrstedt, J. Wang, T. Darcet, T. Moutakanni, L. Sentana, C. Roberts, A. Vedaldi, J. Tolan, J. Brandt, C. Couprie, J. Mairal, H. J´ egou, P. Labatut, and P. Bojanowski. DINOv3. arXiv preprint arXiv:2508.10104 , 2025. [25] W. Wu, X. Feng, Z. Gao, and Y. Kan. SMART: Scalable multi-agent real-time motion gen-eration via next-token prediction. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. [26] G. Hess, C. Lindstr¨ om, M. Fatemi, C. Petersson, and L. Svensson. SplatAD: Real-time lidar and camera rendering with 3d gaussian splatting for autonomous driving. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. [27] H. Gao, S. Chen, B. Jiang, B. Liao, Y. Shi, X. Guo, Y. Pu, H. Yin, X. Li, X. Zhang, Y. Zhang, W. Liu, Q. Zhang, and X. Wang. RAD: Training an end-to-end driving policy via large-scale 3DGS-based reinforcement learning. In Advances in Neural Information Processing Systems (NeurIPS) , 2025. [28] J. Suarez. PufferLib: Making reinforcement learning libraries and environments play nice. 
+
+arXiv preprint arXiv:2406.12905 , 2024. [29] E. Kaufmann, L. Bauersfeld, A. Loquercio, M. M¨ uller, V. Koltun, and D. Scaramuzza. Champion-level drone racing using deep reinforcement learning. Nature , 620(7976):982–987, 2023. 10 [30] A. Kumar, R. Bahlous-Boldi, P. Sharma, P. Isola, S. Risi, Y. Tang, and D. Ha. Digital red queen: Adversarial program evolution in core war with LLMs. arXiv preprint arXiv:2601.03335 ,2026. [31] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin, J. Clark, G. Krueger, and I. Sutskever. Learning transferable visual models from natural language supervision. In Proceedings of the International Conference on Machine Learning (ICML) , 2021. [32] C. Jia, Y. Yang, Y. Xia, Y.-T. Chen, Z. Parekh, H. Pham, Q. V. Le, Y.-H. Sung, Z. Li, and T. Duerig. Scaling up visual and vision-language representation learning with noisy text su-pervision. In Proceedings of the International Conference on Machine Learning (ICML) , 2021. [33] J. Li, D. Li, S. Savarese, and S. Hoi. BLIP-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In Proceedings of the International Conference on Machine Learning (ICML) , 2023. [34] A. A. Rusu, S. G. Colmenarejo, C ¸ . G¨ ulc ¸ehre, G. Desjardins, J. Kirkpatrick, R. Pascanu, V. Mnih, K. Kavukcuoglu, and R. Hadsell. Policy distillation. In Proceedings of the Inter-national Conference on Learning Representations (ICLR) , 2016. [35] E. Parisotto, J. Ba, and R. Salakhutdinov. Actor-mimic: Deep multitask and transfer reinforce-ment learning. In Proceedings of the International Conference on Learning Representations (ICLR) , 2016. [36] Y. W. Teh, V. Bapst, W. M. Czarnecki, J. Quan, J. Kirkpatrick, R. Hadsell, N. Heess, and R. Pascanu. Distral: Robust multitask reinforcement learning. In Advances in Neural Infor-mation Processing Systems (NeurIPS) , 2017. [37] S. Schmitt, J. J. Hudson, A. ˇ Z´ ıdek, S. Osindero, C. Doersch, W. M. Czarnecki, J. Z. Leibo, H. K¨ uttler, A. Zisserman, K. Simonyan, and S. M. A. Eslami. Kickstarting deep reinforcement learning. arXiv preprint arXiv:1803.03835 , 2018. [38] J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter. Learning quadrupedal locomo-tion over challenging terrain. Science Robotics , 5(47):eabc5986, 2020. [39] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter. Learning robust per-ceptive locomotion for quadrupedal robots in the wild. Science Robotics , 7(62):eabk2822, 2022. [40] A. Kumar, Z. Fu, D. Pathak, and J. Malik. RMA: Rapid motor adaptation for legged robots. In 
+
+Robotics: Science and Systems (RSS) , 2021. [41] A. Loquercio, E. Kaufmann, R. Ranftl, M. M¨ uller, V. Koltun, and D. Scaramuzza. Learning high-speed flight in the wild. Science Robotics , 6(59):eabg5810, 2021. [42] T. Chen, J. Xu, and P. Agrawal. A system for general in-hand object re-orientation. In Pro-ceedings of the Conference on Robot Learning (CoRL) , 2021. [43] Z. Wu, R. Song, V. Mundheda, L. E. Navarro-Serment, C. Schoenborn, and J. Schneider. TADPO: Reinforcement learning goes off-road. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2026. URL https://arxiv.org/abs/ 2603.05995 .[44] G. Hinton, O. Vinyals, and J. Dean. Distilling the knowledge in a neural network. In NeurIPS Deep Learning and Representation Learning Workshop , 2015. [45] J. Philion, A. Kar, and S. Fidler. Learning to evaluate perception models using planner-centric metrics. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recog-nition (CVPR) , 2020. 11 [46] W.-X. Li and X. Yang. Transcendental idealism of planner: Evaluating perception from plan-ning perspective for autonomous driving. In Proceedings of the International Conference on Machine Learning (ICML) , 2023. [47] F. Tung and G. Mori. Similarity-preserving knowledge distillation. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , pages 1365–1374, 2019. [48] M. Zaheer, S. Kottur, S. Ravanbakhsh, B. Poczos, R. R. Salakhutdinov, and A. J. Smola. Deep sets. In Advances in Neural Information Processing Systems (NeurIPS) , 2017. [49] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov. Proximal policy optimization algorithms. arXiv preprint arXiv:1707.06347 , 2017. [50] J. Schulman, P. Moritz, S. Levine, M. Jordan, and P. Abbeel. High-dimensional continuous control using generalized advantage estimation. arXiv preprint arXiv:1506.02438 , 2015. [51] M. Gavish and D. L. Donoho. The optimal hard threshold for singular values is 4/√3. IEEE Transactions on Information Theory , 60(8):5040–5053, 2014. [52] O. Roy and M. Vetterli. The effective rank: A measure of effective dimensionality. In 2007 15th European Signal Processing Conference , pages 606–610. IEEE, 2007. 12 Supplementary Contents 
+
+A Self-Play Policy Details . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14 B Closed-Loop HD-Score . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 C Self-Play Policy Baseline Performance . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 D Loss Ablation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 E Vision Backbone Ablation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 F Alignment Decoupled from Demonstration Quality . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 G Qualitative Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 13 A Self-Play Policy Details 
+
+A.1 Training Details Environment setup. Self-play training runs in TerraZero, our in-house vectorized driving sim-ulator, and uses nuPlan HD maps as map geometry only. We compile nuPlan map geometry into simulator binaries and use lane topology, lane boundaries, and drivable-area polygons as static scene context; we do not use nuPlan logged trajectories, logged agent initial states, logged goals, human actions, or replayed traffic as training supervision. Controlled vehicles are spawned procedurally from lane centerlines by rejection sampling, so the initial scene is collision-free and drivable. The learned policy controls vehicles only; the simulator also procedurally places vulnerable road users and static obstacles as scene context, but these entities are not trained policies. Goals are also pro-cedural. For each spawned vehicle, the simulator samples a target distance between 20 and 100 mand walks forward along the HD-map lane graph, selecting reachable lane successors and filtering candidates by connectivity and heading consistency. When a vehicle reaches its current goal, a new reachable goal is sampled from the same topology; no destination is taken from a log. 
+
+RL algorithm. The teacher is trained as a decentralized policy with PPO. We use V-trace-corrected GAE ( γ = 0 .99 , λ = 0 .95 ), clipped PPO with clip coefficient 0.2, entropy coefficient 
+
+0.01 , value coefficient 0.5, Adam with an annealed 5×10 −4 learning rate, and bfloat16 mixed precision. The reference teacher run was trained on 16 A100 GPUs, with approximately 3M cumu-lative agent steps/s throughput. 
+
+A.2 Observations 
+
+At each simulator step ( ∆t = 0 .1 s), a controlled vehicle observes three groups of inputs match-ing the policy factorization in Eq. 1: an ego vector, a variable-size set of road elements, and a variable-size set of nearby partners. The ego vector contains the vehicle kinematic state 
+
+(x, y, θ, v, a long , a lat , ϕ ) in the ego frame, the current navigation/goal signal, the sampled vehicle geometry and dynamics coefficients, and the per-episode reward-weight vector. Road observations encode nearby lane and boundary polylines relative to the ego frame. Partner observations encode neighboring scene entities by relative pose, velocity, heading, size, type, and validity masks. The road and partner sets are pooled by the DeepSets encoders described in §3.1. 
+
+A.3 Reward Components 
+
+The vehicle reward in Eq. 3 uses most of the reward components and settings from the self-play setup of Cusumano-Towner et al. [18], including the per-agent, per-episode reward-weight randomization exposed through the ego observation. Our only reward modification is the addition of a lane-change reward term that penalizes excessive lane changes during self-play. Table 2 lists the exact coefficient settings used in our training run. 
+
+A.4 Vehicle Dynamics 
+
+We use the jerk-actuated bicycle dynamics and the discrete 12 -action longitudinal/lateral jerk grid from the vehicle branch of Cusumano-Towner et al. [18]. As in that setup, each controlled vehicle maintains pose, speed, longitudinal and lateral acceleration, and steering state; selected jerk actions are integrated into accelerations, speed, steering, and finally pose using the simulator time step. Our dynamics setup differs from Cusumano-Towner et al. [18] in three ways. First, because the learned policy controls vehicles only, dynamics randomization is restricted to passenger-car-sized bodies rather than the broader road-user size range used in that work: 
+
+length ∼ U (3 .5, 5.5) m , width ∼ U (1 .5, 2.5) m , height ∼ U (1 .2, 2.0) m . (7) Second, at every episode reset each vehicle samples the scalar dynamics coefficients 
+
+Cthrottle , C steer , C acc , C vel ∼ U (0 .5, 1.5) , (8) 14 Table 2: Vehicle reward coefficients used during self-play. Ranges denote independent per-vehicle, per-episode uniform sampling. 
+
+Reward parameter Coefficient setting Effect Collision αcollision ∼ U (0 .0, 3.0) Collision avoidance Collision speed αcoll-speed = 0 .1 Impact severity Boundary αboundary ∼ U (0 .0, 3.0) Drivable-area compliance Comfort αcomfort ∼ U (0 .0, 0.1) Acceleration/jerk comfort Lane alignment αl-align ∼ U (2 .5×10 −4, 2.5×10 −2) Lane heading Velocity alignment αv-align ∼ U (0 .0, 1.0) Forward progress Lane centering αl-center ∼ U (2 .5×10 −4, 7.5×10 −3) Lane position Reverse αreverse ∼ U (2 .5×10 −4, 7.5×10 −3) Reverse motion Lane change αlane-change ∼ U (0 .0, 0.1) Lane-change regularization Velocity αvelocity = 2 .5×10 −3 Speed shaping Timestep αtimestep = 2 .5×10 −5 Per-step cost Goal tolerance δgoal ∼ U (2 .0, 12 .0) m Completion radius Goal αgoal = 1 .0 Goal completion 
+
+rather than the mixed-uniform coefficient distributions in Cusumano-Towner et al. [18]. These co-efficients and the sampled vehicle dimensions are included in the ego observation so the policy can condition on the vehicle it is controlling. Third, we run self-play with simulator step ∆t = 0 .1 s, which improves closed-loop reactivity and matches the control rate used by the student vision policy. 
+
+B Closed-Loop HD-Score 
+
+The native HUGSim [11] HD-Score is not well designed for closed-loop evaluation: it scores the policy’s planned future trajectory rather than the path the ego actually drives. 1 This is a legacy of the open-loop NAVSIM-style protocol [10] it was written for, where each keyframe carries a multi-second planned trajectory and the metric never has to commit to what is executed. But what we want to measure is closed-loop driving quality, which lives in the realized rollout trajectory, not in a plan the policy may never follow—and our single-step policy emits no multi-second plan to begin with. We therefore introduce a closed-loop variant of the HD-Score (used in §4.1) that scores the realized rollout directly: we keep the aggregation formula and the no-collision (NC) and drivable-area-compliance (DAC) subscores unchanged, redefine the time-to-collision (TTC) and comfort (COM) terms to operate on the realized trajectory, and reground route completion ( Rc) in the scene geometry. 
+
+B.1 Closed-loop redefinitions 
+
+Let T = {t1, . . . , t M } be the set of evaluation keyframes (a fixed-stride decimation of the roll-out, default 0.5 s ), let (xet , y et , θ et , v et ) be the realized pose and instantaneous velocity of the ego at keyframe t, and let Pt index the set of valid vehicle-like partners visible at keyframe t. We continue to compute the aggregate as 
+
+HD -Score = 1
+
+|T | 
+
+X
+
+> t∈T
+
+NC t · DAC t · 5 TTC t + 2 COM t
+
+7 · Rc, (9) with NC, DAC defined identically to native HUGSim and TTC, COM, Rc redefined below. 
+
+Closed-loop TTC. We discard the planned trajectory and measure imminent risk directly on the realized rollout, addressing all three issues above. At keyframe t we propagate the ego and every valid partner j ∈ P t forward by their observed instantaneous velocities along a short horizon HTTC 
+
+> 1
+
+Throughout this appendix, the native HD-Score denotes the public HUGSim scorer 
+
+sim/utils/score calculator.py (repository hyzhou404/HUGSIM , commit 62c690d , 2025-11-08; 
+
+https://github.com/hyzhou404/HUGSIM ), whose calculate() routine is the scoring entry point we benchmark against; all statements about native behavior below are taken from it. 
+
+15 (default 1.0 s , the conventional imminent window and the native velocity-shift upper bound) at a fine stride ∆TTC (default 0.2 s ): 
+
+(x(a) 
+
+> t,δ
+
+, y (a) 
+
+> t,δ
+
+) = ( x(a) 
+
+> t
+
+, y (a) 
+
+> t
+
+) + δ (v(a) 
+
+> x,t
+
+, v (a) 
+
+> y,t
+
+), a ∈ { ego } ∪ P t, δ ∈ { 0, ∆TTC , . . . , H TTC }. (10) At each δ we test the propagated ego oriented bounding box (OBB) against both each propagated partner box and the static 3D Gaussian-splatting (3DGS) point cloud B reconstructed for the scene background, the latter flagged when the ego box encloses more than Nbg such points (default 100 ,matching the native background-collision test), and record the earliest collision time 
+
+τ ⋆t = min 
+
+n
+
+δ :
+
+
+
+∃ j ∈ P t, OBB ego  
+
+> t
+
+(δ) ∩ OBB (j) 
+
+> t
+
+(δ)̸ = ∅
+
+
+
+∨
+
+
+
+B ∩ OBB ego  
+
+> t
+
+(δ) > N bg 
+
+o 
+
+,
+
+(11) with τ ⋆t = + ∞ if no collision occurs over the horizon, and report the fractional score 
+
+TTC t = min 
+
+
+
+1, τ ⋆t / H TTC 
+
+
+
+∈ [0 , 1] . (12) These three changes—realized poses, a fractional imminent-window sweep, and propagated (rather than frozen) partners—resolve issues (i)–(iii) respectively. A δ = 0 collision (ego already in contact at the keyframe) returns TTC t = 0 directly. 
+
+Closed-loop COM. We retain the native comfort bounds (the five active constraints above) but apply them to the realized ego trajectory over a fixed-duration forward window of WCOM seconds (default 1.0 s ) starting at each keyframe. Concretely, at keyframe t we take the forward window 
+
+Wt = {t, t + ∆ sim , . . . , t + ( n − 1)∆ sim } of the next n = max(round( WCOM /∆sim ), 4) realized ego poses ( n = 10 at the defaults WCOM = 1 .0 s , ∆sim = 0 .1 s , with ∆sim the simulator step), compute first- and second-order finite differences to obtain longitudinal and yaw kinematics, and set 
+
+COM t = 1 iff all of these bounds hold at every sample in Wt (defaulting to 1 if fewer than four samples remain, as in native), else COM t = 0 :
+
+COM t = ^
+
+> s∈W t
+
+h
+
+a∥ 
+
+> s
+
+∈ [−4.05 , 2.40] ∧ | j∥ 
+
+> s
+
+| ≤ 8.37 ∧ | αs| ≤ 1.93 ∧ | ωs| ≤ 0.95 
+
+i
+
+, (13) where a∥ 
+
+> s
+
+is longitudinal acceleration ( m/s2), j∥ 
+
+> s
+
+longitudinal jerk ( m/s3), αs yaw acceleration (rad /s2), and ωs yaw rate ( rad /s). Parameterizing the window in seconds rather than step count keeps the metric invariant to the rollout ∆sim .
+
+Arc-length route completion. Each HUGSim scene supplies a densified camera-pose polyline 
+
+R = ( r0, . . . , rL) ⊂ R2 that traces the reference route through the scene, with total arc length 
+
+S = PLi=1 ∥ri − ri−1∥. At each keyframe t we snap the realized ego position (xet , y et ) to its nearest polyline vertex i⋆t = arg min i ∥(xet , y et ) − ri∥ and read off the cumulative arc length st =
+
+Pi⋆t 
+
+> i=1
+
+∥ri − ri−1∥. The closed-loop Rc is then 
+
+Rc = min 
+
+
+
+1, max  
+
+> t∈T
+
+st / S 
+
+
+
+. (14) Arc-length normalization makes st/S a genuine distance-along-route fraction insensitive to non-uniform pose spacing, and dropping the discount makes Rc = 1 mean the route was actually com-pleted (fixing the two problems above). 
+
+B.2 Native vs. closed-loop summary 
+
+Because the redefined TTC and COM read different motion from native (realized rollout vs. planned trajectory) and, for TTC, a different scale (continuous vs. binary), neither is directly comparable to its native counterpart per keyframe, even on the same rollout. NC and DAC are comparable. The detailed comparison is summarized in Table 3. 16 Table 3: Native HD-Score vs. closed-loop HD-Score per subscore. NC, DAC, and the aggregation formula are unchanged; TTC, COM, and Rc are redefined to operate on the realized rollout.                                                                                      
+
+> Sub Native HUGSim HD-Score Closed-loop variant (this work) NC OBB ego–partner collision per keyframe; vehicle-only partner filter; output ∈ { 0,1}.Same. DAC Four-corner-inside check against per-scene drivable-area polylines; output ∈ { 0,0.5,1}.Same. TTC Entire planned trajectory ( 7poses, ≤3.5 s ) rigidly shifted by ego velocity at two horizons ∆∈{0.5,1.0}s;collision of every shifted ego pose vs.
+> frozen partners +scene geometry ( 14 probes); binary
+> {0,1}.Realized ego and all valid partners velocity-propagated on a fine grid (stride ∆TTC = 0 .2 s , horizon HTTC =1.0 s ); earliest ego collision vs. propagated partners +
+> 3DGS background ( > N bg enclosed points) gives frac-tional min(1 , τ ⋆t/H TTC )∈[0 ,1] (Eq. 12); δ=0 col-lision ⇒TTC t= 0 .COM Kinematic comfort bounds (lon. accel., lon. jerk, yaw ac-cel., yaw rate; a lateral bound is coded but inert) on the keyframe’s planned trajectory poses; binary {0,1}.Same active bounds on the realized ego trajectory over a seconds-parameterized window of duration WCOM =1.0 s (Eq. 13).
+> Rcmin(1 ,max trt)with rt=(kt+1) /(0 .9N):acamera-pose-index fraction ( kt= nearest pose index, N
+> = pose count), inflated by an unexplained 0.9discount; not physical distance. Arc-length fraction min(1 ,max tst/S )along the scene’s densified camera-pose polyline ( S= full route length, no discount): physical distance, robust to non-uniform pose spacing (Eq. 14). Agg. mean t[NC t·DAC t·(5 TTC t+2 COM t)/7] ·Rc.Same (Eq. 9).
+
+C Self-Play Policy Baseline Performance 
+
+This appendix examines the self-play teacher in more detail—the privileged vector-state policy our vision student is distilled from, and the effective upper bound it is compared against in Table 1. We characterize it along two axes: its closed-loop driving quality on the HUGSim benchmark, broken down by difficulty tier (Table 4), and the realism of its own rollouts in exported nuScenes traffic (Table 5). Table 4: Self-play policy baseline. Per-difficulty breakdown of the closed-loop HD-Score (§B) for the self-play teacher on the HUGSim 88-scenario split; this is the teacher row of Table 1. The teacher drives each scenario from the privileged vectorized scene state—object boxes, lane geometry, and partner kinematics, the modality it was trained on—not the rendered camera images our vision student consumes; background traffic is replayed. HD-Score is the headline metric; the All row aggregates over the full split.                                                 
+
+> Set NNC DAC TTC COM HD-PDMS RcHD-Score Easy 18 0.9883 1.0000 0.9548 0.8926 0.9304 0.8416 0.7796 Medium 34 0.9690 1.0000 0.9297 0.8186 0.8874 0.5451 0.4971 Hard 18 0.9676 1.0000 0.9359 0.8402 0.8905 0.7124 0.6388 Extreme 18 0.9597 1.0000 0.8315 0.5731 0.7283 0.2406 0.1851 All 88 0.9708 1.0000 0.9160 0.7879 0.8643 0.5777 0.5200
+
+What limits the teacher. Safety and on-road compliance hold up across all four tiers—NC stays above 0.95 , DAC is saturated at 1.0, and TTC above 0.83 —and comfort (COM) softens only on the Extreme tier ( 0.57 ). The headline HD-Score is instead driven down primarily by route completion: 
+
+Rc falls from 0.84 on Easy to 0.24 on Extreme, and because it multiplies the aggregate (Eq. 9), it alone pulls the Extreme HD-Score to 0.19 despite an HD-PDMS of 0.73 . Even the privileged teacher cannot make progress on many Extreme scenarios, consistent with the visually implausible initial configurations documented in Appendix G. 
+
+Behavioral realism. Beyond driving quality, we ask whether the teacher’s motion is realistic. Table 5 reports WOSAC likelihood metrics for the teacher’s own rollouts in exported nuScenes traffic, under two control settings (ego-only with replayed traffic, and log-initialized multi-agent). Realism is high overall ( 0.89 and 0.86 ), carried by near-perfect interaction and map-compliance likelihoods; the weakest axis is kinematic likelihood ( 0.48 and 0.51 ), indicating that the teacher’s speed and acceleration profile is the least human-like aspect of its otherwise safe, on-road behavior. 17 Table 5: WOSAC metrics on exported nuScenes scenes. Evaluated across 18 exported nuScenes maps with 32 sampled policy rollouts per map. In the ego-with-replayed-traffic setting, the policy controls only the ego/SDC while surrounding vehicles replay the logs. In the log-initialized multi-agent setting, the policy controls valid vehicle tracks initialized from the logs and remaining logged entities provide replay context. Random-spawned agents are not reported in WOSAC because they do not have matching logged reference trajectories.                        
+
+> Realism components Displacement Spread Setting Realism Kin. Inter. Map ADE minADE Std.
+> Ego with replayed traffic 0.894 0.476 1.000 0.996 5.313 2.745 0.027
+> Log-initialized multi-agent 0.862 0.509 0.889 0.967 5.821 3.415 0.059
+
+WOSAC metric descriptions. Realism is the WOSAC weighted meta-score over likelihood met-rics. Kin. averages the kinematic likelihood metrics for linear and angular speed and acceleration. 
+
+Inter. averages interaction likelihood metrics for collision, distance to nearest object, and time-to-collision. Map averages map-based likelihood metrics for distance to road edge and offroad indica-tion. ADE is average displacement error, and minADE is the best displacement error over stochastic rollouts. Std. is the standard deviation of per-scenario realism scores. 
+
+D Loss Ablation 
+
+D.1 Loss Type Ablation Loss decomposition. We ablate the two terms of the alignment objective Lalign = Lact + λ Lstruct 
+
+(§3.2) by training the student with each term in isolation and with both, holding the rest of the recipe fixed, and reporting closed-loop HD-Score on the HUGSim scenarios together with the two component losses at convergence (Table 6). Expected reading: structural-only loses action consis-tency, action-only loses feature stability, and the combined objective dominates both. We found performance to be largely insensitive to λ and set it to 0.5 by default. Table 6: Loss-decomposition ablation. Closed-loop HD-Score and converged component losses for the action term, the structural term, and the combined objective. Objective Lact ↓ Lstruct ↓ HD-Score ↑
+
+Action loss only ( λ=0 ) 0.0062 0.387 0.319 Structural loss only ( Lact off) 0.412 0.010 0.307 Both (full, headline) 0.0312 0.121 0.490 D.2 Structural Loss Rank Ablation 
+
+We ablate the truncation rank of the structural alignment loss, comparing the low-rank-subspace similarity loss used in the headline (§3.2; kp and kr at the 80% cumulative-energy cutoffs) against intermediate ranks and a full-coordinate baseline that matches the pairwise similarity matrix over all feature coordinates, all else equal. The expected reading: full-coordinate matching matches or degrades closed-loop HD-Score, because the teacher features are sharply low-rank and redundant (§4.4) so constraining every direction over-constrains the student on image-unrecoverable ones. This is the experiment that justifies the low-rank-subspace loss named in §3.2. 
+
+D.3 Low-Rank Subspace Diagnostics 
+
+The structural loss does not align features in a fixed, precomputed subspace: at each step it recom-putes a low-rank basis from the current batch (batch-wise centering and truncation to a per-stream rank k∗, standing for the partner rank kp or road rank kr of §3.2; the diagnostics below are run per stream). The alignment target therefore depends on two knobs whose effect is not obvious a priori. 18 Table 7: Structural-loss rank ablation. Closed-loop HD-Score as the projection rank ranges from the headline low-rank subspace to the full coordinate space. Structural target HD-Score ↑
+
+Lower rank ( kp=7 , k r =5 ) 0.417 Low-rank subspace ( kp=13 , k r =9 , headline) 0.490 
+
+Higher rank ( kp=26 , k r =18 ) 0.484 Full coordinate space (all directions) 0.444 The batch size B controls which axes the basis captures—as B grows it is pulled toward large-scale, inter-cluster variance, while a small B risks overfitting to sample-level noise—and the rank k∗ con-trols how much of the teacher geometry survives truncation. We therefore verify that this batch-wise subspace is a faithful, useful target rather than an arbitrary one, along two axes: modal coverage 
+
+(does the batch-derived basis recover the dominant axes of the full teacher distribution, a question about B?) and distinguishability (does the truncated subspace still separate scenes that differ by small geometric perturbations such as ego or partner shifts and heading rotations, a question about 
+
+k∗?). 
+
+Modal coverage. We build the reference basis from the top singular vectors (SVD) of ∼50 ,000 
+
+teacher scene latents, and define modal coverage as the ensemble-averaged squared projection of the batch-derived top-k∗ axes onto this reference’s top-2k∗ axes: writing {vi}k∗ 
+
+> i=1
+
+for the batch axes and P2k∗ for the orthogonal projector onto the reference top-2k∗ subspace, it is 
+
+Ebatch 
+
+ 1
+
+> k∗
+
+P
+
+> i
+
+∥P2k∗ vi∥2 ∈ [0 , 1] , with 1 meaning the batch basis lies entirely in the dominant teacher subspace. We compare against the top-2k∗ (rather than top-k∗) reference axes to tolerate ordering jitter between singular axes of nearby magnitude, and sweep batch sizes B and ranks k∗.Figure 5 shows that at B = 1024 the batch basis stably anchors to the dominant teacher modes; coverage drops only past the effective rank—the rank beyond which the teacher singular spectrum carries little additional energy (the 80% cumulative-energy criterion of §3.2)—confirming that the truncation is principled. 
+
+Figure 5: Modal coverage: ensemble-averaged squared projection of the batch-derived top-k∗ axes onto the reference top-2k∗ axes. At B = 1024 the batch basis reliably captures the dominant teacher modes; coverage drops past the rank cutoff. 
+
+Distinguishability. We perturb each scene by ego and nearest-partner longitudinal/lateral shifts and heading rotations, and measure what fraction of each perturbation’s energy survives the low-rank projection: for a latent perturbation δ (the shift the augmentation induces in the teacher latent) and the batch projector Pk∗ onto the top-k∗ subspace, this is ∥Pk∗ δ∥2/∥δ∥2 ∈ [0 , 1] , at most 1 since 
+
+Pk∗ is an orthogonal projection. Figure 6 shows that energy preservation depends strongly on k∗
+
+and weakly on B: rank is the primary control over what geometry the alignment enforces. Lon-gitudinal ego shifts consistently show the lowest preservation, as driving scenes are approximately longitudinally invariant and this direction carries little variance in the teacher distribution. Direc-19 tions suppressed by the projection are not permanently unavailable to the student — they can still be recovered via the action loss; the structural alignment only establishes a lower bound on what geometry is explicitly enforced.  
+
+> (a) Map distinguishability. Partner augmentations omitted as the map embedding is invariant to part-ner locations.
+> (b) Partner distinguishability. Rank dependence mir-rors the map results.
+
+Figure 6: Fraction of perturbation energy preserved in the projected subspace as a function of batch size B and rank k∗. Energy preservation depends primarily on rank and weakly on batch size. 
+
+Takeaway. The two diagnostics jointly justify the headline configuration: B = 1024 yields a batch basis that faithfully tracks the full-distribution modes (modal coverage), and the 80% cumulative-energy ranks used in §3.2 ( kp=13 , k r =9 in Table 7) sit before the cutoff at which coverage drops, while still preserving the geometric separation that distinguishability tracks. The batch-wise low-rank target is thus a principled choice rather than an arbitrary one. 
+
+E Vision Backbone Ablation 
+
+We compare the selected DINOv3 backbone against alternative image encoders (DINOv2 and ResNet-50) under an identical alignment recipe, reporting closed-loop HD-Score together with the structural and action losses at convergence (Table 8). Table 8: Vision-backbone ablation. Closed-loop HD-Score and converged alignment losses under a fixed recipe for each image backbone. Backbone Lact ↓ Lstruct ↓ HD-Score ↑
+
+DINOv3 0.0312 0.121 0.490 
+
+DINOv2 0.0519 0.197 0.488 ResNet-50 0.0991 0.221 0.459 
+
+F Alignment Decoupled from Demonstration Quality 
+
+Since our standard training dataset is built upon expert demonstrations, it is natural to question whether strictly expert trajectories are required for the model to converge. In this section, we demon-strate that our method converges robustly even when trained on observation pairs collected from non-expert trajectories (Table 9). As outlined in §3.2, the alignment loss is evaluated against the 20 teacher’s action distribution for a given reconstructed scene state, independent of the policy that actually visited that state. Consequently, the quality of the rollout policy only alters the distribution of states the student observes during alignment; it does not corrupt the supervision target at those states. To empirically validate this, we collect an alignment dataset in the HUGSim simulator by randomly sampling actions; its size matches that of our full training dataset. Figure 7 shows randomly sampled front-camera observations from the resulting HUGSim collection. 
+
+Figure 7: Front-camera samples from decoupled alignment data. A grid of CAM F0 observa-tions collected from HUGSim rollouts. These frames provide paired visual observations and re-constructed scene states for the alignment loss; their actions are not used as expert demonstrations, so rollout quality affects alignment only through the state coverage induced by the data-collection policy. Table 9: Alignment outcome under different data-collection policies. Demonstration-collected and randomly sampled data yield broadly similar HD-Score ( 0.490 vs. 0.445 ), indicating that alignment quality is gated mainly by state coverage rather than by the quality of actions taken during collection. Collection policy Lact Lstruct HD-Score Demonstration 0.0312 0.121 0.490 
+
+Random Sampled 0.0216 0.205 0.445 21 G Qualitative Results 
+
+We present closed-loop rollout scenarios drawn from the HUGSim evaluation split that illustrate the policy’s behavior across a range of interactive driving situations. Each scenario shows three keyframes from the front-facing camera alongside the predicted ego speed profile for the next 5 s, with the current speed marked in red. The four cases cover intent-uncertain cut-in negotiation (Fig-ure 8), overtaking under oncoming-traffic time pressure (Figure 9), route-aware disengagement from a diverging lead vehicle (Figure 10), and a narrow-lane passage with anticipatory deceleration (Fig-ure 11). We additionally illustrate the visual implausibility of extreme-tier HUGSim scenarios (Fig-ure 12), which imposes a ceiling on achievable HD-Score independent of policy quality. Low-speed - observe the other car Confirmed that the car has no cut-in intention Accelerate, overtake 
+
+Figure 8: Cut-in negotiation. The ego initially travels at low speed while monitoring a vehicle that could cut in. Once it confirms the vehicle has no cut-in intention (center), the ego accelerates and overtakes smoothly (right). The speed profile shows a brief deceleration followed by a sustained ramp-up, demonstrating that the policy withholds commitment until the other agent’s intent is re-solved. A static car is ahead of us, and a slow oncoming car is approaching Decided to overtake and accelerate Overtake and go back to previous lane 
+
+Figure 9: Overtaking with oncoming traffic. A static vehicle blocks the lane while a slow oncom-ing car approaches. The policy decides to overtake (center), accelerates past the static vehicle, and merges back into the original lane before the oncoming car arrives (right). The speed profile rises throughout the maneuver, reflecting a committed overtake decision made under time pressure. 22 Following a slow car steadily It goes out of our route Turn and accelerate Figure 10: Lead vehicle yielding route. The policy follows a slow lead vehicle at a steady speed (left). When the lead vehicle diverges from the ego’s route (center), the ego turns onto its own path and accelerates (right). The speed profile is flat during the follow phase and then climbs sharply after the turn, showing the policy correctly disengages from the lead once it is no longer relevant. Slow down when approaching another car in a narrow lane Accelerate after passing the other car Decelerate in the future for the VRU 
+
+Figure 11: Narrow-lane passage. In a narrow lane, the policy slows when approaching an oncoming vehicle (left), holds a reduced speed while passing (center), and then begins decelerating again in anticipation of a vulnerable road user detected ahead (right, red box). The speed profile oscillates rather than recovering fully, reflecting the policy’s forward-looking awareness of the downstream hazard. Extreme scenarios can be unrealistic on Hugsim 
+
+Figure 12: Visually implausible extreme-tier scenarios. Extreme scenarios in the HUGSim bench-mark can be visually unrealistic, with implausible initial configurations, or an occluded environment where other cars can pass through each other. 23

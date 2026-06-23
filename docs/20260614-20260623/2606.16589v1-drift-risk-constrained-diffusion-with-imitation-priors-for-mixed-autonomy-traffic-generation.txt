@@ -1,0 +1,2209 @@
+Title: DRIFT: Risk-Constrained Diffusion with Imitation Priors for Mixed-Autonomy Traffic Generation
+
+URL Source: https://arxiv.org/pdf/2606.16589v1
+
+Published Time: Tue, 16 Jun 2026 02:09:29 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+> IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 1
+
+# DRIFT: Risk-Constrained Diffusion with Imitation Priors for Mixed-Autonomy Traffic Generation 
+
+Yaoshen Yu, Minghui Liwang, Senior Member, IEEE , Wenbo Zhu, Xinlei Yi, Senior Member, IEEE , Yiguang Hong, Fellow, IEEE , Yuhan Su, Seyyedali Hosseinalipour, Senior Member, IEEE 
+
+Abstract —Future intelligent transportation systems are envi-sioned to evolve toward a long-term mixed-autonomy paradigm, where human-driven vehicles (HVs) and autonomous vehicles (AVs) coexist within highly coupled traffic ecosystems. Such coexistence introduces pronounced heterogeneity, amplified un-certainty, and increasingly intricate interaction dynamics. In this context, it remains fundamentally challenging to simultaneously capture the heterogeneous behavioral distribution shifts arising from dynamic AV penetration, generate diverse yet executable trajectories under strong inter-vehicle coupling, and conduct reliable closed-loop safety and stability diagnostics for rare but high-impact events. To this end, we present risk-constrained dif-fusion with imitation priors (DRIFT), a mixed-autonomy traffic generation framework which unifies heterogeneity-aware condi-tional encoding, conditional diffusion-based executable trajectory generation, and progressive adversarial alignment enhanced by risk-aware long-tail feedback, thereby enabling traffic behaviors to be iteratively generated, filtered, selected, and validated within a closed-loop execution pipeline. In addition, a unified evaluation protocol is developed to jointly characterize safety, efficiency, and closed-loop stability across representative traffic scenarios and AV penetration regimes. Experimental results demonstrate that DRIFT achieves a strong safety-efficiency trade-off in closed-loop mixed-autonomy benchmarks, while further revealing the critical influence of candidate executability, online selection, and long-tail feedback on executable traffic evolution. 
+
+Index Terms —mixed-autonomy, diffusion model, imitation learning, closed-loop evaluation, long-tail safety 
+
+I. I NTRODUCTION 
+
+# THE rapid advancement of artificial intelligence (AI) and automotive engineering has fundamentally reshaped the research landscape of autonomous driving, where traffic-flow simulation and scenario generation have emerged as indis-pensable tools for the development and validation of next-generation autonomous-driving systems. To this end, repre-sentative platforms and generators, such as Flow [1], SceneD-iffuser [2], TrafficMCTS [3], and Causal Driving Pattern Transfer (CDPT) [4], illustrate how such environments sup-port technological advancement, benchmarking, and closed-loop evaluation. Beyond serving as experimental testbeds, these platforms provide a systematic framework for assessing safety, efficiency, robustness, and generalization capabilities 
+
+Y. Yu (yys806@tongji.edu.cn), M. Liwang (minghuiliwang@tongji.edu.cn), W. Zhu (wbzhu@tongji.edu.cn), X. Yi (xinleiyi@tongji.edu.cn), and Y. Hong (yghong@tongji.edu.cn) are with the Department of Control Science and Engi-neering, the Shanghai Research Institute for Intelligent Autonomous Systems, the State Key Laboratory of Autonomous Intelligent Unmanned Systems, Tongji University, Shanghai, China. S. Hosseinalipour (alipour@buffalo.edu) is with the Department of Electrical Engineering, University at Buffalo-SUNY, USA. Corresponding author: Minghui Liwang. 
+
+of autonomous-driving algorithms under diverse traffic condi-tions, environmental factors, and operational uncertainties. Looking ahead, future intelligent transportation systems will increasingly operate in mixed-autonomy traffic environments where human-driven vehicles (HVs) and autonomous vehicles (AVs) coexist under dynamically changing AV penetration rates [5]–[12]. The resulting traffic ecosystem is characterized by substantial behavioral heterogeneity, strong inter-vehicle coupling, and non-stationary interaction patterns, which sig-nificantly complicate both traffic generation and evaluation. In this context, realistic microscopic behaviors are valuable only if they remain executable and induce plausible traffic evolution under closed-loop deployment. Therefore, evaluating a traffic-generation framework solely through behavioral realism is insufficient. Instead, realism must be assessed jointly with ex-ecutability, safety, efficiency, and traffic stability, necessitating generation models that are explicitly designed and evaluated within a closed-loop setting. Nevertheless, existing approaches address only subsets of the challenges arising in mixed-autonomy traffic. For exam-ple, rule-based and control-theoretic methods can effectively enforce safety and control objectives, but may struggle to scale to highly interactive multi-agent environments with complex behavioral diversity [5], [12], [13]. Data-driven approaches based on behavior cloning and imitation learning improve be-havioral realism, yet often regress toward average driving pat-terns and fail to adequately capture diverse interaction modes [14], [15]. Adversarial imitation learning further enhances distribution matching but may suffer from training instability and limited exposure to rare safety-critical events [16]–[18]. More recently, diffusion-based methods have demonstrated strong capabilities in generating diverse traffic behaviors and trajectories; however, without explicit executability and fea-sibility considerations, generated trajectories may not remain physically realizable during closed-loop deployment [2], [19]– [21]. As a result, existing studies largely focus on individual aspects of realism, safety, or executability in isolation, while a unified framework that jointly models heterogeneous mixed-autonomy behaviors, generates executable traffic evolution, and supports risk-aware closed-loop safety evaluation under one traffic-system protocol remains lacking. 
+
+A. Core Motivation 
+
+Motivated by the above limitations, we formulate three tightly coupled research questions (RQs) that define the central objectives of this work.  
+
+> arXiv:2606.16589v1 [cs.DC] 15 Jun 2026 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 2
+
+• RQ 1: How can traffic-generation models adapt to changing mixtures of HVs and AVs? As the proportion, or penetration, of AVs increases, the composition of traffic fundamentally changes. Specifically, traffic patterns observed in predomi-nantly human-driven environments may differ significantly from those observed when AVs constitute a large fraction of the vehicle population. For example, differences in re-action time, car-following behavior, lane-changing decisions, and cooperation strategies can alter both individual driving behaviors and collective traffic dynamics. Consequently, a model trained under one AV penetration level may fail to generalize to another, resulting in degraded generation quality and unrealistic traffic evolution. Existing studies on mixed-autonomy traffic, including flow-based approaches [1], game-theoretic formulations [5], and robust control methods [12], [13], have provided valuable insights into HV–AV interactions, but typically focus on specific penetration settings. Similarly, data-driven methods such as CATF [22], interaction-aware and driving-style-aware trajectory prediction [23], post-interactive trajectory prediction [24], and transformer-based multi-agent reinforcement learning (MARL) [25] improve context and interaction modeling, yet they generally do not explicitly account for how traffic behavior evolves as the composition of HVs and AVs changes. Therefore, a key challenge is to develop a traffic representation that simultaneously captures vehicle-specific characteristics and the global mixed-autonomy composition of the traffic system. To address this challenge, we develop a heterogeneity-aware conditioning mechanism that jointly encodes vehicle type and AV penetration information into a unified traffic representation. 
+
+• RQ 2: How can generated traffic behaviors remain exe-cutable during closed-loop deployment? In many traffic sce-narios, particularly at intersections, merges, and other conflict-prone regions, multiple driving behaviors may appear reason-able for the same traffic situation. For example, a vehicle may choose to accelerate, yield, change lanes, or maintain its current trajectory depending on the actions of surrounding vehicles. While modern generative models can produce diverse behavior candidates, not all generated behaviors can be safely or physically executed once they are deployed in a closed-loop traffic environment. Specifically, a generated trajectory may appear realistic in isolation yet require infeasible accelerations, violate roadway constraints, create unsafe interactions with neighboring vehicles, or trigger conflicts that lead to unrealistic traffic evolution. Recent studies, including ControlTraj [19], Diff-RNTraj [20], Diffusion-Planner [21], and SceneDiffuser [2], have demonstrated the potential of diffusion-based and planning-oriented generation methods for producing control-lable trajectories. Similarly, intent-aware prediction and ge-ometric refinement techniques have improved the feasibility of generated trajectories in autonomous-driving applications [26]. However, these approaches generally focus on trajectory generation itself rather than ensuring that generated behaviors remain executable when interacting with other vehicles in a closed-loop traffic system. Therefore, a key challenge is to jointly account for vehicle dynamics, roadway constraints, and inter-vehicle interactions during behavior candidate gen-eration. To address this challenge, we develop a conditional generative framework that produces multiple behavior can-didates and evaluates their executability through feasibility-aware rollout and online candidate selection prior to execution. 
+
+• RQ 3: How can rare safety-critical events be systematically incorporated into traffic generation and evaluation? In mixed-autonomy traffic, the most consequential failures often arise from rare but high-impact events, such as near-collisions, un-safe merges, deadlocks, and traffic instabilities that propagate through the surrounding traffic flow. Although these events occur infrequently, they can significantly affect the safety and reliability of the overall transportation system. Consequently, a realistic traffic-generation framework should not only repro-duce common driving behaviors, but also identify, evaluate, and learn from safety-critical situations that emerge during closed-loop execution. Existing adversarial imitation learning (AIL) methods, including PS-TrajGAIL [14], DiffAIL [16], and FS-GAIL [17], improve behavioral distribution match-ing under challenging conditions, while TrafficMCTS [3], DragTraffic [27], and LD-Scene [28] enhance the generation of safety-critical scenarios and rare events. However, these approaches generally treat risk discovery, behavior genera-tion, and performance evaluation as separate processes. As a result, risks identified during execution are rarely leveraged to influence future behavior candidate selection or traffic-level assessment. Therefore, a key challenge is to establish a closed-loop mechanism that continuously identifies safety-critical behaviors, prioritizes them during candidate evaluation, and quantifies their impact on overall traffic performance. To address this challenge, we incorporate progressive adversarial alignment and targeted long-tail feedback into the rollout process, enabling risk discovery, candidate reweighting, and traffic-level robustness evaluation within a unified closed-loop framework. 
+
+B. Novelty and Contribution 
+
+We develop risk-constrained diffusion with imitation pri-ors (DRIFT), an integrated traffic-generation framework that combines heterogeneity-aware behavior modeling, executable candidate diffusion, and risk-aware closed-loop evaluation for mixed-autonomy traffic systems. The main contributions of this work can be summarized as follows: 
+
+• Unified formulation for mixed-autonomy traffic generation and evaluation: We formulate a closed-loop mixed-autonomy traffic-generation problem in which HVs and AVs coexist under dynamically varying AV penetration rates. The for-mulation explicitly captures three fundamental challenges of future mixed-autonomy systems: (i) adapting to changing traffic compositions, (ii) generating executable behaviors under strong inter-vehicle interactions, and (iii) evaluating traffic performance under safety-critical events. 
+
+• Diffusion-based executable traffic-generation framework: 
+
+DRIFT integrates heterogeneity-aware conditional encoding (Module A), conditional diffusion-based candidate generation (Module B), and progressive adversarial alignment with long-tail feedback (Module C). Operating within a rolling-horizon framework, DRIFT generates multiple candidate behaviors, evaluates their executability, and selects actions for deploy-ment in closed-loop traffic evolution. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 3
+
+• Risk-aware online candidate-selection mechanism: We de-velop a recurrent observation-generation-selection-execution-feedback pipeline, where candidate behaviors are evaluated ac-cording to behavioral realism, traffic efficiency, safety risk, and execution feasibility. This mechanism bridges offline genera-tive modeling and online traffic evolution, enabling candidate-level decisions to directly influence traffic-level outcomes. 
+
+• Comprehensive traffic-level validation. We evaluate DRIFT across representative mixed-autonomy scenarios and AV pen-etration settings in a closed-loop Flow /SUMO simulation environment. Through comparisons with executable base-lines, internal variants, and ablation studies, we assess how heterogeneity-aware conditioning, executable candidate gen-eration, feasibility filtering, long-tail feedback, and online candidate selection affect safety, efficiency, executability, and penetration-wise traffic stability. II. L ITERATURE REVIEW 
+
+• Imitation Learning for Trajectory and Driving Behavior Generation. In this work, mixed-autonomy traffic generation is formulated as the generation of executable vehicle control actions that subsequently induce traffic-level trajectory evolu-tion. Under this formulation, imitation learning has emerged as a natural paradigm for learning driving behaviors from observed traffic data. In this domain, early studies such as Flow [1] demonstrated the feasibility of learning-based control in mixed-autonomy environments, while PS-TrajGAIL [14] and Ctx2TrajGen [15] showed that adversarial and context-aware imitation learning can effectively capture realistic tra-jectory distributions and microscopic driving patterns. Sub-sequent efforts further improved the modeling of complex traffic interactions through multi-agent imitation learning [29], heterogeneous mixed-traffic coordination [12], and diffusion-enhanced adversarial imitation learning frameworks such as DiffAIL [16]. Despite these advances, generating realistic driving behav-iors in mixed-autonomy traffic remains fundamentally chal-lenging. This is because future transportation systems must simultaneously account for heterogeneous HV–AV interac-tions, dynamically changing AV penetration rates, and strong coupling among neighboring vehicles. To address these chal-lenges, recent studies have explored complementary directions, including heterogeneous interaction modeling [5], transformer-based MARL with spatio-temporal fusion [25], interaction-aware and driving-style-aware trajectory prediction [23], post-interactive trajectory prediction [24], and robustness-oriented adversarial imitation learning frameworks such as FS-GAIL [17] and GMAIL [18]. While these approaches improve be-havioral realism, interaction modeling, or training robustness, they typically address only specific aspects of mixed-autonomy traffic generation. In particular, they rarely account simul-taneously for heterogeneous HV–AV behaviors, dynamically varying AV penetration rates, executable behavior generation, and closed-loop traffic evaluation. As a result, a unified imitation-learning-oriented framework that jointly addresses these challenges remains largely underexplored. 
+
+• Diffusion Models for Traffic Generation. Diffusion models emerged as a powerful paradigm for traffic-scene genera-tion and trajectory prediction due to their ability to capture complex and multi-modal driving behaviors. Existing studies have explored diffusion models from several complementary perspectives. For example, ControlTraj [19] and Diff-RNTraj [20] incorporated roadway topology and network constraints into trajectory generation, while Diffusion-Planner [21] inves-tigated planning-oriented diffusion under closed-loop execu-tion. CDPT [4] further leveraged diffusion-based distillation to transfer driving behaviors across traffic domains. At the scene level, methods such as DiffScene [30], SceneControl [31], SceneDiffuser [2], and LD-Scene [28] demonstrated the effectiveness of diffusion models for controllable traffic gener-ation, safety-critical scenario construction, simulation rollout, and adversarial scenario synthesis. Collectively, these studies highlight the potential of diffusion models for generating diverse and realistic traffic behaviors. More recently, diffusion-based methods have also been extended to controllable generation, trajectory prediction, and heterogeneous traffic modeling. For instance, OGD/ECM guid-ance [32] focused on controllable trajectory generation, the intention-aware denoising diffusion framework in [33] incor-porated driver intentions into trajectory prediction, and CATF [22] improved context-aware prediction in heterogeneous traf-fic environments. While these approaches improve diversity, controllability, or contextual awareness, they generally focus on generating realistic trajectories or traffic scenes rather than ensuring that generated behaviors remain executable during closed-loop traffic evolution. Furthermore, existing diffusion-based frameworks rarely account simultaneously for heterogeneous HV–AV interactions, dynamically varying AV penetration rates, and traffic-level safety and stability as-sessment. Consequently, developing diffusion-based traffic-generation frameworks that jointly address mixed-autonomy heterogeneity, executable behavior generation, and closed-loop evaluation remains an open challenge. 
+
+• Mixed-Autonomy and Heterogeneous Driving Model. Mixed-autonomy traffic research seeks to understand how trans-portation systems evolve under the coexistence of HVs and AVs. Existing studies have investigated this problem from several system-level perspectives, including cooperative game-theoretic driving [5], robust AV–HV traffic control [13], hybrid-system stability analysis [6], safety-aware mixed-traffic control and learning [7], roadway-capacity analysis under heterogeneous trust assumptions [10], takeover-induced traffic stability [11], and the broader impacts of mixed autonomy on traffic flow, energy consumption, and environmental per-formance [8], [9]. Collectively, these works provide valu-able insights into how mixed-autonomy traffic behaves at the network level and establish important theoretical founda-tions for traffic control and stability analysis. Complementing these system-level studies, a growing body of data-driven research has focused on modeling individual driving behaviors and vehicle interactions. Examples include transformer-based MARL with spatio-temporal fusion [25], interaction-aware and driving-style-aware trajectory prediction [23], post-interactive trajectory prediction [24], and mixed heterogeneous platoon analysis [34]. These studies have improved the understanding of behavioral diversity, vehicle coordination, and interaction IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 4
+
+dynamics in heterogeneous traffic environments. Despite these advances, there remains a gap between traffic-level analysis and behavior-level modeling. Specifically, ex-isting approaches often focus on one of two objectives: un-derstanding and optimizing traffic performance at the sys-tem level, or modeling realistic vehicle behaviors at the microscopic level. Consequently, they rarely provide a unified framework that simultaneously captures heterogeneous HV– AV behaviors, generates diverse and executable driving ac-tions, and evaluates their impact on traffic safety, efficiency, and stability under closed-loop operation. To bridge this gap, we develop a heterogeneity-aware generative framework that explicitly connects microscopic driving behaviors with macro-scopic traffic evolution in mixed-autonomy environments. 
+
+• Long-Tail Safety and Scenario Generation. Long-tail safety analysis and corner-case generation have become essential components of trustworthy autonomous-driving evaluation. Existing studies have investigated how to identify, generate, and evaluate rare but high-impact traffic events, such as collisions, near-collisions, and other safety-critical driving situations, through dynamic test generation [35], edge-case synthesis [36], corner-case detection [37], and uncertainty-aware out-of-distribution safety assessment [38]. In parallel, TrafficMCTS [3], DragTraffic [27], and LD-Scene [28] have expanded the coverage of safety-critical scenarios through closed-loop search, controllable traffic generation, and ad-versarial scenario synthesis. Collectively, these efforts have significantly improved the ability to identify and generate rare but safety-critical traffic situations. However, generating hazardous scenarios is only one part of the challenge. In mixed-autonomy traffic systems, rare events such as near-collisions, unsafe merges, deadlocks, and traffic instabilities can propagate through subsequent vehicle interactions and significantly affect overall traffic performance. Consequently, it is important not only to discover such events, but also to evaluate how they influence traffic evolution during closed-loop execution. However, the aforementioned approaches typically focus on identifying or generating safety-critical scenarios, while the discovered risks are rarely incorpo-rated into the subsequent behavior-generation and evaluation process. As a result, risk discovery, traffic generation, and traffic-level assessment often remain disconnected stages of the evaluation pipeline. To address this limitation, we integrate long-tail risk infor-mation directly into the training and evaluation process and establish a unified closed-loop framework in which safety-critical events can influence candidate generation, candidate selection, and traffic-level assessment. This enables a more comprehensive evaluation of safety, efficiency, and traffic stability under rare but high-impact events. A compact scope-positioning comparison of representative methods is provided in Appendix D. III. K EY DEFINITIONS AND CORE MODELING 
+
+A. Key Definitions 
+
+To ground our discussion, in the following, we first enu-merate the key definitions used throughout this paper, while key notations are collected in Appendix E.          
+
+> Fig. 1. Illustration of temporal-window definitions in this work. TSs are discrete points separated by ∆t. Given the current RI, we define a local PW
+> Tplan
+> tof future PSs, generate and rank a CS over the PW, execute only the first Hexec PSs within the EW Texec
+> t, and then reach the next RI where the following closed-loop cycle begins.
+
+• Time step (TS) : We discretize the traffic evolution into TSs indexed by t ∈ T = {0, 1, . . . , T }. Also, the interval between two adjacent TSs is set by ∆t.
+
+• Replanning instant (RI) : RIs form a subset of TSs, denoted by T replan ⊆ T . At each RI, the current traffic state is observed and a new closed-loop planning cycle starts. Except for the initial RI, this state is the simulator state obtained after applying the previously selected controls over the preceding EW. 
+
+• Planning window (PW) : Given an RI t, we define a future PW as: 
+
+T plan  
+
+> t
+
+= {t + 1 , t + 2 , . . . , t + Hplan }, (1) where T plan  
+
+> t
+
+represents a local future window defined at RI 
+
+t, and Hplan is the number of future discrete steps within each PW. 
+
+• Planning step (PS) : A PS indicates a discrete future step inside PW T plan  
+
+> t
+
+. Specifically, the h-th PS corresponds to TS t + h, while its index satisfies h ∈ { 1, . . . , H plan }.
+
+• Execution window (EW) : After planning, only the first 
+
+Hexec PSs of the PW are executed before the next RI is reached, where Hexec ≤ Hplan . This defines the EW as: 
+
+T exec  
+
+> t
+
+= {t + 1 , t + 2 , . . . , t + Hexec }. (2) This design balances long-horizon interaction assessment with closed-loop adaptability by evaluating future traffic evolution over an extended horizon while executing only a short segment before incorporating new feedback. 
+
+• Candidate and candidate set (CS) : A candidate consists of an executable control sequence over the PW together with its induced future trajectory. For each active vehicle at an RI, a CS containing K candidates is generated. Candidates are subsequently evaluated according to a selection rule, and the selected candidate is executed over the EW. 
+
+B. Modeling of Vehicle-Level State and Interaction 
+
+Let V = {1, . . . , i, . . . , |V|} denote the set of all vehi-cles. We next define the vehicle-level state and interaction variables used throughout the framework. To distinguish be-tween human-driven and autonomous operation, each vehicle 
+
+i ∈ V at TS t is associated with a control-authority indicator 
+
+κit ∈ { HV , AV }, where κit = HV and κit = AV indicate human control and autonomous driving at TS t, respectively. This formulation naturally accommodates mixed-autonomy IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 5
+
+traffic as well as transitions between control modes, such as takeover scenarios. For a given TS t, let ˜Vt denote the set of active vehicles in the network, where the HV/AV sets and AV penetration rate ρt are defined as: 
+
+˜VAV  
+
+> t
+
+= {i ∈ ˜Vt | κit = AV },
+
+˜VHV  
+
+> t
+
+= {i ∈ ˜Vt | κit = HV },ρt = | ˜VAV  
+
+> t
+
+|/| ˜Vt|.
+
+(3) By construction, ˜VHV  
+
+> t
+
+and ˜VAV  
+
+> t
+
+form a disjoint partition of ˜Vt
+
+at each TS. For a vehicle i ∈ ˜Vt, we define its state vector as: 
+
+xit = [ pix,t , p iy,t , v it, a it, ψ it]⊤, (4) where pix,t and piy,t are planar coordinates, vit denotes the speed, ait represents the longitudinal acceleration, and ψit is the heading angle. To capture temporal driving patterns, we further define the ego-history sequence as: 
+
+hit = {xit−ℓ}Lh−1 
+
+> ℓ=0
+
+, (5) where Lh denotes the history length. Since vehicle behavior is strongly influenced by surrounding traffic, we define the neighborhood of vehicle i at TS t as: 
+
+N it =
+
+n
+
+j ∈ ˜Vt \ { i} dist t(i, j ) ≤ rn
+
+o
+
+, (6) where dist t(i, j ) denotes the proximity distance used for neighborhood screening, and rn is the neighborhood radius. For each neighboring vehicle j ∈ N it , we construct the relative interaction feature: 
+
+∆xi,j t = ∆pi,j x,t , ∆pi,j y,t , ∆vi,j t , ∆ai,j t ,
+
+∆ψi,j t , THW i,j t , TTC i,j t
+
+⊤, (7) where ∆pi,j x,t = pjx,t −pix,t , ∆pi,j y,t = pjy,t −piy,t , ∆vi,j t = vjt −vit,
+
+∆ai,j t = ajt − ait, and ∆ψi,j t = ψjt − ψit, which capture relative position, motion, orientation, and safety-related interactions between the two vehicles. In this feature vector, longitudinal safety is represented by the time headway (THW) and time-to-collision (TTC) measures, defined as: 
+
+THW i,j t = di,j t
+
+max( vit, ε ) , (8) and the TTC measure is defined as: 
+
+TTC i,j t =
+
+
+
+di,j t
+
+max( vit − vjt , ε ) , vit > v jt ,
+
+∞, vit ≤ vjt ,
+
+(9) where ε > 0 is a small constant used to avoid division by zero. Here, vehicle j denotes the interacting lead vehicle of vehicle i, and di,j t represents their lane-aligned spacing. Larger THW and TTC values correspond to larger longitudinal safety margins. Lateral conflicts, merge interactions, and intersection-related risks are represented in the main formulation through the conflict-edge set Econf in the lane-level topology graph and the candidate-level rollout diagnostics defined in Sec-tion III-D, which enter the feasible candidate set and the later dynamic/topological scoring term. Detailed normalization and implementation choices are provided in Appendix F. Finally, the neighborhood interaction information of vehicle i at TS t
+
+is represented by: 
+
+nit = {∆xi,j t }j∈N it . (10) 
+
+C. Modeling of Road Topology and Heterogeneous Local State 
+
+The global road network is modeled as a lane-level directed graph, as shown by: 
+
+Gmap = ( L, Econn , Econf ), (11) where L is the lane set, Econn indicates lane connectivity, and Econf captures potential conflict relationships among lanes. Here, a conflict means that two lane movements geometrically overlap, merge, cross, or otherwise require coordinated occu-pancy, so simultaneous vehicle motion may induce collision risk, unsafe yielding, or merge-interaction constraints. Since each vehicle interacts with only a limited portion of the road network, we construct a vehicle-centered local topological graph for vehicle i at TS t as: 
+
+Gmap ,i t =
+
+
+
+Lit, Econn ,i t , Econf ,i t
+
+
+
+, (12) where Lit ⊆ L is the set of lanes reachable by vehicle i
+
+within the prediction horizon Hplan , while Econn ,i t and Econf ,i t
+
+are the corresponding connectivity and conflict edges. This local graph captures the roadway context most relevant to the future motion of vehicle i. To incorporate this information into the learning framework, we use a mapping η(·) to convert the local graph into a fixed-dimensional road-semantic representation, namely the reachable lanes around i together with their connectivity and conflict relations. For notational convenience, we denote this representation by: 
+
+mit = η(Gmap ,i t ), (13) which summarizes reachable lanes together with their connec-tivity and conflict structure. At the traffic level, the collective state of all active vehicles is represented by: 
+
+Xt = {xit}i∈ ˜Vt , (14) and the corresponding interaction relationships are described through the dynamic interaction graph: 
+
+Gint  
+
+> t
+
+= ( ˜Vt, Et), (15) where Et = {⟨ j, i ⟩ | j ∈ N it , i ∈ ˜Vt} is the directed interaction-edge set at TS t. An edge ⟨j, i ⟩ indicates that vehicle j belongs to the interaction neighborhood of vehicle i,and its edge feature is ∆xi,j t . Hence, the neighbor-interaction term nit = {∆xi,j t }j∈N it is the set of edge features incident to vehicle i. Unlike Gmap and Gmap ,i t that characterize roadway topology, Gint  
+
+> t
+
+captures vehicle-to-vehicle traffic interactions. Based on the above-defined quantities, we define the hetero-geneous local state of vehicle i as: 
+
+sit =
+
+
+
+hit, nit, mit, κ it
+
+
+
+, (16) which serves as the fundamental representation used for be-havior generation and decision making in our later discussions. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 6
+
+D. Modeling of Candidate Representation 
+
+Having defined the heterogeneous local state and the plan-ning/execution horizons, we next introduce the notion of a candidate behavior. In DRIFT, a candidate represents a potential future action sequence for a vehicle together with the traffic trajectory induced by executing those actions. To predict the evolution of a candidate before deployment, we introduce the vehicle-level transition function f (x, u, s), which maps the current vehicle state, control input, and local traffic context to the next predicted state. This transition model is used to roll out candidate behaviors and evaluate their feasibility prior to execution; in implementation, it serves as a candidate-rollout proxy aligned with the Flow /SUMO state variables. In contrast, the scene-level transition function F(·), introduced later in Section III-E and Eq. (25), represents the actual simulator update after a candidate has been selected and executed. At an RI t ∈ T replan , the k-th candidate for vehicle i is represented by an executable control sequence over the PW: 
+
+Ui,k t = {ui,k t+h−1}Hplan  
+
+> h=1
+
+, k ∈ { 1, . . . , K }, (17) where ui,k t+h−1 denotes the control action applied at the h-th PS of candidate k. The rollout operator Rollout f is the finite-horizon composition of f (·) along the candidate control sequence, initialized and updated as: 
+
+bxi,k t = xit,
+
+bxi,k t+h = f
+
+bxi,k t+h−1, ui,k t+h−1, bsi,k t+h−1
+
+
+
+, 1 ≤ h ≤ Hplan ,
+
+(18) where bsi,k t+h−1 is constructed in the same form as sit at each rollout step. The operator then returns the predicted states over the PW: 
+
+τ i,k t = Rollout f
+
+
+
+xit, Ui,k t
+
+
+
+= {bxi,k t+h}Hplan  
+
+> h=1
+
+. (19) Thus, a CS for vehicle i at RI t is defined as: 
+
+Cit =
+
+n 
+
+Ui,k t , τ i,k t
+
+o Kk=1 
+
+. (20) To determine whether a generated candidate can be safely executed, we introduce the topology-induced feasible trajec-tory set Ω( Gmap ), which contains trajectories consistent with roadway topology, lane connectivity, road boundaries, and conflict constraints. Let umin /umax and vmin /v max denote the admissible control and speed bounds, and let vi,k t+h be the speed component of bxi,k t+h. For this rolled-out candidate, let 
+
+THW i,k t+h and TTC i,k t+h denote the future THW/TTC values, and we define: 
+
+THW i,k, min  
+
+> t
+
+= min 
+
+> 1≤h≤Hplan
+
+THW i,k t+h,
+
+TTC i,k, min  
+
+> t
+
+= min 
+
+> 1≤h≤Hplan
+
+TTC i,k t+h, (21) which represent the minimum safety margins encountered by candidate k during rollout. To cover lateral and conflict-zone executability, we use the PW-level lane-topology violation rate ri,k, map  
+
+> t
+
+and the minimum predicted clearance di,k, min  
+
+> t
+
+to the lane-aligned lead vehicle or any conflict-edge vehicle in 
+
+Econf ,i t . The clearance-based collision/conflict diagnostic is: 
+
+ri,k, col  
+
+> t
+
+=
+
+"
+
+dsafe − di,k, min 
+
+> t
+
+dsafe 
+
+#
+
+> +
+
++ I
+
+
+
+di,k, min  
+
+> t
+
+≤ 0
+
+
+
+, (22) where dsafe > 0 is the scenario-specific safety clearance, 
+
+[z]+ = max( z, 0) , and I(·) is the indicator function. Using the admissibility and safety requirements above, we define the feasible CS Ωi, feas  
+
+> t
+
+, which contains candidates satisfying control limits, speed limits, roadway-topology and conflict-clearance constraints, and minimum THW/TTC safety thresh-olds throughout the PW. Consequently, each candidate in 
+
+Ωi, feas  
+
+> t
+
+is locally physically executable and safety-compliant with respect to the considered constraints. Specifically, letting 
+
+δTHW and δTTC be the corresponding longitudinal safety thresholds, and using ⪯ for elementwise vector inequalities, the feasible CS is defined as: 
+
+Ωi, feas  
+
+> t
+
+=
+
+n  
+
+Ui,k t , τ i,k t
+
+
+
+∈ C it
+
+umin ⪯ ui,k t+h−1 ⪯ umax , ∀h ∈ { 1, . . . , H plan },vmin ≤ vi,k t+h ≤ vmax , ∀h ∈ { 1, . . . , H plan },
+
+τ i,k t ∈ Ω( Gmap ),ri,k, map  
+
+> t
+
+= 0 , ri,k, col  
+
+> t
+
+= 0 ,
+
+THW i,k, min  
+
+> t
+
+≥ δTHW , TTC i,k, min  
+
+> t
+
+≥ δTTC 
+
+o
+
+,
+
+(23) By construction, Ωi, feas  
+
+> t
+
+⊆ Cit . The resulting feasible CS is then used under closed-loop dynamics specified later in Section III-E. 
+
+E. Modeling of Closed-Loop Dynamics and State Transitions 
+
+Given the candidate representation above, we now model how the selected candidate induces closed-loop traffic evo-lution under receding-horizon execution. At each RI, a CS is generated and evaluated for every active vehicle us-ing the rolled-out trajectories, feasibility conditions, and safety/topology diagnostics defined in Section III-D. After candidate selection, only the portion of the selected candidate contained within the EW is applied to the environment, while the remaining planning horizon is used solely for future-state assessment during candidate evaluation. At the vehicle level, the selected EW segment is represented with the same one-step relation f (·) used for candidate rollout: 
+
+xit+h = f  xit+h−1, uit+h−1, sit+h−1
+
+ , 1 ≤ h ≤ Hexec ,
+
+(24) This relation records the per-vehicle state sequence of the executed segment. We define the scene-level transition func-tion F(·) as the simulator-consistent closed-loop environment update: 
+
+Xt+Hexec = F(Xt, Uexec  
+
+> t
+
+, Gmap ). (25) Here, Uexec  
+
+> t
+
+= {uit+h−1 | i ∈ ˜Vt, 1 ≤ h ≤ Hexec }
+
+denotes the controls actually executed during the EW, and 
+
+F(·) represents the resulting scene-level simulator transition. By repeatedly performing traffic-state observation, candidate generation, candidate selection, execution over the EW, and IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 7
+
+environment feedback at successive RIs, the framework pro-duces a complete closed-loop traffic rollout. Mathematically, we denote this rollout by: 
+
+ζ =   Xt, {C it }i∈ ˜Vt , k∗ 
+
+> t
+
+, Uexec  
+
+> t
+
+, Xt+Hexec 
+
+  
+
+> t∈T replan
+
+, (26) where k∗ 
+
+> t
+
+= {ki, ∗ 
+
+> t
+
+}i∈ ˜Vt collects the selected candidate indices for active vehicles at RI t.IV. P ROBLEM FORMULATION AND DECOMPOSITION 
+
+Building on the modeling in Section III, we next formulate the core closed-loop traffic generation problem and then derive tractable subproblems to facilitate its solution. 
+
+A. Core Closed-Loop Generation Problem 
+
+The objective of DRIFT is to generate mixed-autonomy traffic rollouts that simultaneously exhibit realistic driving behaviors, maintain traffic efficiency, satisfy safety require-ments, and remain physically executable during closed-loop deployment. As described in Section III-E, traffic evolution is modeled through a receding-horizon process in which candi-date behaviors are generated, filtered for feasibility, selected for execution, and subsequently incorporated into the next replanning cycle through environment feedback. Consequently, the quality of the resulting traffic rollout depends not only on the generated candidates themselves, but also on how traffic context is represented, how candidate behaviors are produced, and how the generated behaviors are aligned with realistic and safety-critical traffic patterns. To capture these three functionalities, DRIFT consists of three trainable modules. Module A learns a heterogeneous traffic representation by en-coding vehicle history, neighboring interactions, roadway se-mantics, and control authority. Module B generates candidate control sequences conditioned on the representation learned by Module A. Module C performs risk-aware distribution alignment by encouraging generated behaviors to remain con-sistent with expert traffic patterns while emphasizing safety-critical and long-tail traffic events. Let Θ = {ϕA, ϕ B , ϕ C }
+
+denote the corresponding trainable parameter sets associated with heterogeneity-aware conditioning, candidate generation, and risk-aware distribution correction, respectively. For each vehicle i at RI t, let ki, ∗ 
+
+> t
+
+denote the candidate selected for execution. Let k = {ki, ∗ 
+
+> t
+
+| t ∈ T replan , i ∈ ˜Vt} collect the rollout-level sequence of selected execution indices. Collec-tively, this sequence of selected candidates determines the resulting closed-loop traffic rollout. Given a parameter set 
+
+Θ and a candidate-selection policy whose realized rollout-level sequence is k, the induced distribution of closed-loop traffic rollouts is denoted by Proll 
+
+> Θ,k
+
+, where k corresponds to the executed candidate choices over the rollout, while Pexp 
+
+denotes the expert driving-behavior distribution used as a realism reference. To evaluate candidate quality during rollout, we assign each candidate a composite score: 
+
+Ji,k t = ωsim Si,k t + ωeff Ei,k t
+
+− ωrisk Ri,k t − ωdyn Di,k t , (27) where Si,k t , Ei,k t , Ri,k t , and Di,k t quantify behavioral con-sistency with expert driving patterns, traffic-efficiency utility, safety risk, and execution difficulty, respectively. The four weights/coefficients in Eq. (27) are nonnegative and control the relative importance of the score components. Based on these definitions, we formulate our core optimization problem of interest that seeks to maximize the cumulative quality of the selected candidates over the entire rollout while simulta-neously encouraging agreement with expert driving behaviors and emphasizing safety-critical traffic situations: 
+
+P0 : max          
+
+> Θ,kEζ∼Proll
+> Θ,k
+> X
+> t∈T replan
+> X
+> i∈˜Vt
+> γtJi,k i, ∗
+> t
+> t
+> −βreal ∆real −βtail ∆tail
+
+,
+
+(28) s.t. ki, ∗ 
+
+> t
+
+∈ { 1, . . . , K }, (28a) 
+
+Ui,k i, ∗ 
+
+> t
+> t
+
+, τ i,k i, ∗
+
+> t
+> t
+
+
+
+∈ Ωi, feas  
+
+> t
+
+, (28b) 
+
+xit+h = f
+
+
+
+xit+h−1, ui,k i, ∗
+
+> t
+> t+h−1
+
+, sit+h−1
+
+
+
+,
+
+1 ≤ h ≤ Hexec , (28c) 
+
+Xt+Hexec = F(Xt, Uexec ,∗ 
+
+> t
+
+, Gmap ) . (28d) 
+
+In P0, the optimization variables are Θ and k: Θ collects the trainable module parameters learned offline, while k collects the rollout-level selected candidate indices over all RI–vehicle pairs. Here, γ ∈ (0 , 1] denotes the discount factor used in the objective of P0 to weight score contributions across successive RIs; γ = 1 assigns equal weight to all RIs, whereas γ < 1
+
+gradually downweights later rollout steps. The construction, normalization, and implementation of the four candidate-score components in Eq. (27) are detailed in Appendix F. The two target penalties in (28) are defined as: 
+
+∆real = dreal  Proll 
+
+> Θ,k
+
+, Pexp  − ϵreal  
+
+> +
+
+, (29) 
+
+∆tail = CVaR α
+
+Rtail (ζ) − ϵtail  
+
+> +
+
+, (30) where [z]+ = max( z, 0) , and coefficients βreal , β tail ≥ 0
+
+balance rollout distribution alignment and tail-risk reduction with local candidate utility in (28). We use dreal (·, ·) to measure the discrepancy between the induced rollout distribution and the expert/reference rollout distribution, and ϵreal to describe the desired upper level of discrepancy. Moreover, Rtail (ζ) ag-gregates rollout-level rare-event risk over the complete closed-loop rollout ζ, including safety-risk accumulation, execution violations, and severe events such as collision, deadlock, or unstable traffic degradation; CVaR α(·) denotes conditional value-at-risk, a standard upper-tail risk measure at confidence level α [39], while ϵtail denotes the target upper level of tail risk. Also, in (28d), Uexec ,∗ 
+
+> t
+
+= {ui,k i, ∗ 
+
+> t
+> t+h−1
+
+| i ∈ ˜Vt, 1 ≤ h ≤
+
+Hexec } collects the selected controls executed within the EW. Particularly, constraint (28a) specifies that each selected index must be one of the generated candidates, and (28b) requires the selected candidate to belong to the local feasible set defined in Section III-D, which includes actuation, speed, lane-topology, predicted conflict-clearance, and THW/TTC safety requirements. Constraints (28c) and (28d) impose vehicle-level and scene-level closed-loop state transitions. The target penalties (29) and (30), which are integrated within the ob-jective function in (28), serve as soft rollout-level objectives IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 8
+
+for distribution alignment and tail-risk control. They guide the finite-sample alignment loss and long-tail feedback introduced later, but they should not be read as closed-form safety guarantees. By contrast, constraints (28a)–(28d) define the operational requirements for selection, feasibility, vehicle-level rollout, and scene-level simulator transition. These constraints apply at every RI t ∈ T replan and for every active vehicle 
+
+i ∈ ˜Vt, so ki, ∗ 
+
+> t
+
+denotes the selected execution index for that specific RI–vehicle pair. 
+
+B. Hardness Analysis and Problem Decomposition Hardness of P0. Problem P0 serves as a system-level formu-lation that captures the overall objectives of DRIFT, including behavioral realism, traffic efficiency, safety, executability, and long-tail robustness. However, these objectives are evaluated at different granularities. Candidate-selection decisions are made locally for individual vehicles at each replanning instant, whereas realism is assessed over complete traffic rollouts and tail risk is measured through the occurrence of rare safety-critical events across many rollouts. Consequently, the optimization variables and objectives are inherently coupled across both local decision-making and long-horizon traffic evolution. This coupling makes direct optimization of P0
+
+impractical. Specifically, the candidate-selection decisions de-pend on generated candidate sets and real-time traffic feed-back, while the realism and tail-risk terms are defined through rollout-level and distribution-level statistics that are estimated from finite training samples. As a result, directly solving P0
+
+would require jointly optimizing continuous model parameters, discrete candidate-selection decisions, simulator-driven state transitions, and rare-event safety objectives within a single stochastic optimization framework. 
+
+Problem decomposition . To obtain a tractable solution, we decompose P0 into a sequence of subproblems that align with the operational workflow of DRIFT. Specifically, the framework consists of an offline training stage and an online closed-loop inference stage. During offline training , three com-plementary subproblems are used to learn the parameter blocks in Θ defined in Section IV-A: P1 learns a heterogeneity-aware representation that captures vehicle history, traffic in-teractions, roadway context, and control authority; P2 learns  
+
+> Fig. 2. Overall workflow of DRIFT, separating offline training from online closed-loop rollout. During offline training, Module A encodes heterogeneous local traffic states into condition vectors, Module B learns executable can-didate generation, Module C provides distribution-alignment and long-tail feedback. During online rollout, trained modules are fixed; feasible candidates are scored, selected, executed within the EW, and fed back to the next RI.
+
+the conditional candidate-generation mechanism responsible for producing future control sequences and their associated rollouts; and P3 performs risk-aware distribution alignment by refining the generated behaviors using expert-driving infor-mation and long-tail safety feedback. During online closed-loop execution , the learned modules are fixed: at each RI, a finite CS is generated, infeasible candidates are removed through feasibility filtering, and Psel selects the candidate to be executed, i.e., k∗. The selected actions are then applied to the environment, producing the next traffic state and initiating the subsequent replanning cycle. Together, these subproblems shape the induced rollout distribution Proll  
+
+> Θ,k
+
+and approximate the representation, generation, selection, and robustness re-quirements encoded in P0. In the follwoing, We introduce the subproblems arising from the decomposition and subsequently present their solutions in Section V. We begin by describing the offline representation-learning stage. The objective of P1 is to learn a heterogeneous traffic representation cit = gϕA (sit), which encodes vehicle history, neighboring interactions, roadway semantics, control authority, and penetration-related information into a compact conditional representation. To this end, we formulate: 
+
+P1 : min 
+
+> ϕA
+
+Lrepr (ϕA). (31) Unlike the subsequent subproblems, P1 does not generate candidate CSs or traffic rollouts. Instead, it focuses solely on learning informative representations that capture the heteroge-neous characteristics of mixed-autonomy traffic. Consequently, execution-related constraints, such as feasibility, safety, and rollout consistency, are not imposed at this stage. Rather, the quality of the learned representation is governed through the representation-learning objective Lrepr , whose specific design is presented in Section V. We next consider the candidate-generation stage. Building upon the heterogeneous representation learned by P1, the ob-jective of P2 is to generate diverse candidate control sequences and their corresponding future traffic trajectories. To this end, we formulate: 
+
+P2 : min 
+
+> ϕB
+
+Lgen (ϕB ) (32) s.t. (28b) , (28c) , (32a) The constraint in (32a) captures the feasibility and dynamic-transition requirements of the generated candidates. Unlike 
+
+Psel , which operates during online rollout, P2 is trained offline and does not determine which candidate will ultimately be executed. Instead, its role is to learn a generation mechanism that produces candidate behaviors that are diverse, dynamically consistent, and likely to satisfy the feasibility constraints. Accordingly, the requirements in (28b) and (28c) are enforced through rollout-based training objectives defined in Lgen ,which is later concretized in Section V. Finally, we consider the distribution-alignment stage. While 
+
+P2 learns to generate feasible and diverse candidate behaviors, it does not explicitly ensure that the resulting traffic rollouts remain aligned with expert driving patterns or adequately em-IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 9
+
+phasize rare safety-critical events. To address these objectives, we formulate: 
+
+P3 : min 
+
+> ϕC
+
+Lalign ,(e)(ϕB , ϕ C ). (33) Equation (33) is the finite-sample training objective used for the rollout-level alignment term in (29). For each training pair 
+
+(t, i ), Module C compares the expert trajectory τ i, exp  
+
+> t
+
+with the generated candidates {bτ i,k t }Kk=1 through the alignment loss Lalign ,(e). The long-tail part is handled separately through candidate-level diagnostics. Specifically, each generated can-didate has a safety-risk score Ri,k t and a dynamic/topological violation score Di,k t . Candidates with larger Ri,k t + Di,k t are assigned larger reweighting coefficients in Module C and therefore receive larger weights in the next Module-B genera-tor update. In this way, the distribution-alignment term in (29) is implemented by Lalign ,(e), while the tail-risk term in (30) is approximated by deterministic reweighting of finite generated candidates according to their candidate-level risk and violation scores. Thus, P3 does not solve the CVaR term in closed form; it provides a finite-sample mechanism that couples expert alignment with deterministic long-tail reweighting for subsequent generator updates. After the learnable modules have produced candidate con-trols and scoring information, the online closed-loop inference stage resolves the actually executed candidate. For each active vehicle i at RI t, a finite CS is available and infeasible candidates are removed according to Ωi, feas  
+
+> t
+
+. This yields the feasible candidate-index set: 
+
+Ki, feas  
+
+> t
+
+= {k | (Ui,k t , τ i,k t ) ∈ Ωi, feas  
+
+> t
+
+}. (34) Because Ki, feas  
+
+> t
+
+is finite, the online local selection problem can be solved by direct enumeration. For this fixed RI-vehicle pair (t, i ), we write k∗ as a local shorthand for ki, ∗ 
+
+> t
+
+: each feasible candidate is scored according to the value of (27), and the candidate with the largest score is executed. This can be formulated as follows: 
+
+Psel : k∗ = arg max  
+
+> k
+
+Ji,k t (35) s.t. k ∈ K i, feas  
+
+> t
+
+. (35a) We note that no learnable parameter is updated in Psel ; its input is the generated CS, the feasible subset when nonempty, and the score values, and its output is only the executed index k∗
+
+for the current RI-vehicle pair. If Ki, feas  
+
+> t
+
+= ∅, all generated candidates violate at least one condition in Ωi, feas  
+
+> t
+
+. In this rare case, the online controller applies a deterministic fallback rather than terminating the rollout. The fallback keeps the nonrelaxed simulator-admissibility checks active, namely ex-ecutable control bounds, speed bounds, topology consistency, and predicted noncollision/conflict clearance as represented by 
+
+ri,k, map  
+
+> t
+
+= 0 and ri,k, col  
+
+> t
+
+= 0 . Among candidates satisfying these checks, it does not use the realism and efficiency rewards Si,k t and Ei,k t ; instead, it selects the candidate with the smallest risk–violation score ωrisk Ri,k t + ωdyn Di,k t , where 
+
+Ri,k t captures longitudinal safety-margin shortfall and Di,k t
+
+captures dynamic/topological execution penalties. If no gen-erated candidate satisfies the simulator-admissibility checks, DRIFT delegates the current EW to the safe-velocity/fail-safe action provided by the Flow /SUMO interface, which is computed from the simulator’s car-following and collision-avoidance logic for the current traffic state. This fallback is used only to preserve closed-loop executability under rare infeasible candidate sets and is not treated as an additional learnable module. Together, P1–P3 make the core closed-loop problem trainable, while Psel handles online candidate execution. V. D ESIGN OF DRIFT Hereafter, we detail the components of DRIFT that collec-tively solve the subproblems formulated in Section IV-B. An overall workflow of DRIFT is summarized in Appendix A. 
+
+A. Module A: Heterogeneity-Aware Condition Encoding 
+
+Module A solves P1 by mapping the heterogeneous local state sit into a compact condition vector cit for subsequent candidate generation. Specifically, Module A entails a set of encoders that process the four sources defined in Section III-C: ego history, neighborhood interaction, map semantics, and mixed-autonomy attributes: 
+
+zih,t = φh(hit),
+
+zin,t = X 
+
+> j∈N it
+
+αi,j t φn(∆ xi,j t ),
+
+zim,t = φm(mit),
+
+zir,t = eκ(κit) + eρ(ρt),
+
+(36) where the encoders φh(·), φn(·), and φm(·) map the ego-history, neighbor-interaction, and road-semantic inputs into vector representations, respectively, and αi,j t is a normalized interaction-attention weight that reflects the relative impor-tance of neighboring vehicle j. The resulting representations from the four information sources are then concatenated and transformed into a unified condition vector: 
+
+gϕA (sit) = MLP  [zih,t ; zin,t ; zim,t ; zir,t ] , (37) where MLP denotes a multilayer perceptron. The output 
+
+cit = gϕA (sit) serves as the condition representation passed to Module B. To make the learned representation sensitive to mixed-autonomy heterogeneity rather than only local ve-hicle motion, each training sample (t, i ) is assigned a coarse behavioral-interaction tag bit, constructed from the vehicle’s control authority, short-horizon motion characteristics, and local interaction patterns. This tag is used only during rep-resentation learning to identify similar and dissimilar training samples as follows: 
+
+(t′, j ) ∈ S i, + 
+
+> t
+
+⇐⇒ bjt′ = bit,
+
+(t′, j ) ∈ S i, − 
+
+> t
+
+⇐⇒ bjt′̸ = bit, (38) where (t′, j ) is drawn from the same training pool. Module A is trained using the objective: 
+
+Lrepr = Lstb + λsep Lsep + λreg ∥ϕA∥22, (39) IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 10 
+
+Algorithm 1: Module A Training for Heterogeneity-Aware Condition Encoding                                     
+
+> Input :training time-vehicle samples {(t, i, sit, b it)}, encoder parameters ϕA
+> Output :updated encoder parameters ϕA
+> 1repeat
+> 2sample a mini-batch of time-vehicle samples (t, i )
+> 3for each time-vehicle sample (t, i )in the mini-batch do
+> 4compute cit=gϕA(sit)from the four state branches
+> 5form Si, +
+> tand Si, −
+> taccording to bit
+> 6compute the stability and separation losses for this query sample
+> 7aggregate Lrepr and update ϕAby backpropagation
+> 8until the Module-A stopping criterion is met
+
+Lstb = 1
+
+|S i, + 
+
+> t
+
+|
+
+X
+
+> (t′,j )∈S i, +
+> t
+
+∥cit − cjt′ ∥22,
+
+Lsep = 1
+
+|S i, − 
+
+> t
+
+|
+
+X
+
+> (t′,j )∈S i, −
+> t
+
+msep − ∥ cit − cjt′ ∥2
+
+2+,
+
+(40) where Lstb encourages samples with similar behavioral-interaction tags to have similar condition representations, while Lsep encourages representations associated with different tags to remain distinguishable under margin msep . Thus, Mod-ule A provides a penetration- and interaction-aware condition prior that serves as the input to the executable candidate generator. Its training procedure is summarized in Algorithm 1. 
+
+B. Module B: Conditional Diffusion Trajectory Generation 
+
+Module B solves P2 by generating K diverse executable candidates for each RI-vehicle query. Following topology-constrained diffusion generation [19] and diffusion-based closed-loop planning [21], DRIFT applies diffusion to the candidate control sequence rather than to a purely geometric trajectory, so that the generated samples can be directly rolled out, feasibility-checked, and executed within the receding-horizon framework. For the k-th candidate, we consider: 
+
+yi,k  
+
+> 0
+
+= vec 
+
+
+
+Ui,k t
+
+
+
+, (41) where Ui,k t = {ui,k t+h−1}Hplan  
+
+> h=1
+
+is the candidate control sequence and vec( ·) stacks all control inputs into a single vector rep-resentation. With diffusion step d = 1 , . . . , L diff , the forward process follows the standard DDPM form [40], [41]: 
+
+q
+
+
+
+yi,k d | yi,k d−1
+
+
+
+= N
+
+√αd yi,k d−1, β dI
+
+
+
+, (42) meaning that the noisy sample at step d is centered at the scaled previous sample √αdyi,k d−1, while independent Gaussian noise with variance βd is injected into each dimension. Hence, the forward diffusion process gradually removes information from the original control sequence while accumulating noise with the following closed-form relationship: 
+
+yi,k d = √¯αd yi,k  
+
+> 0
+
++ √1 − ¯αd ξi,k , ¯αd =
+
+> d
+
+Y
+
+> r=1
+
+αr , (43) where αd = 1 − βd and ξi,k ∼ N (0, I). The reverse process uses the condition representation learned by Module A to recover the original control sequence from the noisy sample. Specifically, a neural predictor estimates the injected noise according to: 
+
+bξi,k d = Pred ϕB
+
+
+
+yi,k d , d, cit
+
+
+
+, (44) from which the clean control and induced trajectory are reconstructed as: 
+
+byi,k  
+
+> 0
+
+= 1
+
+√¯αd
+
+
+
+yi,k d − √1 − ¯αd bξi,k d
+
+
+
+,
+
+bUi,k t = vec −1(byi,k  
+
+> 0
+
+),
+
+(45) and the corresponding trajectory is obtained by rolling the controls forward through the transition model: 
+
+bτ i,k t = Rollout 
+
+
+
+xit, bUi,k t ; f
+
+
+
+. (46) Thus, the diffusion model generates candidate control actions, while the resulting trajectories are obtained through the same rollout mechanism used by the closed-loop system. During training, the reference control sequence is taken from the control library or reconstructed from the expert/reference trajectory under the same transition model. Let wi,k t ≥ 1
+
+denote a candidate-specific training weight that controls the contribution of candidate k to the generator loss. It is ini-tialized to one and later replaced by the Module-C long-tail coefficient χi,k t , which increases the influence of safety-critical candidates during training. The generator objective is: 
+
+Lgen = Lnoise + λfea Lfea , (47) where the denoising loss is: 
+
+Lnoise = Ei,t,k,d, ξ
+
+
+
+wi,k t ξi,k − Pred ϕB (yi,k d , d, cit) 22
+
+
+
+,
+
+(48) is the standard diffusion denoising loss that trains the model to recover the injected noise. In addition, Lfea penalizes generated candidates whose rolled-out trajectories violate the executable-candidate requirements defined in Section IV. For a rolled-out candidate, the topological deviation is defined as: 
+
+∆topo (τ i,k t ) = 1
+
+Hplan 
+
+> Hplan
+
+X
+
+> h=1
+
+I
+
+bxi,k t+h /∈ Ωmap 
+
+> t+h
+
+
+
+, (49) where Ωmap  
+
+> t+h
+
+denotes the map-admissible vehicle-state set at TS 
+
+t + h induced by Gmap , including road-boundary consistency, reachable lane membership, lane-connectivity constraints, and conflict-edge occupancy consistency. Thus, ∆topo (τ i,k t ) is the soft training counterpart of the lane-topology violation rate 
+
+ri,k, map  
+
+> t
+
+used in the online feasible-set definition. With vi,k t+h
+
+obtained from rollout and ri,k, col  
+
+> t
+
+measuring predicted colli-sion/conflict exposure, the boundary loss is defined as: 
+
+ℓi,k, bd  
+
+> t+h
+
+= ∥[ui,k t+h−1 − umax ]+∥1
+
++ ∥[umin − ui,k t+h−1]+∥1
+
++ [ vi,k t+h − vmax ]+ + [ vmin − vi,k t+h]+,
+
+(50) and the safety-margin loss is: 
+
+ℓi,k, safe  
+
+> t
+
+= [ δTHW − THW i,k, min  
+
+> t
+
+]+ + [ δTTC − TTC i,k, min  
+
+> t
+
+]+
+
+(51) IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 11 
+
+Algorithm 2: Module B Training and Candidate Gen-eration                                                            
+
+> Input :time-vehicle sample batch {(t, i, sit,xit)}, reference controls or trajectories, cached weights {wi,k t},generator parameters ϕB, frozen encoder ϕA
+> Output :updated generator parameters ϕB
+> 1repeat
+> 2sample a time-vehicle mini-batch
+> 3for each time-vehicle sample (t, i )in the mini-batch do
+> 4compute the condition vector cit=gϕA(sit)
+> 5for k←1to Kdo
+> 6form the clean/reference control vector
+> yi,k
+> 0= vec( Ui,k t)
+> 7sample (d, ξi,k ), construct yi,k d, and predict bξi,k d
+> 8reconstruct bUi,k tand roll it out into bτi,k t
+> 9accumulate the weighted denoising and feasibility losses
+> 10 form Lgen =Lnoise +λfea Lfea
+> 11 update ϕBby backpropagation
+> 12 until the Module-B stopping criterion is met
+
+as the THW/TTC safety-margin violation penalty. The feasi-bility objective is then obtained as: 
+
+Lfea = Ei,t,k 
+
+"
+
+wi,k t
+
+1
+
+Hplan 
+
+> Hplan
+
+X
+
+> h=1
+
+ℓi,k, bd 
+
+> t+h
+
++ λtopo ∆topo (τ i,k t ) + λcol ri,k, col  
+
+> t
+
++ λsafe ℓi,k, safe 
+
+> t
+
+!# 
+
+,
+
+(52) where [·]+ is the positive part. Consequently, Module B learns to generate control sequences that are both diffusion-consistent and executable, while encouraging their rolled-out trajectories to satisfy actuation limits, speed limits, roadway-topology constraints, and THW/TTC safety requirements. During on-line rollout, K candidates are sampled, rolled out, filtered by Ωi, feas  
+
+> t
+
+, scored according to (27), and selected through 
+
+Psel . This candidate-first mechanism is compatible with post-interaction refinement in trajectory prediction, where multiple interaction-consistent hypotheses are preserved before final selection [24]. Algorithm 2 summarizes the procedure. 
+
+C. Module C: Progressive Adversarial Imitation with Long-Tail Risk Enhancement 
+
+Module C addresses P3 by supplementing the candidate generator with distribution alignment and long-tail risk feed-back. Its goal is to encourage generated candidates to remain consistent with expert driving behaviors while increasing attention to rare safety-critical situations. During training, Module C learns a state-conditioned discriminator that distin-guishes expert trajectories from generated trajectories under the same traffic context. During inference, the trained dis-criminator is reused as the behavior-similarity scorer in (27). To accomplish this, Module C compares generated candidate trajectories against expert driving trajectories and gradually introduces an adversarial alignment objective during training. Specifically, let τ i, exp  
+
+> t
+
+be the expert/reference trajectory and 
+
+bτ i,k t be the k-th generated trajectory. To gradually introduce the adversarial objective during training, we define: 
+
+λadv ,(e) = min 
+
+
+
+1, eEwarm 
+
+
+
+, (53) and define the base alignment loss as: 
+
+Lalign = E(t,i )
+
+"
+
+− log 
+
+
+
+σ Dϑ(τ i, exp  
+
+> t
+
+, sit)
+
+− 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+log 
+
+
+
+1 − σ Dϑ(bτ i,k t , sit)#
+
+,
+
+(54) where Dϑ(τ , s) is a discriminator network that outputs a real-ism score indicating how closely trajectory τ resembles expert driving behavior under state s, and σ(·) is the Sigmoid func-tion. This adversarial formulation follows imitation-learning principles [42] and is conceptually related to diffusion-enhanced AIL [16]. However, unlike conventional adversarial imitation learning, the discriminator output is ultimately used to evaluate executable candidate trajectories during candidate selection. Module C is trained according to the objective: 
+
+Lalign ,(e) = λadv ,(e)Lalign . (55) Here, ϕC denotes the complete set of Module-C parameters, while ϑ ⊆ ϕC specifically denotes the discriminator parame-ters. The warm-up schedule defined by λadv ,(e) and Ewarm only describes the progressive activation of the adversarial loss. To emphasize rare but safety-critical traffic situations and connect candidate-level failures with the rollout-level tail-risk penalty in (30), Module C first computes a deterministic risk-aware coefficient: 
+
+χi,k t = 1 + β Ri,k t + Di,k t
+
+, (56) where Ri,k t measures candidate-level safety-risk exposure and Di,k t measures candidate-level dynamic/topological op-erational difficulty, with the normalized score aggregation detailed in Appendix F. The coefficient χi,k t is not a learnable parameter; it is computed directly from the measured Ri,k t and 
+
+Di,k t for the current generated candidate. Larger values of χi,k t
+
+therefore assign greater importance to candidates associated with elevated safety risk or operational difficulty. Using this deterministic coefficient, the corresponding long-tail weighted discrepancy is: 
+
+Ltail = E(t,i )
+
+"
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+χi,k t bτ i,k t − τ i, exp  
+
+> t1
+
+#
+
+. (57) Equation (33) remains the objective used to update ϕC through 
+
+Lalign ,(e). By contrast, Ltail is not used to learn χi,k t or as a sec-ond optimizer for ϕC ; it only describes the weighted mismatch induced by the deterministic coefficients in the current mini-batch. After each Module-C update, the computed coefficients 
+
+{χi,k t }Kk=1 are cached and used as the next Module-B candidate weights wi,k t . Consequently, candidates associated with safety-critical events receive greater emphasis during subsequent generator updates. This stagewise feedback mechanism allows rare but operationally important traffic situations to influence future candidate generation, a motivation similar to that of IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 12 
+
+Algorithm 3: Module C Stagewise Alignment and Long-Tail Reweighting                                                        
+
+> Input :expert trajectories {τi, exp
+> t}, generated candidates
+> {bτi,k t}, local states {sit}, fixed generator ϕB, Module-C parameters ϕC
+> Output :updated Module-C parameters ϕCand cached reweighting coefficients χi,k t
+> 1repeat
+> 2advance the epoch counter eand set
+> λadv ,(e)= min(1 , e/E warm )
+> 3for each mini-batch of time-vehicle samples (t, i )do
+> 4fetch expert and generated trajectories with local state sit
+> 5for k←1to Kdo
+> 6evaluate discriminator realism and candidate risk/violation terms
+> 7compute χi,k t= 1 + β(Ri,k t+Di,k t)
+> 8update ϕCwith Lalign ,(e)while keeping ϕBfixed
+> 9cache {χi,k t}Kk=1 for the next Module-B update
+> 10 until the Module-C stopping criterion is met
+
+controllable adversarial scenario generation [28]. During on-line rollout, Module C performs no adversarial updates. The discriminator output Dϑ contributes to behavior similarity, while Ri,k t and Di,k t remain explicit candidate-selection terms in Psel . Algorithm 3 summarizes this procedure. VI. E XPERIMENTS 
+
+A. Experimental Setup 
+
+We evaluate DRIFT in closed-loop mixed-autonomy sim-ulation, focusing on three questions: efficiency across AV penetration rates, safety under merging and strong-interaction disturbances, and the contribution of each core module to traffic-level outcomes. All methods are executed in the same 
+
+Flow /SUMO feedback loop [1], and performance is assessed by induced traffic evolution under executable controls rather than offline trajectory similarity. All experiments follow the settings below. 
+
+• Experimental platform : All experiments are implemented in Flow /SUMO [1]. At each RI, the controller observes the current traffic state and outputs the next executable action segment. After execution, the environment immediately enters the next HV/AV interaction round, so the evalua-tion preserves feedback effects such as hard braking, local congestion, disturbance propagation, and merge conflicts. 
+
+• Traffic scenarios : We consider three Flow /SUMO mixed-autonomy benchmark traffic scenarios. Ring follows the closed-road setting widely used for traffic-wave stabiliza-tion with AVs [43] and tests disturbance propagation and stable car-following. Figure-eight (F8) is the corresponding 
+
+Flow benchmark for strong local interaction in a closed network. Merge is the highway-merge benchmark for yield coordination, conflict resolution, and outflow in an open network. These scenarios represent closed-network distur-bance propagation, closed-network local conflict, and open-network merging; larger urban networks are outside the main experimental claim of this paper. 
+
+• Real-trajectory datasets : The HV behavioral prior is calibrated from highD [44], rounD [45], exiD [46], and inD  
+
+> Fig. 3. Representative benchmark scenarios. Blue vehicles denote AVs, gray vehicles denote HVs, and orange regions indicate disturbance, interaction, or merge-conflict areas.
+
+[47]. These datasets cover highway, roundabout, highway-ramp, and urban-intersection driving segments, and are used to estimate HV kinematic distributions, local-interaction features, and risk statistics. 
+
+• AV penetration setting : Closed-loop evaluation is conducted under 6 AV penetration rates, namely 
+
+0/20 /40 /60 /80 /100% . Each scenario-method-penetration cell is repeated for five closed-loop episodes. Flow-RL is not applicable at 0% penetration because it requires at least one RL-controlled vehicle. 
+
+• HV behavior extraction and calibration : Rather than replaying recorded trajectories frame by frame, we extract vehicle class, speed, longitudinal acceleration, longitudi-nal/lateral velocity, THW, TTC, and lane-change indicators from the raw tracks and metadata files. For each scenario 
+
+s, the calibrated HV prior is represented as: 
+
+zHV  
+
+> s
+
+= [ˆ vdes  
+
+> s
+
+, ˆTs, ˆs0,s , ˆamax  
+
+> s
+
+, ˆbs, ˆτs, ˆσs], (58) where ˆ· is statistics calibrated from real trajectories; vdes , T ,
+
+s0, amax , b, τ , and σ denote desired speed, time headway, minimum spacing, maximum acceleration, comfortable de-celeration, reaction delay, and control noise, respectively. Training samples use a history window of length 6 and a future window of length 6 with stride 5. Vehicle type and AV penetration correspond to the control-authority marker and penetration embedding in the formal state definition, while scenario differences are mainly represented by road semantics; an additional scenario identifier is used only for sample construction, bucketing, and experimental logging. 
+
+• AV behavior generation : AV behavior is not directly sam-pled as a native category from the real trajectory datasets. Instead, parameterized AV types are generated from the calibrated HV prior with mixed-autonomy and scenario-specific adjustments: 
+
+zAV  
+
+> s
+
+=  min( vlim  
+
+> s
+
+, α v 
+
+> s
+
+ˆvdes  
+
+> s
+
+), α T 
+
+> s
+
+ˆTs, α s0  
+
+> s
+
+ˆs0,s ,αa
+
+> s
+
+ˆamax  
+
+> s
+
+, α b
+
+> s
+
+ˆbs, α tau  
+
+> s
+
+ˆτs, α sigma  
+
+> s
+
+ˆσs, ω coop 
+
+> s
+
+, (59) where the α coefficients denote scenario-dependent scaling, 
+
+vlim  
+
+> s
+
+is the road speed limit, and ωcoop  
+
+> s
+
+is the cooper-ative weight. During online closed-loop execution, HVs follow the calibrated behavioral prior, while controlled AVs read their speed, estimated acceleration, leader headway, IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 13 
+
+TABLE I AV-PRIOR SCALING RATIOS RELATIVE TO THE CALIBRATED HV PRIOR .HERE v, T , s0 , a, b, τ , AND σ DENOTE DESIRED SPEED , TIME HEADWAY ,
+
+> MINIMUM GAP
+
+, MAXIMUM ACCELERATION , COMFORTABLE DECELERATION , REACTION DELAY , AND CONTROL NOISE .                            
+
+> Scen. vTs0abτσ
+> Ring 1.02 0.92 0.95 1.18 1.18 0.70 0.40 F8 1.03 0.95 1.00 1.15 1.20 0.72 0.42 Merge 1.05 0.88 0.90 1.28 1.28 0.65 0.35
+
+Fig. 4. Closed-loop simulation protocol. Real trajectory data calibrate HV behavior and AV priors; at each RI, DRIFT or a baseline reads the 
+
+Flow /SUMO state, outputs executable actions, and logs efficiency, safety, and executability metrics. TABLE II EXPERIMENTAL PROTOCOL AND METRICS .Item Setting Simulation platform Flow + SUMO closed-loop simulation Scenarios ring , F8 , and merge 
+
+AV penetration 0/20 /40 /60 /80 /100% 
+
+Runs per cell 5 closed-loop episodes Efficiency metrics Return ↑, average speed ↑, merge outflow ↑
+
+Safety diagnostics Collision/deadlock ↓, hard braking ↓, min acceleration ↑, THW/TTC violations ↓
+
+THW, TTC, and lane-change state from Flow /SUMO . These variables form a seven-dimensional history feature used by DRIFT to generate candidates, construct the feasible candidate set, score and select candidates, and execute the selected control segment. The AV prior is therefore a bounded synthetic prior for penetration-rate sensitivity rather than an empirical AV-fleet model. The scaling ratios in Table I show that the desired-speed gain is mild, reaction delay is reduced but nonzero, and control noise remains positive. This keeps the Flow /SUMO 
+
+experiments reproducible while avoiding unsupported claims about deployed AV behavior. Overall, this setup ensures that real trajectory data are used for behavior calibration and model training, while the main results are obtained from traffic evolution induced by executable closed-loop controls under each penetration setting. Table II summarizes the protocol and metrics, and Table III reports the core implementation settings used for reproduction. In the final implementation, output safety filtering in high-penetration F8 cases is treated as a scenario-specific execution boundary of the feasible set 
+
+Ωi, feas  
+
+> t
+
+, while ETA-yield coordination in Merge is treated as a scenario-specific realization of the merge-conflict-related dy-namic/topological cost Di,k t and the online selection problem 
+
+Psel . They are not additional modules outside DRIFT and are not reported as separate methods. 
+
+TABLE III CORE IMPLEMENTATION SETTINGS .Item Implementation detail Input window History/future windows of 6 steps with stride 5; online AV state uses 7 local kinematic and safety features. Module A Temporal history branch and context MLP; embedding dimension 48; trained for 20 epochs. Module B Conditional denoising candidate generator with feed-forward backbone; K = 5 
+
+executable-control candidates parameterized by speed, spacing, and caution-related attributes; trained with denoising and feasibility losses. Module C Realism/risk scorer with candidate and fusion MLPs; learned score is realism −0.65 × risk by default, where risk supervision uses THW, TTC, and lane-change indicators. Safety logs THW violation: THW < 1.0 s; TTC violation: TTC < 2.0 s; hard braking: acceleration 
+
+< −6/ − 10 / − 20 m/s 2.Runtime check Server profiling gives 0.783 ms/action p95 for the executable A/B/C stack at K = 5 ;end-to-end Flow /SUMO throughput is 
+
+6.16 –145 .19 steps/s across profiled closed-loop cells. Robustness check A 10-run support matrix covers FollowerStopper, PI, and DRIFT over Ring/F8/Merge and 0/20 /40 /60 /80 /100% 
+
+penetration; it supports paired Wilcoxon/ t-test trend checks rather than replacing the adopted 5-run main table. Flow-RL PPO/RLlib baseline trained for 50 iterations; checkpoint 000050 is used for 5-run closed-loop evaluation; 0% penetration is N/A. 
+
+B. Baselines and Variants 
+
+We compare three groups of methods. The first group contains external baselines that can be directly executed in the 
+
+Flow /SUMO closed loop. The second group contains DRIFT and simple internal replacements. The third group contains ablation variants used to explain module and mechanism contributions. The detailed settings are as follows. 
+
+External methods and reproducible baselines: 
+
+• FollowerStopper : A classical rule-based controller for mixed-autonomy ring-road stabilization [43], used as a
+
+Flow -native closed-loop baseline. 
+
+• PI controller : The PISaturation controller provided by 
+
+Flow [1], used as a simple feedback-control baseline. It is an executable engineering controller rather than a newly proposed standalone paper method. 
+
+• IDM : The Intelligent Driver Model car-following controller in Flow [1], included as a supplementary car-following baseline to check whether DRIFT is compared only with weak feedback controls. 
+
+• Flow-RL : A learning-control baseline constructed from the official RL-controlled vehicle interface in Flow [1]. Since it requires at least one RL-controlled vehicle, the 0% AV-penetration cell is not applicable. 
+
+• Flow-AIL : An imitation-style learning baseline adapted to the same Flow /SUMO executable interface. It is not a direct reproduction of an external paper codebase; it is included to test the safety–efficiency tradeoff of a learning-based executable controller under the same closed-loop protocol. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 14 
+
+These baselines are selected according to closed-loop exe-cutability and protocol consistency. IDM and Flow-AIL are included in the main numerical tables as, respectively, aclassical car-following reference and an adapted learning-based reference. ACC, CACC, and MPC-style controllers usually require additional communication topology, predic-tion models, explicit constraints, and computational-budget assumptions. Recent traffic generation and imitation methods such as SceneDiffuser [2], TrafficMCTS [3], DiffAIL [16], ControlTraj [19], and DragTraffic [27] are highly relevant, but they target simulation initialization, offline trajectory/scene generation, search-based traffic-flow construction, or different information interfaces. Directly mixing them into the main 
+
+Flow /SUMO mixed-autonomy closed-loop control table would conflate interface adaptation with method comparison. There-fore, the main tables report reproducible controllers and the adapted Flow-AIL baseline under the same feedback interface, while the scope-positioning table in Appendix D, validation-set candidate realism, and the stress/selector diagnostics clarify how the broader literature differs in scope and interface. 
+
+Our method and internal controls: 
+
+• DRIFT : The full proposed method with Module A, Module B, and Module C. 
+
+• Simple-A : A variant that replaces Module A with a plain condition encoder while retaining learned Modules B/C, i.e., BC+simple A. 
+
+• Simple-B : A variant that replaces Module B with a fixed candidate generator while retaining learned Modules A/C, i.e., AC+simple B. 
+
+• Simple-C : A variant that replaces Module C with a heuristic candidate-selection surrogate while retaining learned Mod-ules A/B, i.e., AB+simple C. 
+
+Ablation settings: 
+
+• w/o Module A : Removes the condition-encoding module and keeps only the downstream generation and scoring interfaces needed for closed-loop execution. 
+
+• w/o Module B : Removes the learned candidate-generation backbone and uses the necessary execution interface to maintain closed-loop rollout. 
+
+• w/o Module C : Removes the discriminator-based realism score and long-tail feedback provided by Module C, while retaining the basic risk and dynamic-cost terms required by 
+
+Psel for closed-loop execution. 
+
+• w/o Penetration Conditioning : Removes AV-penetration conditioning to test cross-penetration adaptation. 
+
+• Single-Candidate : Degenerates multi-candidate generation into single-candidate execution to test the value of candidate diversity and selection. Internal replacements and strict ablations have different meanings: the former replace one module with a simple counterpart to test whether the learned design is better than a simple substitute, whereas the latter remove the corresponding module position to test whether that position is necessary. Specifically, Simple-A uses a plain non-heterogeneity-aware condition encoder, Simple-B uses a fixed candidate generator rather than learned diffusion sampling, and Simple-C uses a heuristic selection surrogate rather than the learned Module-C realism/risk-feedback interface. By contrast, w/o Module                    
+
+> TABLE IV METHOD CATEGORIES ,COVERAGE ,AND IMPLEMENTATION STATUS .Method Role Coverage Status FollowerStopper Classic rule-based Six penetrations Flow-native baseline PI with saturation Classic rule-based Six penetrations Flow-native baseline Flow-RL Official learning baseline
+> 20 –100% 0% is N/A IDM Classic car-following Six penetrations Flow-native baseline Flow-AIL Adapted imitation baseline Six penetrations Supplementary learning baseline DRIFT Proposed method Six penetrations Full A+B+C stack w/o A/B/C Strict ablation Six penetrations Remove one learned module Simple-A/B/C Internal replacement Six penetrations BC+simple A; AC+simple B; AB+simple C w/o Pen., Single-Cand. Mechanism ablation Six penetrations Disable one design mechanism
+
+A/B/C removes the corresponding learned module position while retaining only the minimal execution interface needed to keep the simulator rollout comparable. Table IV summarizes the role, coverage, and implementation status of all compared methods. To keep the experimental section consistent with the exe-cutable controller, the reported Module B uses the executable-control parameterization described in Section V-B: candidate controls are generated in the compact control space, rolled out into finite-horizon trajectory candidates, and then passed to feasibility filtering, risk/dynamic-cost evaluation, Module-C realism scoring, and Psel . Thus, all reported results correspond to executable controls under the same closed-loop interface rather than to offline trajectory samples evaluated only by open-loop similarity. 
+
+C. Evaluation Metrics and Analysis 1) Metric Definitions: The evaluation metrics cover effi-ciency, safety, closed-loop executability, and stability diag-nostics. Efficiency metrics include episode return, average speed, and Merge outflow. Return reflects the overall closed-loop control objective, average speed measures traffic-flow efficiency, and outflow measures throughput in the open merge network. Safety and executability diagnostics include colli-sion/deadlock, hard braking, minimum realized acceleration, THW, and TTC. Closed-loop stability is assessed through penetration-wise smoothness of return/speed/outflow trends together with the episode-level variability reported in Ap-pendix D. Each table cell is aggregated from five closed-loop episodes unless otherwise stated, and safety diagnostics are computed from the corresponding emission and safety logs. All tables mark the preferred direction of each metric and bold the best available value under that direction; entries marked by “–” indicate that the metric is not exposed by the corresponding evaluation interface or is not applicable to that scenario. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 15 
+
+TABLE V MAIN RESULTS WITH SAFETY AND EXECUTABILITY DIAGNOSTICS .                                                                                                                                                                      
+
+> Scenario Method Ret. ↑Spd. ↑Out. ↑Coll. ↓TTC% ↓THW% ↓HB ↓Worst a↑
+> Ring FollowerStopper 18.32 1.59 –01.03 0.00 87 -57.89 Ring PI 11.81 1.01 –00.00 0.00 0-3.80 Ring IDM 27.21 2.31 –00.00 0.00 0-0.92 Ring Flow-RL 11.59 1.56 ––0.02 0.00 0-1.99 Ring Flow-AIL 15.02 1.35 –00.00 0.00 0-4.80 Ring DRIFT 25.41 2.17 –00.00 0.00 0-0.91
+> F8 FollowerStopper 52.64 4.72 –00.11 0.22 52 -102 F8 PI 40.50 3.60 –00.03 0.10 17 -46.98
+> F8 IDM 57.05 5.11 –00.17 0.18 16 -78.39 F8 Flow-RL 21.43 2.87 ––0.21 0.08 8-72.57 F8 Flow-AIL 58.54 5.28 –01.05 0.85 30 -72.43 F8 DRIFT 58.38 5.17 –00.80 0.64 22 -71.01 Merge FollowerStopper 66.73 14.31 1378 01.02 0.20 117 -109 Merge PI 42.85 9.14 726 00.08 0.06 162 -106 Merge IDM 66.91 14.36 1328 00.08 0.16 36 -97.40
+> Merge Flow-RL 52.93 10.77 812 –0.80 0.12 19 -102 Merge Flow-AIL 67.38 14.48 1380 00.17 0.18 78 -100.27 Merge DRIFT 66.80 14.49 1377 00.16 0.10 26 -97.40
+
+Efficiency results are interpreted together with safety di-agnostics because high short-term speed or outflow may be accompanied by hard braking, extreme deceleration, or simulator safe-speed clipping. We therefore draw conclusions from the joint pattern of return, speed/outflow, TTC risk, hard braking, and minimum acceleration rather than from a single efficiency metric. Additional statistical, sensitivity, latency, selector/feasibility, compact stress-test, and validation-set diagnostics are reported in Appendix D. 
+
+2) Performance Analysis: Table V gives the core values, and Fig. 5 reports efficiency trends across six AV penetra-tion rates. Fig. 5 shows stable DRIFT trends in Ring and 
+
+F8 , meaning smooth penetration-wise curves with bounded episode variability, while Merge exhibits a clearer safety– efficiency tradeoff. The speed and outflow panels further indicate smooth closed-network behavior: IDM remains most efficient in Ring , Flow-AIL slightly leads in F8 efficiency but with higher close-interaction exposure, and FollowerStopper remains a competitive Merge throughput baseline. Consistent with Table V, higher Merge throughput from some baselines is accompanied by more hard braking, so DRIFT is interpreted as a balanced alternative rather than a pointwise optimum. 
+
+3) Safety and Executability Diagnostics: The safety and executability columns in Table V should be read with effi-ciency. Some baselines obtain higher Merge throughput, but their gains come with more hard braking or stronger extreme deceleration. DRIFT suppresses undesirable candidate actions through feasibility filtering and score-based selection, so its gains do not primarily rely on safe-speed clipping. Specifically, IDM is competitive in Ring , but its F8 and Merge tails are less favorable. Flow-AIL is competitive on efficiency, yet it raises close-interaction exposure in F8 and braking in Merge .DRIFT reduces hard braking in Merge while keeping near-best throughput. 
+
+4) Module and Mechanism Analysis: Fig. 6 reports changes relative to full DRIFT for strict module ablations, internal replacements, and mechanism ablations. The detailed tables are in Appendix D. Fig. 6 shows that full DRIFT yields the most favorable aggregate return, speed, and Merge outflow pattern. Module C mainly regularizes the safety tail, while 0    
+
+> 20
+> 40
+> 60
+> 80
+> 100
+> 10
+> 20
+> Return  Ring
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 25
+> 50
+> F8
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 40
+> 60
+> Merge
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 1
+> 2
+> Average speed
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 2
+> 4
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 10
+> 15
+> Outflow
+> Not applicable
+> closed network
+> Not applicable
+> closed network
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> 500
+> 1000
+> 1500
+> AV pen. (%)
+> FollowerStopper PI IDM Flow-RL DRIFT
+
+Fig. 5. Efficiency trends across AV penetration rates. Rows report return, average speed, and Merge outflow; columns denote traffic scenarios. Outflow is reported only for Merge .−5 0            
+
+> w/o A
+> w/o B
+> w/o C
+> Return
+> −200 0
+> Merge outflow
+> 02
+> HB < −6
+> −2.5 0.0
+> Simple-A
+> Simple-B
+> Simple-C
+> −100 002
+> −5 0
+> w/o Pen.
+> Single-Cand.
+> −200 0−1 01
+> Strict Internal Mechanism
+
+Fig. 6. Ablation and replacement-control deltas relative to full DRIFT. 
+
+Modules A and B support adaptation and candidate gener-ation. The internal replacements and mechanism ablations further indicate that simple substitutes do not match full DRIFT, with penetration-aware conditioning, multi-candidate generation, and Psel each making identifiable contributions. Additional evidence in Appendix D covers statistical support, candidate-set size, online latency, selector/feasibility variants, OOD/stress perturbations, Module-C risk-weight sensitivity, and validation-set candidate realism, showing that candidate diversity is useful but not monotonic and that the same safety– efficiency tradeoff persists across auxiliary diagnostics. Taken together, the experiments indicate that DRIFT bal-ances safety and efficiency, external baselines can be com-petitive on isolated metrics but weaker in braking tails, and Modules A/B/C each affect the final closed-loop behavior. VII. C ONCLUSION 
+
+This paper presented DRIFT, a risk-constrained closed-loop framework for heterogeneous mixed-autonomy traffic generation and evaluation. DRIFT connects heterogeneity-aware condition encoding, conditional diffusion-based ex-ecutable candidate generation, stagewise distribution align-ment, long-tail feedback, feasibility filtering, and online candi-IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 16 
+
+date selection within a rolling-horizon Flow /SUMO feedback loop. Experiments across Ring , F8 , and Merge scenarios with six AV penetration rates show that DRIFT provides a competitive safety–efficiency–executability tradeoff together with smooth penetration-wise behavior rather than uniform dominance on every isolated metric. The ablations, selec-tor/feasibility checks, and compact stress tests further indicate that penetration-aware conditioning, multi-candidate genera-tion, Module-C realism/risk feedback, and multi-term online selection all contribute to the final closed-loop traffic behavior. In future work, we will extend DRIFT to larger and less stylized urban traffic networks, richer route-choice behav-ior, communication-aware controllers, and localized mixed-autonomy datasets. We also plan to study scalable candidate pruning for denser traffic, uncertainty-aware calibration of HV and AV priors, real AV fleet logs when available, and hardware-in-the-loop or field-oriented validation so that exe-cutable generation can be assessed under more diverse ITS deployment conditions. REFERENCES [1] C. Wu, A. R. Kreidieh, K. Parvate, E. Vinitsky, and A. M. Bayen, “Flow: A modular learning framework for mixed autonomy traffic,” IEEE Trans. Robot. , vol. 38, no. 2, pp. 1270–1286, Apr. 2022. [2] C.-M. Jiang et al. , “SceneDiffuser: Efficient and controllable driving simulation initialization and rollout,” in Proc. Adv. Neural Inf. Process. Syst. (NeurIPS) , vol. 37, 2024. [3] Z. Fu, L. Wen, P. Cai, D. Fu, S. Mao, and B. Shi, “TrafficMCTS: A closed-loop traffic flow generation framework with group-based monte carlo tree search,” IEEE Trans. Intell. Transp. Syst. , vol. 26, no. 10, pp. 15 453–15 470, Oct. 2025. [4] Y. Chen, J. Sun, J. Fan, and J. Sun, “Transferring causal driving patterns for generalizable traffic simulation with diffusion-based distillation,” in 
+
+Proc. AAAI Conf. Artif. Intell. , vol. 40, 2026, pp. 110–118. [5] S. Fang, P. Hang, C. Wei, Y. Xing, and J. Sun, “Cooperative driving of connected autonomous vehicles in heterogeneous mixed traffic: A game theoretic approach,” IEEE Trans. Intell. Veh. , 2024, early access. [6] S. Li, R. Dong, and C. Wu, “Hybrid system stability analysis of multilane mixed-autonomy traffic,” IEEE Trans. Robot. , vol. 40, 2024. [7] J. Wang, Y. V. Pant, L. Zhao, M. Antkiewicz, and K. Czarnecki, “En-hancing safety in mixed traffic: Learning-based modeling and efficient control of autonomous and human-driven vehicles,” IEEE Trans. Intell. Transp. Syst. , vol. 25, no. 9, pp. 12 784–12 799, Sep. 2024. [8] B.-L. Cen, Y. Xue, K. Zhang, L. Jia, and H.-D. He, “Study on traffic flows with connected vehicles and human-driven vehicles,” Appl. Math. Comput. , vol. 490, p. 129182, 2025. [9] Z. Wang, Q. Cheng, P. Liu, W. Yu, J. Wang, and Z. Liu, “Energy and environmental implications of automated vehicles under mixed autonomy traffic environment,” IEEE Trans. Intell. Veh. , vol. 10, no. 2, Feb. 2025. [10] Y. Pei, H. Wang, and X. Han, “Analysis of roadway capacity for heterogeneous traffic flows considering the degree of trust of drivers of HVs in CAVs,” Physica A , vol. 639, p. 129693, 2024. [11] C. Wang, W. Ren, C. Xu, N. Zheng, C. Peng, and H. Tong, “Exploring the impact of conditionally automated driving vehicles transferring control to human drivers on the stability of heterogeneous traffic flow,” 
+
+IEEE Trans. Intell. Veh. , vol. 10, no. 2, pp. 912–928, Feb. 2025. [12] D. Wang, W. Li, L. Zhu, and J. Pan, “Learning to control and coordi-nate mixed traffic through robot vehicles at complex and unsignalized intersections,” Int. J. Robot. Res. , 2025. [13] Y. Gong and W.-X. Zhu, “Modeling and robust Hinf ty control synthesis of the CAV-HDV heterogeneous traffic system with different car-following modes,” IEEE Trans. Intell. Transp. Syst. ,vol. 25, no. 10, Oct. 2024. [14] M. Wang, J. Cui, Y. W. Wong, Y. Chang, L. Wu, and J. Jin, “Urban vehicle trajectory generation based on generative adversarial imitation learning,” IEEE Trans. Veh. Technol. , vol. 73, no. 12, pp. 18 237–18 249, Dec. 2024. [15] J. Jin, Q. Sun, Y. Ding, Y. Chen, Y. Zhang, X. Wang, and M. Wang, “Ctx2TrajGen: Traffic context-aware microscale vehicle trajectories us-ing generative adversarial imitation learning,” 2025, arXiv:2507.17418. [Online]. Available: https://arxiv.org/abs/2507.17418. [16] B. Wang, G. Wu, T. Pang, Y. Zhang, and Y. Yin, “DiffAIL: Diffusion adversarial imitation learning,” in Proc. AAAI Conf. Artif. Intell. , vol. 38, no. 14, 2024, pp. 15 447–15 455. [17] F. Shahabi-Nejad and M. M. Ebadzadeh, “A fast and stable framework for generative adversarial imitation learning,” Eng. Appl. Artif. Intell. ,vol. 162, p. 112460, 2025. [18] Y.-C. Li, N. Chao, Z. Zhang, F. Zhang, L. Yuan, and Y. Yu, “Gen-eralizable multi-modal adversarial imitation learning for non-stationary dynamics,” IEEE Trans. Pattern Anal. Mach. Intell. , vol. 47, no. 7, pp. 5600–5612, Jul. 2025. [19] Y. Zhu, J. J. Q. Yu, X. Zhao, Q. Liu, Y. Ye, W. Chen, Z. Zhang, X. Wei, and Y. Liang, “ControlTraj: Controllable trajectory generation with topology-constrained diffusion model,” in Proc. ACM SIGKDD Conf. Knowl. Discov. Data Mining , Barcelona, Spain, Aug. 2024, pp. 4676–4687. [20] T. Wei, Y. Lin, S. Guo, Y. Lin, Y. Huang, C. Xiang, Y. Bai, and H. Wan, “Diff-RNTraj: A structure-aware diffusion model for road network-constrained trajectory generation,” 2024, arXiv:2402.07369. [Online]. Available: https://arxiv.org/abs/2402.07369. [21] Y. Zheng, R. Liang, K. Zheng, J. Zheng, L. Mao, J. Li, W. Gu, R. Ai, S. E. Li, X. Zhan, and J. Liu, “Diffusion-based planning for autonomous driving with flexible guidance,” in Proc. Int. Conf. Learn. Represent. (ICLR) , 2025. [22] Z. Li, Z. Chen, Y. Li, and C. Xu, “Context-aware trajectory prediction for autonomous driving in heterogeneous environments,” Comput.-Aided Civ. Infrastruct. Eng. , vol. 39, no. 1, pp. 120–135, 2024. [23] Q. Zhang, Y. Xing, J. Wang, Z. Fang, Y. Liu, and G. Yin, “Interaction-aware and driving style-aware trajectory prediction for heterogeneous vehicles in mixed traffic environment,” IEEE Trans. Intell. Transp. Syst. ,vol. 26, no. 7, Jul. 2025. [24] Z. Huang, Y. Li, D. Li, Y. Mu, H. Qin, and N. Zheng, “Post-interactive multimodal trajectory prediction for autonomous driving,” Transp. Res. Part C, Emerg. Technol. , vol. 179, p. 105271, 2025. [25] R. Li, J. Liu, T. Sun, and T. Xu, “Multi-agent reinforcement learning with transformer-based spatio-temporal fusion for autonomous driving in mixed traffic,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) ,Hangzhou, China, Oct. 2025, pp. 8283–8289. [26] H.-Y. Kang, J.-G. Lu, M. Wei, Q.-H. Zhang, Z. Zhu, and Y. Wang, “A planning-oriented autonomous driving framework: From image to trajectory with intent-aware prediction,” IEEE Trans. Intell. Transp. Syst. , pp. 1–15, 2026. [27] S. Wang, G. Sun, F. Ma, T. Hu, Q. Qin, Y. Song, L. Zhu, and J. Liang, “DragTraffic: Interactive and controllable traffic scene generation for autonomous driving,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , Abu Dhabi, UAE, Oct. 2024, pp. 14 241–14 247. [28] M. Peng, Y. Xie, X. Guo, R. Yao, H. Yang, and J. Ma, “LD-Scene: LLM-guided diffusion for controllable generation of adversarial safety-critical driving scenarios,” Transp. Res. Part C, Emerg. Technol. , 2026. [29] J. Sun and J. Kim, “Modelling two-dimensional driving behaviours at unsignalised intersection using multi-agent imitation learning,” Transp. Res. Part C, Emerg. Technol. , vol. 165, p. 104702, 2024. [30] C. Xu, A. Petiushko, D. Zhao, and B. Li, “DiffScene: Diffusion-based safety-critical scenario generation for autonomous vehicles,” in Proc. AAAI Conf. Artif. Intell. , vol. 39, no. 9, 2025, pp. 8797–8805. [31] J. Lu, K. Wong, C. Zhang, S. Suo, and R. Urtasun, “SceneControl: Diffusion for controllable traffic scene generation,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2024. [32] Y. Wang, C. Tang, L. Sun, S. Rossi, Y. Xie, C. Peng, T. Hannagan, S. Sabatini, N. Poerio, M. Tomizuka, and W. Zhan, “Optimizing diffu-sion models for joint trajectory prediction and controllable generation,” in Proc. Eur. Conf. Comput. Vis. (ECCV) , vol. 15087, 2024, pp. 324– 341. [33] C. Liu, S. He, H. Liu, and J. Chen, “Intention-aware denoising diffusion model for trajectory prediction,” IEEE Trans. Intell. Transp. Syst. ,vol. 26, no. 5, pp. 5915–5930, May 2025. [34] W. Ren, J. Liu, J. Wang, L. Zhao, and Y. Du, “Traffic flow impact of mixed heterogeneous platoons on highways: An approach combining driving simulation and microscopic traffic simulation,” Physica A , vol. 643, p. 129803, 2024. [35] L. Jia, D. Yang, Y. Ren, C. Qian, Q. Feng, B. Sun, and Z. Wang, “A dynamic test scenario generation method for autonomous vehicles based on conditional generative adversarial imitation learning,” Accid. Anal. Prev. , vol. 194, p. 107279, 2024. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 17 
+
+[36] S. Jing, Y. Zhao, X. Zhao, F. Hui, and A. J. Khattak, “An efficient high-risk lane-changing scenario edge cases generation method for autonomous vehicle safety testing,” IEEE Trans. Intell. Veh. , vol. 10, no. 1, pp. 459–471, Jan. 2025. [37] C. Schicktanz and K. Gimm, “Detection and analysis of corner case scenarios at a signalized urban intersection,” Accid. Anal. Prev. , vol. 210, p. 107838, 2025. [38] K. Wang, Q. Ma, C. Shen, and J. Lu, “Application of uncertainty to out-of-distribution detection for autonomous driving perception safety,” 
+
+IEEE Trans. Intell. Transp. Syst. , vol. 26, no. 8, pp. 11 276–11 293, Aug. 2025. [39] R. T. Rockafellar and S. Uryasev, “Optimization of conditional value-at-risk,” J. Risk , vol. 2, no. 3, pp. 21–41, 2000. [40] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” in Proc. Adv. Neural Inf. Process. Syst. (NeurIPS) , vol. 33, 2020, pp. 6840–6851. [41] A. Q. Nichol and P. Dhariwal, “Improved denoising diffusion proba-bilistic models,” in Proc. Int. Conf. Mach. Learn. (ICML) , 2021, pp. 8162–8171. [42] J. Ho and S. Ermon, “Generative adversarial imitation learning,” in Proc. Adv. Neural Inf. Process. Syst. (NeurIPS) , vol. 29, 2016, pp. 4565–4573. [43] R. E. Stern, S. Cui, R. Bhadani, M. L. Delle Monache, M. Bunting, M. Churchill, R. Haulcy, N. Hamilton, B. Piccoli, F. Wu, H. Pohlmann, J. Sprinkle, B. Seibold, and D. B. Work, “Dissipation of stop-and-go waves via control of autonomous vehicles: Field experiments,” Transp. Res. Part C, Emerg. Technol. , vol. 89, pp. 205–221, Apr. 2018. [44] R. Krajewski, J. Bock, L. Kloeker, and L. Eckstein, “The highd dataset: A drone dataset of naturalistic vehicle trajectories on german highways for validation of highly automated driving systems,” in Proc. IEEE Int. Conf. Intell. Transp. Syst. (ITSC) , 2018, pp. 2118–2125. [45] R. Krajewski, T. Moers, J. Bock, L. Vater, and L. Eckstein, “The round dataset: A drone dataset of road user trajectories at roundabouts in germany,” in Proc. IEEE Int. Conf. Intell. Transp. Syst. (ITSC) , 2020, pp. 1–6. [46] T. Moers, L. Vater, R. Krajewski, J. Bock, A. Zlocki, and L. Eckstein, “The exid dataset: A real-world trajectory dataset of highly interactive highway scenarios in germany,” in Proc. IEEE Intell. Vehicles Symp. (IV) , 2022, pp. 958–964. [47] J. Bock, R. Krajewski, T. Moers, S. Runde, L. Vater, and L. Eckstein, “The ind dataset: A drone dataset of naturalistic road user trajectories at german intersections,” in Proc. IEEE Intell. Vehicles Symp. (IV) , 2020, pp. 1929–1934. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 18 
+
+APPENDIX AOVERALL WORKFLOW OF DRIFT This appendix gives the operational workflow of DRIFT omitted from the compact overview in Section V. Algorithm 4 summarizes the offline stagewise training procedure and the online closed-loop inference procedure. 
+
+Algorithm 4: Overall training and inference workflow of DRIFT 
+
+Input : training time-vehicle samples {(t, i, sit)}, scenario library, replanning set T replan , horizons Hplan and 
+
+Hexec , initial parameters ϕA, ϕ B , ϕ C
+
+Output : trained parameters ϕA, ϕ B , ϕ C and an online closed-loop decision policy 
+
+// Offline stagewise training  
+
+> 1
+
+repeat  
+
+> 2
+
+sample a time-vehicle mini-batch {(t, i )} from the training pool  
+
+> 3
+
+update ϕA with the Module-A representation objective on the sampled mini-batch  
+
+> 4
+
+freeze the updated encoder and update ϕB with the Module-B denoising and feasibility objectives  
+
+> 5
+
+freeze ϕB and update ϕC with the progressively activated alignment objective  
+
+> 6
+
+compute long-tail coefficients χi,k t from Module C and set the next Module-B weights wi,k t ← χi,k t 
+
+> 7
+
+until the stopping criterion is met 
+
+// Online closed-loop inference  
+
+> 8
+
+for each RI t ∈ T replan do  
+
+> 9
+
+construct the current traffic state Xt and identify the active vehicle set ˜Vt 
+
+> 10
+
+for each active vehicle i ∈ ˜Vt do  
+
+> 11
+
+form the heterogeneous local state sit 
+
+> 12
+
+encode the condition vector cit = gϕA (sit) 
+
+> 13
+
+generate K candidates via Module B and roll them out into candidate trajectories  
+
+> 14
+
+form Ki, feas  
+
+> t
+
+from Ωi, feas  
+
+> t
+
+and evaluate {Ji,k t }k∈K i, feas 
+
+> t
+
+when the set is nonempty  
+
+> 15
+
+select k∗ = arg max k∈K i, feas 
+
+> t
+
+Ji,k t , or apply the deterministic fallback in Section IV-B if Ki, feas  
+
+> t
+
+= ∅ 
+
+> 16
+
+execute the first Hexec PSs of the selected candidate  
+
+> 17
+
+collect environmental feedback and advance the system to the next RI 
+
+APPENDIX BIMPLEMENTATION DETAILS 
+
+This appendix records the implementation settings that are independent of the final numerical results. Time-vehicle sam-ples are constructed from the naturalistic trajectory datasets used for representation and generator training, with a history length of Lh = 6 and a future/control horizon of six discrete steps. The Module-A encoder uses a temporal history branch and a feed-forward context branch; in the implementation used for this manuscript, the feature dimension is 7, the context dimension is 6, the hidden dimension is 96 , and the condition embedding dimension is 48 . The coarse grouping task uses 
+
+13 behavioral-interaction tags. The stability and separation terms in the representation objective are implemented with training-script weights 0.1 and 0.1, respectively, with margin 
+
+msep = 1 .0, batch size 256 , Adam optimizer, learning rate 
+
+10 −3, weight decay 10 −5, and 20 training epochs. 
+
+TABLE VI EXECUTABLE SCORING AND IMPLEMENTATION PARAMETERS .                                                 
+
+> Item Value / setting Number of candidates K= 5
+> Target speed vdes = 20 .0m/s Nominal safe headway 10 .0mDefault TTC guard 2.0s
+> Merge TTC guard 2.8sModule-C risk weight λrisk = 0 .65
+> Sensitivity values λrisk ∈ { 0.35 ,0.65 ,0.95 }
+> Heuristic score 0.90 e+0 .95 p+0 .60 s−wrisk r−wttc qttc −wgap qgap −
+> qconf −wacc qacc
+> Default penalties (wrisk , w ttc , w gap , w acc ) = (1 .25 ,1.10 ,0.90 ,0.08)
+> Full-penetration guard (wrisk , w ttc , w gap , w acc ) = (1 .45 ,1.30 ,1.05 ,0.11)
+> Merge conflict penalty qconf = 0 .04 when the conflict-zone guard is active Learned-score weight 1.10 in general; 0.65 in calibrated Merge ;0.55 under the full-penetration guard Training seed 42
+> Module-A epochs 20
+> Module-B epochs 30
+> Module-C epochs 20
+> Feasibility regularization λfea = 0 .1
+
+Module B generates K = 5 candidates per RI-vehicle query using a compact executable-control parameterization with speed, spacing, and caution-related attributes. The conditional denoising backbone is implemented with feed-forward layers of hidden dimension 160 , batch size 256 , Adam optimizer, learning rate 10 −3, weight decay 10 −5, and 30 training epochs. The feasibility regularization weight is set to λfea = 0 .1 in the implementation. Module C uses the same condition embedding dimension, a hidden dimension of 160 , a realism head and a risk head, batch size 256 , Adam optimizer, learning rate 
+
+5 × 10 −4, weight decay 10 −5, and 20 training epochs. During online inference, the learned Module-C score uses realism minus λrisk times risk, with the default and sensitivity settings reported in Table VI. In Table VI, e, p, s, r, qttc , qgap , qconf , and qacc denote the normalized efficiency, progress, safety-margin, risk, TTC-violation, close-gap, conflict, and smoothness terms, respec-tively. The score-component weights in Eq. (27) and Ap-pendix F are paper-level grouping weights used to define the score components; their operational effect is realized by the executable controller coefficients in Table VI. The conceptual β and Ewarm in Section V-C describe the stage-wise reweighting and progressive alignment schedule; in the reported executable implementation, their effect is represented by the fixed Module-C training stage and the runtime risk-weight sweep, rather than by an additional independent grid. The A/B/C stages are trained for fixed epoch budgets with validation-loss monitoring, and the best available checkpoint is used for closed-loop evaluation. All random shuffling of training shards uses a fixed seed of 42 unless otherwise stated. The external naturalistic trajectory datasets used for calibration are publicly available from their original providers. To support reproducibility, the processed experiment scripts, configurations, and lightweight result tables can be made available upon publication or reasonable request, subject to dataset-provider terms and project release constraints. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 19 0
+
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%) 
+
+> 0
+> 200
+> HB count (<-6 m/s 2)
+
+Ring 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%) 
+
+> 0
+> 100
+
+F8 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%) 
+
+> 0
+> 200
+
+Merge    
+
+> FollowerStopper PI Flow-RL DRIFT
+
+Fig. 7. Hard-braking diagnostics. 0
+
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%) 
+
+> −50
+> 0
+> Min. accel. (m/s 2)
+
+Ring 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%)  
+
+> −100
+> 0
+
+F8 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+
+AV pen. (%)  
+
+> −100
+> 0
+
+Merge    
+
+> FollowerStopper PI Flow-RL DRIFT
+
+Fig. 8. Minimum realized acceleration diagnostics. 
+
+APPENDIX CSCOPE AND LIMITATIONS 
+
+The reported validation focuses on stylized Flow /SUMO 
+
+benchmark scenarios rather than city-scale traffic networks. The HV prior is calibrated from public naturalistic trajectory datasets, whereas AV behavior is represented by controlled synthetic priors and scenario-specific scaling rather than real AV fleet logs. The long-tail mechanism is a candidate-level surrogate for risk-aware feedback and should not be inter-preted as a formal safety guarantee. Online selection cost can also increase with the number of active vehicles, generated candidates, and scenario-specific feasibility checks. APPENDIX DSUPPLEMENTARY RESULTS 
+
+This appendix reports auxiliary diagnostics referenced in Section VI-C. Table VII gives a compact scope positioning of representative methods; ✓, ◦, and × denote full, partial, and no support, respectively. 
+
+TABLE VII POSITIONING OF REPRESENTATIVE METHODS .
+
+Method CL HV/AV Ctrl. Risk Flow/SUMO SceneDiffuser [2] ✓ × ◦ ◦ ×
+
+TrafficMCTS [3] ✓ ◦ × ✓ ×
+
+DiffAIL [16] ◦ × × ◦ ×
+
+ControlTraj [19] × × ◦ × ×
+
+CDPT [4] ◦ × × ◦ ×
+
+DRIFT ✓ ✓ ✓ ✓ ✓
+
+Figs. 7 and 8 provide compact bar summaries of hard braking and minimum realized acceleration. Table IX reports the detailed module and mechanism values. Table X shows that candidate diversity helps in F8 but is not monotonic in Merge . At high demand, larger K can degrade 
+
+TABLE VIII STATISTICAL SUPPORT FOR THE MAIN RESULTS .
+
+Scen. Method Ret. ↑ Spd. ↑ Out. ↑ HB/run ↓
+
+Ring FS 18.32 ± 0.22 1.59 ± 0.02 – 17.4 ± 1.6 Ring PI 11.81 ± 0.00 1.01 ± 0.00 – 0.0 ± 0.0 Ring Flow-RL 11.59 ± 0.41 1.56 ± 0.06 – 0.0 ± 0.0 Ring DRIFT 25.41 ± 0.02 2.17 ± 0.00 – 0.0 ± 0.0 F8 FS 52.64 ± 1.97 4.72 ± 0.19 – 10.3 ± 1.9 F8 PI 40.50 ± 0.03 3.60 ± 0.00 – 3.3 ± 0.2 F8 Flow-RL 21.43 ± 0.68 2.87 ± 0.08 – 1.5 ± 1.1 F8 DRIFT 58.38 ± 0.39 5.17 ± 0.02 – 4.4 ± 1.2 Merge FS 66.73 ± 3.49 14.31 ± 0.69 1378 ± 84.9 23.4 ± 13.8 Merge PI 42.85 ± 0.79 9.14 ± 0.15 726.0 ± 26.2 32.4 ± 1.6 Merge Flow-RL 52.93 ± 4.31 10.77 ± 0.89 812.4 ± 69.9 3.7 ± 3.2 Merge DRIFT 66.80 ± 3.45 14.49 ± 0.55 1377 ± 63.9 5.3 ± 2.5 
+
+TABLE IX DETAILED ABLATIONS AND REPLACEMENT CONTROLS .
+
+Group Variant Ret. ↑ Spd. ↑ Out. ↑ Min a ↑ HB ↓
+
+Full DRIFT 50.20 7.28 1377.0 -97.4 16.2 Strict w/o A 49.30 7.08 1280.0 -100.3 18.6 Strict w/o B 44.68 6.05 1029.0 -95.4 15.2 Strict w/o C 47.88 6.93 1239.0 -100.8 17.8 Replace Simple-A 49.24 7.09 1315.0 -100.2 17.2 Replace Simple-B 45.46 6.85 1254.0 -101.9 17.1 Replace Simple-C 49.21 7.07 1301.0 -100.2 18.6 Mechanism w/o Pen. 44.35 6.04 1013.0 -96.3 17.2 Mechanism Single-Cand. 43.56 5.96 1015.0 -96.4 15.2 
+
+TABLE X SENSITIVITY TO CANDIDATE -SET SIZE .
+
+Scen./ p Cand. Ret. ↑ Spd. ↑ Out. ↑ Min a ↑ TTC% ↓
+
+F8/80 K = 1 53.7 4.61 – -29.7 1.56 
+
+F8/80 K = 3 54.2 4.65 – -20.6 1.70 F8/80 K = 5 59.9 5.41 – -17.4 1.57 F8/80 K = 10 60.4 5.47 – -16.0 1.48 
+
+F8/100 K = 1 53.5 4.55 – -21.0 1.50 F8/100 K = 3 61.0 5.56 – -11.4 1.31 F8/100 K = 5 61.1 5.58 – -11.4 1.26 
+
+F8/100 K = 10 60.9 5.56 – -13.2 1.28 Merge/80 K = 1 63.9 14.04 1242 -81.8 2.07 Merge/80 K = 3 66.9 14.75 1422 -75.8 0.06 Merge/80 K = 5 67.4 14.89 1404 -74.8 0.07 Merge/80 K = 10 70.2 15.31 1410 -55.2 0.01 
+
+Merge/100 K = 1 70.5 15.54 1404 -75.4 0.59 
+
+Merge/100 K = 3 71.2 15.52 1374 -53.9 1.14 Merge/100 K = 5 67.6 14.83 1290 -77.9 2.50 Merge/100 K = 10 64.7 14.34 1188 -74.8 3.31 
+
+TABLE XI ONLINE INFERENCE LATENCY IN MS /ACTION .
+
+Component Mean (ms) ↓ P95 (ms) ↓ P99 (ms) ↓ Max (ms) ↓
+
+Module A encoding 0.3855 0.4002 0.4317 23.6892 Module B generation (K=5) 0.0624 0.0707 0.0776 0.2543 Module C scoring (K=5) 0.2849 0.2567 0.2929 78.6622 A/B/C total (K=5) 0.7906 0.7832 0.9220 110.6572 Module C scoring (K=1) 0.1303 0.1415 0.1499 0.2199 Module C scoring (K=3) 0.2731 0.2437 0.2676 92.5336 Module C scoring (K=10) 0.2574 0.2846 0.3055 3.0063 
+
+TTC and outflow, so K = 5 is used as a practical default. Table XI reports the corresponding online latency. Table XII separates the effects of the online selector and the feasibility filter. In F8 , single-term selection weakens efficiency, while in Merge , removing feasibility can improve short-term throughput at the cost of tail braking. Tables XIII and XIV report the compact OOD/stress results. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 20 
+
+TABLE XII SELECTOR AND FEASIBILITY DELTAS AT HIGH PENETRATION .
+
+Scen. Variant ∆Ret. ∆Spd. ∆Out. ∆Min a ∆HB10 F8 Eff. only -0.18 0.00 – -8.59 0.0 F8 No feas. 0.05 0.00 – -4.74 0.0 F8 Realism only -5.31 -0.76 – -7.69 0.0 F8 Risk only -5.15 -0.75 – -1.29 0.0 Merge Eff. only 2.44 0.46 75.0 -5.63 0.5 Merge No feas. 0.87 -0.19 30.0 -28.26 13.5 Merge Realism only 1.57 0.18 -6.0 -3.33 2.5 Merge Risk only 1.33 0.05 -33.0 2.09 0.5 
+
+TABLE XIII OOD/ STRESS PERTURBATION SETTINGS .
+
+Profile Perturbation setting Aggressive HV vdes × 1.10 , T × 0.82 , s0 × 0.85 , amax × 1.18 , b × 1.05 ,
+
+τ × 1.10 , σ × 1.25 .Reaction delay τ × 1.55 , σ × 1.15 ; other HV prior terms remain at the calibrated setting. Merge demand vdes × 1.04 , T × 0.92 , σ × 1.15 ; highway inflow 2400 
+
+veh/h and ramp inflow 180 veh/h. 
+
+TABLE XIV COMPACT OOD/ STRESS ROBUSTNESS SUMMARY .
+
+Method R-rk ↓ S-rk ↓ Ret. Spd. TTC% 
+
+↓
+
+HB10 ↓ Min a
+
+↑
+
+H-rk ↓
+
+Flow-AIL 1.58 1.50 65.6 10.39 0.87 10.7 -119.0 1.83 IDM 2.17 2.25 63.6 10.35 0.15 9.7 -114.6 1.92 DRIFT 2.25 2.25 60.3 9.50 2.74 9.2 -111.2 1.67 
+
+TABLE XV SENSITIVITY TO THE MODULE -C RUNTIME RISK WEIGHT .
+
+Scen. C setting Ret. ↑ Spd. ↑ Out. ↑ Min a ↑ TTC% ↓
+
+F8 λrisk = .35 60.5 5.50 – -14.8 1.53 F8 λrisk = .65 60.5 5.49 – -14.9 1.44 
+
+F8 λrisk = .95 60.1 5.43 – -15.6 1.51 F8 w/o C 60.8 5.54 – -45.0 1.61 Merge λrisk = .35 67.2 14.89 1368 -71.8 0.91 
+
+Merge λrisk = .65 65.6 14.54 1314 -74.7 1.64 Merge λrisk = .95 65.4 14.61 1335 -75.2 1.14 Merge w/o C 66.1 14.59 1308 -76.9 1.35 
+
+TABLE XVI VALIDATION -SET EXECUTABLE -CANDIDATE DIAGNOSTICS .
+
+Candidate Samp. Fit ↓ ∆μ ↓ ∆σ ↓ SW ↓ Role Learned K = 1 2.36M 1.228 0.576 0.042 0.570 first cand. Learned K = 3 2.36M 0.910 – – – best-of-K
+
+Learned K = 5 2.36M 0.094 0.041 0.018 0.044 best-of-K
+
+Fixed K = 5 2.36M 0.595 0.270 0.030 0.306 template Selected K = 5 2.36M 0.095 0.042 0.025 0.044 Psel 
+
+Table XV shows that Module C mainly controls the safety tail. In F8 , w/o C is slightly more efficient but substantially worse in minimum acceleration. Table XVI evaluates executable-candidate coverage rather than offline ADE/FDE prediction. APPENDIX EKEY NOTATIONS 
+
+This appendix summarizes the core symbols used in the system model for convenient cross-referencing. 
+
+Symbol Meaning 
+
+t, T , T TS index, TS index set, and final TS index 
+
+T replan set of RIs 
+
+T plan  
+
+> t
+
+local planning window defined at the current RI 
+
+T exec  
+
+> t
+
+local EW defined at the current RI 
+
+∆t simulation step size 
+
+V =
+
+{1, . . . , i, . . . , |V|} 
+
+set of all vehicles 
+
+˜Vt, ˜VHV  
+
+> t
+
+, ˜VAV  
+
+> t
+
+in-network vehicle set and its HV/AV partitions 
+
+ρt AV penetration rate at TS tκit control-authority marker of vehicle i at TS t
+
+xit state vector of vehicle i
+
+Xt joint system state 
+
+sit heterogeneous local state of vehicle i
+
+hit, nit, mit ego history, neighbor interaction, and map semantics 
+
+Lh history-window length 
+
+N it interaction neighborhood of vehicle i
+
+∆xi,j t interaction feature of vehicle j relative to vehicle i
+
+THW i,j t , TTC i,j t interaction headway and collision-time features 
+
+THW i,k, min  
+
+> t
+
+minimum THW of candidate k over the PW 
+
+TTC i,k, min  
+
+> t
+
+minimum TTC of candidate k over the PW 
+
+di,k, min  
+
+> t
+
+, d safe minimum predicted longitudinal/conflict-zone clearance and safety clearance 
+
+ri,k, map  
+
+> t
+
+, r i,k, col  
+
+> t
+
+lane-topology violation rate and predicted collision/conflict penalty 
+
+Gmap lane-topology graph with connectivity and conflict edges 
+
+Ω( Gmap ) trajectory feasible set induced by Gmap 
+
+Ωi, feas  
+
+> t
+
+local feasible CS used in the candidate-selection subproblem 
+
+P0, P1, P2, P3 unified problem and its three subproblems 
+
+Gint  
+
+> t
+
+vehicle interaction graph 
+
+η(·) mapping that extracts local semantic context from topology 
+
+Hplan , H exec , K planning-window length, EW length, and candidate number 
+
+Ui,k t the k-th candidate executable control sequence of vehicle i
+
+τ i,k t trajectory induced by rolling out Ui,k t
+
+Ui,k ∗ 
+
+> t
+
+, τ i,k ∗ 
+
+> t
+
+selected control sequence and its induced trajectory 
+
+ui,k t+h−1 executable control input at the h-th PS of candidate k
+
+umin , umax , v min , v max control-input and speed bounds 
+
+uit actual executed control of vehicle iHexec EW length (in PSs) of each replanning period 
+
+Uexec  
+
+> t
+
+, Uexec ,∗ 
+
+> t
+
+executed control set and selected executed-control set 
+
+f (·) vehicle-level one-step transition mapping 
+
+F(·) closed-loop environment state-transition mapping 
+
+Ji,k t integrated score of candidate kSi,k t , E i,k t behavior-similarity term and efficiency term 
+
+Ri,k t , D i,k t risk term and violation-cost term 
+
+ωsim , ω eff , ω risk , ω dyn weights of the score terms 
+
+∆real , ∆tail rollout-level realism and tail-risk target penalties 
+
+βreal , β tail weights of the realism and tail-risk target penalties 
+
+ki, ∗ 
+
+> t
+
+candidate index selected for execution for vehicle i at RI tk∗ local shorthand for ki, ∗ 
+
+> t
+
+in a fixed RI-vehicle pair 
+
+k rollout-level sequence of selected execution indices 
+
+γ long-term reward discount factor 
+
+Θ trainable parameter-block collection {ϕA, ϕ B , ϕ C }
+
+ϕA, ϕ B , ϕ C learnable parameter blocks of Modules A, B, and C; Module C is implemented through the discriminator block ϑ and the cached long-tail reweighting state 
+
+bit coarse behavioral tag used for positive/negative grouping in Module A 
+
+zih,t , zin,t , zim,t , zir,t branch-specific features in Module A 
+
+φh(·), φ n(·), φ m(·) branch encoders for history, interaction, and map-semantics streams 
+
+eκ(·), eρ(·), α i,j t heterogeneous embeddings and interaction-attention weight 
+
+cit condition vector from Module A IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 21                                                 
+
+> Lrepr ,Lstb ,Lsep representation-learning objective, intra-class compactness term, and inter-class separation term
+> yi,k
+> 0,yi,k dvectorized candidate control sequence and its dth noisy state
+> bUi,k t,bτi,k treconstructed control sequence and induced trajectory of candidate kLdiff , β d, α d,¯αddiffusion steps, noise schedule, signal-preservation coefficient, and accumulated preservation coefficient
+> ξi,k ,Pred ϕB(·)Gaussian noise and Module B noise predictor
+> Lgen ,Lnoise ,Lfea , λ fea generator objective, denoising loss, feasibility loss, and the feasibility weight
+> wi,k t, λ safe , λ col candidate training weight, safety-margin weight, and conflict penalty weight
+> λsep , λ reg , m sep separability weight, regularization weight, and margin
+> εsmall constant used to avoid division by zero in THW/TTC computation
+> Si, +
+> t,Si, −
+> tpositive/negative sets of time-vehicle sample (t, i )
+> λtopo ,∆topo (·),Ωmap
+> ttopological-feasibility weight, PW-level topology-deviation rate, and map-admissible state set
+> gϕA(·),Pred ϕB(·)condition encoder and conditional denoising predictor
+> τi, exp
+> texpert reference trajectory
+> Dϑ(·), ϑ, σ (·)Module C discriminator, discriminator-parameter block, and Sigmoid mapping
+> χi,k t, β long-tail reweighting coefficient and gain
+> λadv ,(e), e, E warm adversarial warm-up weight, epoch, and warm-up length
+> Lalign ,(e),Lalign ,Ltail progressive alignment loss, base alignment loss, and long-tail weighted discrepancy
+
+APPENDIX FDETAILED DEFINITIONS OF CLOSED -L OOP SCORING 
+
+TERMS 
+
+This appendix gives one normalized implementation of the score terms in Eq. (27) using the candidate-level quantities defined in the main text. For ease of weighted aggregation, all terms are normalized or clipped to comparable ranges before aggregation. Here, k ∈ { 1, . . . , K } denotes the can-didate index, and k∗ denotes the execution index obtained by score maximization. The terms below specify the component-level aggregation, while Appendix B reports the executable coefficients used in the experiments. Thus, the αlabel symbols in this appendix should be interpreted as score-component grouping weights, and their operational effect is realized through the normalized online selector coefficients reported in Appendix B. 
+
+A. Behavior Similarity Term 
+
+The behavior-similarity term is defined as: 
+
+Si,k t = σ
+
+
+
+Dϑ
+
+
+
+τ i,k t , sit
+
+ 
+
+, (60) where Dϑ(·) denotes the discriminator scoring function and 
+
+σ(·) is the Sigmoid mapping. 
+
+B. Efficiency Term 
+
+The efficiency term is defined as: 
+
+Ei,k t = αv ¯vi,k t
+
+vref 
+
+− αwait ri,k, wait  
+
+> t
+
+,
+
+(61) where: 
+
+¯vi,k t = 1
+
+Hplan 
+
+> Hplan
+
+X
+
+> h=1
+
+vi,k t+h,ri,k, wait  
+
+> t
+
+= 1
+
+Hplan 
+
+> Hplan
+
+X
+
+> h=1
+
+I
+
+
+
+vi,k t+h < v th 
+
+.
+
+(62) In these expressions, αv, α wait ≥ 0 are weighting coefficients for the average-speed reward and waiting-time penalty, re-spectively; ¯vi,k t is the mean speed of candidate k over the prediction horizon; vref > 0 is a reference speed used for normalization; ri,k, wait  
+
+> t
+
+is the low-speed occupancy ratio; and 
+
+vth is the waiting-speed threshold. 
+
+C. Safety Risk Term 
+
+The safety-risk term is defined as: 
+
+Ri,k t = αthw ri,k, thw 
+
+> t
+
++ αttc ri,k, ttc  
+
+> t
+
+, (63) where the risk thresholds are defined consistently with Sec-tion III-D. Accordingly, the THW- and TTC-based penalties use the same thresholds δTHW and δTTC as those in the local feasible candidate set Ωi, feas  
+
+> t
+
+:
+
+ri,k, thw  
+
+> t
+
+= max 0, δTHW − THW i,k, min 
+
+> t
+
+δTHW 
+
+!
+
+, (64) 
+
+ri,k, ttc  
+
+> t
+
+= max 0, δTTC − TTC i,k, min 
+
+> t
+
+δTTC 
+
+!
+
+. (65) Here, THW i,k, min  
+
+> t
+
+and TTC i,k, min  
+
+> t
+
+are the candidate-level minimum safety indicators defined in Section III-D. The coefficients αthw , α ttc ≥ 0 weight the THW- and TTC-based risk contributions, respectively. The two normalized penalties 
+
+ri,k, thw  
+
+> t
+
+and ri,k, ttc  
+
+> t
+
+become active only when the candidate violates the corresponding safety threshold. 
+
+D. Dynamic and Topology Violation Cost 
+
+The dynamic/topological violation cost is defined as: 
+
+Di,k t = αacc ri,k, acc 
+
+> t
+
++ αmap ri,k, map 
+
+> t
+
++ αcol ri,k, col  
+
+> t
+
+,
+
+(66) where: 
+
+ri,k, acc  
+
+> t
+
+= 1
+
+Hplan − 1
+
+> Hplan
+
+X
+
+> h=2
+
+ui,k t+h−1 − ui,k t+h−2
+
+> 22
+
+, (67) 
+
+ri,k, map  
+
+> t
+
+and ri,k, col  
+
+> t
+
+are the topology and predicted conflict penalties introduced in Section III-D. In the executable imple-mentation, the predicted conflict penalty uses: 
+
+ri,k, col  
+
+> t
+
+= max 0, dsafe − di,k, min 
+
+> t
+
+dsafe 
+
+!
+
++ I
+
+
+
+di,k, min  
+
+> t
+
+≤ 0
+
+
+
+, (68) where di,k, min  
+
+> t
+
+and dsafe follow the main-text definitions. Thus, the term is activated before an actual simulator col-lision occurs, using the predicted candidate occupancy and IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 22 
+
+leader/conflict geometry. The weights αacc , α map , α col ≥ 0
+
+balance smoothness, topology consistency, and collision avoid-ance, respectively.

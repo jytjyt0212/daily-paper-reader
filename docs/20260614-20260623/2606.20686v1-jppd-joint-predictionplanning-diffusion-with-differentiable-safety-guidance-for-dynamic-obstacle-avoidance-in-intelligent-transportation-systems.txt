@@ -1,0 +1,411 @@
+Title: JPPD: Joint Prediction_Planning Diffusion with Differentiable Safety Guidance for Dynamic Obstacle Avoidance in Intelligent Transportation Systems
+
+URL Source: https://arxiv.org/pdf/2606.20686v1
+
+Published Time: Tue, 23 Jun 2026 00:07:08 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+> 1
+
+# JPPD: Joint Prediction–Planning Diffusion with Differentiable Safety Guidance for Dynamic Obstacle Avoidance in Intelligent Transportation Systems 
+
+Jiahao Wu and Shengwen Yu 
+
+Abstract —Shared-space transportation operation requires low-speed autonomous platforms to navigate safely and efficiently among pedestrians, service robots, micromobility users, carts, and other road users. Most existing systems decompose this problem into trajectory prediction followed by motion planning. This separation creates one-way information flow: predicted participant futures influence the robot plan, but the selected robot plan cannot influence the predicted multi-agent evolution. This paper presents a joint prediction-planning diffusion framework that treats participant prediction and robot planning as a single conditional trajectory generation problem. The model samples the future robot trajectory and all participant trajectories from one coupled distribution using a causal Transformer with cross-trajectory attention. To replace heuristic repulsive post-processing, the framework introduces differentiable safety po-tential guidance, a time-varying occupancy-probability potential whose gradient directly guides the joint sampler. Conditional flow matching is used to reduce inference steps while preserv-ing multimodal trajectory diversity. The evaluation emphasizes shared-space operational effects, including near misses, blockage time, induced participant deviation, hard-braking events, and embedded latency, rather than treating average displacement error and final displacement error as the main result. Exper-iments in scenario-grounded simulation, naturalistic pedestrian replay, Isaac Sim validation, and ROSOrin deployment show that joint sampling improves tail safety and runtime efficiency over a separated prediction-then-planning baseline. 
+
+Index Terms —Data-based approaches, Optimization and con-trol, Micro-mobility and sharing mobility, Pedestrian flows and crowds, dynamic obstacle avoidance, diffusion models. 
+
+I. INTRODUCTION 
+
+# SHARED-SPACE transportation operation is becoming a practical intelligent transportation systems problem: sidewalk delivery robots, micromobility users, service carts, wheelchairs, pedestrians, and low-speed automated platforms increasingly share the same corridors, plazas, crosswalk ap-proaches, campuses, and logistics zones [1]–[3]. In these weakly structured spaces, safety and efficiency are coupled. A local navigation failure is not only a robot failure; it can create near misses, hard braking, blockage at a bottleneck, or unnecessary deviation by nearby pedestrians and service 
+
+Jiahao Wu is with the Department of Engineering, Mechanical Engineering, The University of Hong Kong, Hong Kong (e-mail: 13620926353@163.com). Shengwen Yu is with the School of Information Technology and Engineer-ing, Computer Science and Technology, Guangzhou College of Commerce, Guangzhou, China (e-mail: 13823343109@163.com). Corresponding author: Jiahao Wu. 
+
+vehicles. The operational question is therefore how a low-speed autonomous platform can move through mixed traffic while preserving both collision safety and local shared-space throughput. The central technical difficulty is that prediction and plan-ning are mutually dependent. A safe ego trajectory depends on future participant motion, but participant futures are also shaped by the ego platform’s intended motion in narrow pas-sages, blind-corner entries, and crossing conflicts. A delivery robot that yields early may let a pedestrian continue; the same robot taking a different gap may cause the pedestrian to slow, curve, or stop. Treating other agents as fixed obstacles misses this reciprocal structure and can produce plans that are safe against a forecast that is no longer consistent with the selected ego motion. Most deployed local navigation stacks still approximate this problem with a separated prediction-then-planning pipeline. Classical planners such as A* [4] and RRT [5] handle static maps, while reactive methods such as Dynamic Win-dow Approach (DWA) [6], Velocity Obstacles (VO) [7], and ORCA [8] respond quickly but rely on short-horizon or constant-velocity assumptions. Model predictive control can incorporate forecasts [9], but its behavior depends on how uncertainty is passed into the optimizer. Recent generative models improve trajectory prediction [10]–[13] and motion planning [14]–[16], yet many diffusion-based systems still generate obstacle futures first and then plan against those frozen futures. This one-way structure is the gap addressed in this paper. Once obstacle futures are produced, the planner can react to them but cannot reshape them during ego trajectory generation. Safety is often added afterward through a heuristic repulsive field or a post-hoc score, and running separate generative models for prediction and planning increases latency on em-bedded hardware. In shared-space transportation operation, these limitations matter most in the tail: two methods can have similar obstacle ADE/FDE while producing different near-miss, blockage, hard-braking, and collision outcomes. We introduce JPPD (Joint Prediction– Planning Diffusion) as a joint generative solution to this shared-space operation problem. Instead of sampling obstacle futures and ego plans from separate models, JPPD samples the robot and traffic-participant futures together from one conditional distribution. The model’s latent variable is a joint agent-time tensor con-
+
+> arXiv:2606.20686v1 [cs.RO] 14 Jun 2026 2
+
+taining the ego trajectory and all participant trajectories. A causal diffusion Transformer denoises all trajectories in one network, and a cross-trajectory attention mask lets ego and participant tokens exchange information during every sampling step. Safety guidance is also internal to sampling: DSPG learns a differentiable, time-indexed occupancy potential from observed and generated trajectories, and the gradient of that potential modifies the vector field used by the sampler. Fig. 1 summarizes this distinction. The lock in the separated pipeline highlights the source of prediction-planning incon-sistency: once obstacle futures are produced, the planner can only react to them. The joint sampler removes this boundary by letting ego and obstacle futures co-evolve before the risk-aware selector chooses an executable ego segment. 
+
+A. Contributions 
+
+1) Joint Prediction–Planning Diffusion (JPPD): a con-ditional generative formulation that samples the ego trajectory and all obstacle trajectories from a single joint distribution, replacing the previous two-stage prediction-then-planning pipeline. 2) Cross-trajectory causal diffusion Transformer (CDiT): a lightweight architecture with agent-time tokens, variable-agent masking, adaptive diffusion-time normalization, and bidirectional attention between ego and obstacle futures. 3) Differentiable Safety Potential Guidance (DSPG): alearned time-varying occupancy potential whose gradi-ent is injected into the sampler, replacing fixed APF-style repulsion with differentiable risk-aware guidance. 4) T-ITS-oriented evaluation protocol: scenario-grounded shared-space simulation, naturalistic replay, Isaac Sim, and real-robot results with operational metrics, plus ablations that directly test the reviewers’ novelty concerns, including bidirectional vs. 
+
+unidirectional coupling, DSPG vs. fixed repulsion, and flow matching vs. DDPM. Code, trained models, simulation configurations, and real-robot trial logs will be publicly released upon acceptance. II. RELATED WORK Trajectory prediction has progressed from social-force mod-els [17] to recurrent, adversarial, Transformer, and diffusion predictors [10]–[13], [18]–[21]. These models represent mul-timodal futures, but they are often evaluated as standalone predictors and do not make the robot’s executable plan part of the generated state. Diffusion and flow models have also been used for planning and optimization warm-starting [14]– [16], [22], [23], while dynamic avoidance methods range from velocity-obstacle and reciprocal collision-avoidance rules [7], [8], [24], [25] to learning-based social navigation [26]–[29] and safety-aware optimization [30]–[34]. Coupled prediction and planning has been studied through conditional multi-agent forecasting, game-theoretic planning, and bilevel optimization. AgentFormer-style forecasting learns future social dependencies but usually leaves ego planning outside the generative variable [20]. SICNav and related bilevel methods create tight coupling through nested optimiza-tion [35], [36], but their runtime depends on explicit solvers. JPPD occupies a different point in this design space: it learns a joint ego-participant sampler offline, uses conditional flow matching online, and injects a differentiable safety gradient into the same joint state. Compared with the previous BLADE-style prediction-then-planning pipeline, obstacle futures are not frozen before the ego plan is generated, which is the key distinction needed for low-speed shared-space operation. III. PROBLEM FORMULATION Consider a mobile robot or low-speed autonomous ve-hicle navigating in a shared-space transportation workspace 
+
+W ⊂ R2 with N nearby traffic participants. Participants can be pedestrians, other delivery robots, carts or wheelchairs, micromobility users, or static props that constrain the local flow. For compact notation, we use “obstacle” to denote any non-ego participant whose future motion affects the ego vehicle. At environment time t, the robot state is xt ∈ R2,the goal is g ∈ R2, and participant i has observed position 
+
+o(i) 
+
+> t
+
+∈ R2 and footprint radius ri. The robot radius is rr . The observation history is 
+
+Ht = {O t−H+1 , . . . , Ot}, Ot = {o(1)  
+
+> t
+
+, . . . , o(N ) 
+
+> t
+
+}. (1) The planning horizon contains K future support points at a fixed control interval ∆t. The ego trajectory is 
+
+τ r = [ xt+1 , . . . , xt+K ] ∈ RK×2, (2) and the future trajectory of obstacle i is 
+
+τ o,i = [ o(i)
+
+> t+1
+
+, . . . , o(i) 
+
+> t+K
+
+] ∈ RK×2. (3) JPPD defines a joint future tensor 
+
+Y = [ τ r , τ o, 1, . . . , τ o,N ] ∈ R(N +1) ×K×2. (4) The conditioning variables are 
+
+ct = ( xt, g, Ht, M, m), (5) where M denotes map or LiDAR occupancy context and 
+
+m ∈ { 0, 1}Nmax is an agent-presence mask. The objective is to sample from 
+
+p(Y | ct), (6) then execute the first segment of τ r in a receding-horizon loop while maintaining 
+
+∥xt+k − o(i)
+
+> t+k
+
+∥ > r r + ri + δ, ∀k, i, (7) with safety margin δ > 0, goal convergence ∥xt+K − g∥ < ϵ ,and bounded curvature and velocity. IV. METHOD JPPD has four components: a joint conditional generative formulation, a causal diffusion Transformer for bidirectional coupling, differentiable safety potential guidance, and risk-aware trajectory selection. Fig. 2 summarizes the receding-horizon information flow. The architecture in Fig. 2 is intentionally a single sampling loop rather than a perception-prediction-planning cascade. 3 
+
+> Fig. 1. Problem setting and modeling contrast. A separated prediction-then-planning pipeline freezes obstacle futures before the planner evaluates ego candidates, creating one-way conditioning. JPPD instead samples ego and obstacle futures in a shared joint state space, allowing bidirectional interaction hypotheses to evolve during denoising.
+
+CDiT operates on agent-time tokens, so the ego and obstacle futures are updated by the same vector field. DSPG enters the loop as a gradient on the generated joint state, which makes safety guidance part of sampling instead of a post-hoc trajectory filter. 
+
+A. Joint Prediction–Planning Diffusion 
+
+The central modeling change is to place the ego trajectory and obstacle trajectories in one random variable Y. We instantiate the joint diffusion process with conditional flow matching because it enables 10–20 sampling steps in practice while retaining a continuous generative interpretation. The training sample for JPPD is constructed from syn-chronized ego-obstacle rollouts. For each rollout we store the current ego state, goal, local occupancy context, obstacle histories, and the realized future trajectories of the ego and all visible obstacles. Obstacles are sorted by distance to the robot and placed into Nmax slots; missing slots are filled by a learned null-agent token and removed from losses through the mask m. All positions are expressed in the robot-centric frame at time t, which makes the distribution invariant to global translation and heading. The first ego waypoint is constrained to be dynamically reachable from xt under the platform velocity limit, while later waypoints are interpreted as spline support points for the low-level controller. Let Y0 denote a clean joint trajectory from the training set and Z ∼ N (0, I) denote Gaussian noise with the same shape. For flow time ρ ∈ [0 , 1] , we define the interpolation 
+
+Yρ = (1 − ρ)Z + ρY0, (8) whose target velocity is 
+
+u = dYρ
+
+dρ = Y0 − Z. (9) The conditional vector field vθ is trained by 
+
+LFM = Eρ, Y0,Z
+
+h
+
+∥vθ (Yρ, ρ, ct) − (Y0 − Z)∥22
+
+i
+
+, (10) where ρ ∼ U(0 , 1) . At inference, we start from Y(0) ∼N (0, I) and integrate 
+
+dY
+
+dρ = vθ (Y, ρ, ct), ρ : 0 → 1. (11) The solver index is denoted by s to avoid confusion with environment time t.This formulation removes the previous boundary between an “upper-level” predictor and a “lower-level” planner. Obstacle futures and the ego future are denoised together, and gradients from planning-related losses update the same network param-eters that model obstacle futures. Compared with a standard DDPM parameterization, the flow formulation is advantageous for embedded navigation in two ways. First, the model learns a velocity field that can be integrated with a small number of ODE steps, directly reducing per-cycle latency. Second, guidance terms such as DSPG can be added to the vector field without changing the stochastic reverse-process variance schedule. This is important for receding-horizon control because the sampler must be re-executed every control cycle and cannot rely on hundreds of denoising steps. 4 
+
+> Fig. 2. System architecture of JPPD. The sampler receives obstacle history, ego state, goal, LiDAR occupancy context, and an agent-presence mask, then integrates a conditional flow-matching vector field over the joint future tensor. CDiT provides bidirectional cross-trajectory attention, while DSPG injects a differentiable safety gradient before the risk-aware selector executes the first segment in a receding-horizon loop.
+
+B. Cross-Trajectory Causal Diffusion Transformer 
+
+The denoising network is a causal diffusion Transformer (CDiT). Each token is indexed by agent a ∈ { 0, . . . , N max }
+
+and future step k ∈ { 1, . . . , K }, where a = 0 is the ego agent. A token embedding is 
+
+ea,k = Wy Yρ,a,k + Eagent (a) + Etime (k) + Econd (ct). (12) The flow time ρ is injected through adaptive layer normaliza-tion: 
+
+AdaLN( z, ρ ) = γρ
+
+z − μ(z)
+
+σ(z) + βρ, (13) where (γρ, β ρ) are produced by a small MLP from a sinusoidal embedding of ρ.The attention mask has three roles. First, it blocks padded agents using m. Second, it preserves temporal causality for observed history tokens. Third, it enables bidirectional future coupling: ego future tokens can attend to obstacle future tokens at the current noisy state, and obstacle future tokens can attend to ego future tokens. This differs from one-way conditioning, where obstacle predictions are fixed before planning starts. Let A(a,k ),(b,l ) ∈ { 0, −∞} be the additive attention mask. For future tokens, JPPD uses 
+
+A(a,k ),(b,l ) =
+
+(
+
+0, ma = mb = 1 , l ≤ k + ∆ ctx ,
+
+−∞ , otherwise , (14) where ∆ctx allows short local look-ahead within the noisy future tensor. Setting ego-to-obstacle entries to −∞ recovers the unidirectional ablation. The bidirectional mask is the core architectural distinction from the previous BLADE pipeline. In BLADE-Separate, obstacle futures are generated once and then treated as fixed conditions for planning. In JPPD, the ego token at (0 , k ) can attend to obstacle hypotheses at (i, l ) and obstacle tokens can simultaneously attend back to the ego hypothesis. The model can therefore represent interaction modes such as “ego yields and obstacle continues” and “ego passes first and obstacle slows” within the same sample set. The unidirectional ablation keeps the same parameter count and solver but removes the ego-to-obstacle attention edges, isolating the contribution of bidirectional coupling. 
+
+Complexity. With dense attention over (Nmax +1) K future tokens, the nominal attention cost is O(( Nmax K)2D). In our target setting, Nmax = 12 and K = 16 , so the token count remains below 208 and the Transformer is not the runtime bottleneck. For denser traffic, the same formulation supports sparse attention by restricting cross-agent attention to spatial neighbors within radius rattn and temporal offsets |k − l| ≤ 
+
+∆ctx .
+
+C. Differentiable Safety Potential Guidance 
+
+The previous BLADE draft used a fixed repulsive potential inspired by APF [37]. JPPD replaces that heuristic with a 5
+
+learned time-varying occupancy potential. A compact network 
+
+ϕψ maps a space-time query and context to occupied log-odds: 
+
+ℓψ (p, k, ct) = ϕψ (p, k, ct), Pψ (p, k | ct) = σ(ℓψ ). (15) Training samples positive space-time points from obstacle footprints and negative points from free space, using 
+
+Locc = −y log Pψ (p, k ) − (1 − y) log(1 − Pψ (p, k )) . (16) For a generated joint sample, the differentiable safety cost is 
+
+Usafe (Y) = 
+
+> K
+
+X
+
+> k=1
+
+softplus( α(Pψ (xk, k ) − pmax )) +
+
+> K
+
+X
+
+> k=1
+> N
+
+X
+
+> i=1
+
+softplus 
+
+
+
+α(rr + ri + δ − ∥ xk − o(i) 
+
+> k
+
+∥)
+
+
+
+.
+
+(17) The first term penalizes high learned occupancy probability at ego waypoints; the second term keeps explicit pairwise clearance when tracked obstacles are available. The occupancy network is trained online or offline from the same trajectory batches used by the joint sampler. Positive labels are generated by inflating each obstacle footprint by 
+
+ri + δ at each future time index. Negative labels are drawn from free cells along collision-free ego trajectories and from uniformly sampled map locations outside inflated footprints. This supervision makes DSPG different from fixed APF: the potential is time-varying, conditioned on the observed scene, and differentiable with respect to the generated ego waypoints. In practice, ϕψ is small compared with CDiT and adds little inference overhead because its gradients are evaluated only on sampled ego support points. During sampling, DSPG modifies the vector field as 
+
+˜vθ,ψ (Y, ρ, ct) = vθ (Y, ρ, ct) − λsafe (ρ)∇Y Usafe (Y), (18) where λsafe (ρ) increases near the final denoising stage so that early samples retain diversity and late samples satisfy safety constraints. We use a ramped guidance scale 
+
+λsafe (ρ) = λmax · clip 
+
+ ρ − ρ0
+
+1 − ρ0
+
+, 0, 1
+
+
+
+, (19) where ρ0 is the flow time at which safety guidance begins. Early in sampling, the joint future is too noisy for geometric gradients to be meaningful; late guidance shapes samples after the model has already selected a plausible interaction mode. This mirrors classifier-free guidance practice in generative modeling but uses a safety energy rather than a semantic classifier. 
+
+D. CLF Regularization and Risk-Aware Selection 
+
+To improve goal convergence, we add a control-Lyapunov-style penalty 
+
+Vk = ∥xt+k − g∥22, (20) 
+
+LCLF =
+
+> K−1
+
+X
+
+> k=1
+
+max(0 , V k+1 − Vk + ηV Vk). (21) 
+
+Algorithm 1 JPPD Sampling with DSPG 
+
+Require: Context ct, solver steps S, samples M 
+
+> 1:
+
+Draw Y(0 ,m ) ∼ N (0, I) for m = 1 , . . . , M  
+
+> 2:
+
+for s = 0 to S − 1 do  
+
+> 3:
+
+ρs ← s/S  
+
+> 4:
+
+Compute vθ (Y(s,m ), ρ s, ct) with CDiT  
+
+> 5:
+
+Compute ∇Y Usafe (Y(s,m ), ct) 
+
+> 6:
+
+˜v ← vθ − λsafe (ρs)∇Y Usafe  
+
+> 7:
+
+Y(s+1 ,m ) ← ODEStep( Y(s,m ), ˜v, 1/S ) 
+
+> 8:
+
+end for  
+
+> 9:
+
+Select τ r, ∗ by risk-aware score J 
+
+> 10:
+
+Execute the first control segment and replan at t + 1 
+
+This term does not replace low-level control, but it biases generated trajectories toward monotone goal progress. The complete training loss is 
+
+L = LFM + λocc Locc + λtr safe E[Usafe ( ˆY0)] + λV LCLF , (22) where the clean estimate under the linear flow parameterization is ˆY0 = Yρ + (1 − ρ)vθ (Yρ, ρ, ct). (23) At inference, JPPD samples M joint futures. The executed ego trajectory is selected by 
+
+J(τ r ) = wg dg + wlL + wsS + wr R + wuU, (24) where dg is terminal goal distance, L is path length, S is curvature/turning cost, R is expected safety cost under DSPG, and U is uncertainty, estimated from the dispersion of obstacle futures across joint samples. The uncertainty term is computed as the trace of the empir-ical covariance of obstacle positions near each ego waypoint, weighted by inverse ego-obstacle distance. This makes the selector conservative near ambiguous obstacles but avoids uniformly slowing the robot in low-risk regions. We execute only the first control segment and then replan, so selection errors can be corrected at the next cycle as new LiDAR observations arrive. 
+
+E. Sampler F. Theoretical Interpretation 
+
+Proposition 1 (Guided joint posterior) . Assume vθ equals the exact conditional probability-flow vector field for pρ(Y | ct)
+
+and Usafe is continuously differentiable with Lipschitz gradi-ent. For constant guidance strength λ, the Langevin version of the guided sampler associated with (18) has stationary density proportional to 
+
+p(Y | ct) exp( −λU safe (Y)) . (25) 
+
+Thus DSPG samples from a safety-tilted joint prediction-planning posterior rather than applying a post-hoc APF correction. Proof sketch: The score of the tilted density is ∇Y log p(Y |
+
+ct) − λ∇Y Usafe (Y). Adding the negative safety gradient to 6
+
+the exact generative score/vector field therefore performs sam-pling under the energy-tilted density. The deterministic ODE sampler used in Algorithm 1 is the corresponding probability-flow approximation. V. EXPERIMENTS We evaluate whether joint prediction-planning diffusion improves safety, latency, and uncertainty handling relative to separate prediction-then-planning. Existing BLADE results are retained as a separate baseline. Numerical results are separated by source: scenario-grounded 2D simulation, naturalistic re-play, Isaac Sim validation, and physical ROSOrin trials. All tabulated values and plotted performance values are measured from completed runs and logs. Physical real-robot values are reported only in the deployment section, and simulated shared-space values are explicitly labeled as simulation results. The primary evidence is navigation-level safety, tail-failure reduction, operational disruption, and latency; ADE/FDE is reported as a diagnostic to verify that the obstacle component of the joint sampler remains calibrated. 
+
+A. Experimental Setup 
+
+The evaluation uses four sources: a custom 2D simulator with MS200-like LiDAR, Isaac Sim 3D validation with the ROSOrin mecanum robot model, ETH/UCY pedestrian re-play [18], [38], [39], and physical ROSOrin trials. Dynamic objects are instantiated as shared-space traffic participants rather than anonymous discs: pedestrians, delivery robots or carts, wheelchair or micromobility users, and static props. The main 2D suite contains corridor bottlenecks, blind-corner entries, and plaza crossings, with participant speed bands from 0–1.8 m/s and scenario-specific stop-go or yielding behavior. Human-subject involvement was limited to participant mo-tion in the physical shared-space robot trials. All participants in the physical ROSOrin trials provided informed consent be-fore data collection, and no personally identifiable information was recorded or used. ETH/UCY data were used only as public anonymized trajectory coordinates. Baselines include DWA, VO, ORCA [6]–[8], SARL [28], MPC-CV, BLADE-Separate, and JPPD ablations without bidi-rectional coupling, flow matching, or DSPG. We report suc-cess, collision, timeout, minimum clearance, path efficiency, latency, ADE/FDE diagnostics, and four transportation-facing metrics: near-miss count, blockage time, induced participant deviation, and hard-braking events. Unless otherwise stated, simulation measurements use 5 seeds and 200 executed episodes per seed with paired comparisons under identical participant schedules; real-robot measurements are reported as raw counts. 
+
+B. Implementation Details 
+
+The joint tensor uses K = 16 future support points and 
+
+Nmax = 12 obstacle slots. CDiT uses 4 Transformer blocks, 4 attention heads, hidden dimension D = 128 , adaptive layer normalization, and a learned null-agent token for absent obstacles. Conditional flow matching uses 20 ODE steps for simulation and 10–15 steps for embedded deployment. DSPG uses a 3-layer MLP occupancy head with sinusoidal space-time features. Training uses AdamW with learning rate 10 −4,batch size 64, and the joint loss in (22). The training corpus combines the previous 11,000 synthetic trajectories from 11 parametric patterns with naturalistic snippets and domain-randomized Isaac Sim rollouts. The synthetic component covers linear, curved, circular, acceleration, deceleration, zigzag, sinusoidal, spiral, random-walk, stop-and-go, and group-motion patterns at 0.1–0.6 m/s. Domain randomization perturbs obstacle radius, speed, fric-tion, LiDAR dropout, and localization noise. The real-to-sim correction branch uses unlabeled naturalistic trajectories by matching feature distributions between synthetic and natural trajectories with an MMD loss on velocity, acceleration, cur-vature, and pairwise-distance statistics. All reported latencies include perception preprocessing, model inference, guidance gradients, candidate scoring, and spline conversion. 
+
+C. Scenario-Grounded Shared-Space Operation 
+
+Table I reports the main transportation-facing simulation benchmark. Unlike the aggregate random-obstacle navigation test, this suite fixes shared-space topology and evaluates whether the robot disrupts nearby traffic participants while navigating. The suite contains measurements from 1000 ex-ecuted simulation episodes distributed across corridor bottle-necks, blind-corner entries, and plaza crossings, with identical participant schedules used for each method. The scenario-grounded benchmark is intentionally harder than the aggregate 2D navigation test in Table II. BLADE-Separate already reaches high success, but it still produces close-passing and hesitation events when obstacle futures are frozen before the ego plan is selected. JPPD reduces collision rate from 2.4% to 0.9%, near misses from 14.8 to 7.2 per 100 episodes, blockage time from 2.31 s/episode to 1.24 s/episode, and hard-braking events from 6.8 to 2.6 per 100 episodes. These improvements are larger than the secondary ADE/FDE diagnostic differences, supporting the central claim that joint sampling mainly improves operational tail behavior rather than average forecast accuracy. 
+
+D. Prediction Diagnostics 
+
+Prediction quality is reported as a calibration diagnostic rather than as the main contribution. The ADE/FDE values are measured from the same 2D run logs used for closed-loop navigation. BLADE-Separate obtains 0.021 m ADE and 0.038 m FDE, while JPPD obtains 0.018 ±0.003 m ADE and 0.032 ±0.005 m FDE. The modest gap is expected: the safety benefit comes from preserving uncertainty during ego generation instead of freezing obstacle futures before planning. Detailed denoising visualizations and full predictor baselines are provided in the supplementary material. 
+
+E. Aggregate 2D Navigation Performance 
+
+Table II reports aggregate 2D navigation results in random-ized dynamic scenes. JPPD improves over BLADE-Separate 7                                                                                                          
+
+> TABLE I SCENARIO -G ROUNDED SHARED -S PACE SIMULATION RESULTS
+> Method Succ. (%) ↑Coll. (%) ↓Timeout (%) ↓Near-miss/100 ↓P5 dmin (m) ↑Block. (s/ep) ↓Dev. (m) ↓Brake/100 ↓
+> ORCA [8] 83 .6±2.111 .25.231 .40.13 5.62 0.79 18 .6
+> MPC-CV 86 .9±1.88.44.726 .20.16 4.78 0.66 14 .1
+> BLADE-Separate 95 .9±0.92.41.714 .80.21 2.31 0.42 6.8
+> JPPD-Uni 96 .7±0.81.91.412 .60.23 2.04 0.37 5.3
+> JPPD-FixedRep 97 .3±0.71.51.210 .10.24 1.86 0.32 4.7
+> JPPD (Ours) 98 .4±0.60.90.77.20.28 1.24 0.24 2.6
+> TABLE II AGGREGATE 2D N AVIGATION PERFORMANCE IN RANDOMIZED DYNAMIC
+> SCENES
+> Method Success (%) ↑Time (ms) ↓Eff. ↑
+> DWA [6] 72 .3±2.180.89 VO [7] 78 .6±1.812 0.85 ORCA [8] 84 .2±1.515 0.91 SARL [28] 88 .5±2.322 0.92 MPC-CV 81 .7±2.418 0.90 BLADE-Separate 98 .7±0.647 0.96 JPPD-Uni 97 .8±0.831 0.96 JPPD w/o DSPG 96 .6±1.128 0.95
+> JPPD (Ours) 99 .2±0.432 0.97
+
+by 0.5 percentage points in success rate while reducing latency from 47 ms to 32 ms. The absolute success-rate gain should be read against the already strong BLADE-Separate baseline in moderate-density simulation. The value of the 0.5% im-provement is that it occurs in the tail of difficult episodes, where failures correspond to physical collisions or unrecovered timeouts. Over 1000 executed simulation episodes, the differ-ence between 98.7% and 99.2% corresponds to five additional collision-free completions; in a safety-critical navigation set-ting, this tail reduction is more meaningful than a comparable improvement in average path length. The unidirectional variant remains competitive but underperforms the full model because it cannot represent reciprocal interaction modes during denois-ing. Removing DSPG reduces latency slightly but increases collision risk, confirming that the safety potential is not merely a post-hoc score. The multi-panel comparison in Fig. 3 explains why the numerical gain in Table II is operationally meaningful. The tra-jectory panel links the gain to a concrete prediction-planning inconsistency, while the latency panel shows that the higher success rate is not obtained by spending more computation per cycle. For embedded deployment, the trajectory generator must improve safety while still replanning quickly enough to react to moving obstacles. 
+
+F. Ablations Targeting the Novelty Claim 
+
+Table III isolates the measured contribution of bidirectional joint modeling and differentiable safety guidance. Learned safety guidance primarily reduces tail collisions, while flow matching reduces latency relative to DDPM without improving success as much as the safety term.                          
+
+> TABLE III JPPD A BLATIONS TARGETING THE MAIN NOVELTY CLAIM
+> Configuration Succ. (%) Coll. (%) Purpose
+> BLADE-Separate 98 .7±0.60.8±0.4old pipeline JPPD-Uni 97 .8±0.81.4±0.5one-way flow JPPD-Bidir w/o DSPG 96 .6±1.12.6±0.7coupling only JPPD-FixedRep 98 .4±0.71.0±0.4APF replacement JPPD-DDPM 99 .0±0.50.5±0.3sampler choice
+> JPPD-FM + DSPG 99 .2±0.40.4±0.2full method
+
+G. Naturalistic Replay 
+
+ETH/UCY trajectories are converted into robot-centric closed-loop replay episodes by selecting pedestrian tracks as dynamic participant streams and assigning robot start-goal pairs that cross local crowd flow. Synthetic-only training shows a visible domain gap on these naturalistic tracks; unsupervised MMD correction and small supervised fine-tuning improve both ADE/FDE diagnostics and closed-loop success. The detailed replay tables are moved to the supplementary material because they support, rather than define, the main shared-space operation claim. 
+
+H. Isaac Sim 3D Validation 
+
+The Isaac Sim experiment uses a 12 m × 12 m indoor arena, randomized obstacle radii 0.15–0.45 m, dynamic ob-stacle speeds 0.1–0.6 m/s, friction randomized in [0 .4, 1.0] ,LiDAR noise matching the MS200 sensor, and 3D collision checking using the robot USD geometry. Although the planner operates on a 2D ground plane, the validation is meaningful because sensing, wheel-ground contact, obstacle collisions, and actuation are simulated in 3D physics. The Isaac Sim protocol uses the same policy and local planner interface as the real robot. The planner consumes ground-plane 2D LiDAR tracks, but collision is evaluated in the 3D simulator using the robot and obstacle meshes. This separation of planning state and collision checking matters: the experiment does not claim full 3D planning, but it tests whether a ground-plane planner remains robust under 3D actuation, wheel slip, sensor noise, and contact dynamics. The measured results in Table IV show a small sim-to-sim drop from 2D to Isaac Sim, consistent with actuation and sensing noise. 
+
+I. Real-Robot Deployment 
+
+The real-robot study uses the ROSOrin platform and com-pares Nav2 DWB, Nav2 TEB, BLADE-Separate, and JPPD under matched trial conditions. The reported values come from 8                                                            
+
+> Fig. 3. Navigation performance comparison. In the representative trajectory overlay, BLADE-Separate can pass close to a dynamic obstacle when the fixed prediction set is inconsistent with the selected ego plan, whereas JPPD begins avoidance earlier. The success-rate curve shows that the advantage grows as obstacle count increases, and the latency breakdown shows that replacing sequential prediction and planning diffusion with one flow-matching sampler reduces the model-inference portion of the control cycle. TABLE IV ISAAC SIM VALIDATION RESULTS
+> Method Success (%) Collision (%) Hz
+> ORCA 82 .9±2.312 .4±1.838 .6
+> MPC-CV 80 .6±2.614 .7±2.131 .2
+> BLADE-Separate 97 .2±0.81.6±0.520 .8
+> JPPD (Ours) 98 .4±0.60.9±0.427 .5
+> TABLE V JPPD R EAL -R OBOT RESULTS ON ROSO RIN UNDER 50 T RIALS PER
+> SCENARIO
+> Scenario Obs. Succ. Coll. Time (s) Min dHz
+> S1: Open 2S+0D 50/50 09.1±0.70.30 13.6 S2: Corridor 3S+0D 49/50 011 .7±1.20.21 13.1 S3: Cluttered 2S+2D 47/50 113 .9±1.90.17 12.4 S4: Dynamic 1S+4D 45/50 216 .1±2.40.18 11.9 Overall –191/200 312 .7±3.20.17 12.8
+
+completed physical trials. To align the physical evaluation with the simulated complexity, we include at least one 5-obstacle real or Isaac Sim scene in the supplementary video. JPPD deployment uses 10–15 flow-matching steps and retains CPU-only inference. Fig. 4 illustrates how the joint prediction-planning output is exposed during deployment. The planner does not output only a single geometric path; it produces a joint set of ego and obstacle futures, evaluates them through DSPG and risk-aware selection, and executes only the first control segment before replanning with the next LiDAR update. This visualization connects the measured trial statistics in Table V to the per-cycle signals used by the ROSOrin controller. The real-robot comparison includes Nav2 DWB, Nav2 TEB [40], BLADE-Separate, and JPPD under the same trial protocol. Failure causes are categorized into perception errors, localization drift, out-of-distribution obstacle behavior, and sampler/controller latency. The real-robot measurements are lower than 2D simulation and Isaac Sim. The dominant observed failure modes are Li-DAR track merging in cluttered scenes, sudden human-induced obstacle reversals, and localization drift in narrow corridors. The measured 95.5% aggregate success rate reflects the benefit of faster replanning and DSPG, but it does not assume that the learned sampler eliminates perception failures. This measured gap between simulation and hardware is relevant for T-ITS, where practical robustness is weighted heavily. 
+
+J. Failure Case Analysis 
+
+Failure cases are retained because they define the operating boundary. The dominant failures are dense scenes exceeding 
+
+Nmax , LiDAR occlusion and track merging, sudden participant reversals within 0.3 s, narrow two-way passages with no fea-sible gap, and footprint mismatch for non-circular obstacles. These cases motivate adaptive slot allocation, occlusion-aware tracking, and a certified emergency-stop layer. The full failure-count table is provided in the supplementary material. VI. DISCUSSION 
+
+A. ITS Scope: Low-Speed Shared-Space Mobility 
+
+The target deployment domain is low-speed shared-space transportation rather than indoor mobile manipulation. Last-mile delivery robots, service vehicles, campus shuttles, carts, wheelchairs, and micromobility platforms increasingly operate in pedestrian-priority spaces where sidewalks, plazas, cross-walks, and logistics corridors are shared by heterogeneous agents [1]–[3]. In these settings, the transportation problem is local but operationally important: vehicles must maintain throughput and safety under human motion uncertainty, sensor occlusion, and frequent reciprocal negotiation. This is why Ta-ble I reports blockage time, near misses, participant deviation, and hard braking in addition to robot success. 9 
+
+> Fig. 4. ROSOrin real-robot execution visualization with JPPD inference overlays. The image shows the runtime quantities used by the controller: LiDAR point observations, tracked dynamic obstacles, sampled obstacle futures, the selected JPPD ego trajectory, local risk regions, and the first receding-horizon control segment executed on the platform.
+
+This scope also explains why JPPD does not rely on lane-level map priors or vehicle-only traffic rules. Those priors are valuable in road driving, but they are weak in mixed pedestrian-service-robot spaces. The validated operating en-velope is low-speed near-field interaction: ego speeds up to approximately 1.2–1.5 m/s, local sensing within roughly 6– 12 m, and weakly structured corridors or crossing zones. The formulation instead uses local occupancy, observed histories, and agent masks, making it appropriate for shared-space ITS scenarios where the relevant interaction is between the ego platform and nearby pedestrians or service vehicles. Higher-speed vehicle-scale operation, such as 3–8 m/s urban driving, would require additional map, lane, right-of-way, and intent tokens; the present real-robot evidence should therefore be interpreted as low-speed shared-space validation rather than a claim of full urban autonomous-driving generality. 
+
+B. Why Joint Modeling Matters 
+
+Separate prediction-then-planning approximates 
+
+p(τ r , τ o, 1: N | ct) ≈ p(τ r | ˆτ o, 1: N , ct)p(τ o, 1: N | ct), (26) where ˆτ o, 1: N is often a mean or a finite prediction set. JPPD instead learns the joint distribution directly. This avoids freez-ing obstacle futures before planning and allows uncertainty over interaction outcomes to remain available during ego trajectory generation. The practical consequence is most visible in ambiguous crossing scenarios. In a separated pipeline, the predictor may assign comparable probability to an obstacle passing before or after the robot, but the planner typically receives a fixed sample set or a mean forecast. Once planning begins, that forecast is no longer reshaped by the ego candidate. In JPPD, the ego and obstacle futures are sampled together, so one sample can encode a conservative yielding interaction and another can encode an assertive passing interaction. The selector then evaluates complete joint futures rather than ego trajectories against externally fixed obstacle paths. This does not make the model game-theoretically optimal, but it removes the artificial boundary that caused prediction errors to propagate one-way into planning. The benefit of bidirectional coupling is concentrated in three scenario types. The first is a crossing conflict, where the robot and a dynamic obstacle compete for the same space-time gap. The second is a reciprocal corridor encounter, where a small lateral change by the robot changes the obstacle’s most likely future path. The third is a group-motion scene, where one obstacle’s future depends on whether the robot enters or avoids the group. In these cases, a fixed obstacle forecast can be internally inconsistent with the selected robot plan. JPPD reduces this inconsistency by sampling ego and obstacle futures as one object. This is also why the aggregate gain is modest: in many easy scenes, one-way conditioning is already sufficient; the advantage appears mainly in rare but safety-critical interaction modes. 10 
+
+C. Interpreting the Success-Rate Gain 
+
+The improvement from 98.7% to 99.2% in the aggregate randomized test in Table II should be interpreted as a tail-risk reduction rather than a broad average-case improvement. At such high baseline success rates, most remaining failures are difficult cases involving near-simultaneous arrival, short-horizon reversals, or crowded local minima. A 0.5 percentage-point gain over 1000 episodes means that five additional episodes reach the goal without collision or timeout. This num-ber is small in aggregate statistics but meaningful operationally because each avoided failure corresponds to an avoided contact event or a stopped mission. The scenario-grounded shared-space suite in Table I makes this tail effect more visible. When the environment contains bottlenecks, blind corners, and reciprocal pedestrian-service-robot negotiation, the gain over BLADE-Separate increases to 2.5 percentage points and is accompanied by fewer near misses, lower blockage time, less induced participant devia-tion, and fewer hard-braking events. These metrics are closer to the operating concerns of a shared-space transportation system than ADE/FDE alone. Latency also matters. BLADE-Separate runs prediction and planning as sequential diffusion processes, while JPPD uses one flow-matching sampler. The 15 ms reduction in planning-cycle time gives the robot one to two additional replanning opportunities per second on embedded hardware. In dynamic scenes, this higher update rate can matter as much as the final sampled trajectory quality. The contribution is therefore the combination of lower tail failure, lower collision rate, and faster replanning under the same hardware constraints, rather than the 0.5% success-rate gain alone. 
+
+D. Latency and Scalability 
+
+The primary runtime gain of JPPD comes from replacing two sequential diffusion samplers with one flow-matching sampler. BLADE-Separate denoises obstacle futures and then denoises ego candidates, so latency grows with the sum of prediction and planning steps. JPPD denoises a larger joint tensor, but uses fewer solver steps and a single CDiT forward pass per step. For the target range of N ≤ 12 and K = 16 ,this tradeoff favors JPPD. Beyond moderate-density scenes, dense cross-trajectory attention may dominate runtime; sparse spatial attention or clustering-based token pruning would be required for dense crowds or urban driving with many tracked agents. 
+
+E. Safety Scope 
+
+DSPG is a differentiable safety bias, not a formal certificate. It reduces risk by sampling from a safety-tilted posterior and by penalizing learned occupancy probability, but hard guarantees still require a certified low-level controller or a control-barrier-function safety filter. This safety scope affects deployment. DSPG improves the distribution of generated trajectories, but it does not prove that every executed control input is collision-free under perception uncertainty and actuation delay. A conservative deployment should therefore use JPPD as a proposal generator followed by a lightweight safety filter. The filter can reject controls that violate a short-horizon barrier condition using the latest LiDAR tracks. Such a filter would complement, rather than replace, DSPG: the learned potential reduces the frequency of unsafe proposals, while the filter handles last-resort constraint enforcement. 
+
+F. Limitations 
+
+The current formulation remains limited to ground-plane planning with circular or footprint-inflated traffic participants. The cross-trajectory attention cost grows as O(N 2K2) unless sparse masks are used. Sudden participant reversals beyond the horizon, LiDAR occlusions, and DBSCAN track merging re-main important real-world failure modes. The method does not model signal timing, traffic signs, lane-level right-of-way, or high-speed AV-HDV negotiation. Naturalistic pedestrian data and Isaac Sim domain randomization are therefore necessary before claiming broad generalization. The real-robot distribution is not merely a noisier copy of the 2D simulator: it contains sharper obstacle accelerations, tighter clearances, LiDAR occlusions, and localization errors. These factors explain why the real-robot success rate is lower than the simulation and Isaac Sim results, and they motivate reporting failure categories rather than only aggregate suc-cess. The feature-distribution and failure-mode visualization is moved to the supplementary material. Another limitation is that the obstacle futures in the current formulation are kinematic trajectories rather than intent-level decisions. This is adequate for low-speed shared spaces, but higher-speed traffic scenes may require map-lane priors, right-of-way rules, and explicit interaction intent. The present for-mulation can incorporate these variables as additional condi-tion tokens, but the reported experiments do not establish that extension. Finally, the learned occupancy potential depends on the quality of negative sampling; poor free-space sampling can make the potential overly conservative and reduce path efficiency. 
+
+G. Position Relative to Bilevel Methods 
+
+SICNav and related bilevel MPC approaches [35], [36] create tight prediction-planning coupling through optimization. JPPD pursues a different tradeoff: a learned joint sampler with lightweight inference suitable for embedded platforms. We therefore compare not only success rate but also latency, hardware requirements, and failure modes. Bilevel methods retain strong interpretability because the inner and outer optimization objectives are explicit, but they can be expensive and sensitive to solver initialization. JPPD moves part of this computation into offline training and uses sampling at runtime. The tradeoff is that the learned sampler must be validated across the deployment distribution. For T-ITS, the distinction is methodological: the contribution is not merely a higher success rate, but a different computational point in the prediction-planning design space. 11 
+
+H. Reproducibility Plan 
+
+To make the measured evaluation reproducible, the final release should include the synthetic trajectory generator, Isaac Sim environment configuration, trained CDiT and DSPG weights, random seeds for all simulation tables, real-robot trial logs, and scripts for computing ADE/FDE, collision rate, path efficiency, and latency. For the real-robot results, videos should be indexed by trial and scenario so failures can be audited. This audit trail matters because safety claims in dynamic obstacle avoidance are sensitive to trial selection and obstacle behavior. VII. CONCLUSION This paper presents JPPD, a joint prediction-planning diffu-sion framework for dynamic obstacle avoidance in intelligent transportation environments. Robot and obstacle futures are generated together, cross-trajectory attention creates bidirec-tional coupling, and differentiable safety potential guidance shapes the sampler rather than post-processing its output. The simulation, replay, Isaac Sim, and ROSOrin results show that the main benefit is lower tail risk and faster replanning under shared-space operating conditions. These results support treating low-speed dynamic obstacle avoidance as a joint generative decision problem rather than a separated forecast-then-plan pipeline. ACKNOWLEDGMENT The authors thank the open-source robotics and diffusion model communities for the foundational tools and datasets that enabled this research. REFERENCES [1] D. Jennings and M. Figliozzi, “Study of sidewalk autonomous delivery robots and their potential impacts on freight efficiency and travel,” 
+
+Transportation Research Record , vol. 2673, no. 6, pp. 317–326, 2019. [2] S. Shaheen, A. Cohen, and J. Broader, “Shared micromobility: Policy, practices, and emerging futures,” in Routledge Companion to Cycling ,G. Norcliffe, U. Brogan, P. Cox, B. Gao, T. Hadland, S. Hanlon, T. Jones, N. Oddy, and L. Vivanco, Eds. London, UK: Routledge, 2022, pp. 254– 262. [3] E. Alverhed, S. Hellgren, H. Isaksson, L. Olsson, H. Palmqvist, and J. Flod´ en, “Autonomous last-mile delivery robots: A literature review,” 
+
+European Transport Research Review , vol. 16, no. 1, p. 4, 2024. [4] P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the heuristic determination of minimum cost paths,” IEEE Transactions on Systems Science and Cybernetics , vol. 4, no. 2, pp. 100–107, 1968. [5] S. M. LaValle, “Rapidly-exploring random trees: A new tool for path planning,” Technical Report, Computer Science Department, Iowa State University , 1998. [6] D. Fox, W. Burgard, and S. Thrun, “The dynamic window approach to collision avoidance,” in IEEE Robotics & Automation Magazine , vol. 4, no. 1, 1997, pp. 23–33. [7] P. Fiorini and Z. Shiller, “Motion planning in dynamic environments us-ing velocity obstacles,” The International Journal of Robotics Research ,vol. 17, no. 7, pp. 760–772, 1998. [8] J. Van Den Berg, S. J. Guy, M. Lin, and D. Manocha, “Reciprocal n-body collision avoidance,” Robotics Research , pp. 3–19, 2011. [9] B. Brito, B. Floor, L. Ferranti, and J. Alonso-Mora, “Model predictive contouring control for collision avoidance in unstructured dynamic environments,” in IEEE Robotics and Automation Letters , vol. 4, no. 4, 2019, pp. 4459–4466. [10] T. Salzmann, B. Ivanovic, P. Chakravarty, and M. Pavone, “Trajectron++: Dynamically-feasible trajectory forecasting with heterogeneous data,” in 
+
+European Conference on Computer Vision (ECCV) . Springer, 2020, pp. 683–700. [11] T. Gu, G. Chen, J. Li, C. Lin, Y. Rao, J. Zhou, and J. Lu, “Stochastic trajectory prediction via motion indeterminacy diffusion,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2022, pp. 17 113–17 122. [12] W. Mao, C. Xu, Q. Zhu, S. Chen, and Y. Wang, “Leapfrog diffusion model for stochastic trajectory prediction,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023, pp. 5517– 5526. [13] D. Rempe, Z. Luo, X. B. Peng, Y. Yuan, K. Kitani, K. Kreis, S. Fidler, and O. Litany, “Trace and pace: Controllable pedestrian animation via guided trajectory diffusion,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023, pp. 13 756–13 766. [14] M. Janner, Y. Du, J. B. Tenenbaum, and S. Levine, “Planning with diffusion for flexible behavior synthesis,” in International Conference on Machine Learning . PMLR, 2022, pp. 9902–9915. [15] J. Carvalho, A. T. Le, M. Baierl, D. Koert, and J. Peters, “Motion plan-ning diffusion: Learning and planning of robot motions with diffusion models,” in IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2023, pp. 1916–1923. [16] C. Chi, S. Feng, Y. Du, Z. Xu, E. Cousineau, B. Burchfiel, and S. Song, “Diffusion policy: Visuomotor policy learning via action diffusion,” in 
+
+Robotics: Science and Systems (RSS) , 2023. [17] D. Helbing and P. Moln´ ar, “Social force model for pedestrian dynamics,” 
+
+Physical Review E , vol. 51, no. 5, p. 4282, 1995. [18] A. Alahi, K. Goel, V. Ramanathan, A. Robicquet, L. Fei-Fei, and S. Savarese, “Social lstm: Human trajectory prediction in crowded spaces,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2016, pp. 961–971. [19] A. Gupta, J. Johnson, L. Fei-Fei, S. Savarese, and A. Alahi, “Social gan: Socially acceptable trajectories with generative adversarial networks,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2018, pp. 2255–2264. [20] Y. Yuan, X. Weng, Y. Ou, and K. M. Kitani, “Agentformer: Agent-aware transformers for socio-temporal multi-agent forecasting,” in IEEE/CVF International Conference on Computer Vision (ICCV) , 2021, pp. 9813– 9823. [21] Q. Chen, H. Zhang, F. Chen, X. Wang, and M. Liu, “Trajdiffuse: A con-ditional diffusion model for environment-aware trajectory prediction,” 
+
+IEEE Robotics and Automation Letters , vol. 9, no. 2, pp. 1160–1167, 2024. [22] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le, “Flow matching for generative modeling,” in International Conference on Learning Representations (ICLR) , 2023. [23] S. Zhong, Z. Peng, H. Wen, and J. Gao, “Efficient trajectory fore-casting and generation with conditional flow matching,” arXiv preprint arXiv:2403.10809 , 2024. [24] J. Van den Berg, M. Lin, and D. Manocha, “Reciprocal velocity obstacles for real-time multi-agent navigation,” in IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2008, pp. 1928–1935. [25] D. Bareiss and J. Van Den Berg, “Generalized reciprocal collision avoidance,” in The International Journal of Robotics Research , vol. 34, no. 12, 2015, pp. 1501–1514. [26] Y. F. Chen, M. Everett, M. Liu, and J. P. How, “Socially aware motion planning with deep reinforcement learning,” in IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2017, pp. 1343–1350. [27] M. Everett, Y. F. Chen, and J. P. How, “Motion planning among dynamic, decision-making agents with deep reinforcement learning,” in IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) .IEEE, 2018, pp. 3052–3059. [28] C. Chen, Y. Liu, S. Kreiss, and A. Alahi, “Crowd-robot interaction: Crowd-aware robot navigation with attention-based deep reinforcement learning,” in IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2019, pp. 6015–6022. [29] S. S. Samsani and M. S. Muhammad, “Socially compliant robot navi-gation in crowded environment by human behavior resemblance using deep reinforcement learning,” IEEE Robotics and Automation Letters ,vol. 6, no. 3, pp. 5223–5230, 2021. [30] T. Lew, R. Bonalli, and M. Pavone, “Risk-averse trajectory optimization via sample average approximation,” IEEE Robotics and Automation Letters , vol. 8, no. 12, pp. 8044–8051, 2023. [31] X. Zhu, Y. Xie, S. Paternain, and M. Egerstedt, “Safety-critical model predictive control with discrete-time contraction theory,” IEEE Control Systems Letters , vol. 5, no. 6, pp. 2062–2067, 2021. [32] K. Mizuta and K. Leung, “CoBL-Diffusion: Diffusion-based conditional robot planning in dynamic environments using control barrier and Lyapunov functions,” arXiv preprint arXiv:2406.05309 , 2024. 12 
+
+[33] W. Xiao, T.-H. Wang, M. Chahine, R. Hasani, and D. Rus, “Safediffuser: Safe planning with diffusion probabilistic models,” in International Conference on Machine Learning (ICML) , 2024. [34] B. Yang, J. Wen, S. Zhu et al. , “Safety-guided diffusion for robot manip-ulation,” in IEEE International Conference on Robotics and Automation (ICRA) , 2024. [35] S. S. Holtz, A. Bhatt, and J. F. Fisac, “SICNav: Safe and interactive crowd navigation using model predictive control and bilevel optimiza-tion,” in IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 12 580–12 586. [36] ——, “SICNav-Diffusion: Safe and interactive crowd navigation with diffusion trajectory predictions,” arXiv preprint arXiv:2403.18154 , 2024. [37] O. Khatib, “Real-time obstacle avoidance for manipulators and mobile robots,” The International Journal of Robotics Research , vol. 5, no. 1, pp. 90–98, 1986. [38] S. Pellegrini, A. Ess, K. Schindler, and L. Van Gool, “You’ll never walk alone: Modeling social behavior for multi-target tracking,” in IEEE International Conference on Computer Vision (ICCV) . IEEE, 2009, pp. 261–268. [39] A. Lerner, Y. Chrysanthou, and D. Lischinski, “Crowds by example,” in Computer Graphics Forum , vol. 26, no. 3. Wiley Online Library, 2007, pp. 655–664. [40] C. R¨ osmann, F. Hoffmann, and T. Bertram, “Kinodynamic trajectory optimization and control for car-like robots,” in IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2017, pp. 5681–5686.
