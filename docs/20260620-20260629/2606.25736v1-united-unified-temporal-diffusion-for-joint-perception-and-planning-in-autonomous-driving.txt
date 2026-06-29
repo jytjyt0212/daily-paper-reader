@@ -1,0 +1,664 @@
+Title: UniTeD: Unified Temporal Diffusion for Joint Perception and Planning in Autonomous Driving
+
+URL Source: https://arxiv.org/pdf/2606.25736v1
+
+Published Time: Thu, 25 Jun 2026 01:02:41 GMT
+
+Number of Pages: 31
+
+Markdown Content:
+# UniTeD: Unified Temporal Diffusion for Joint Perception and Planning in Autonomous Driving 
+
+Bo Zhao 1⋆ , Xinting Zhao 1⋆ , Naifan Li 1 , Erkang Cheng 1B , and Haibin Ling 2 
+
+> 1
+
+Nullmax  
+
+> 2
+
+Westlake University 
+
+{zhaobo,zhaoxinting,linaifan,chengerkang}@nullmax.ai, linghaibin@westlake.edu.cn 
+
+Abstract. Diffusion models have shown strong potential for multi-modal planning in end-to-end autonomous driving. However, most existing meth-ods confine diffusion to the planning module, conditioning on fixed out-puts from separate discriminative perception networks. This decoupled design propagates perception errors to the planner, increasing optimiza-tion difficulty and reducing robustness. To overcome these limitations, we propose UniTeD , a Uni fied Te mporal Diffusion framework that jointly models perception and planning through iterative denoising in a shared generative space. By enabling bidirectional information exchange, the framework facilitates mutual refinement between tasks and improves ro-bustness via noise-conditioned multi-task training. We further extend this unified diffusion paradigm to a streaming setting by incorporat-ing temporal context. A Temporal Transition Module (TTM) is intro-duced to resolve the noise-level mismatch between historical and current frames. In addition, we propose an Anchor Refresh Strategy (ARS) to alleviate the training–inference distribution shift commonly observed in sparse diffusion-based end-to-end driving frameworks. Without bells and whistles, UniTeD achieves state-of-the-art performance across multiple benchmarks, surpassing both recent discriminative end-to-end methods and diffusion-based planning approaches. 
+
+Keywords: End-to-End Autonomous Driving · Unified Task Denoising 
+
+· Temporal Interaction 
+
+## 1 Introduction 
+
+Autonomous driving is undergoing a fundamental paradigm shift, moving from traditional modular pipelines, with perception [20, 31, 35, 36, 38, 39, 42], motion prediction [17, 18, 24, 58], and planning [9, 12, 13, 46] as separate components, to-ward fully end-to-end (E2E) systems [11,19,25,37]. E2E approaches reformulate autonomous driving as a fully differentiable process that directly optimizes the final planning objective.  
+
+> ⋆
+
+Equal contribution.  
+
+> B
+
+Corresponding author. 
+
+> arXiv:2606.25736v1 [cs.CV] 24 Jun 2026
+
+2 B. Zhao et al. Perc.Layer                
+
+> Perception Decoder
+> xL1
+> Plan.Layer xL2
+> Planning Decoder
+> Perc.Layer
+> Plan.Layer
+> OneDecoder
+> xL
+> (a) Separate-Discriminative
+> Iterative Diffusion Denoising xN
+> Perc.Layer
+> Perception Decoder
+> xL1
+> Plan.DiT.Layer xL2
+> Planning Decoder
+> Perc.DiT.Layer
+> Plan.DiT.Layer
+> OneDecoder
+> xL
+> Iterative Diffusion Denoising xN
+> Task Outputs Task Anchors Distribution
+> (b) Uni fied-Discriminative
+> (c) Separate -Generative (d) Unified-Generative
+> Planning Query
+> Input Feature
+> Input Feature
+> Input Feature
+> Input Feature
+> Perception Query Inference-Only
+
+Fig. 1: Comparison of existing paradigms for end-to-end autonomous driving. (a) Separate-Discriminative: separate perception and planning with discriminative mod-eling for both tasks. (b) Unified-Discriminative: unified perception and planning with discriminative modeling for both tasks. (c) Separate-Generative: separate perception and planning with generative modeling for planning task only. (d) Unified-Generative (ours): unified perception and planning with generative modeling for both tasks. 
+
+Most recent E2E approaches adopt a discriminative formulation [11, 19, 23, 25, 51, 52, 55]. They typically treat perception and planning separately (Fig. 1 (a)), either sequentially [19,25,51] or in parallel [11,55]. For instance, UniAD [19] and VAD [25] employ sequential pipelines, where perception outputs are passed to a downstream planning module. In contrast, TransFuser [11] and PARA-Drive [55] process perception and planning tasks concurrently, but with limited cross-task interaction. To enable deeper integration, DriveTransformer [23] and HiP-AD [52] introduce unified decoders that jointly process all task queries. As shown in Fig. 1 (b), perception (agent and map) and planning queries interact at every layer and directly attend to shared feature representations, substan-tially improving E2E driving performance. However, these discriminative meth-ods share a core limitation rooted in their optimization objective: minimizing supervised loss encourages predictions toward mean or majority behaviors, lim-iting their ability to capture the multi-modal nature of driving. To address this issue, recent research has explored generative modeling, par-ticularly diffusion-based approaches [10,37,57,60] (Fig. 1 (c)). DiffusionDrive [37] proposes a truncated diffusion policy that stabilizes generation while reducing denoising steps for real-time efficiency. ResAD [60] addresses spatiotemporal imbalance by reformulating trajectory prediction as residual learning. DiffRe-UniTeD for Autonomous Driving 3
+
+finer [57] further introduces a two-stage framework, where a diffusion-based re-finer denoises coarse trajectories generated in an initial stage. Despite advances achieved, existing generative frameworks limit diffusion modeling to the planning task, treating perception outputs as fixed conditions. This strategy may propa-gate perception errors to the generative process, leading to inaccurate guidance and increased optimization complexity. It thus prevents joint refinement between perception and planning, restricting the full potential of generative modeling. Furthermore, existing approaches use only single-frame information for diffusion-based planning and ignore temporal dynamics. In addition, sparse query-based diffusion planning methods [37, 57] often suffer from severe training-inference inconsistency: during training, only a small subset of planning queries matched to the ground truth are optimized, while the remaining queries receive little su-pervision, causing a query distribution shift at inference time. Such behavior fundamentally contradicts the iterative refinement principle of diffusion models, where outputs are expected to progressively improve as denoising proceeds. To address the aforementioned challenges, we present UniTeD , a Uni fied 
+
+Te mporal Diffusion framework that jointly models perception and planning through iterative denoising in a shared generative space. Specifically, UniTeD adopts a unified diffusion decoder that jointly processes perception queries (agents and map elements) and planning queries within a single generative process. By denoising them simultaneously in a shared generative space, our approach fully leverages the strong uncertainty modeling capability of diffusion models and enables comprehensive cross-task information exchange. In this way, UniTeD not only supports multi-modal trajectory generation for the ego vehicle but also strengthens perception tasks, including dynamic agent prediction and static map understanding. Importantly, optimization under a noise-conditioned diffu-sion paradigm inherently improves multi-task robustness. Each task is trained to ensure accurate predictions even when conditioned on noisy or imperfect in-termediate outputs from other tasks, leading to greater stability and improved generalization at inference time. Additionally, to better capture temporal dynamics that are often overlooked in existing diffusion-based planners, we incorporate a memory bank that stores historical task queries, enabling a streaming unified diffusion framework. We introduce a Temporal Transition Module (TTM) to solve the noise-level mis-match between historical and current frames. Furthermore, we propose an An-chor Refresh strategy (ARS) to mitigate the training–inference distribution shift in sparse diffusion frameworks. During inference, high-confidence queries are re-tained, while low-confidence task queries are refreshed by resampling from the original noise distribution. This mechanism preserves query diversity while main-taining alignment with the training distribution, ensuring stable and reliable performance even in complex multi-modal settings. Extensive experiments demonstrate that UniTeD achieves strong performance across major benchmarks, outperforming both discriminative E2E approaches and recent diffusion-based planning ones. In particular, our method attains 87.25 DS on Bench2Drive, as well as 90.24 PDMS and 90.13 EPDMS on NAVSIM. 4 B. Zhao et al. 
+
+The main contributions of this work are summarized as follows: 1. We propose a novel unified diffusion framework for E2E autonomous driving. Our solution jointly denoises perception and planning queries, enabling deep bidirectional information exchange within a shared generative space. 2. We extend unified diffusion to a streaming setting via a memory bank and introduce a Temporal Transition Module to resolve noise-level mismatches between historical and current frames. 3. We present an Anchor Refresh Strategy to alleviate training–inference dis-tribution shifts in sparse diffusion-based autonomous driving frameworks. 4. We show superior performance across major benchmarks, surpassing both state-of-the-art discriminative E2E methods and diffusion-based planners. 
+
+## 2 Related Works 
+
+Discriminative End-to-End Autonomous Driving. Most recent E2E ap-proaches typically apply discriminative methods for both the planning and per-ception tasks. UniAD [19] represents a milestone in this category, integrat-ing multiple tasks into a single model, while VAD [25] further improves effi-ciency by replacing dense rasterized scene representations with vectorized ones. SparseDrive [51] eliminates the dependency on dense BEV features through a fully sparse query-based framework. To mitigate the sequential dependencies, several works explore parallel architectures. TransFuser [11] fuses LiDAR and camera inputs to construct a BEV representation, executing perception and planning tasks concurrently. PARA-Drive [55] extends this by jointly model-ing mapping, motion, and occupancy prediction alongside planning. DriveTrans-former [23] introduces a unified decoder that jointly processes all task queries. HiP-AD [52] similarly employs a unified decoder for both perception and plan-ning tasks, and further enhances performance by incorporating multi-granularity planning queries. 
+
+Generative Methods in Autonomous Driving. In the perception domain of autonomous Driving, diffusion-based frameworks have redefined traditional tasks as a denoising process. DiffusionDet [8] first redefines object detection as a denoising diffusion process from noisy boxes to object boxes. MotionDiffuser [26] utilizes diffusion processes to model the multi-modal distribution of multi-agent motion prediction. DiffusionTrack [43] introduces a noise-to-tracking paradigm, reformulating multi-object tracking as a conditional denoising task to achieve more robust data association. DiffMap [21] utilizes generative models for map segmentation. PolyDiffuse [6] further advances this by generating vectorized map elements through a denoising process. LaneDiffusion [54] strengthens the repre-sentation of complex road networks by effectively modeling lane centerlines and topological connections. In the planning domain, DiffusionDrive [37] proposes a truncated diffusion policy to stabilize generation while enhancing real-time efficiency through re-duced denoising steps. ResAD [60] reformulates trajectory prediction as residual UniTeD for Autonomous Driving 5
+
+learning to address spatiotemporal imbalances. DiffRefiner [57] employs a two-stage framework, utilizing a diffusion-based refiner to polish coarse trajectories from the initial stage. DiffusionDriveV2 [65] incorporates reinforcement learning to prune low-quality modes and explore superior trajectories. DiffAD [53] refor-mulates autonomous driving as a conditional image generation task, predicting future scenes in the form of rasterized BEV images. Being a generative solution, our UniTeD jointly formulates perception and planning within a shared generative space, while previous methods retain diffusion-based models for planning while treating discriminative perception outputs as fixed conditions for the planner. Furthermore, UniTeD extends the generative framework to a streaming scheme. 
+
+Temporal Modeling in Autonomous Driving. Existing E2E frameworks typically incorporate temporal dynamics through two main streams: Global Fea-ture Fusion [19, 25] and Query-based Propagation [23, 49, 51, 52]. Early methods like UniAD [19] and VAD [25] utilize stacked historical BEV features to pro-vide a global spatial-temporal context for downstream tasks. SparseDrive [51], DriveTransformer [23], and HiP-AD [52] all utilize a memory queue to cache historical queries, leveraging temporal attention to integrate historical informa-tion. To ensure planning stability, MomAD [49] further introduces a momen-tum mechanism to select the optimal planning query, which is then integrated with historical queries via cross-attention. Despite the success of these discrim-inative frameworks, incorporating temporal modeling into diffusion-based E2E frameworks remains challenging. Existing diffusion planners, such as Diffusion-Drive [37] and ResAD [60], primarily focus on single-frame generation or naive concatenation of historical features. Different from these methods, UniTeD in-troduces a unified diffusion-based streaming paradigm that propagates joint task queries across frames. A novel module is also proposed to solve the noise-level mismatch between historical and current frames. 
+
+## 3 Method 
+
+3.1 Overview 
+
+The overall architecture of UniTeD is illustrated in Fig. 2, which operates as a unified diffusion process. First, the image backbone extracts multi-scale fea-tures F = {Fv }Vv=1 from V multi-view images at k-th frame. Second, we define 
+
+A = {Aa ∈ RNa×Da , Am ∈ RNm×Dm , Ap ∈ RNp×Dp } as a joint anchor set for agent, map, planning tasks, respectively. Na, Nm, and Np denote the numbers of anchors for the different tasks, and Da, Dm, and Dp denote their correspond-ing anchor dimensions. Following the truncated diffusion [37], the noisy anchors 
+
+Atk are sampled from a Gaussian distribution centered around the prior A,where tk denotes the noise level associated with the k-th frame. Then Atk are projected into a shared latent query space by an Anchor Embedding module, yielding Qk = {Qa, Qm, Qp} ∈ R(Na+Nm+Np)×C . These queries are then fed into the Unified Diffusion Decoder (Sec. 3.3). To incorporate temporal context, the Temporal Transition Module (TTM) (Sec. 3.4) modulates a temporal queue of 6 B. Zhao et al. Backbone          
+
+> The �-th Multi-View Images Multi-View Features
+> Anchors Distribution Noisy Anchors
+> Temporal Memory Queue
+> w/ Temporal Noise Level
+> Temporal
+> Transition Module Timestep
+> Modulation
+> Temporal
+> Cross-Attention
+> Anchor
+> Embedding
+> Unified
+> Self-Attention
+> Timestep
+> Modulation
+> Spatial
+> Deformable-Attention
+> Timestep
+> Modulation
+> Current Noise Level
+> FIFO
+> ��−1
+> Anchor
+> Refresh
+> Task-Specific
+> Heads
+> Iterative Diffusion Denoising xN
+> ��−�
+> ��−2
+> ��
+> Unified Diffusion Decoder
+> Sample
+
+Fig. 2: Overview of UniTeD. UniTeD contains three core components: (a) Unified Diffu-sion Decoder that models perception and planning queries through iterative denoising in a shared generative space; (b) Temporal Transition Module (TTM) that resolves the noise-level mismatch between historical and current frames; and (c) Anchor Re-fresh Strategy that alleviates the training–inference distribution shift. 
+
+historical features {Qk−i}ni=1 to generate aligned historical features { ˜Qk−i}ni=1 
+
+consistent with the current noise level tk. Together with the multi-view features 
+
+F, the modulated temporal features serve as conditional inputs to the decoder. Finally, after denoising, task-specific heads transform the refined queries into final predictions for the agent, map, and planning tasks. During inference, an Anchor Refresh Strategy (Sec. 3.5) updates the pre-dicted outputs to initialize the subsequent denoising step, enabling iterative re-finement until the final timestep is reached. 
+
+3.2 Unified Modeling via Diffusion 
+
+We follow the truncated diffusion policy in DiffusionDrive [37], but extend it to a joint multi-task modeling form. The Unified Diffusion Decoder simultaneously models the distribution of all task instances by denoising the noisy anchors Atk
+
+into their final clean outputs. The forward and reverse processes are as follows: 
+
+Unified Forward Diffusion Process. During the forward process, we apply the same level of noise to all tasks simultaneously. For each anchor a ∈ A, the unified forward process at noise timestep tk is defined as: 
+
+q(atk |a) = N (atk ; p¯αtk a, (1 − ¯αtk )I), tk ∈ [1 , T trunc ] (1) where Ttrunc ≪ Tmax denotes the maximum number of truncated diffusion steps. The resulting noisy anchors serve as the input to the decoder. This synchronized noise injection ensures that all task categories are embedded with a shared un-certainty scale, promoting consistent representation learning across tasks. UniTeD for Autonomous Driving 7
+
+Unified Reverse Denoising Process. In the reverse process, the decoder recovers the clean unified all-task instances from the noisy anchor inputs. We follow the DDIM sampling [48] to iteratively refine the task states. During each denoising step, for k-th frame, the decoder takes the current step noisy an-chors Atk , multi-view visual features F, and modulated historical context queue 
+
+{ ˜Qk−i}ni=1 as inputs to estimate the clean state of each instance. 
+
+3.3 Unified Diffusion Decoder 
+
+The Unified Diffusion Decoder serves as the generative core of our framework (Fig. 2). To progressively recover clean task states, the decoder refines the joint query set Qk through N denoising iterations across L stacked blocks, each con-sisting of the specialized interaction layers details below: 
+
+Conditional Modulation. To condition the denoising process on the gener-ative stage, every interaction layer within the decoder block is governed by a Conditional Modulation module. Following the Adaptive Layer Normalization (AdaLN) design in DiT [45], the condition Ck, by encoding current timestep tk,fed into an MLP to produce modulation parameters {α, β, γ }, which dynamically projects task features onto the corresponding distribution level via AdaLN. 
+
+Temporal Cross-Attention Layer. After the initial modulation, a Temporal Cross-Attention layer integrates the modulated historical context queue { ˜Qk−i}ni=1 ,which is aligned by the TTM to ensure noise-level consistency. The complete temporal interaction pipeline are elaborated in Sec. 3.4. 
+
+Unified Self-Attention Layer. To enable cross-task reasoning, the joint queries at k-th frame Qk = {Qa, Qm, Qp} are fed into a Unified Self-Attention Layer, allowing each token to attend to all others regardless of task origin (agent, map, or planning). This all-to-all interaction jointly updates agent motion, map geom-etry and ego-planning states, enabling the model to exploit cross-task geometric priors during generation. For example, ego planning Qp and agent intentions 
+
+Qa impose spatial constraints that assist map reconstruction Qm in occluded regions, while map topology regularizes multi-modal trajectory generation. A single joint attention pass thus promotes globally plausible, physically and logi-cally consistent scene synthesis. 
+
+Spatial Deformable Attention layer. To anchor latent features in 3D space, each query q ∈ Qk is linked to a 3D anchor a ∈ A, which is projected onto the v-th camera image plane via the view transformation Pv . We then apply the Spatial Deformable Attention, implemented via Multi-Scale Deformable Attention [63], to efficiently sample and aggregate multi-view, multi-scale image features F.
+
+3.4 Temporal Interaction via Temporal Transition Module 
+
+The Temporal Interaction via Temporal Transition Module (TTM) (Fig. 3) is the key component enabling our streaming unified diffusion framework. While many diffusion-based models neglect temporal dynamics, we use a memory bank for long-range reasoning. A naive fusion of historical features, however, suffers from noise-level mismatch between historical queries {Qk−i}ni=1 and current queries 8 B. Zhao et al. Temporal Cross-Attention         
+
+> Scale & Shift Scale & Shift
+> Layer Norm Layer Norm
+> Historical queries
+> ��−��=1
+> �
+> Queries
+> ��
+> Condition embedding
+> ��
+> MLP
+> Scale
+> Updated queries
+> ��
+> Historical conditions
+> ��−��=1
+> �
+> MLP
+> �1,�1
+> QKV
+> �1
+> �2,�2
+> Queries
+> ��
+> TTM
+
+Fig. 3: Temporal Interaction. The core TTM enables a streaming unified diffusion framework by aligning historical queries with the current noising level. 
+
+Qk, as their denoising time steps are sampled stochastically and independently. Addressing this issue, we implement a structured interaction pipeline: 
+
+Input. The four inputs at the k-th frame with noise level tk are: 
+
+• Queries Qk: joint noisy queries targeted for denoising at noise level tk.
+
+• Condition embedding Ck: Ck = MLP (TE (tk)) , where TE (·) is timestep em-bedding following DiT [45] and ADM [15]. 
+
+• Historical queries {Qk−i}ni=1 : queued past queries from the memory bank. 
+
+• Historical conditions {Ck−i}ni=1 : each condition is embedded as: 
+
+Ck−i = MLP  [TE (tk−i), TE (∆t i), TE (∆k i)]  (2) where tk−i is the historical noise level, ∆t i = tk − tk−i is the relative noise scale shift, and ∆k i is the frame interval. 
+
+Temporal Transition Module (TTM). TTM aligns historical queries with the current denoising stage. Through an MLP, each historical condition Ck−i
+
+generates scale and shift parameters, which then transform the historical queries: 
+
+γk−i, β k−i = MLP (Ck−i),
+
+˜Qk−i = (1 + γk−i) ⊙ LayerNorm (Qk−i) + βk−i. (3) This way, the generated temporal queries { ˜Qk−i}ni=1 effectively re-project histor-ical features into the current noise manifold for optimized cross-frame reasoning. 
+
+Temporal Fusion. With the inputs aligned, the interaction is executed through the Temporal Cross-Attention layer introduced in Sec. 3.3. This layer takes the modulated current queries ˜Qk and the TTM-aggregated features { ˜Qk−i}ni=1 for interaction. This allows each task instance to inherit motion and structural priors from the past n frames without being disrupted by the noise-level mismatch across different physical timestamps. UniTeD for Autonomous Driving 9
+
+Algorithm 1 Anchor Refresh Strategy at the j-th Iteration 
+
+Input: Noisy anchors at at diffusion step t; anchor priors A = {a(i)}Nall  
+
+> i=1
+
+, where Nall =
+
+Na + Nm + Np; step size m; confidence threshold τ .
+
+Output: Refined anchors {a(i)
+
+> t−m
+
+}Nall  
+
+> i=1
+
+for the subsequent diffusion step. 1: // Prediction and confidence estimation 
+
+2: {ˆy(i) 
+
+> t
+
+, s (i) 
+
+> t
+
+} = Φ({a(i) 
+
+> t
+
+});3: for each anchor index i ∈ { 1, . . . , N all } do 
+
+4: if s(i) 
+
+> t
+
+> τ then 
+
+5: // Selective denoising for high-confidence predictions 
+
+6: a(i) 
+
+> t−m
+
+← DDIM( a(i) 
+
+> t
+
+, ˆy(i) 
+
+> t
+
+, t, t − m);7: else 
+
+8: // Anchor refresh for low-confidence predictions 
+
+9: a(i) 
+
+> t−m
+
+∼ N 
+
+√¯αt−m a(i), (1 − ¯αt−m) I
+
+
+
+;10: end if 
+
+11: end for 
+
+12: return {a(i)
+
+> t−m
+
+}Nall  
+
+> i=1
+
+;
+
+3.5 Anchor Refresh Strategy Training Inference Inconsistencies. Sparse query-based diffusion planning approaches [37, 57] often suffer from severe training–inference inconsistencies. During training, only a small subset of planning queries matched to the ground truth is supervised, while the remaining queries receive little or no guidance. At inference, however, all queries are updated at each denoising step, including previously unexplored queries that are fed back into subsequent iterations. This causes a progressive drift in the query distribution, gradually deviating from the anchor distribution observed during training. As identified in DiffusionDet [8], directly propagating these unconstrained, stochastic outputs through iterative steps causes a significant training-inference misalignment. Therefore, without explicit mechanisms to correct this misalignment, the discrepancy accumulates over denoising steps, leading to increasingly degraded predictions. 
+
+Inference via Anchor Refresh Strategy. Inspired by DiffusionDet [8], we propose an Anchor Refresh strategy (ARS) to address the training–inference in-consistencies. During inference, high-confidence queries are retained, while low-confidence queries are refreshed by resampling from the original noise distribu-tion (Algorithm 1). 
+
+– Selective Denoising: At each denoising step, we identify high-confidence predictions using a task-specific threshold τ . For queries with confidence 
+
+s(i) 
+
+> t
+
+> τ , we apply the standard DDIM reverse operator to transition from 
+
+a(i) 
+
+> t
+
+to a(i) 
+
+> t−m
+
+using on the predicted clean state ˆy(i) 
+
+> t
+
+. This ensures that only task-relevant information is propagated. 
+
+– Anchor-based Distribution Refresh: For low-confidence queries s(i) 
+
+> t
+
+≤ τ ,we discard the unconstrained outputs and replace them with their initial anchors a(i), re-projected to the prescribed noise level at step t − m.10 B. Zhao et al. 
+
+With the above operations, ARS preserves query diversity while maintaining alignment with the training distribution, enabling stable and robust inference in complex multi-modal scenarios. 
+
+3.6 Loss Function 
+
+The entire UniTeD framework is trained end-to-end in a fully differentiable way. To ensure the overall performance of perception and planning in driving, we define a multi-task optimization objective that covers four primary tasks: de-tection, motion prediction, mapping, and planning. Each task can be optimized using both classification and regression losses with corresponding weight. The total loss Ltotal is defined as a weighted combination of task-specific components: 
+
+Ltotal = λdet Ldet + λmot Lmot + λmap Lmap + λplan Lplan . (4) 
+
+## 4 Experiments 
+
+4.1 Experimental Setup Datasets. We evaluate UniTeD on three benchmarks to validate mid-term simulation and interactive closed-loop performance. 
+
+NAVSIM v1 & v2. Built on the nuPlan [3] dataset, NAVSIM [14] provides a non-reactive mid-term simulation with a 4-second horizon, bridging the gap between open-loop and closed-loop evaluation. Performance is measured via the Predictive Driver Model Score (PDMS) [14] and Extended PDMS (EPDMS) [4], which incorporate safety penalties alongside efficiency and comfort rewards. 
+
+Bench2Drive. Bench2Drive [22] is a large-scale, CARLA-based [16] closed-loop benchmark featuring 44 scenarios across 220 intersections. It tests interactive driving and long-tail robustness. We report the Driving Score (DS) and Success Rate (SR) as primary indicators. 
+
+Implementation Details. We employ ResNet-34 as the backbone for fea-ture extraction. Input images are resized to a resolution of 640 × 352 . For the NAVSIM benchmark [4, 14], the model processes inputs from eight multi-view cameras, while for Bench2Drive [22], six multi-view cameras are utilized. Our decoder consists of six cascaded diffusion decoder layers. Following the design of DiffusionDrive [37], we adopt a truncated diffusion policy operating on 1,024 object anchors, categorized into 900 agent anchors, 100 map anchors, and 24 planning anchors. During training, the diffusion schedule is truncated at 50 out of 1,000 steps to diffuse the anchors. For inference, we use 2 denoising steps with step size m of 10 and select the top-1 scoring trajectory as the final prediction. The confidence threshold τ for each task is detailed in the Appendix. The model is trained on 8 NVIDIA L40 GPUs with a total batch size of 64. We use the AdamW optimizer with an initial learning rate of 4 × 10 −4 and train for 100 epochs to ensure convergence across benchmarks. UniTeD for Autonomous Driving 11 
+
+Table 1: Performance comparison with other state-of-the-art methods on the NAVSIMv1 benchmark. All compared methods utilize ResNet-34 as the CNN back-bone. The best results are highlighted in bold . The second best is underline, and the third best is in italics . Dis and Gen denote discriminative and generative formulations, respectively. Sep and Uni indicate whether perception and planning are formulated separately or in a unified manner. C and L denote Camera and LiDAR modalities. Method Paradigm Modality Planning Metrics Overall NC ↑ DAC ↑ EP ↑ TTC ↑ COMF ↑ PDMS ↑                                                                                                 
+
+> VADv2 [7] Dis-Sep C97.2 89.1 76.0 91.6 100.0 80.9 UniAD [19] Dis-Sep C97.8 91.9 78.8 92.9 100.0 83.4 TransFuser [11] Dis-Sep C+L 97.7 92.8 79.2 92.8 100.0 84.0 Hydra-MDP [34] Dis-Sep C+L 98.3 96.0 78.7 94.6 100.0 86.5 Hydra-MDP ++ [30] Dis-Sep C97.6 96.0 80.4 93.1 100.0 86.6 WoTE [32] Dis-Sep C98.5 96.8 81.9 94.9 99.9 88.3 DiffusionDrive [37] Gen-Sep C+L 98.2 96.2 82.2 94.7 100.0 88.1 GaussianFusion [41] Gen-Sep C+L 98.3 97.2 83.0 94.6 100.0 88.8
+> DiffRefiner [57] Gen-Sep C98.4 97.4 83.4 95.3 100.0 89.4 PARA-Drive [55] Dis-Uni C97.9 92.4 79.3 93.0 99.8 84.0 HiP-AD [23] Dis-Uni C98.9 96.7 81.2 96.3 99.9 88.6
+> UniTeD Gen-Uni C98.9 97.2 84.1 96.6 100.0 90.2
+
+Table 2: Performance comparison with other state-of-the-art methods on the NAVSIMv2 benchmark. The best results are highlighted in bold . The second best is underline, and the third best is in italics .Method Basic Planning ↑ Safety ↑ Comfort ↑ Overall NC DAC DDC TL EP TTC LK HC EC EPDMS ↑                                                             
+
+> TransFuser [11] 96.9 89.9 97.8 99.7 87.1 95.4 92.7 98.3 87.2 76.7 Hydra-MDP ++ [30] 97.2 97.5 99.4 99.6 83.1 96.5 94.4 98.2 70.9 81.4 DriveSuprim [56] 97.5 96.5 99.4 99.6 88.4 96.6 95.5 98.3 77.0 83.1 DiffusionDrive [37] 98.2 96.2 98.6 -87.6 97.3 97.4 98.4 -84.0 GaussianFusion [41] 98.3 97.3 99.0 -87.5 97.4 97.4 98.3 -85.0
+> DiffRefiner [57] 98.5 97.4 99.6 99.8 87.6 97.7 97.7 98.3 86.2 86.2
+> UniTeD 99.1 97.2 99.6 99.9 86.9 98.5 98.4 99.9 87.3 90.1
+
+4.2 Main Results Results on NAVSIM v1. To ensure a fair comparison, all baseline models are evaluated using a ResNet-34 backbone. Methods based on reinforcement learn-ing or Vision-Language Models (VLMs) are excluded from the main analysis, with detailed comparisons provided in the Appendix. As summarized in Tab. 1, our proposed UniTeD achieves state-of-the-art performance on the NAVSIM v1 benchmark, yielding a PDMS of 90.2. UniTeD consistently outperforms existing approaches across different methodological paradigms. Specifically, UniTeD sur-passes the best discriminative-separate models, including WoTE [32] (88.3) and Hydra-MDP++ [30] (86.6), by margins of +1.9 and +3.6 PDMS, respectively. These improvements highlight the advantage of generative modeling over de-terministic regression in capturing complex and diverse driving behaviors. Com-pared with the diffusion-based DiffRefiner [57] (89.4), which adopts a generative-separate pipeline, UniTeD still achieves a further gain of +0.8 PDMS. In compar-12 B. Zhao et al. 
+
+Table 3: Comparison on the Bench2Drive online leaderboard. Method Training Data DS ↑ SR(%) ↑                       
+
+> VAD [25] B2D (200K) 42.2 15.0 UniAD [19] B2D (200K) 45.8 16.4 SparseDrive [51] B2D (200K) 44.5 16.7 DriveTransformer [23] B2D (200K) 63.5 35.0 HiP-AD [52] B2D (200K) 86.8 69.1 TF++ [64] TF++ (500K) 84.2 67.3 DiffusionDrive [37] TF++ (500K) 77.7 52.7 DiffRefiner [57] TF++ (500K) 87.1 71.4 UniTeD B2D (200K) 87.3 70.0
+
+Table 4: Perception and Prediction perfor-mance on the nuScenes validation set. Method Detection Map Track Motion mAP ↑ NDS ↑ mAP ↑ AMOTA ↑ minADE ↓                            
+
+> UniAD [19] 0.380 0.359 ---VAD [25] 0.276 0.397 0.476 --SparseDrive-S [51] 0.418 0.525 0.551 0.386 0.62 DiFSD [50] 0.410 0.528 0.560 --HiP-AD [52] 0.424 0.535 0.571 0.406 0.61
+> UniTeD 0.424 0.537 0.596 0.419 0.58
+
+ison to the unified discriminative counterpart HiP-AD [52] (88.6), our method delivers a +1.6 improvement, demonstrating the effectiveness of formulating both perception and planning queries within a unified diffusion framework. Notably, relying solely on camera (C) inputs, UniTeD outperforms all competitive LiDAR-based (C+L) approaches, demonstrating its efficacy and robustness. 
+
+Results on NAVSIM v2. As shown in Tab. 2, UniTeD maintains its supe-rior performance under the more challenging NAVSIM v2 benchmark, achieving a state-of-the-art EPDMS of 90.1. In particular, our method outperforms the strongest generative baseline, DiffRefiner [57] (86.2), by a substantial margin of +3.9 points. Such consistent and significant gains over all major competitors fur-ther validate the enhanced planning capability and robustness of our framework in complex, real-world driving scenarios. 
+
+Results on Bench2Drive. To evaluate the closed-loop planning capability of our model in reactive environments, we conduct experiments on the Bench2Drive leaderboard. As reported in Tab. 3, UniTeD achieves a state-of-the-art Driving Score (DS) of 87.3, outperforming all existing approaches. When trained on the standard Bench2Drive [22] 200K dataset, UniTeD consistently surpasses con-temporary unified methods, including HiP-AD [52] (86.8 DS) and DriveTrans-former [23] (63.5 DS), achieving improvements of +0.5 and +23.8 DS, respec-tively. Notably, even compared with models trained on the substantially larger and higher-quality TF++ [64] (500K) dataset, UniTeD maintains its advantage. It outperforms the recent generative model DiffRefiner [57] by +0.2 DS and Dif-fusionDrive [37] by +9.6 DS. These results highlight the strong robustness and generalization capability of UniTeD. 
+
+Results on nuScenes. We further evaluate the perception capability of UniTeD on nuScenes [2]. As shown in Tab. 4, the results demonstrate that UniTeD is not only a strong planner but also a versatile framework capable of maintaining high-fidelity environmental understanding. Specifically, UniTeD achieves 0.596 mAP on map segmentation, outperforming HiP-AD [52] by +2.5% in map mAP. For 3D object detection, it attains a leading 0.537 NDS. In motion prediction, UniTeD achieves the lowest minADE of 0.58. Compared with SparseDrive-S [51], it reduces motion prediction error by 6.4% (from 0.62 to 0.58). Moreover, UniTeD reaches 0.419 AMOTA, surpassing HiP-AD by +1.3% and SparseDrive-S by UniTeD for Autonomous Driving 13 
+
+Table 5: Ablation study of different paradigms and task components. Perc and Plan denote perception and planning modules. Sep and Uni indicate whether perception and planning are formulated separately or in a unified manner. Regr and Diff denote regression-based and diffusion-based approaches, respectively. ID Paradigm Perc Plan NAVSIMv1 Metrics Sep Uni NC DAC EP TTC C PDMS 0 ✓ Regr Regr 97 .8 91 .9 79 .2 92 .8 100 .0 84 .1                                    
+
+> 1✓Regr Diff 97 .696 .080 .493 .1100 .086 .7
+> 2✓Regr Regr 98 .896 .781 .196 .399 .988 .5
+> 3✓Regr Diff 98 .897 .082 .796.7 99 .989 .5
+> 4✓Diff Diff 99.0 97.2 84.1 96 .6100.0 90.2
+
+Table 6: Ablation study of TTM in unified paradigm. Regr and Diff are defined the same as in Tab. 5. Memory denotes the Memory Queue. ID Unified Paradigm Memory TTM NAVSIMv1 Metrics Regr Diff NC DAC EP TTC C PDMS 0 ✓ ✗ - 98 .9 96 .0 81 .0 96 .4 99 .9 88 .2                                    
+
+> 1✓✓-98 .896 .781 .196 .399 .988 .5
+> 2✓✗✗98 .896 .882 .296 .499 .989 .0
+> 3✓✓✗99 .097 .182 .596 .599 .989 .4
+> 4✓✓✓99.0 97.2 84.1 96.6 100.0 90.2
+
+Table 7: Ablation study on the Anchor Refresh Strategy. ID ARS NAVSIMv1 Metrics NC DAC EP TTC C PDMS 0 ✗ 98 .4 96 .8 81 .7 95 .2 99 .9 88 .2
+
+1 ✓ 99.0 97.2 84.1 96.6 100.0 90.2 
+
++3.3%. These results collectively confirm that UniTeD serves as a comprehensive and unified framework for perception, prediction, and planning. 
+
+4.3 Ablation Study Effect of Unified Diffusion. We conduct a comprehensive ablation study to validate the effectiveness of each design component, as reported in Tab. 5. By progressively incorporating the unified architecture and diffusion-based model-ing, performance steadily improves, ultimately reaching a peak PDMS of 90.2. Specifically, using the diffusion-based planning module, comparing the separate perception–planning setup to the unified perception–planning framework (ID 1 vs. ID 3) shows that transitioning to a unified paradigm yields a substantial gain of +2.8 PDMS. This result confirms that joint learning across perception and planning alleviates the information bottleneck and mitigates error accumu-lation commonly observed in sequential pipelines. Under the separate paradigm (ID 0 vs. ID 1), introducing diffusion-based planning improves PDMS from 84.1 14 B. Zhao et al. 
+
+to 86.7 (+2.6). Similarly, within the unified paradigm (ID 2 vs. ID 3), diffu-sion modeling provides an additional +1.0 gain. These findings highlight the advantage of diffusion processes over deterministic regression in modeling the inherently multi-modal nature of human driving behavior. Finally, extending diffusion modeling to both perception and planning (ID 4) achieves the best overall performance, surpassing the variant with diffusion-based planning only (ID 3) by +0.7 PDMS. This demonstrates that diffusion-based perception yields more robust and high-fidelity feature representations, which in turn establish a stronger foundation for downstream planning. Overall, the synergy introduced by the Unified Diffusion framework enables the model to achieve both precise environmental understanding and safe, human-like trajectory generation, out-performing conventional regression-based unified approaches. 
+
+Effect of TTM. We systematically analyze the components of TTM in Tab. 6. The results confirm that both temporal context modeling and timestep align-ment are critical for robust planning. Under the regression paradigm (ID 0 vs. ID 1), incorporating Memory Queue yields a +0.3 PDMS improvement. A consis-tent gain is also observed in the diffusion paradigm (ID 2 vs. ID 3), where PDMS increases from 89.0 to 89.4 (+0.4). The results show that historical information provides essential temporal continuity for both perception and planning, regard-less of the underlying framework. Notably, even without temporal memory, the diffusion-based model (ID 2, 89.0) already outperforms the memory-enhanced regression counterpart (ID 1, 88.5) by +0.5 PDMS, further highlighting the superior capacity of generative modeling in capturing complex driving distri-butions. The most significant improvement arises from the full TTM design. Comparing ID 3 and ID 4, introducing TTM increases PDMS from 89.4 to 90.2. While the Memory Queue supplies raw historical context, TTM addresses feature–denoising misalignment by synchronizing latent representations with the current diffusion timestep t, thereby enabling more coherent temporal reasoning. 
+
+Effect of Anchor Refresh Strategy. We examine the impact of ARS in Tab. 7. The results show that ARS is crucial for maintaining consistency within the sparse diffusion architecture. Without this mechanism (ID 0), the model relies solely on the initial trunk anchors, leading to a noticeable training–inference discrepancy. Introducing ARS improves PDMS from 88.2 to 90.2 (ID 0 vs. ID 1). These findings indicate that ARS is a fundamental component for ensuring stable and consistent input distribution. 
+
+## 5 Conclusion 
+
+In this paper, we introduced UniTeD, a unified diffusion framework that seam-lessly integrates perception and planning within a shared generative denoising process. By enabling bidirectional interaction and mutual refinement, UniTeD alleviates error propagation and strengthens multi-modal reasoning. We further extend the framework to a streaming setting through a Temporal Transition Module that resolves inter-frame noise mismatch, together with an Anchor Re-fresh Strategy to mitigate training–inference distribution shift. Extensive exper-UniTeD for Autonomous Driving 15 
+
+iments on challenging benchmarks demonstrate that UniTeD achieves state-of-the-art performance, surpassing both discriminative end-to-end and planning-only diffusion approaches. 
+
+## References 
+
+1. Bai, S., Chen, K., Liu, X., Wang, J., Ge, W., Song, S., Dang, K., Wang, P., Wang, S., Tang, J., et al.: Qwen2.5-VL Technical Report. arXiv e-prints pp. arXiv–2502 (2025) 2. Caesar, H., Bankiti, V., Lang, A.H., Vora, S., Liong, V.E., Xu, Q., Krishnan, A., Pan, Y., Baldan, G., Beijbom, O.: nuScenes: A multimodal dataset for autonomous driving. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 11621–11631 (2020) 3. Caesar, H., Kabzan, J., Tan, K.S., Fong, W.K., Wolff, E., Lang, A., Fletcher, L., Beijbom, O., Omari, S.: nuPlan: A closed-loop ML-based planning benchmark for autonomous vehicles. arXiv preprint arXiv:2106.11810 (2021) 4. Cao, W., Hallgarten, M., Li, T., Dauner, D., Gu, X., Wang, C., Miron, Y., Aiello, M., Li, H., Gilitschenski, I., et al.: Pseudo-Simulation for Autonomous Driving. arXiv preprint arXiv:2506.04218 (2025) 5. Cao, W., Hallgarten, M., Li, T., Dauner, D., Gu, X., Wang, C., Miron, Y., Aiello, M., Li, H., Gilitschenski, I., et al.: Pseudo-simulation for autonomous driving. arXiv preprint arXiv:2506.04218 (2025) 6. Chen, J., Deng, R., Furukawa, Y.: Polydiffuse: Polygonal Shape Reconstruction via Guided Set Diffusion Models. Advances in Neural Information Processing Systems 
+
+36 , 1863–1888 (2023) 7. Chen, S., Jiang, B., Gao, H., Liao, B., Xu, Q., Zhang, Q., Huang, C., Liu, W., Wang, X.: Vadv2: End-to-End Vectorized Autonomous Driving via Probabilistic Planning. arXiv preprint arXiv:2402.13243 (2024) 8. Chen, S., Sun, P., Song, Y., Luo, P.: DiffusionDet: Diffusion Model for Object De-tection. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 19830–19843 (2023) 9. Cheng, J., Chen, Y., Chen, Q.: PLUTO: Pushing the Limit of Imitation Learning-based Planning for Autonomous Driving. arXiv preprint arXiv:2404.14327 (2024) 10. Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., Song, S.: Diffusion Policy: Visuomotor Policy Learning via Action Diffusion. The Inter-national Journal of Robotics Research 44 (10-11), 1684–1704 (2025) 11. Chitta, K., Prakash, A., Jaeger, B., Yu, Z., Renz, K., Geiger, A.: TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving. IEEE Transactions on Pattern Analysis and Machine Intelligence 45 (11), 12878–12895 (2022) 12. Cui, A., Casas, S., Sadat, A., Liao, R., Urtasun, R.: Lookout: Diverse Multi-Future Prediction and Planning for Self-Driving. In: Proceedings of the IEEE/CVF Inter-national Conference on Computer Vision. pp. 16107–16116 (2021) 13. Dauner, D., Hallgarten, M., Geiger, A., Chitta, K.: Parting with Misconceptions about Learning-based Vehicle Motion Planning. In: Conference on Robot Learning. pp. 1268–1281. PMLR (2023) 14. Dauner, D., Hallgarten, M., Li, T., Weng, X., Huang, Z., Yang, Z., Li, H., Gilitschenski, I., Ivanovic, B., Pavone, M., et al.: NAVSIM: Data-Driven Non-Reactive Autonomous Vehicle Simulation and Benchmarking. Advances in Neural Information Processing Systems 37 , 28706–28719 (2024) 16 B. Zhao et al. 15. Dhariwal, P., Nichol, A.: Diffusion Models Beat GANs on Image Synthesis. Ad-vances in Neural Information Processing Systems 34 , 8780–8794 (2021) 16. Dosovitskiy, A., Ros, G., Codevilla, F., Lopez, A., Koltun, V.: CARLA: An Open Urban Driving Simulator. In: Conference on Robot Learning. pp. 1–16. PMLR (2017) 17. Gao, J., Sun, C., Zhao, H., Shen, Y., Anguelov, D., Li, C., Schmid, C.: Vector-Net: Encoding HD Maps and Agent Dynamics from Vectorized Representation. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 11525–11533 (2020) 18. Gu, J., Hu, C., Zhang, T., Chen, X., Wang, Y., Wang, Y., Zhao, H.: ViP3D: End-to-end Visual Trajectory Prediction via 3D Agent Queries. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 5496–5506 (2023) 19. Hu, Y., Yang, J., Chen, L., Li, K., Sima, C., Zhu, X., Chai, S., Du, S., Lin, T., Wang, W., et al.: Planning-oriented Autonomous Driving. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 17853– 17862 (2023) 20. Huang, J., Huang, G., Zhu, Z., Ye, Y., Du, D.: BEVDet: High-Performance Multi-Camera 3D Object Detection in Bird-Eye-View. arXiv preprint arXiv:2112.11790 (2021) 21. Jia, P., Wen, T., Luo, Z., Yang, M., Jiang, K., Liu, Z., Tang, X., Lei, Z., Cui, L., Zhang, B., et al.: DiffMap: Enhancing Map Segmentation with Map Prior Using Diffusion Model. IEEE Robotics and Automation Letters 9(11), 9836–9843 (2024) 22. Jia, X., Yang, Z., Li, Q., Zhang, Z., Yan, J.: Bench2Drive: Towards Multi-Ability Benchmarking of Closed-Loop End-To-End Autonomous Driving. Advances in Neural Information Processing Systems 37 , 819–844 (2024) 23. Jia, X., You, J., Zhang, Z., Yan, J.: DriveTransformer: Unified Transformer for Scalable End-to-End Autonomous Driving. arXiv preprint arXiv:2503.07656 (2025) 24. Jiang, B., Chen, S., Wang, X., Liao, B., Cheng, T., Chen, J., Zhou, H., Zhang, Q., Liu, W., Huang, C.: Perceive, Interact, Predict: Learning Dynamic and Static Clues for End-to-End Motion Prediction. arXiv preprint arXiv:2212.02181 (2022) 25. Jiang, B., Chen, S., Xu, Q., Liao, B., Chen, J., Zhou, H., Zhang, Q., Liu, W., Huang, C., Wang, X.: VAD: Vectorized Scene Representation for Efficient Autonomous Driving. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 8340–8350 (2023) 26. Jiang, C., Cornman, A., Park, C., Sapp, B., Zhou, Y., Anguelov, D., et al.: Motion-Diffuser: Controllable Multi-Agent Motion Prediction using Diffusion. In: Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 9644–9653 (2023) 27. Li, D., Li, C., Wang, Y., Ren, J., Wen, X., Li, P., Xu, L., Zhan, K., Jia, P., Lang, X., et al.: Learning Personalized Driving Styles via Reinforcement Learning from Human Feedback. arXiv preprint arXiv:2503.10434 (2025) 28. Li, J., Wu, J., Hu, D., Huang, X., Sun, B., Hao, Z., Lang, X., Zhu, X., Zhang, L.: SGDrive: Scene-to-Goal Hierarchical World Cognition for Autonomous Driving. arXiv preprint arXiv:2601.05640 (2026) 29. Li, J., Zhang, B., Jin, X., Deng, J., Zhu, X., Zhang, L.: ImagiDrive: A Unified Imagination-and-Planning Framework for Autonomous Driving. arXiv preprint arXiv:2508.11428 (2025) 30. Li, K., Li, Z., Lan, S., Xie, Y., Zhang, Z., Liu, J., Wu, Z., Yu, Z., Alvarez, J.M.: Hydra-MDP++: Advancing End-to-End Driving via Expert-Guided Hydra-Distillation. arXiv preprint arXiv:2503.12820 (2025) UniTeD for Autonomous Driving 17 31. Li, Q., Wang, Y., Wang, Y., Zhao, H.: HDMapNet: An Online HD Map Construc-tion and Evaluation Framework. In: International Conference on Robotics and Automation. pp. 4628–4634. IEEE (2022) 32. Li, Y., Wang, Y., Liu, Y., He, J., Fan, L., Zhang, Z.: End-to-End Driving with Online Trajectory Evaluation via BEV World Model. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 27137–27146 (2025) 33. Li, Y., Xiong, K., Guo, X., Li, F., Yan, S., Xu, G., Zhou, L., Chen, L., Sun, H., Wang, B., et al.: Recogdrive: A reinforced cognitive framework for end-to-end autonomous driving. arXiv preprint arXiv:2506.08052 (2025) 34. Li, Z., Li, K., Wang, S., Lan, S., Yu, Z., Ji, Y., Li, Z., Zhu, Z., Kautz, J., Wu, Z., et al.: Hydra-MDP: End-to-end Multimodal Planning with Multi-target Hydra-Distillation. arXiv preprint arXiv:2406.06978 (2024) 35. Li, Z., Wang, W., Li, H., Xie, E., Sima, C., Lu, T., Yu, Q., Dai, J.: BEVFormer: Learning Bird’s-Eye-View Representation from Multi-Camera Images via Spa-tiotemporal Transformers. IEEE Transactions on Pattern Analysis and Machine Intelligence 47 (3), 2020–2036 (2024) 36. Liao, B., Chen, S., Wang, X., Cheng, T., Zhang, Q., Liu, W., Huang, C.: MapTR: Structured Modeling and Learning for Online Vectorized HD Map Construction. arXiv preprint arXiv:2208.14437 (2022) 37. Liao, B., Chen, S., Yin, H., Jiang, B., Wang, C., Yan, S., Zhang, X., Li, X., Zhang, Y., Zhang, Q., et al.: DiffusionDrive: Truncated Diffusion Model for End-to-End Autonomous Driving. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 12037–12047 (2025) 38. Liao, B., Chen, S., Zhang, Y., Jiang, B., Zhang, Q., Liu, W., Huang, C., Wang, X.: MapTRv2: An End-to-End Framework for Online Vectorized HD Map Construc-tion. International Journal of Computer Vision 133 (3), 1352–1374 (2025) 39. Lin, X., Lin, T., Pei, Z., Huang, L., Su, Z.: Sparse4D: Multi-view 3D Object Detec-tion with Sparse Spatial-Temporal Fusion. arXiv preprint arXiv:2211.10581 (2022) 40. Lin, X., Pei, Z., Lin, T., Huang, L., Su, Z.: Sparse4D v3: Advancing End-to-End 3D Detection and Tracking. arXiv preprint arXiv:2311.11722 (2023) 41. Liu, S., Liang, Q., Li, Z., Li, B., Huang, K.: GaussianFusion: Gaussian-Based Multi-Sensor Fusion for End-to-End Autonomous Driving. arXiv preprint arXiv:2506.00034 (2025) 42. Liu, Y., Wang, T., Zhang, X., Sun, J.: PETR: Position Embedding Transforma-tion for Multi-View 3D Object Detection. In: European Conference on Computer Vision. pp. 531–548. Springer (2022) 43. Luo, R., Song, Z., Ma, L., Wei, J., Yang, W., Yang, M.: DiffusionTrack: Diffusion Model For Multi-Object Tracking. In: Proceedings of the AAAI Conference on Artificial Intelligence. vol. 38, pp. 3991–3999 (2024) 44. Luo, Y., Li, F., Xu, S., Lai, Z., Yang, L., Chen, Q., Luo, Z., Xie, Z., Jiang, S., Liu, J., et al.: AdaThinkDrive: Adaptive Thinking via Reinforcement Learning for Autonomous Driving. arXiv preprint arXiv:2509.13769 (2025) 45. Peebles, W., Xie, S.: Scalable Diffusion Models with Transformers. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 4195–4205 (2023) 46. Sadat, A., Casas, S., Ren, M., Wu, X., Dhawan, P., Urtasun, R.: Perceive, Predict, and Plan: Safe Motion Planning Through Interpretable Semantic Representations. In: European Conference on Computer Vision. pp. 414–430. Springer (2020) 47. Shang, S., Chen, Y., Wang, Y., Li, Y., Zhang, Z.: DriveDPO: Policy Learn-ing via Safety DPO For End-to-End Autonomous Driving. arXiv preprint arXiv:2509.17940 (2025) 18 B. Zhao et al. 48. Song, J., Meng, C., Ermon, S.: Denoising Diffusion Implicit Models. arXiv preprint arXiv:2010.02502 (2020) 49. Song, Z., Jia, C., Liu, L., Pan, H., Zhang, Y., Wang, J., Zhang, X., Xu, S., Yang, L., Luo, Y.: Don’t Shake the Wheel: Momentum-Aware Planning in End-to-End Autonomous Driving. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 22432–22441 (2025) 50. Su, H., Wu, W., Yan, J.: DiFSD: Ego-Centric Fully Sparse Paradigm with Uncer-tainty Denoising and Iterative Refinement for Efficient End-to-End Self-Driving. arXiv preprint arXiv:2409.09777 (2024) 51. Sun, W., Lin, X., Shi, Y., Zhang, C., Wu, H., Zheng, S.: SparseDrive: End-to-End Autonomous Driving via Sparse Scene Representation. In: 2025 IEEE International Conference on Robotics and Automation. pp. 8795–8801. IEEE (2025) 52. Tang, Y., Xu, Z., Meng, Z., Cheng, E.: HiP-AD: Hierarchical and Multi-Granularity Planning with Deformable Attention for Autonomous Driving in a Single Decoder. arXiv preprint arXiv:2503.08612 (2025) 53. Wang, T., Zhang, C., Qu, X., Li, K., Liu, W., Huang, C.: DiffAD: A Unified Diffu-sion Modeling Approach for Autonomous Driving. arXiv preprint arXiv:2503.12170 (2025) 54. Wang, Z., Zhang, W., Zhang, W., Tan, X., Liu, H., Wang, Y., Li, G.: LaneDiffusion: Improving Centerline Graph Learning via Prior Injected BEV Feature Generation. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 27052–27062 (2025) 55. Weng, X., Ivanovic, B., Wang, Y., Wang, Y., Pavone, M.: PARA-Drive: Parallelized Architecture for Real-time Autonomous Driving. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 15449–15458 (2024) 56. Yao, W., Li, Z., Lan, S., Wang, Z., Sun, X., Alvarez, J.M., Wu, Z.: DriveSuprim: Towards Precise Trajectory Selection for End-to-End Planning. arXiv preprint arXiv:2506.06659 (2025) 57. Yin, L., Ju, R., Guo, G., Cheng, E.: DiffRefiner: Coarse to Fine Trajectory Planning via Diffusion Refinement with Semantic Interaction for End to End Autonomous Driving. arXiv preprint arXiv:2511.17150 (2025) 58. Zeng, F., Dong, B., Zhang, Y., Wang, T., Zhang, X., Wei, Y.: MOTR: End-to-End Multiple-Object Tracking with Transformer. In: European Conference on Com-puter Vision. pp. 659–675. Springer (2022) 59. Zhang, B., Song, N., Li, J., Zhu, X., Deng, J., Zhang, L.: FLARE: Learning Future-Aware Latent Representations from Vision-Language Models for Autonomous Driving. arXiv preprint arXiv:2510.11092 (2025) 60. Zheng, Z., Chen, S., Yin, H., Zhang, X., Zou, J., Wang, X., Zhang, Q., Zhang, L.: ResAD: Normalized Residual Trajectory Modeling for End-to-End Autonomous Driving. arXiv preprint arXiv:2510.08562 (2025) 61. Zhou, Z., Cai, T., Zhao, S.Z., Zhang, Y., Huang, Z., Zhou, B., Ma, J.: AutoVLA: A Vision-Language-Action Model for End-to-End Autonomous Driving with Adap-tive Reasoning and Reinforcement Fine-Tuning. arXiv preprint arXiv:2506.13757 (2025) 62. Zhu, J., Wang, W., Chen, Z., Liu, Z., Ye, S., Gu, L., Tian, H., Duan, Y., Su, W., Shao, J., et al.: InternVL3: Exploring Advanced Training and Test-Time Recipes for Open-Source Multimodal Models. arXiv preprint arXiv:2504.10479 (2025) 63. Zhu, X., Su, W., Lu, L., Li, B., Wang, X., Dai, J.: Deformable DETR: Deformable Transformers for End-to-End Object Detection. arXiv preprint arXiv:2010.04159 (2020) UniTeD for Autonomous Driving 19 64. Zimmerlin, J., Beißwenger, J., Jaeger, B., Geiger, A., Chitta, K.: Hidden Biases of End-to-End Driving Datasets. arXiv preprint arXiv:2412.09602 (2024) 65. Zou, J., Chen, S., Liao, B., Zheng, Z., Song, Y., Zhang, L., Zhang, Q., Liu, W., Wang, X.: DiffusionDriveV2: Reinforcement Learning-Constrained Trun-cated Diffusion Modeling in End-to-End Autonomous Driving. arXiv preprint arXiv:2512.07745 (2025) Appendix 
+
+This supplementary material is the Appendix referenced in the main manuscript. It includes additional implementation details, comprehensive experimental com-parisons, and visualization analysis to support the main findings. In Sec. A, we describe the implementation details, covering datasets, evaluation metrics, and training and inference configurations. Subsequently, in Sec. B, we present further experimental results and extend the comparison to additional methods. Finally, more visual results and corresponding analyses are provided in Sec. C. 
+
+## A More Implementation Details 
+
+A.1 Datasets and Metrics 
+
+To evaluate the performance of UniTeD in both forecasting and closed-loop in-teractive scenarios, we conduct experiments on three representative benchmarks: NAVSIM v1 [14], NAVSIM v2 [5], and Bench2Drive [22]. 
+
+NAVSIM NAVSIM [14] is a large-scale benchmark specifically designed for end-to-end (E2E) autonomous driving. It provides a diverse range of real-world driving logs, enabling a rigorous evaluation of model under complex urban sce-narios. 
+
+PDM Score (PDMS). The official NAVSIM v1 benchmark comprises five sub-metrics: No-at-fault Collision (NC), Drivable Area Compliance (DAC), Time-to-Collision (TTC), Ego Vehicle Progress (EP), and History Comfort (C, referred to as HC in NAVSIM v2). The overall Predictive Driver Model Score (PDMS) is computed as: 
+
+PDMS = NC × DAC × 5 × TTC + 2 × C + 5 × EP 
+
+12 . (1) 
+
+Extended PDM Score (EPDMS). The NAVSIM v2 benchmark [5] extends the evaluation protocol by introducing additional sub-metrics, including Driv-ing Direction Compliance (DDC), Traffic Light Compliance (TC), Lane Keeping (LK), and Extended Comfort (EC), combined with a False-Positive Penalty Fil-tering mechanism. The final Extended Predictive Driver Model Score (EPDMS) is computed as follows: 
+
+P = NC × DAC × DDC × TC , (2) 
+
+¯M =
+
+P 
+
+> m∈{ TTC ,EP ,HC ,LK ,EC }
+
+wm × m
+
+P 
+
+> m∈{ TTC ,EP ,HC ,LK ,EC }
+
+wm
+
+, (3) 
+
+EPDMS = P × ¯M ,  (4) UniTeD for Autonomous Driving 21 
+
+where P denotes the product of core compliance metrics, and ¯M represents the weighted average of supplementary driving behavior indicators. Following the standard protocol, the weights are set as wTTC = 5 , w EP = 5 , w HC = 2 , w LK = 2 ,
+
+and wEC = 2 .
+
+Bench2Drive Bench2Drive [22] is a large-scale, CARLA-based closed-loop benchmark featuring 44 scenarios across 220 intersections. 
+
+Success Rate (SR). The fraction of routes completed without any terminal infractions (e.g., collisions or driving off-road): 
+
+SR = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+Si, (5) where N is the total number of test routes. Si is an indicator variable that equals 
+
+1 if the i-th route is completed successfully, and 0 otherwise. 
+
+Driving Score (DS). The primary ranking metric in Bench2Drive, defined as the average product of Route Completion ( Ri) and Infraction Penalty ( Pi): 
+
+DS = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+(Ri × Pi). (6) The infraction penalty Pi is a cumulative product of multipliers pi,j for all vio-lations recorded in scenario i: Pi = Q 
+
+> j
+
+pi,j . Following the official definition, the penalty coefficients pi,j are: 
+
+– Pedestrian Collision: 0.50 
+
+– Vehicle Collision: 0.60 
+
+– Static Obstacle Collision: 0.65 
+
+– Stop Sign Infraction/Running Red Light/Scenario Timeout/Too Slow/No Give Way: 0.70 
+
+A.2 Training Objective and Loss Functions 
+
+The UniTeD framework is optimized using a multi-task learning objective. The total loss Ltotal is a weighted combination of four task-specific components: de-tection, mapping, motion prediction, and planning. Each task comprises a clas-sification loss ( Lcls ) and a regression loss ( Lreg ): 
+
+Ltotal = λdet Ldet + λmot Lmot + λmap Lmap + λplan Lplan . (7) The detailed formulations for each component are described below: 
+
+– Detection Loss ( Ldet ): Object classification is supervised using focal loss (γ = 2 .0, α = 0 .25 ) with a weight of 2.0. The regression branch employs a SparseBox3DLoss [40], which combines ℓ1 loss for bounding box coordinates (weight 0.25), Cross-entropy loss for centerness estimation, and Gaussian focal loss for orientation (yaw) supervision. 22 B. Zhao et al. 
+
+– Mapping Loss ( Lmap ): For online map elements, we utilize a focal loss for classification (weight 1.0). To supervise the geometric structure, an ℓ1 loss is applied to the sampled points along the polylines. We assign a high regression weight of 10.0 to these coordinates to ensure the precise generation of lanes and boundaries. 
+
+– Motion Prediction Loss ( Lmot ): The motion of surrounding agents is super-vised via a focal loss for intent classification and an ℓ1 loss for trajectory waypoint regression. Both components are assigned a weight of 0.2 to bal-ance their contribution relative to the ego-planning task. 
+
+– Planning Loss ( Lplan ): The ego-planning consists of a focal Loss for trajectory selection (weight 0.5) and an ℓ1 loss for the refinement of the future waypoints (weight 1.0). This combination ensures that the generated trajectories are both semantically reasonable and geometrically accurate. All tasks are trained end-to-end, with the loss weights λ empirically balanced to ensure the stable convergence of both the perception and the planning. 
+
+A.3 Inference Details 
+
+UniTeD utilizes an accelerated reverse diffusion process to achieve real-time per-formance. 
+
+– Step Schedule: During inference, the total diffusion step is set to T = 20 
+
+steps. We utilize an accelerated 2-step DDIM sampler with a step size of 
+
+m = 10 to enable real-time performance. 
+
+– Truncated Initialization: Following the design of DiffusionDrive [37], the de-noising starts by applying 8 steps of diffusion noise to the anchor priors 
+
+A. This initialization at t = 8 provides a structural prior that significantly accelerates convergence compared to pure Gaussian noise. 
+
+– Task-Specific Thresholds: To balance recall and safety, the Anchor Refresh Strategy (ARS) applies heterogeneous confidence thresholds τ in different tasks. Specifically, we set τ = 0 .30 for detection, τ = 0 .45 for mapping, and 
+
+τ = 0 .30 for both motion prediction and planning tasks. 
+
+## B More Experimental Results 
+
+B.1 Further Comparisons with SOTA Methods 
+
+As shown in Tab. S1, state-of-the-art methods are categorized into VLMs-Based and RL-Based frameworks, with VLMs-Based further divided into Supervised Fine-Tuning (SFT) and Reinforcement Fine-Tuning (RFT). RL-Based specif-ically refers to non-VLM approaches that leverage reinforcement learning for policy optimization. Within the VLMs-Based (SFT) category, most models depend on billion-level parameters to encode linguistic and spatial priors. In contrast, UniTeD achieves a competitive PDMS of 90.2 with only six decoder layers, demonstrating that UniTeD for Autonomous Driving 23 
+
+Table S1: Comparison with VLMs-based and RL-based methods on the NAVSIM v1 benchmark. The best results are highlighted in bold , and the second best are underline. Method Planning Metrics Overall NC ↑ DAC ↑ EP ↑ TTC ↑ COMF ↑ PDMS ↑                                                                                               
+
+> VLMs-based Methods (SFT)
+> Qwen2.5-VL [1] 97.8 92.1 78.3 92.8 100.0 83.3 InternVL3 [62] 97.0 92.4 78.8 91.8 100.0 83.3 ImagiDrive [29] 98.1 96.2 80.1 94.4 100.0 86.9 AutoVLA [61] 96.9 92.4 75.8 88.1 99.1 80.5 Recogdrive [33] 98.1 94.7 80.9 94.2 100.0 86.5 FLARE [59] 98.2 95.0 81.8 93.9 100.0 86.9 SGDrive [28] 98.6 95.1 81.2 95.4 100.0 87.4
+> VLMs-based Methods (RFT)
+> AdaThinkDrive [44] 98.4 97.8 84.4 95.2 100.0 90.3 AutoVLA [61] 98.4 95.6 81.9 98.0 99.9 89.1 Recogdrive [33] 97.9 97.3 87.3 94.9 100.0 90.8 FLARE [59] 98.5 98.4 86.0 96.0 100.0 91.4
+> SGDrive [28] 98.6 97.8 85.8 96.2 100.0 91.1
+> RL-based Methods
+> Trajhf [27] 96.6 96.6 84.5 92.1 100.0 87.6 DriveDPO [47] 98.5 98.1 84.3 94.8 99.9 90.0 DiffusionDriveV2 [65] 98.3 97.9 87.5 94.8 99.9 91.2
+> UniTeD 98.9 97.2 84.1 96.6 100.0 90.2
+
+our unified temporal diffusion paradigm effectively captures complex driving distributions without the prohibitive overhead of large foundation models. Among VLMs-Based (RFT) and RL-Based methods, approaches such as FLARE [59] (PDMS 91.4) and DiffusionDriveV2 [65] (PDMS 91.2) incorpo-rate reinforcement learning to obtain richer supervision and enhance closed-loop performance. Although UniTeD does not employ RL training, it still surpasses several RL-based models (e.g., AutoVLA [61], DriveDPO [47], Trajhf [27]) and achieves results competitive with RFT methods. In summary, UniTeD delivers strong performance with minimal model pa-rameters and straightforward supervision. Our architecture is inherently scal-able and can be readily extended to larger parameter sizes or integrated with reinforcement learning. We plan to explore these extensions in future work and anticipate that they will yield further performance gains. 
+
+B.2 Inference Efficiency Analysis 
+
+Following standard evaluation protocols, we comprehensively assess the inference efficiency of our method on the nuScenes validation set, as detailed in Tab. S2. While our default configuration utilizes 2 denoising steps to achieve optimal performance, UniTeD is highly flexible and can operate with just 1 denoising step. In this 1-step setting, UniTeD achieves an impressive inference speed of 24 B. Zhao et al. 
+
+Table S2: Efficiency comparison on nuScenes val set. Latency of DriveTransformer is measured on H800 GPU, while others on RTX 4090 GPU. Method Step Latency (ms) ↓ FPS ↑                           
+
+> UniAD [19] -555.6 1.8 VAD [25] -222.2 4.5 DriveTransformer [23] -222.2 4.5 DiffusionDrive [37] 2122.0 8.2 SparseDrive [51] -111.1 9.0 HiP-AD [52] -109.9 9.1
+> UniTeD 195.6 10.5
+> UniTeD 2155.3 6.4
+> UniTeD 5341.5 2.9
+
+Table S3: Ablation of denoising steps on NAVSIM. Steps PDMS ↑
+
+1 89.57 
+
+2 90.23 
+
+5 89.95 
+
+Table S4: Sensitivity analysis of the τ (planning task) on NAVSIM. 
+
+τ (planning task) PDMS ↑
+
+0 88.23 0.2 89.72 
+
+0.3 90.23 
+
+0.5 89.89 
+
+10.5 FPS (95.6 ms latency) on a single RTX 4090 GPU. This demonstrates a substantial speed advantage over existing state-of-the-art methods, including UniAD [19] (1.8 FPS) and VAD [25] (4.5 FPS), and even outperforms highly optimized sparse-query baselines such as SparseDrive [51] (9.0 FPS). Furthermore, we investigate the impact of denoising steps on the planning performance using the NAVSIM benchmark, as shown in Tab. S3. Although the default 2-step inference yields the optimal PDMS of 90.23, reducing the steps to 1 maintains highly competitive accuracy at 89.57 PDMS. These results con-firm that UniTeD provides a highly practical and deployable solution, effectively balancing state-of-the-art planning accuracy with real-time inference efficiency. 
+
+B.3 Details of Anchor Refresh Strategy (ARS) 
+
+In our diffusion process, the confidence scores for the ARS are directly derived from the classification branch, serving as a quantitative measure of the model’s UniTeD for Autonomous Driving 25 
+
+certainty for each anchor. During the iterative denoising steps, predictions yield-ing a classification confidence above a predefined threshold τ are retained for subsequent refinement. Conversely, predictions falling below τ are discarded and revert to their original anchor priors. To evaluate the impact of this threshold, we conduct a sensitivity analysis on the planning task, as shown in Tab. S4. Setting τ = 0 effectively disables the ARS mechanism, allowing all predictions, including low-confidence noisy ones, to propagate to the next step. As τ increases to 0.3, the planning performance improves significantly. This indicates that filtering out uncertain predictions suc-cessfully aligns the iterative inputs more closely with the training data distribu-tion, establishing τ = 0 .3 as the optimal empirical setting. However, applying an excessively high threshold ( e.g. , τ = 0 .5) leads to the over-pruning of high-quality refined predictions. This forces the model to revert too frequently to the raw anchor priors, resulting in a slight degradation in overall accuracy. 
+
+## C Vistualization 
+
+C.1 Visualizations on NAVSIM 
+
+We provide extensive qualitative comparisons between UniTeD and a unified non-diffusion baseline on the NAVSIM benchmark [14]. While both methods perform comparably in standard scenarios, we focus here on more complex sit-uations to better highlight the advantages of our approach. In the presented visualizations, yellow circles highlight key visual cues in the input, red circles in-dicate errors made by the baseline, and green circles denote correct predictions from UniTeD and the ground truth (GT). 
+
+Robustness via Generative Uncertainty Modeling The generative paradigm offers inherent advantages in handling input noise and ambiguous scenes. Non-diffusion methods rely on deterministic regression, which generates a fixed deter-ministic output and struggles when visual cues are corrupted or insufficient. In contrast, diffusion models naturally capture multi-modal distributions through iterative denoising, enabling robust predictions by reasoning over multiple plau-sible hypotheses. Fig. S1 illustrates this capability across four representative scenarios. 
+
+(a) Shadows. As shown in Fig. S1a, under heavy shadows, the baseline produces false positives due to sensitivity to visual noise. In contrast, UniTeD demon-strates inherent robustness to environmental perturbations, maintaining accu-rate perception even under challenging lighting conditions. 
+
+(b) Parked agent. As shown in Fig. S1b, the baseline erroneously predicts mo-tion for a stationary agent. This occurs because deterministic regression tends to output the statistical average of the training data (i.e., most agents are moving) rather than reasoning about the specific scene context. By evaluating multiple plausible hypotheses, UniTeD correctly identifies the static status, selecting the prediction most consistent with the observed context. 26 B. Zhao et al.      
+
+> (a) Shadows
+> (b) Parked agent
+> (c) Occluded agent
+> (d) Occluded turn
+> Fig. S1: Qualitative Comparison on NAVSIM: Robustness via Generative Uncertainty Modeling.
+
+(c) Occluded agent. As shown in Fig. S1c, when agents are partially occluded, the baseline misses detections due to incomplete visual features. UniTeD, how-ever, robustly recovers the occluded object by reasoning over its potential states, leveraging the generative model’s capacity to infer under uncertainty. 
+
+(d) Occluded turn. As shown in Fig. S1d, under partial observability at an in-tersection, the baseline predicts an incorrect topology and generates motion that contradicts the map structure. This failure stems from its inability to capture multi-modal possibilities. By sampling from the joint distribution of motion and topology, UniTeD generates a reasonable map and ensures the predicted trajec-tory remains self-consistent with it. These results demonstrate that UniTeD leverages generative uncertainty mod-eling to achieve robust result under noise, occlusion, and ambiguity, which ad-dresses key limitations of deterministic regression approaches. 
+
+Mutual Refinement and Structural Consistency via Joint Distribu-tion Modeling Beyond uncertainty modeling, sampling from a multi-task joint UniTeD for Autonomous Driving 27     
+
+> (a) Ambiguous lanes
+> (b) Ambiguous T-junction
+> (c) Sharp curve with merge
+> (d) Sharp curve with split
+
+Fig. S2: Qualitative Comparison on NAVSIM: Mutual Refinement and Structural Con-sistency via Joint Distribution Modeling. 
+
+distribution enables mutual refinement between different tasks, ensuring struc-tural consistency across outputs. Unlike the decoupled optimization of baseline, UniTeD inherently correlates map, agent, and planning within a unified genera-tive process. Fig. S2 illustrates this capability across four representative scenar-ios. 
+
+(a) Ambiguous lanes. As shown in Fig. S2a, when lane markings are faint or ambiguous, the baseline produces erroneous centerline predictions due to reliance on local visual cues. In contrast, UniTeD leverages the motion patterns of the ego vehicle and surrounding agents to infer the correct lane structure, demonstrating cross-task refinement through joint distribution modeling. 
+
+(b) Ambiguous T-junction. As shown in Fig. S2b, at an ambiguous T-junction, the baseline produces incorrect map topology and misses several agents. This perception failure causes the ego vehicle to misinterpret the scene struc-ture, resulting in overly conservative planning with significantly reduced speed. By jointly sampling map, agent, and planning queries, UniTeD enables mutual refinement: agent motion helps infer correct topology, accurate topology con-strains plausible agent trajectories, and coherent planning aligns with both. This 28 B. Zhao et al. 
+
+holistic generation yields consistent map-agent-planning predictions. Although a small distant agent is missed, the overall scene understanding remains accurate and does not affect the ego vehicle’s final decision. Notably, the occluded agent that the baseline fails to detect is accurately identified by UniTeD. 
+
+(c) Sharp curve with merge. As shown in Fig. S2c, at a merge point on a sharp curve, the baseline exhibits centerline discontinuities due to independent regression of each map element. UniTeD jointly samples all tasks through the generative process, producing smooth and continuous centerlines with accurate topology across the merge region. 
+
+(d) Sharp curve with split. As shown in Fig. S2d, in a complex split sce-nario, the baseline predicts broken or misaligned centerlines due to decoupled optimization, and the associated agent motion also deviate from the correct path. Through joint sampling, UniTeD ensures centerlines are correctly connected, ge-ometrically smooth, and topologically precise, with agent motions consistently aligned to the accurate topology as part of a holistic scene generation. These results demonstrate that UniTeD leverages joint distribution model-ing to enable mutual refinement among map, agent, and planning while ensuring structural consistency, effectively addressing key limitations of decoupled regres-sion approaches. 
+
+C.2 Visualizations on Bench2Drive 
+
+We provide qualitative results of UniTeD on the Bench2Drive closed-loop bench-mark to demonstrate its driving capability in dynamic environments. Bench2Drive evaluates E2E driving performance in interactive scenarios, not only perception errors can propagate to planning failures, but historical planning errors are also infinitely accumulated and amplified in closed-loop systems over time. This error accumulation is a fundamental challenge for most E2E driving models. UniTeD’s generative paradigm is inherently robust to noise through multi-modal distribu-tion modeling. Crucially, at each control cycle, UniTeD regenerates predictions from the learned joint distribution conditioned on the current observation. This noise-conditioned generation allows UniTeD to correct historical errors at every iteration, effectively resetting accumulated noise and preventing error propaga-tion throughout the closed-loop execution. Unlike the NAVSIM experiments where UniTeD outputs a unified trajectory, on Bench2Drive we adopt a decoupled lateral-longitudinal planning formulation for more precise control: the model predicts a spatial path (lateral) and a tem-poral trajectory (longitudinal) separately. In the following figures, blue lines represent the predicted path for the next 20 meters (lateral planning), while red lines represent the predicted trajectory for the next 3 seconds (longitudinal planning). As shown in Fig. S3, UniTeD demonstrates superior performance in com-plex intersection scenarios. The ego vehicle approaches a busy intersection with crossing traffic and ambiguous right-of-way. UniTeD generates smooth, socially compliant trajectories by jointly reasoning about map topology, agent intentions, and ego planning in a unified generative process. The model correctly infers the UniTeD for Autonomous Driving 29  
+
+> Fig. S3: UniTeD’s Closed-Loop Planning on Bench2Drive: Cross.
+
+drivable path through the intersection, maintains safe distances with crossing agents, and produces kinematically feasible acceleration profiles without oscilla-tions. As shown in Fig. S4, UniTeD exhibits reasonable and smooth overtaking be-haviors in dynamic traffic. The ego vehicle needs to overtake a slow-moving or parked vehicle while considering oncoming traffic and lane constraints. UniTeD generates smooth, kinematically feasible overtaking trajectories by jointly sam-pling map, agent, and planning queries. The model accurately assesses the gap in oncoming traffic, initiates lane change at the appropriate timing, and completes 30 B. Zhao et al.  
+
+> Fig. S4: UniTeD’s Closed-Loop Planning on Bench2Drive: Overtaking.
+
+the maneuver with continuous curvature and comfortable acceleration, ensuring both safety and traffic efficiency. As shown in Fig. S5, UniTeD maintains reliable planning performance under challenging low-light conditions. In night driving scenarios with reduced visi-bility, lane markings and agent appearances are less distinct. UniTeD leverages generative uncertainty modeling to maintain robust prediction under low-light conditions. The model effectively recovers lane structures from faint markings, in-fers agent states despite reduced visual clarity, and enables stable, safe planning decisions through joint distribution sampling. The resulting planning remains centered in the lane with appropriate speed adaptation to visibility conditions. UniTeD for Autonomous Driving 31  
+
+> Fig. S5: UniTeD’s Closed-Loop Planning on Bench2Drive: Night.
+
+The visualizations reveal that UniTeD maintains safe and rational driving be-havior even in interactive closed-loop settings. By jointly sampling map, agent, and planning queries from the learned distribution, the model accurately per-ceives map structures and surrounding agents, and generates collision-free, kine-matically feasible planning outputs. Crucially, the noise-conditioned generation mechanism corrects historical errors at each control cycle, preventing error ac-cumulation. This demonstrates that our unified generative approach achieves robust scene understanding and human-like driving performance in E2E au-tonomous navigation.

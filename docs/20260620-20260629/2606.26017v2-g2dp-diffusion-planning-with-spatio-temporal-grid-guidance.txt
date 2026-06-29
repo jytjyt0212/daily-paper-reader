@@ -1,0 +1,350 @@
+Title: G2DP: Diffusion Planning with Spatio-Temporal Grid Guidance
+
+URL Source: https://arxiv.org/pdf/2606.26017v2
+
+Published Time: Fri, 26 Jun 2026 00:24:53 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# G2DP: Diffusion Planning with Spatio-Temporal Grid Guidance 
+
+Hang Yu 1,2,∗,†, Ye Jin 3,∗, Alessandro Canevaro 1,4, Julian Schmidt 1, Julian Jordan 1,Peizheng Li 1,4, Marc Kaufeld 3, Silvan Lindner 1, Johannes Betz 3, and Wilhelm Stork 2
+
+Abstract — In autonomous driving, diffusion-based planners have emerged as a promising paradigm for robust motion planning in dense and interactive traffic, as they can effec-tively model diverse driving behaviors. However, their inherent stochasticity often requires explicit guidance during denoising to ensure safety and route adherence for robust closed-loop execu-tion. Existing guidance typically relies on sparse, entity-centric geometric queries or post-hoc refinement, yielding limited situational awareness and fragile performance in interactive scenes. To address this issue, we propose G2DP (Grid-Guided Diffusion Planning) , a diffusion-based planner that directly en-forces dense environmental constraints through inference-time guidance. Specifically, G2DP constructs a differentiable spatio-temporal cost volume by fusing probabilistic future occupancy distributions with a route-progress map. By formulating this volume as a continuous safety energy functional, it injects dense gradients directly into the denoising loop, actively steering tra-jectory generation toward collision-free and progress-optimal regions. Extensive closed-loop evaluations show that G2DP achieves state-of-the-art performance on nuPlan, outperforming the strongest imitation-learning baseline by +7.2 points in reactive score. It further maintains top scores in zero-shot transfers to interPlan and DeepScenario benchmarks, with collision avoidance improving by +10.15 over the unguided approach on interPlan. These results demonstrate that spatio-temporal cost grids serve as an effective representation for robust guidance in diffusion-based planning. Code is available at: https://github.com/HangYuu/G2DP .
+
+I. I NTRODUCTION 
+
+Autonomous driving in urban traffic requires an efficient motion planner capable of modeling multi-modal human behaviors while strictly adhering to safety constraints. Tra-ditional rule-based pipelines [1], [2] provide interpretability and safety guarantees, but struggle with complex interactions and long-tail scenarios, where usually extensive manual tuning is required. Imitation-learning approaches [3], [4], [5], [6] excel in reproducing human-like driving behavior, but are sensitive to distribution shifts and may lack explicit constraint enforcement. Recently, diffusion-based generative models [7], [8] have emerged as a promising paradigm. By reformulating planning as a conditional generation task, they capture the distribution of plausible future trajectories and, crucially, remain flexible and steerable during inference. However, guaranteeing safety and rule compliance in closed-loop execution remains a fundamental challenge.          
+
+> This work is a result of the research project STADT:up (19A22006O), supported by the German Federal Ministry for Economic Affairs and Energy (BMWE), based on a decision of the German Bundestag. The authors are solely responsible for the content of this publication.
+> 1Mercedes-Benz AG, Germany; 2Karlsruhe Institute of Technology, Germany; 3TU Munich, Germany; 4University of T¨ ubingen, Germany
+> ∗Equal contribution. †
+
+hang.yu@mercedes-benz.com Progress a) Vanilla Diffusion Planning  Safet y  
+
+> Progress Safet y
+> Progress c) Ours : Dense Grid -Guided Planning
+> Cost
+> Clean Output 𝑡 𝑓𝑖𝑛𝑎𝑙
+> Safety
+> b) Sparse Geometric Guidance
+> Denoising Step 𝑡 mid
+
+Fig. 1: Diffusion guidance comparison. (a) Vanilla: Lacks explicit constraints, relying solely on learned priors. (b) Sparse: Uses instance-anchored constraints, yielding less smooth trajectories. (c) G2DP (Ours): Employs a dense, distributional spatio-temporal cost volume to proactively steer generation toward safe and route-aligned energy basins. For diffusion-based planners, naive sampling depicted in Fig. 1(a) lacks explicit mechanisms to enforce safety under imperfect demonstrations. Although diffusion models theo-retically support conditional guidance, enforcing constraints effectively is non-trivial. Current approaches typically em-ploy sparse geometric guidance [8], [9], [10], such as Eu-clidean distances or temporal logic robustness semantics. These formulations evaluate constraints on a representation comprising deterministic future states for a sparse set of neighbor agents. Their guidance is confined to instance-anchored avoidance rather than proactive steering, as illus-trated in Fig. 1(b). Alternatively, post-hoc refinement [1], [2], [11] reintroduces the rigidity of rule-based systems and can shift trajectories away from the learned distribution. Consequently, incorporating dense and distributional spatial constraints directly into the differentiable generative loop remains an open problem. Although Bird’s-Eye-View (BEV) occupancy grids naturally encapsulate such spatial informa-tion, their direct formulation as differentiable cost landscapes within the denoising loop remains largely unexplored. Inspired by this, we address this challenge by proposing 
+
+G2DP: Grid-Guided Diffusion Planning , a planner that bridges the gap between spatio-temporal grid representa-tions and continuous generative planning, as illustrated in Fig. 1(c). G2DP incorporates a dense and differentiable 
+
+> arXiv:2606.26017v2 [cs.RO] 25 Jun 2026
+
+cost volume constructed by temporally aligning probabilistic future occupancy distributions and a route-progress map. By systematically aggregating dynamic costs over the ego geo-metric footprint across the planning horizon, we transform this raw volume into a continuous safety energy functional. During denoising, we compute the analytical gradient of this energy functional with respect to the trajectory states, and inject it into the sampling update. This provides dense and well-conditioned gradients that proactively steer the generative process toward safe and route-aligned trajectories, obviating the need for complex post-hoc refinement. We validate G2DP through extensive evaluations on nu-Plan [12], where it achieves state-of-the-art (SOTA) perfor-mance among imitation-based planners, significantly outper-forming the strongest baseline [13] with +7.2 score improve-ment on the challenging Test14-hard benchmark. We further test generalization under zero-shot transfer on interPlan [14] and DeepScenario [15], showing substantial gains in safety and route-aligned progress without tuning. In summary, our key contributions are as follows:  
+
+> •
+
+We propose a novel guidance method for diffusion-based planning that overcomes the limitations of sparse, deterministic queries by injecting dense, distributional cost field directly into the denoising loop.  
+
+> •
+
+We formulate a differentiable spatio-temporal energy functional that evaluates dynamic collision risks over the ego geometric footprint, enabling analytical gradi-ents to proactively steer trajectory generation without altering the generative backbone.  
+
+> •
+
+We demonstrate that G2DP achieves SOTA closed-loop performance on nuPlan among imitation-based base-lines, while establishing robust zero-shot generalization capabilities in complex and interactive scenarios on interPlan and DeepScenario. II. R ELATED WORK 
+
+A. Optimization-Based Planning 
+
+Classical motion planning for autonomous driving has been dominated by optimization-based approaches that en-force safety through hand-crafted constraints. Methods such as [1], [16], [17] and traditional search algorithms like 
+
+A∗ [18] provide strong interpretability and deterministic collision guarantees. Recent extensions, such as PDM-Closed [2], combine lane-following rules with heuristic scoring to improve benchmark performance. However, these methods rely heavily on manual cost function tuning and lack the flexibility required to handle complex multi-agent interactions. Their predefined heuristics are difficult to scale to long-tail scenarios and tend to produce overly conservative plans in dynamic environments. 
+
+B. Learning-Based Planning and Refinement 
+
+Imitation-learning planners aim to overcome these lim-itations by cloning expert driving behaviors from large-scale datasets. Early approaches employed CNN [19], [20], [21] or RNN [4] architectures, whereas recent work lever-ages Transformers to better capture global scene context and multi-agent interaction. Representative examples include PlanTF [22] and GameFormer [23], which learn policies from structured environmental representations. Related BEV and occupancy-based models further demonstrate the effec-tiveness of dense spatial representations for autonomous driv-ing scene understanding [24], [25], [26]. Despite improved expressiveness, pure behavior cloning suffers from covari-ate shift and does not inherently guarantee safety. Recent analyses further show that human driving demonstrations can contain noise, outliers, and safety-rule violations, which may be inherited by imitation-based planners [27]. Consequently, many SOTA learning-based planners oper-ate in a learning-initialized, rule-finalized regime. Systems such as DTPP [28] and PLUTO [29] rely on optimization-based refinement to rectify unsafe trajectories and enforce kinematic feasibility. This dependence on hand-engineered fallback mechanisms limits the autonomy and adaptability of end-to-end learned planning pipelines. 
+
+C. Diffusion-Based Planning and Guided Sampling 
+
+Generative models, particularly diffusion probabilistic models [30], [31], have recently been adopted as a paradigm for motion planning since they can represent rich, multi-modal trajectory distributions through global trajectory gen-eration. MotionDiffuser [32] and Diffusion Planner [8] in-stantiate this idea with conditional diffusion, while flow-matching planners such as FlowPlanner [13] follow a similar noise-to-data generation pipeline. Compared to autoregres-sive planners [33], [34], which roll out actions sequentially and can accumulate errors over long horizons, these gen-erative approaches improve long-horizon stability. However, most diffusion planners [8], [9], [10] operate primarily on vectorized data, restricting their guidance to sparse geometric constraints rather than dense environmental perception. 
+
+D. Guidance Mechanisms 
+
+Controllability during inference is a key advantage of diffusion models. Existing guidance strategies in planning can be broadly categorized into sparse and dense approaches. 
+
+Sparse Geometric Guidance. The majority of diffusion-based planners [8], [9], [10] employ classifier or energy-based guidance defined on vectorized geometric primitives. For example, Diffusion Planner [8] proposes constructing en-ergy potentials based on Euclidean distances to lane polylines or polygon boundaries. In the robotics domain, methods like CoBL-Diffusion [35] and SafeFlow [36] integrate Control Barrier Functions to enforce safety. Although differentiable, these sparse deterministic primitives filter out spatial uncer-tainty, failing to capture future distributions. Furthermore, prior work [8] demonstrates guidance efficacy qualitatively in isolated scenarios, lacking systematic closed-loop quanti-tative ablation on large-scale benchmarks. Other methods like classifier-free guidance [37] provide coarse mode steering but cannot enforce fine-grained safety constraints. 
+
+Dense Grid-Based Guidance. In contrast, grid representa-tions can parameterize the environment as a dense prob-abilistic field. Hybrid methods such as HYPE [38] and w/o guidance w/ guidance      
+
+> Trajectory Denoising DiT -Decoder
+> Tokenizer
+> MLP
+> Cross -
+> Attn
+> adaLN
+> Self -
+> Attn
+> adaLN
+> MLP
+> Final
+> Proj .
+> t
+> Grid -Based Iterative Denoising Steering
+> Trajectory Cost E valuation
+> Static Obj
+> Noisy Trajectory
+> Navigation
+> World History
+> Road Geometry
+> Rasteriz er
+> Occ. Net Differentiable Grid Sampling
+> Guidance Gradient Injection
+> Planning Horizon T
+> −𝝀 𝒕 𝜵 𝒙 𝒕 𝑬
+> Encoder
+> Neighbors
+> ×𝑁
+> 𝒙 𝒕
+> 𝒙 𝒕 −𝟏
+> ෝ𝒙 𝟎
+> Navigation
+> 𝒙 𝒕
+
+Fig. 2: Model architecture of the G2DP. The system utilizes a DiT-Decoder to process ego future noisy trajectories conditioned on vectorized scene context, alongside an Occupancy Network that predicts occupancy distributions from rasterized history. Crucially, our Grid-Based Iterative Denoising Steering (right) bridges these components. It queries the predicted cost grids at the coordinates of xt via differentiable sampling to compute a safety energy term. A guidance gradient −λt∇xt E is then injected into the sampling step, actively steering the trajectory away from high-cost regions and preserving route progress. TPP [39] incorporate occupancy grids but apply them via discrete tree search refinement, which lacks differentiability. In the domain of visual navigation, NaviDiffusor [40] utilizes depth-derived cost maps for guidance. However, it relies on a single local and static depth projection. Our approach distin-guishes itself by leveraging spatio-temporal BEV occupancy probabilities to construct a time-varying cost volume. This allows us to inject time-aligned, ego-geometry-aware cost gradients directly into the denoising loop, enabling proactive safety in dynamic and interactive traffic scenes. III. M ETHODOLOGY 
+
+We present G2DP, a grid-guided diffusion planner that unifies trajectory generation with explicit safety constraints through a differentiable spatio-temporal cost volume. As depicted in Fig. 2, our approach integrates a Diffusion Transformer (DiT) [41] backbone to capture the distribu-tion of ego future trajectories. In parallel, a U-Net–based predictor [42] estimates future occupancy probability grids, which are subsequently fused with spatial maps encoding forward progress along the navigation route. This fusion forms a dense, differentiable guidance field encoding both collision likelihood and navigation desirability. This parallel design allows the diffusion model to specialize in trajectory synthesis, as the grid predictor focuses on temporally aggre-gated spatial risk estimation. At inference time, the predicted cost grids establish a global and spatially continuous energy field, yielding dense guidance gradients at denoising steps to shape the sampling process toward trajectories that jointly minimize risk and maintain progress. The following subsec-tions detail the diffusion-based trajectory generator, the cost grid construction, and the grid-guided sampling procedure, respectively. In the paper, t denotes the diffusion step, and 
+
+τ denotes the temporal index of the future trajectory. 
+
+A. Diffusion-Based Trajectory Generation 
+
+Trajectory Representation. We formulate motion planning as conditional trajectory generation for the ego vehicle over a fixed horizon of Tfut steps. The ego state at each timestep is represented by its 2D position and heading, parameterized as (xτ , y τ , cos θτ , sin θτ ). We represent the ego trajectory as a sequence of states x ∈ R(Tfut +1) ×4 by stacking the current state and Tfut future states, and treat x as the primary generation target for the diffusion model. 
+
+Scene Encoding. Following recent diffusion-based plan-ners [8], we encode the surrounding scene into a compact set of tokens. Past neighbor states, static objects, and lane seg-ments are processed by dedicated fusion encoders, yielding a set of scene context tokens S that summarize surrounding agents and map geometry. 
+
+DiT-Based Diffusion Model. We adopt a DiT [41] backbone that operates directly in the trajectory space. We model a variance-preserving diffusion process over x, where noise is gradually added in the forward process, and a neural network learns to denoise in the reverse process. At each diffusion step t, the noisy trajectory xt is projected into a latent embedding and enriched with an agent-type token that distinguishes the ego from context entities. We embed the diffusion step t and combine it with the encoded navigation route. The core denoising network is a stack of DiT blocks with adaptive layer normalization and attention modulation. Each block applies self-attention to the ego noisy trajectory tokens and cross-attention to the scene context. 
+
+Sampling and Ego-Only Generation. During training, we sample steps t, obtain the corresponding noisy trajectory xt
+
+from the forward process, and supervise the DiT backbone to predict the denoising target. At inference time, we initialize the process by concatenating the current ego state with Gaussian noise for the future steps, and iteratively solve the reverse diffusion using a DPM-Solver [43]. A strict constraint corrector enforces that the first state in xt always matches the current ego state. Past neighbor trajectories are used only as conditioning signals in the context encoder and are not generated by the model. The output is a single ego trajectory proposal ˆx0 consistent with the learned scene distribution. 
+
+B. Cost Grid Map 
+
+We employ a lightweight U-Net-based model [42] to pre-dict spatio-temporal occupancy grids from observed history and static scene context. These grids are then converted into a differentiable cost volume that provides dense guidance for the diffusion sampler in Sec. III-A, and can be queried by arbitrary trajectory samples during denoising. 
+
+Input Representation. All inputs follow an ego-centric BEV rasterization. The dynamic history is represented as 
+
+P ∈ RCdyn ×Thist ×H×W , storing the past Thist agent footprints. while the static map tensor M ∈ RCstat ×H×W encodes lane geometry, directions, drivable areas, and lane markings. 
+
+Occupancy Prediction. Given the BEV inputs (P, M), the U-Net outputs future occupancy grids O ∈ RTocc ×H×W , with 
+
+Oτ (u, v ) ∈ [0 , 1] indicating the occupancy probability at future timestep τ . The resulting O serves as a dense cost field, differentiable w.r.t. trajectory states, allowing continu-ous space queries to provide guiding gradients. 
+
+Route-Aligned Progress. We rasterize the navigation route polyline into the ego-centric grids and compute a distance transform to the route centerline. We then define a route desirability map R(u, v ) that assigns lower cost to cells that are close to the route and lie ahead along the route direction, encouraging forward progress while staying route-aligned. 
+
+Fused Cost Grids. For each future timestep τ , we fuse occupancy and progress into a single cost grid 
+
+ψτ (u, v ) = γ · Oτ (u, v ) + (1 − γ) · R(u, v ), (1) where the occupancy weight γ ∈ [0 , 1] balances collision avoidance and route progress. We denote the resulting cost-grid stack as C = {ψτ }Tocc  
+
+> τ=1
+
+, which is queried by trajectory samples during subsequent guided denoising. 
+
+C. Trajectory Generation Guided by Cost Grids 
+
+To enable the diffusion sampler to actively avoid obstacles while maintaining progress, we require a guidance signal that is both spatially continuous and differentiable. We leverage the fused cost grids C = {ψτ }Tocc   
+
+> τ=1
+
+from Sec. III-B to define a dense energy functional. This energy steers the sampler (Sec. III-A) toward collision-free, progress-seeking trajectories over the aligned horizon T = Tocc = Tfut .
+
+Spatio-Temporal Energy Formulation. We construct an energy field that captures the vehicle’s spatial geometry and temporal evolution. Evaluating safety based on a single center-point ignores the vehicle’s dimensions, whereas taking the maximum cost over the footprint is sensitive to localized prediction artifacts. To balance safety coverage with robust-ness, we propose a Top-K footprint aggregation strategy. Let x = {xτ }Tτ =0 be an ego future trajectory sample. For each timestep τ , we determine the oriented rectangular footprint Kθτ based on the pose (xτ , y τ , θ τ ) and bilinearly sample the fused cost grid ψτ within this region to obtain a set of costs Vτ . We define the scalar cost c(τ ) as the mean of the K highest values in Vτ :
+
+c(τ ) = 1
+
+K
+
+X
+
+> v∈ΩK
+
+v, (2) where ΩK ⊂ V τ represents the subset of the K largest cost values. This strategy ensures guidance focuses on critical hazard boundaries without being dominated by outliers or single-pixel noise. To ensure the planner anticipates future risks instead of responding myopically, we aggregate these per-timestep costs into a cumulative trajectory cost, which serves as the potential energy E(x) for the diffusion process: 
+
+E(x) = 
+
+> T
+
+X 
+
+> τ=1
+
+c(τ ). (3) The gradient ∇xE(x) thus provides a holistic spatio-temporal signal that enables global trajectory optimization. 
+
+Gradient-Based Denoising Steering. During inference-time sampling, we employ classifier guidance [44] to enforce these constraints without retraining the backbone. Given the current noisy trajectory xt, we treat the original marginal distribution as a prior and reweight it with our safety energy to define a target distribution p⋆t :
+
+p⋆t (xt | S , C) ∝ pt(xt | S ) exp  −λtE(xt; C). (4) Here, pt(xt | S ) denotes the unconstrained marginal distri-bution learned by DiT. p⋆t (xt | S , C) represents the refined posterior distribution conditioned on the dense cost volume 
+
+C (Sec. III-B), which encodes the safety constraints. By taking the score (gradient of log-likelihood) of Eq. (4), we obtain the guided sampling update: 
+
+∇xt log p⋆t = ∇xt log pt − λt∇xt E(xt; C), (5) where λt is a guidance scale controlling the correction strength. The term −λt∇xt E acts as an energy-based cor-rection injected into the DPM-Solver. This mechanism ef-fectively steers the generation process toward the low-energy basins of p⋆t , ensuring trajectories satisfy safety requirements and preserving the kinematic constraints captured by pt.This energy correction is applied during the late stages of the denoising process. Since early diffusion steps establish the macroscopic trajectory topology, injecting gradients too early can disrupt the model’s behavioral intent. Restricting guidance to the final stages allows us to leverage the dense cost volume for fine-grained steering. 
+
+D. Implementation Details 
+
+Training Strategy. The occupancy U-Net and diffusion model are trained separately on the nuPlan [12] 1M training split, following [8], and coupled only at inference. The U-Net is trained offline with focal loss supervised by future raster-ized occupancy labels and remains frozen. The DiT backbone is trained via MSE loss for ego trajectory generation. 
+
+Planning and Sampling. We plan for a horizon of Tfut = 3 sat 10 Hz and run a 10-step DPM-Solver at inference. Occupancy Prediction. The occupancy network predicts 30 
+
+future occupancy grids, aligned with 10 Hz on a 400 ×400 
+
+BEV raster at 0.25 m/px ( 100 m × 100 m). Its dynamic input uses Thist = 2 s plus static map channels. 
+
+Cost Fusion. We fix the occupancy weight to γ = 0 .95 
+
+in Eq. (1) across all benchmarks. The sensitivity of this parameter, which directly trades off collision risk against route progress, is validated in Fig. 6. 
+
+Top-K Aggregation. For the footprint cost in Eq. (2), we set 
+
+K=15 , representing the top ∼ 8% of ∼ 190 footprint cells at 
+
+0.25 m/px. As validated in Table VI, this ensures sufficient risk coverage while mitigating sensitivity to single-cell noise. 
+
+Guidance Scale and Injection Window. We restrict grid-based guidance to the final denoising stages (steps 8–9 out of 10) during inference. We apply a fixed scale of λt = 0 .5,an optimal configuration validated in Fig. 7. 
+
+Inputs. G2DP uses 2 s neighbor histories, with current-state-only ego input. We also report G2DP †, which removes all histories and uses only current ego and neighbor states. IV. E XPERIMENTS 
+
+A. Benchmarks 
+
+We evaluate our approach on three challenging closed-loop planning benchmarks. All experiments use the nuPlan simulator with an LQR controller in both non-reactive (NR) and reactive (R) modes. 
+
+nuPlan. We evaluate our approach on nuPlan [12] using three closed-loop benchmarks covering 14 scenario types: Val14 [2] (1.1k scenarios), Test14-random [22] (challenge split), and Test14-hard [22] (curated difficult scenarios). 
+
+interPlan. To assess robustness, we evaluate the nuPlan-trained model in a zero-shot setting on interPlan [14], with-out any training or hyperparameter tuning. This benchmark comprises 335 handcrafted, highly interactive and adversarial scenarios designed to stress-test safety. 
+
+DeepScenario. To evaluate robustness against distribution shifts in real-world dense traffic, we utilize DeepSce-nario [15], a drone-recorded urban dataset. We convert logs to the nuPlan format and evaluate on 411 feasible scenarios after filtering out invalid initialization states, e.g., initial collisions or off-road starts. All results are reported in a zero-shot setting using the model previously trained on nuPlan. 
+
+B. Baseline Models 
+
+We compare our method against rule-based, hybrid and learning-based methods. 
+
+Rule-Based. We include the classical IDM [16] and the nuPlan challenge winner PDM [2]. 
+
+Learning-Based. We compare against PlanTF [22], PLUTO [29], GameFormer [23], Flow Planner [13], and Diffusion Planner [8]. These baselines cover diverse imitation learning paradigms, from direct trajectory regression to generative models. Diffusion Planner shares a similar base generative pipeline, enabling a direct assessment of the gains from our grid guidance. TABLE I: Closed-loop performance on nuPlan in non-reactive (NR) and reactive (R) settings (best in bold).                                                                                                                    
+
+> Type Planner Val14 Test14-hard Test14 NR RNR RNR RExpert Log-replay 93.53 80.32 85.96 68.80 94.03 75.86 Rule-based &Hybrid IDM 75.60 77.33 56.15 62.26 70.39 74.42 PDM-Closed 92.84 92.12 65.08 75.19 90.05 91.63 PDM-Hybrid 92.77 92.11 65.99 76.07 90.10 91.28 GameFormer 79.94 79.78 68.70 67.05 83.88 82.05 PLUTO 92.88 92.06 80.08 76.88 92.23 90.29 Diffusion Planner +ref. 94.26 92.90 78.87 82.00 94.80 91.75 Flow Planner +ref. 94.31 92.38 78.64 80.25 94.79 92.40 G2DP †+ref. (Ours) 94.04 92.92 80.76 81.74 94.67 92.63
+> Learning-based PDM-Open 53.53 54.24 33.51 35.83 52.81 57.23 GameFormer* 13.32 8.69 7.08 6.69 11.36 9.31 PlanTF 84.27 76.95 69.70 61.61 85.62 79.58 PLUTO* 88.89 78.11 70.03 59.74 89.90 78.62 Diffusion Planner 89.87 82.80 75.99 69.22 89.19 82.93 Flow Planner 90.43 83.31 76.47 70.42 89.88 82.93 G2DP (Ours) 92.26 83.91 80.05 73.91 91.58 85.26 G2DP †(Ours) 91.08 86.67 78.77 77.61 88.54 88.42
+> * w/o post-hoc refine. +ref.: w/ post-hoc refine.
+> †Neighbor-agent history stacks are removed from the model input.
+
+TABLE II: Performance of different planners on interPlan. 
+
+Planner Overall Nudge Around High Traffic Jaywalk 
+
+PlanTF 47.70 49.40 58.85 33.94 PLUTO (w/o refine.) 58.47 71.56 67.25 25.48 Diffusion Planner 52.90 60.48 49.71 26.20 Flow Planner 61.82 72.96 67.21 43.57 G2DP (Ours) 61.74 66.71 67.30 51.12 
+
+G2DP † (Ours) 62.55 72.47 68.25 45.27 
+
+C. Results and Analysis 
+
+nuPlan Main Results. Table I summarizes closed-loop results on Val14, Test14-hard, and Test14 under NR and R settings. G2DP achieves the strongest performance among all purely imitation-based planners (no post-hoc refinement), consistently outperforming baselines such as Diffusion Plan-ner and Flow Planner. Notably, on the challenging reactive Test14-hard benchmark, G2DP † delivers significant gains, improving the reactive driving score by +8.4 compared to Diffusion Planner. G2DP † removes all history inputs and uses only current states (Sec. III-D), yielding stronger reactive performance (+3.7 over G2DP) by eliminating temporal correlations. For fair comparison with hybrid methods, we integrate the nuPlan-tuned refinement module (+ref.) [2], [45]. Although peak scores on the reactive Test14-hard split converge after post-hoc refinement, G2DP † exhibits a sub-stantially reduced dependency (+4.1) compared to Diffusion Planner (+12.8), suggesting that our grid-guided sampling aligns with rule-based safety criteria. 
+
+interPlan Results. Table II shows that G2DP outperforms Diffusion Planner by a substantial margin (+8.84). The history-free variant, G2DP †, further elevates the overall score to 62.55 (+9.65), dominating the highly interactive subsets. The metric breakdown in Table III indicates that these gains stem from larger safety margins, with the most notable improvement in Collision avoidance (+10.15) and 𝒕 = 𝟏𝒔  𝒕 = 𝟑𝒔  𝒕 = 𝟔𝒔  𝒕 = 𝟗𝒔 
+
+> Scenario 2
+
+𝒕 = 𝟏𝒔  𝒕 = 𝟓𝒔  𝒕 = 𝟏𝟎𝒔  𝒕 = 𝟏𝟓𝒔 
+
+> Scenario 1
+> Pedestrians
+> Cyclists
+> Generics
+> Neighbor
+> Vehicle
+
+Fig. 3: Qualitative closed-loop comparisons of G2DP (ours) , PlanTF , PLUTO* , and Diffusion Planner with planned trajectories. Top (DeepScenario): Only G2DP maintains efficient forward progress without collisions in highly interactive traffic. Bottom (nuPlan): Only G2DP makes a timely lane change and safely overtakes the stopped vehicle. TABLE III: InterPlan evaluation via nuPlan metrics. Values in parentheses indicate the gap relative to Diffusion Planner.                                      
+
+> Metric Diffusion Planner G2DP G2DP †
+> Score 52.90 61.74 ( +8.84) 62.55 (+9.65) Drivable area 89.85 91.94 ( +2.09) 93.73 (+3.88) Driving direction 99.10 97.91 ( −1.19) 99.25 (+0.15) Comfort 53.43 53.10 ( −0.33) 58.21 (+4.78) Progress 94.63 93.73 ( −0.90) 94.43 ( −0.20) Along expert route 55.17 55.96 (+0.79) 55.21 ( +0.04) Collision avoidance 84.78 92.84 ( +8.06) 94.93 (+10.15) Speed limit 98.52 98.35 ( −0.17) 98.21 ( −0.31) TTC 83.58 93.13 ( +9.55) 94.33 (+10.75)
+
+TTC (+10.75), consistent with dense and probabilistic cost-grid guidance in highly interactive scenes. 
+
+DeepScenario Results (NR). Table IV reports zero-shot closed-loop evaluation on DeepScenario (NR), where rule annotations are limited and ego properties vary across scenar-ios. We mainly focus on safety and progress-related metrics instead of overall score and comfort. Compared to Diffusion Planner, G2DP improves both safety and efficiency, with about +11.0 in collision avoidance and +10.5 in progress, and it also exceeds PDM-Closed on progress and route-aligned progress in the high-density urban subset. 
+
+Qualitative Analysis. Fig. 3 compares non-reactive closed-loop rollouts of G2DP with learning-based baselines, illus-trating how G2DP maintains safety and forward progress in urban interactions. In the crowded street (Scenario 1), baselines suffer from inefficient navigation or inevitable collisions, while G2DP maintains safe and smooth progress w/ guidance  
+
+> w/oguidance
+
+Fig. 4: Comparison of closed-loop execution with and with-out grid guidance. The vehicle boxes indicate final ego poses, and trailing curves show the executed closed-loop trajectory. Solid blue: with guidance. Dashed green: without guidance. TABLE IV: DeepScenario closed-loop NR evaluation. Focus on safety and progress-related metrics.                                       
+
+> Metric Expert-log PDM-Closed PlanTF PLUTO* Diffusion Planner G2DP (Ours)
+> Drivable area 100.00 69.39 62.34 70.31 49.24 68.48 Driving direction 96.71 92.21 86.63 88.60 87.55 89.54 Progress 100.00 68.90 48.81 43.97 64.42 74.88
+> Along expert route 99.44 46.00 31.51 37.70 47.52 54.36
+> Collision avoidance 100.00 80.04 73.85 73.51 70.34 81.33
+> TTC 79.56 64.74 57.06 58.64 60.05 66.72
+
+among dense pedestrians. In Scenario 2, only G2DP executes an anticipatory lane change to safely bypass a stopped vehi-cle. These examples highlight that our grid-guided sampling provides spatio-temporal risk awareness, steering trajectories through complex topologies. Fig. 4 presents an ablation of grid guidance by comparing trajectories from the same diffusion planning backbone under identical initial conditions. Without guidance, the planner tends to generate trajectories that drift into regions with high collision likelihood, especially in dense interactive scenarios. In contrast, when guided by the cost grid map, the generated trajectories preserve kinematic feasibility while steering away from obstacles and conflict zones. Remarkably, guided trajectories do not exhibit overly conservative behav-ior. Instead, they maintain forward progress and adhere to the 𝜏 = 7 𝜏 = 14      
+
+> 𝜏 =21 𝜏 =28
+> Denoising trajectory
+> Guidance gradient
+
+Fig. 5: Cost grid guidance at denoising step t=9 . Each panel shows the BEV cost grid ψτ and the guidance gradients eval-uated at a selected trajectory timestep τ ∈ { 7, 14 , 21 , 28 }.White dots denote the current denoising trajectory xt, and the arrows visualize the corresponding guidance gradients that push the trajectory toward lower cost regions. TABLE V: Metrics on Test14-hard (NR). We compare G2DP using None, Sparse, and Grid guidance. Values in parenthe-ses denote the performance change relative to the None.                                       
+
+> Metric None Sparse (Oracle) Grid (Ours)
+> Score 76.70 74.74 ( −1.96) 80.05 (+3.35) Drivable area 93.75 93.48 ( −0.27) 94.85 (+1.10) Driving direction 98.34 97.79 ( −0.55) 98.90 (+0.56) Comfort 93.38 83.25 ( −10.13) 91.92 ( −1.46) Progress 97.52 97.79 ( +0.27) 98.90 (+1.38) Along expert route 87.90 87.84 ( −0.06) 90.18 (+2.28) Collision avoidance 89.24 89.88 ( +0.64) 92.83 (+3.59) Speed limit 96.07 96.12 (+0.05) 96.00 ( −0.07) TTC 80.88 81.14 ( +0.26) 85.82 (+4.94)
+
+intended navigation lanes. This qualitative comparison high-lights that the designed grid guidance not only suppresses collisions but reshapes the diffusion sampling process toward trajectories that jointly balance safety and progress. Fig. 5 illustrates the temporal evolution of the guidance gradients derived from the cost map during the denoising process. Since the occupancy network outputs a sequence of future occupancy probabilities {ψτ }Tτ =1 , the resulting cost field forms a time-varying cost volume over the planning horizon. Accordingly, the grid guidance evaluates each tra-jectory point against the cost map slice at its corresponding timestamp, yielding a temporally aligned guidance signal. High-risk regions generate repulsive gradients, while low-cost areas aligned with the route provide attraction. As a result, trajectory points are pushed away from high-risk areas and redistributed toward safer and more goal-consistent regions. This behavior demonstrates that the grid guidance operates as a dense and continuous correction field, enabling smooth and anticipatory trajectory steering during denoising. 
+
+D. Ablation Studies 
+
+Effect of Grid Guidance. Table V ablates guidance modal-ities. Grid guidance achieves the highest Score ( +3 .35 ) and boosts safety (Collision +3 .59 ). Conversely, sparse guidance, implemented via instance-level distance functions as in [8], degrades the overall Score ( −1.96 ) and Comfort ( −10 .13 ), even when utilizing oracle neighbor trajectories from log replay. Its sharp comfort drop and marginal collision gain (+0 .64 ) indicate that instance-level signals induce late-stage abrupt maneuvers. This suggests that cost grids, by encoding dense probabilistic risk distributions, enable smooth and anticipatory collision avoidance. 
+
+Occupancy Weight. Fig. 6 studies the occupancy weight γ in Eq. (1). Performance peaks at γ = 0 .95 . Lower values, e.g., 0.2 0.5 0.7 0.9 0.95 1       
+
+> Occupancy weight γ
+> 65
+> 70
+> 75
+> Score
+> Impact of occupancy weight γ(Test14-hard)
+> G2DP †(Non-React)
+> G2DP †(React)
+> Diffusion Planner (Non-React)
+> Diffusion Planner (React)
+
+Fig. 6: Impact of the occupancy weight on the Test14-hard. TABLE VI: Effect of footprint cost aggregation strategies.                                        
+
+> Split (Score ↑)Average Max Top-5 Top-10 Top-15 Top-20 Val14 (NR) 86.33 90.58 90.71 91.25 92.26 91.68 Test14-hard (NR) 77.07 76.84 77.73 79.88 80.05 78.71 0.2 0.5 0.8 1.0 1.5
+> Guidance scale ( λt)
+> 9
+> 8–9
+> 7–9
+> 6–9
+> Guidance window (steps)
+> 76.23 77.19 76.03 76.91 74.90
+> 76.99 77.61 76.58 76.92 75.65
+> 75.70 77.10 75.34 77.13 74.61
+> 75.62 76.48 76.96 76.21 73.87
+> 74
+> 75
+> 76
+> 77
+> Score
+
+Fig. 7: Guidance scale and window ablation on Test14-hard (R). The heatmap reports reactive scores for combinations of the guidance scale λt and the guidance window. 
+
+γ = 0 .2 inevitably weaken safety enforcement. Removing the progress term ( γ = 1 .0) induces overly conservative braking, which increases rear-end collisions in high-density regions under non-reactive mode. 
+
+Guidance Scale and Injection Window. To validate the late-stage injection strategy introduced in Sec. III-C, we jointly ablate the guidance scale λt and the injection window. Fig. 7 reports Test14-hard (R) scores over the 2D sweep. Overall, applying guidance closer to the final stage is consistently more effective than extending it to earlier steps. The best performance is achieved with the Steps 8–9 win-dow and λt=0 .5 (77.61). A smaller scale λt=0 .2 provides weaker gains, suggesting that the guidance signal is insuf-ficient to reliably correct unsafe samples. In contrast, larger scales λt≥0.8 tend to degrade performance across windows, indicating that overly strong gradients can over-constrain sampling and harm closed-loop behavior. Similarly, extending the window to earlier steps, e.g., Steps 6–9 does not improve reactive performance and can be detrimental, confirming our methodology that early guid-ance interferes with trajectory stabilization. This restricted Steps 8–9 setting provides robust performance gains with minimal computational overhead. 
+
+Cost Aggregation. We investigate footprint cost aggregation strategies in Table VI. Average pooling (86.33 on Val14) lets safe cells wash out collision signals. Conversely, max pooling (76.84 on Test14-hard) is sensitive to localized prediction artifacts. Our Top-K strategy in Eq. (2) balances this trade-off, peaking at K = 15 , which captures hazard boundaries and filters single-pixel noise. V. C ONCLUSION 
+
+We presented G2DP, a grid-guided diffusion planner that effectively bridges the gap between dense environmental con-text and continuous trajectory generation. By transforming time-varying occupancy probabilities into a differentiable spatio-temporal cost volume, our approach injects dense safety gradients that consistently steer the generative sam-pling process toward low-cost basins. Extensive closed-loop evaluations on the nuPlan benchmark, complemented by zero-shot transfers to the interactive interPlan and Deep-Scenario datasets, demonstrate that G2DP establishes a new SOTA among imitation-learning planners. The results con-sistently show that dense grid-based guidance significantly enhances safety-critical metrics and reactive robustness in complex urban topologies. This work validates that spatio-temporal, probabilistic cost volumes can robustly enforce strict safety in generative motion planning. 
+
+Limitations and Future Work. G2DP relies on a simplified vehicle footprint and requires tuning for guidance scheduling. Future work will explore an end-to-end framework, directly mapping raw sensors to cost volumes to unify perception and guided generative planning within a single loop. REFERENCES [1] H. Fan, F. Zhu, C. Liu, L. Zhang, L. Zhuang, D. Li, W. Zhu, J. Hu, H. Li, and Q. Kong, “Baidu apollo em motion planner,” arXiv preprint arXiv:1807.08048 , 2018. [2] D. Dauner, M. Hallgarten, A. Geiger, and K. Chitta, “Parting with misconceptions about learning-based vehicle motion planning,” in 
+
+Conference on Robot Learning (CoRL) , 2023. [3] O. Scheel, L. Bergamini, M. Wołczyk, B. Osi´ nski, and P. Ondruska, “Urban driver: Learning to drive from real-world demonstrations using policy gradients,” in Conference on Robot Learning (CoRL) , 2021. [4] M. Bansal, A. Krizhevsky, and A. Ogale, “Chauffeurnet: Learning to drive by imitating the best and synthesizing the worst,” arXiv preprint arXiv:1812.03079 , 2018. [5] M. Vitelli, Y. Chang, Y. Ye, M. Wołczyk, B. Osi´ nski, M. Niendorf, H. Grimmett, Q. Huang, A. Jain, and P. Ondruska, “Safetynet: Safe planning for real-world self-driving vehicles using machine-learned policies,” arXiv preprint arXiv:2109.13602 , 2021. [6] M. Hallgarten, M. Stoll, and A. Zell, “From prediction to plan-ning with goal conditioned lane graph traversals,” arXiv preprint arXiv:2302.07753 , 2023. [7] M. Janner, Y. Du, J. B. Tenenbaum, and S. Levine, “Planning with diffusion for flexible behavior synthesis,” in International Conference on Machine Learning , 2022. [8] Y. Zheng, R. Liang, K. Zheng, J. Zheng, L. Mao, J. Li, W. Gu, R. Ai, S. E. Li, X. Zhan, and J. Liu, “Diffusion-based planning for autonomous driving with flexible guidance,” in International Conference on Learning Representations (ICLR) , 2025. [9] Y. Meng and C. Fan, “Diverse controllable diffusion policy with signal temporal logic,” IEEE Robotics and Automation Letters , 2024. [10] Z. Zhong, D. Rempe, D. Xu, Y. Chen, S. Veer, T. Che, B. Ray, and M. Pavone, “Guided conditional diffusion for controllable traffic simu-lation,” in IEEE International Conference on Robotics and Automation (ICRA) , 2023. [11] R. R¨ omer, A. v. Rohr, and A. Schoellig, “Diffusion predictive control with constraints,” in Proceedings of the 7th Annual Learning for Dynamics &amp; Control Conference . PMLR, 2025. [12] H. Caesar, J. Kabzan, K. Tan, and et al., “Nuplan: A closed-loop ml-based planning benchmark for autonomous vehicles,” in CVPR ADP3 Workshop , 2021. [13] T. Tan, Y. Zheng, R. Liang, Z. Wang, K. Zheng, J. Zheng, J. Li, X. Zhan, and J. Liu, “Flow matching-based autonomous driving planning with advanced interactive behavior modeling,” in The Thirty-ninth Annual Conference on Neural Information Processing Systems ,2025. [14] M. Hallgarten, J. Zapata, M. Stoll, K. Renz, and A. Zell, “Can vehicle motion planning generalize to realistic long-tail scenarios?” 
+
+2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 2024. [15] O. Dhaouadi, J. Meier, L. Wahl, J. Kaiser, L. Scalerandi, N. Wan-delburg, Z. Zhou, N. Berinpanathan, H. Banzhaf, and D. Cremers, “Highly accurate and diverse traffic data: The deepscenario open 3d dataset,” in 2025 IEEE Intelligent Vehicles Symposium (IV) , 2025. [16] M. Treiber, A. Hennecke, and D. Helbing, “Congested traffic states in empirical observations and microscopic simulations,” Physical Review E, 2000. [17] M. Werling, J. Ziegler, S. Kammel, and S. Thrun, “Optimal trajectory generation for dynamic street scenarios in a fren´ et frame,” in 2010 IEEE International Conference on Robotics and Automation , 2010. [18] Z. Ajanovi´ c, B. Lacevi´ c, B. Shyrokau, M. Stolz, and M. Horn, “Search-based optimal motion planning for automated driving,” in 
+
+IEEE International Conference on Intelligent Robots and Systems (IROS) , 2018. [19] A. Kamenev, L. Wang, O. B. Boer, I. Kulkarni, B. Kartal, A. Molchanov, S. Birchfield, D. Nister, and N. Smolyanskiy, “Pre-dictionnet: Real-time joint probabilistic traffic prediction for plan-ning, control, and simulation,” in IEEE International Conference on Robotics and Automation (ICRA) , 2022. [20] J. Hawke, R. Shen, C. Gurau, S. Sharma, D. Reda, N. Nikolov, P. Mazur, S. Micklethwaite, N. Griffiths, A. Shah, and A. Kendall, “Urban driving with conditional imitation learning,” 2020 IEEE Inter-national Conference on Robotics and Automation (ICRA) , 2019. [21] A. Kendall, J. Hawke, D. Janz, P. Mazur, D. Reda, J.-M. Allen, V.-D. Lam, A. Bewley, and A. Shah, “Learning to drive in a day,” in 2019 International Conference on Robotics and Automation (ICRA) , 2019. [22] J. Cheng, Y. Chen, X. Mei, B. Yang, B. Li, and M. Liu, “Rethink-ing imitation-based planner for autonomous driving,” arXiv preprint arXiv:2309.10443 , 2023. [23] Z. Huang, H. Liu, and C. Lv, “Gameformer: Game-theoretic modeling and learning of transformer-based interactive prediction and planning for autonomous driving,” in IEEE/CVF International Conference on Computer Vision (ICCV) , 2023. [24] P. Li, S. Ding, X. Chen, N. Hanselmann, M. Cordts, and J. Gall, “Powerbev: A powerful yet lightweight framework for instance pre-diction in bird’s-eye view,” in Proceedings of the Thirty-Second International Joint Conference on Artificial Intelligence, IJCAI-23 ,2023. [25] P. Li, S. Ding, Y. Zhou, Q. Zhang, O. Inak, L. Triess, N. Hanselmann, M. Cordts, and A. Zell, “Ago: Adaptive grounding for open world 3d occupancy prediction,” 2025. [26] P. Li, Z. Zhang, D. Holtz, H. Yu, Y. Yang, Y. Lai, R. Song, A. Geiger, and A. Zell, “Spacedrive: Infusing spatial awareness into vlm-based autonomous driving,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2026. [27] M. Kurenkov, S. Marvi, J. Schmidt, C. B. Rist, A. Canevaro, H. Yu, J. Jordan, G. Schildbach, and A. Valada, “Traffic and safety rule compliance of humans in diverse driving situations,” arXiv preprint arxiv:2411.01909 , 2024. [28] Z. Huang, P. Karkus, B. Ivanovic, Y. Chen, M. Pavone, and C. Lv, “DTPP: Differentiable Joint Conditional Prediction and Cost Evaluation for Tree Policy Planning in Autonomous Driving,” Feb. 2024, arXiv:2310.05885 [cs]. [Online]. Available: http://arxiv.org/abs/ 2310.05885 [29] J. Cheng, Y. Chen, and Q. Chen, “Pluto: Pushing the limit of imita-tion learning-based planning for autonomous driving,” arXiv preprint arXiv:2404.14327 , 2024. [30] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” arXiv preprint arxiv:2006.11239 , 2020. [31] J. Sohl-Dickstein, E. Weiss, N. Maheswaranathan, and S. Ganguli, “Deep unsupervised learning using nonequilibrium thermodynamics,” in Proceedings of the 32nd International Conference on Machine Learning , F. Bach and D. Blei, Eds. PMLR, 2015. [32] C. M. Jiang, A. Cornman, C. Park, B. Sapp, Y. Zhou, and D. Anguelov, “Motiondiffuser: Controllable multi-agent motion prediction using diffusion,” in IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. [33] Q. Sun, H. Wang, J. Zhan, F. Nie, X. Wen, L. Xu, K. Zhan, P. Jia, X. Lang, and H. Zhao, “Generalizing motion planners with mixture of experts for autonomous driving,” 2025 IEEE International Conference on Robotics and Automation (ICRA) , 2024. [34] Y. Chen, Y. Wang, and Z. Zhang, “Drivinggpt: Unifying driving world modeling and planning with multi-modal autoregressive transformers,” 
+
+arXiv preprint arxiv:2412.18607 , 2024. [35] K. Mizuta and K. Leung, “Cobl-diffusion: Diffusion-based conditional robot planning in dynamic environments using control barrier and lya-punov functions,” in IEEE/RSJ International Conference on Intelligent Robots and Systems , 2024. [36] X. Dai, Z. Yang, D. Yu, F. Liu, H. Sadeghian, S. Haddadin, and S. Hirche, “Safeflow: Safe robot motion planning with flow matching via control barrier functions,” arXiv preprint arxiv:2504.08661 , 2025. [37] J. Ho and T. Salimans, “Classifier-free diffusion guidance,” in NeurIPS 2021 Workshop on Deep Generative Models and Downstream Appli-cations , 2021. [38] H. Yu, J. Jordan, J. Schmidt, S. Lindner, A. Canevaro, and W. Stork, “Hype: Hybrid planning with ego proposal-conditioned predictions,” in 2025 IEEE 28th International Conference on Intelligent Transporta-tion Systems (ITSC) , 2025. [39] Y. Chen, P. Karkus, B. Ivanovic, X. Weng, and M. Pavone, “Tree-structured policy planning with learned behavior models,” in 
+
+IEEE International Conference on Robotics and Automation (ICRA) ,2023. [40] Y. Zeng, H. Ren, S. Wang, J. Huang, and H. Cheng, “Navidiffusor: Cost-guided diffusion model for visual navigation,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) , 2025. [41] W. Peebles and S. Xie, “Scalable diffusion models with transform-ers,” in Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2023. [42] O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional networks for biomedical image segmentation,” in Medical Image Computing and Computer-Assisted Intervention (MICCAI) , 2015. [43] C. Lu, Y. Zhou, F. Bao, J. Chen, C. Li, and J. Zhu, “Dpm-solver: a fast ode solver for diffusion probabilistic model sampling in around 10 steps,” in Proceedings of the 36th International Conference on Neural Information Processing Systems , 2022. [44] P. Dhariwal and A. Q. Nichol, “Diffusion models beat GANs on image synthesis,” in Advances in Neural Information Processing Systems ,A. Beygelzimer, Y. Dauphin, P. Liang, and J. W. Vaughan, Eds., 2021. [45] Q. Sun, H. Wang, J. Zhan, F. Nie, X. Wen, L. Xu, K. Zhan, P. Jia, X. Lang, and H. Zhao, “Generalizing motion planners with mixture of experts for autonomous driving,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) , 2025.
