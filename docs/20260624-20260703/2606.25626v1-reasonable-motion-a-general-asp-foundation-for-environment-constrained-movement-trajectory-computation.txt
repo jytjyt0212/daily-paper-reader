@@ -1,0 +1,611 @@
+Title: Reasonable Motion: A General ASP Foundation for Environment Constrained Movement Trajectory Computation
+
+URL Source: https://arxiv.org/pdf/2606.25626v1
+
+Published Time: Thu, 25 Jun 2026 00:52:46 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+Reasonable Motion 
+
+A General ASP Foundation for Environment Constrained Movement Trajectory Computation 
+
+Julius Monsen 1,3,, Jakob Suchan 2,3, Mehul Bhatt 1,3, and Lars Karlsson 1,3 
+
+> 1
+
+Örebro University, Örebro, Sweden 
+
+info@codesign-lab.org  
+
+> 2
+
+Constructor University Bremen, Bremen, Germany 
+
+jsuchan@constructor.university  
+
+> 3
+
+CoDesign Lab > Cognitive Vision codesign-lab.org/cognitive-vision 
+
+Abstract. We present a general answer set programming based hybrid quantitative-qualitative method for computing constrained branching trajectory modes for moving objects in real-world settings. The method performs constrained traversal of an environment graph, enumerating ge-ometrically admissible motion behaviours as stable models, each consti-tuting a distinct trajectory mode characterised by both domain-dependent and independent factors such as derived event sequence, map topology, and domain norms. The hybrid trajectory computation method is gen-erally applicable across motion characteristics typically encountered in diverse dynamic domains with moving objects, e.g., autonomous driving. We demonstrate applicability and highlight how computed trajectories are traceable to their underlying stable model, thereby affording ver-ifiable interpretability that purely learned approaches cannot provide. We also perform an empirical evaluation with Argoverse 2, a large-scale real-world autonomous driving benchmark representative of the class of dynamic domains within the scope of the proposed method. 
+
+1 Motivation 
+
+Autonomous systems operating in embodied in-the-wild situations are con-fronted with the challenge of interactive sensemaking , i.e., interleaved multi-modal perception, interpretation, and decision-making requiring coordination of attention, integration of sensory inputs, and dynamic exploration of possible futures and interactive outcomes [1,16]. Such capabilities, referred to as phys-ical AI , are gaining renewed traction as a major challenge for contemporary AI/ML research, and will be critical for deploying trustworthy technologies in safety-critical dynamic domains such as social robotics and autonomous driving. 
+
+Motion in Structured Environments. Many real-world domains in which autonomous agents operate are structured: roads constrain vehicle motion to lanes and require normative compliance in intersections and roundabouts; indoor  
+
+> arXiv:2606.25626v1 [cs.AI] 24 Jun 2026 2Monsen et al.
+
+environments constrain robot navigation to corridors, doorways, and rooms; so-cial spaces impose normative constraints on pedestrian flow. This structure is not merely a backdrop; it is a rich source of information about what motions are geometrically admissible, physically plausible, and normatively appropriate. For instance, a human driver approaching an intersection does not reason over a continuous positional space; rather, they reason over a small set of symbolically distinct possibilities ( go straight , turn left , change lane ) that are immediately grounded in the geometry of the road ahead. Capturing this kind of geometry-constrained, commonsense qualitative inference [1,4,5] in a principled, transpar-ent, and formally verifiable manner remains an open challenge, particularly in view of emerging AI regulation and the need for retrospective diagnosability in safety-critical deployments [6]. 
+
+Limits of End-to-End Motion Prediction. Purely end-to-end stochastic approaches for the prediction of motion trajectories (of dynamic interacting ob-jects) often focus on learning functional mappings from scene observations to future positions [13], without explicit representations of the environmental struc-ture, admissible behaviours, or the events that characterise them. Such end-to-end approaches emphasise purely geometric accuracy on benchmarks, prioritis-ing where agents may move, offering little insight into why a particular motion trajectory was generated or prioritised, or which aspects of the environment constrained it [13,22,21,9]. Qualitatively distinct behaviours (e.g., going straight versus turning at an intersection) may be represented as overlapping geometric trajectories, and there might not be a systematic semantic mechanism by which such distinctions can be inspected, explained, verified, or evaluated at scale. 
+
+Key Contributions. We present an answer set programming (ASP) [2,7] based hybrid quantitative-qualitative method for computing ‘reasonable’ motion trajectory modes for moving objects in real-world dynamic settings, that are geometrically admissible and normatively preferred with respect to the struc-tured environment representation and domain constraints. The developed hybrid method consists of: 1) an ASP encoding qualitatively modelling the environment as a typed directed graph, and performing constrained traversal to systematically enumerate geometrically admissible, branching motion trajectory modes; and  
+
+> 2)
+
+a trajectory generation component that converts each qualitatively distinct motion mode into a smooth, continuous motion trajectory via environmental geometry-guided centerline construction and constant-speed following. Our modular hybrid qualitative-quantitative characterisation ensures separation of concerns between the high-level commonsense and low-level numerical levels of representation of motion. Furthermore, we emphasise that following our ap-proach, each computed motion trajectory is characterised by a verifiable path and a high-level event sequence capturing domain-dependent and independent factors such as map topology, norms/preferences. To highlight real-world rele-vance, we empirically evaluate the method in the autonomous driving domain using the Argoverse 2 community benchmark [19]. Here, we also demonstrate how every computed motion trajectory is fully traceable to its underlying stable model, thereby affording verifiable interpretability that most purely learned ap-Computing Reasonable Motion 3Scene Representation 
+
+<latexit sha1_base64="ZkfI9IPcUUUuFtP2EFTVqmt6lEU=">AAACHnicbZDLSsNAFIZP6q3WW9Slm8EiuCqJaBWKUnChOyv0Bk0ok+mkHTq5MDMRSuiTuPFV3LhQRHClb+Ok7aJWfxj4+c45zDm/F3MmlWV9G7ml5ZXVtfx6YWNza3vH3N1ryigRhDZIxCPR9rCknIW0oZjitB0LigOP05Y3vM7qrQcqJIvCuhrF1A1wP2Q+I1hp1DXPnBpDTuXSqSAnwGpAME9vxpo4JInn4d0crHfNolWyJkJ/jT0zRZip1jU/nV5EkoCGinAsZce2YuWmWChGOB0XnETSGJMh7tOOtiEOqHTTyXljdKRJD/mR0C9UaELnJ1IcSDkKPN2ZbSsXaxn8r9ZJlH/hpiyME0VDMv3ITzhSEcqyQj0mKFF8pA0mguldERlggYnSiRZ0CPbiyX9N86Rkl0vl+9Ni9WoWRx4O4BCOwYZzqMIt1KABBB7hGV7hzXgyXox342PamjNmM/vwS8bXD5PHoO4=</latexit> 
+
+! = G → O → T
+
+Graph Reachability <latexit sha1_base64="bJbFM9rKrzYjpJsaUzjAAalWTp4=">AAACEHicbVDLSgMxFM34rPU16lKQYJFWKGXGRXUlBTcuK9gHdIaSSTNtaJIZkoxQhn6CG3f6G25cKOLWpTv/xkzbhbYeEjicew/33hPEjCrtON/W0vLK6tp6biO/ubW9s2vv7TdVlEhMGjhikWwHSBFGBWloqhlpx5IgHjDSCoZXWb11R6SikbjVo5j4HPUFDSlG2khdu+hxpAeSp8aEB8jYxqWoDIV5xTJUZegp2ufotGsXnIozAVwk7owUakePGZ7qXfvL60U44URozJBSHdeJtZ8iqSk2Q/JeokiM8BD1ScdQgThRfjo5aAxPjNKDYSTNFxpO1N+OFHGlRjwwndn6ar6Wif/VOokOL/yUijjRRODpoDBhUEcwSwf2qCRYs5EhCEtqdoUmFYmwNhnmTQju/MmLpHlWcauV6o1J4xJMkQOH4BiUgAvOQQ1cgzpoAAzuwTN4BW/Wg/VivVsf09Yla+Y5AH9gff4Arm2fcA==</latexit> 
+
+reachable( o, n, n →, s, ω)
+
+Stable Models & Events <latexit sha1_base64="CcEt4H0pqLZR4OtFG9ocjAGxA0k=">AAACC3icbVDLSsNAFJ34rPUVdSnI0CK4KCVxUd0oBTduChXsA5oQJpNpO3SSCTMToYTs3fgB+hFuXCji1h9w5984abvQ1gMXDufcy733+DGjUlnWt7G0vLK6tl7YKG5ube/smnv7bckTgUkLc8ZF10eSMBqRlqKKkW4sCAp9Rjr+6Cr3O3dESMqjWzWOiRuiQUT7FCOlJc8sOSFSQ4xY2sjgBXTShmdXoMMCrmQFNryRk3lm2apaE8BFYs9IuX70mOOp6ZlfTsBxEpJIYYak7NlWrNwUCUUxI1nRSSSJER6hAelpGqGQSDed/JLBY60EsM+FrkjBifp7IkWhlOPQ15355XLey8X/vF6i+uduSqM4USTC00X9hEHFYR4MDKggWLGxJggLqm+FeIgEwkrHV9Qh2PMvL5L2adWuVWs3Oo1LMEUBHIISOAE2OAN1cA2aoAUwuAfP4BW8GQ/Gi/FufExbl4zZzAH4A+PzB0jGna0=</latexit> 
+
+M = {M1, . . . , M k}
+
+<latexit sha1_base64="Dyx+Ow7jCq5OdhNDDHU3xBsESaw=">AAACMnicbVDLSgNBEJz1bXxFPXoZFFFRwq4H9aIIXvQgKBgVsnGZnXTMkNmdZaZXCMv+gN/h3YtfIijoQVGv4jc4STz4ahimqOqiuytMpDDoug9OT29f/8Dg0HBhZHRsfKI4OXVsVKo5lLmSSp+GzIAUMZRRoITTRAOLQgknYXOnrZ9cgDZCxUfYSqAasfNY1AVnaKmguOcfNQBZkPkRwwZnMtvPA5WfZcs53aSLHVZgBhcQYx54K9SXNYXG/j+VaCkozrklt1P0L/C+wNz2wsd9+fXy6iAo3vo1xdPI+rlkxlQ8N8FqxjQKLiEv+KmBhPEmO4eKhTGLwFSzzsk5nbdMjdaVti9G2mG/OzIWGdOKQtvZXtT81trkf1olxfpGNRNxkiLEvDuonkqKirbzozWhgaNsWcC4FnZXyhtMM4425YINwft98l9wvFry1kprhzaNLdKtITJDZski8cg62Sa75ICUCSfX5I48kWfnxnl0Xpy3bmuP8+WZJj/Kef8EKdevyQ==</latexit> 
+
+!+
+
+Mo = ( event 1, . . . , event m)
+
+Grounding 
+
+Solving <latexit sha1_base64="9ZRO3bpRU/YUwGJw5EEjfqgMwtA=">AAACMnicbVDLSgMxFM3UV62vqktBgkWsUMqMCxUXUnCjOwVrhU4pmTS1oZlkTO4IZeiH6E+48UsEF7pQxK0fYaZV0NZLAodz7vMEkeAGXPfZyUxMTk3PZGdzc/MLi0v55ZULo2JNWZUqofRlQAwTXLIqcBDsMtKMhIFgtaB7lOq1G6YNV/IcehFrhORK8janBCzVzJ/4iV/yQwIdDkmobli/qEpY2rdVwmYbH+Qw/pFtX9ohtnO/6IuWArNtS/vYF+wae7iZL7hldxB4HHjfoFBZv03j7rSZf/RbisYhk0AFMabuuRE0EqKBUzsj58eGRYR2yRWrWyhJyEwjGZzcx5uWaeG20vZLwAP2d0VCQmN6YWAz0+3NqJaS/2n1GNr7jYTLKAYm6XBQOxYYFE79wy2uGQXRs4BQze2u2JqiCQXrcs6a4I2ePA4udsrebnn3zLpxiIaRRWtoAxWRh/ZQBR2jU1RFFN2jJ/SK3pwH58V5dz6GqRnnu2YV/Qnn8wsgdKwB</latexit> 
+
+{ move (o, n, n →, s ) : reachable (. . . ) } → 1<latexit sha1_base64="da3/mMwiWFagl7TC99UzGP/6n/g=">AAACG3icbZDLSgMxFIYz9VbrrepSkGARXEiZ6aIKghS6cVnBXqBTSiZN29AkMyRnlFr7Hir4Km5cKOJKcOHbmF4W2vpD4OM/5yQ5fxAJbsB1v53EwuLS8kpyNbW2vrG5ld7eqZgw1pSVaShCXQuIYYIrVgYOgtUizYgMBKsGveKoXr1m2vBQXUE/Yg1JOoq3OSVgrWY6d4eLTQ/7rRCMJXWM/TPsZyRXXPJbhn3NO10gWoc3WBPV46rTTGfcrDsWngdvCpnC/sNIj6Vm+tNeT2PJFFBBjKl7bgSNAdHAqWDDlB8bFhHaIx1Wt6iIZKYxGO82xIfWaeF2qO1RgMfu74kBkcb0ZWA7JYGuma2NzP9q9Rjap40BV1EMTNHJQ+1YYAjxKCjc4ppREH0LhGpu/4ppl2hCwcaZsiF4syvPQyWX9fLZ/KVN4xxNlER76AAdIQ+doAK6QCVURhTdo2f0it6cJ+fFeXc+Jq0JZzqzi/7I+foBOrakHw==</latexit> 
+
+|C1 . . . C n, #minimize → ranking 
+
+Centerline Construction 
+
+& Following 
+
+Entry point: 
+
+Transition  motion model 
+
+<latexit sha1_base64="3fVfVMj2hLVzsxmDUW2zRV3+Ahc=">AAACNHicbVDLSgNBEJz1bXxFPQoyGARPcVdBPYmQg4KXCCYK2bj0TibJ4OyDmV4lLPkQ/QsvfogXETwo4tVvcDbJwSQWDBRV1Ux3+bEUGm37zZqYnJqemZ2bzy0sLi2v5FfXqjpKFOMVFslIXfuguRQhr6BAya9jxSHwJb/yb0uZf3XHlRZReImdmNcDaIWiKRigkbz8uZueesLtUleJVhtBqeieugFgWwUp4O7+sFO6ccaTDGRa6nrCyxfsot0DHSfOgBRONh8yPJa9/IvbiFgS8BCZBK1rjh1jPQWFgknezbmJ5jGwW2jxmqEhBFzX097RXbptlAZtRsq8EGlP/TuRQqB1J/BNMltSj3qZ+J9XS7B5VE9FGCfIQ9b/qJlIihHNGqQNoThD2TEEmBJmV8raoICh6TlnSnBGTx4n1b2ic1A8uDBtHJM+5sgG2SI7xCGH5ISckTKpEEaeyCv5IJ/Ws/VufVnf/eiENZhZJ0Owfn4BJ6+wHg==</latexit> 
+
+{Gi} → at /3 → C1 → Ci
+
+<latexit sha1_base64="iFfDlidAgZzWXvY2E9C8zMMvm9c=">AAACDXicbVDLSsNAFJ34rPUVdelmsAp1UxKR6koKbsRVBfuAJoTJdNIOnZmEmYlQQn/Ajb/ixoUibt2782+ctFlo64ELh3Pu5d57woRRpR3n21paXlldWy9tlDe3tnd27b39topTiUkLxyyW3RApwqggLU01I91EEsRDRjrh6Dr3Ow9EKhqLez1OiM/RQNCIYqSNFNjHHpIDj1PhiZhRTrUKMjWBHkd6iBHLbidVdRrYFafmTAEXiVuQCijQDOwvrx/jlBOhMUNK9Vwn0X6GpKaYkUnZSxVJEB6hAekZKhAnys+m30zgiVH6MIqlKaHhVP09kSGu1JiHpjO/Us17ufif10t1dOlnVCSpJgLPFkUpgzqGeTSwTyXBmo0NQVhScyvEQyQR1ibAsgnBnX95kbTPam69Vr87rzSuijhK4BAcgSpwwQVogBvQBC2AwSN4Bq/gzXqyXqx362PWumQVMwfgD6zPHzCRnEE=</latexit> 
+
+arg min s J (s)
+
++
+
+<latexit sha1_base64="Z7u4ALXqJNEAYcCowrJqbsKdlNc=">AAACFHicbVC7SgNBFJ2Nrxhfq5Y2g0EUImHXIgqCBGxshAjZJJCNy+xkkgyZfTAzK4Rlf8DOxi/wH2wsFLG1sBBs/QC/wdkkRUw8cOFwzr3ce48bMiqkYXxpmbn5hcWl7HJuZXVtfUPf3KqJIOKYWDhgAW+4SBBGfWJJKhlphJwgz2Wk7vbPU79+Q7iggV+Vg5C0PNT1aYdiJJXk6AXbQ7KHEYsvk0Non0K72iMSOfGE7gTJdVxIoKPnjaIxBJwl5pjky/s/n9b37UPF0T/sdoAjj/gSMyRE0zRC2YoRlxQzkuTsSJAQ4T7qkqaiPvKIaMXDpxK4p5Q27ARclS/hUJ2ciJEnxMBzVWd6qpj2UvE/rxnJzkkrpn4YSeLj0aJOxKAMYJoQbFNOsGQDRRDmVN0KcQ9xhKXKMadCMKdfniW1o6JZKpauVBpnYIQs2AG74ACY4BiUwQWoAAtgcAcewTN40e61J+1Vexu1ZrTxzDb4A+39F41Qov0=</latexit> 
+
+M, !+
+
+Mo
+
+Trajectory Output 
+
+traceable to 
+
+<latexit sha1_base64="k/CcpJy4PTF7LRNw+Kk/Sp3SYM8=">AAACJnicbVDLSgMxFM3Ud31VXQoSLIILqTMuqiAVQReuRMU+oFNLJk3baCYzJHeEMsyH6NaNv+LGhSLizk8x03ahrQcCh3Pu5eYcLxRcg21/WZmJyanpmdm57PzC4tJybmW1ooNIUVamgQhUzSOaCS5ZGTgIVgsVI74nWNW7O0n96j1TmgfyGnoha/ikI3mbUwJGauZKrk+gq/wYFLlNmhy7XOK+5nnxVXITn2MXuM803kt23EN8jkv4etc9ZQIIhmYubxfsPvA4cYYkf7zxkOLxopl7c1sBjXwmgQqidd2xQ2jERAGngiVZN9IsJPSOdFjdUEnM5Ubcj5ngLaO0cDtQ5knAffX3Rkx8rXu+ZybTAHrUS8X/vHoE7YNGzGUYAZN0cKgdCQwBTjvDLa4YBdEzhFDFzV8x7RJFKJhms6YEZzTyOKnsFZxioXhp2jhCA8yidbSJtpGD9tExOkMXqIwoekIv6A29W8/Wq/VhfQ5GM9ZwZw39gfX9A/eeqIE=</latexit> 
+
+traj i → RN →2, N = T / !t
+
+<latexit sha1_base64="bBwDWmOlDPRbR10fcr5qBMDOCm8=">AAACDnicbVC7SgNBFJ2NrxhfUbGyGRRBMIZdiygIErDQJhAhL8iuy+xk1kwyO7vMzAph2S+w8VdsLBSxsbC2s/Y3LJw8Cl8HLhzOuZd77/EiRqUyzXcjMzU9MzuXnc8tLC4tr+RX1xoyjAUmdRyyULQ8JAmjnNQVVYy0IkFQ4DHS9PqnQ795TYSkIa+pQUScAF1x6lOMlJbc/E7F7UGbcnjm0gK0j6Fd6xKF3KTiJr1CmKaXyV4K3fy2WTRHgH+JNSHb5f2X3crnx0bVzb/ZnRDHAeEKMyRl2zIj5SRIKIoZSXN2LEmEcB9dkbamHAVEOsnonRTuaKUD/VDo4gqO1O8TCQqkHASe7gyQ6srf3lD8z2vHyj9yEsqjWBGOx4v8mEEVwmE2sEMFwYoNNEFYUH0rxF0kEFY6wZwOwfr98l/SOChapWLpQqdxAsbIgk2wBXaBBQ5BGZyDKqgDDG7AHXgAj8atcW88Gc/j1owxmVkHP2C8fgGY9Z5I</latexit> 
+
+Mj → Gi, !+
+
+Mj,o 
+
+Mode Groups <latexit sha1_base64="wZ/I6KG0hykJ9eoO2KN6PGdr3FQ=">AAACNXicbVA9axtBFNxz4tiR40RJSjebGEMKIe5S2AZDMKhQChtssGyDVhzvVk/Sor3b8+67OOK4wrXr/JE0/h+pkiJFTEibv5CV5CL+GFgYZt7j7UySa+UoDH8EC48eLz5ZWn5aW3m2+vxF/eWrY2cKK7EjjTb2NAGHWmXYIUUaT3OLkCYaT5Jxa+qffELrlMmOaJJjL4VhpgZKAnkpru+JFGgkQZf7FRc74rNVwxGBtea8FE6lcSmORkhQVWKHi7IdRw0udN+Qa/B2nIuq4fXcS3jGx3F9PWyGM/D7JLoh67tvzvVl68vFQVz/JvpGFilmJDU4143CnHolWFJSY1UThcMc5BiG2PU0gxRdr5ylrviGV/p8YKx/GfGZ+v9GCalzkzTxk9OM7q43FR/yugUNtnulyvKCMJPzQ4NCczJ8WiHvK4uS9MQTkFb5v3I5AguSfNE1X0J0N/J9cvy+GW02Nw99Gx/YHMtsjb1l71jEttgu+8gOWIdJ9pV9Z7/YdXAV/Ax+B3/mowvBzc5rdgvB33/zxq5t</latexit> 
+
+M →!
+
+→→↑ {G1, . . . , G p}, p ↓ k
+
+Event-Based Grouping 
+
+Fig. 1: Hybrid Qualitative-Quantitative Motion Trajectory Computing Method : Overview of the proposed pipeline. Left: ASP grounding and solving yield stable models, each representing a path annotated trajectory influencing events. Right: 
+
+stable models are grouped and geometrical features constructed such that paths can be followed continuously according to a domain-specific motion model and yield a tra-jectory traj i ∈ RN ×2 per mode group. 
+
+proaches lack. We posit that the proposed method is a principled—i.e., domain-independent, modular, and elaboration tolerant—and transparent alternative to monolithic end-to-end predictors in domains where explainability and geometric admissibility are critical requirements. 
+
+2 Computing ‘Reasonable’ Motion: A Hybrid Qualitative-Quantitative Method 
+
+The proposed hybrid qualitative-quantitative method for computing (reasonable) motion trajectories is illustrated in Fig. 1. Operationally, the method consists of four stages from a higher-level viewpoint: (1) Grounding the answer set program 4
+
+from the scene description and deriving reachability over the environment graph; 
+
+(2) Path selection via a choice rule and integrity constraints; (3) Grouping the resulting stable models by event sequence; and (4) Converting each mode group into a continuous trajectory. A formal characterisation of the method follows :
+
+2.1 Scene Representation 
+
+Let O = {o1, . . . , o n} be a set of domain objects (e.g., moving entities), each associated with a state ostate comprising position, velocity, and heading at a given timestep. The environment is characterised by a finite set of discrete spa-tial regions N , a set of time steps T = {t0, . . . , t m}, and a prediction horizon 
+
+4 Answer Set Programming (ASP) is an established declarative programming paradigm rooted in the stable model semantics; we refer readers to [2,7,10] for an introduction and further pointers. 4 Monsen et al. 6
+
+> 5
+> 14
+> 12
+> 7
+> 8
+> 3
+> 11
+> 15
+> 16
+> 1
+> 9
+> 4
+> 10
+> 17
+> 2
+> 13
+
+Fig. 2: Reachability over G; Example: • current agent position ; • potential start node ;
+
+• reachable nodes . Solid arrows denote successor transitions; dashed arrows denote two-hop lateral relations (as used in Sec. 3.1). 
+
+T ⊂ T over which trajectory modes are computed. The ASP program encoding the scene is then: Π = G ∪ O ∪ T , where G = ( N , E) is a typed directed graph whose nodes and edges are grounded as facts, while O and T are collec-tions of facts encoding object states and time steps, respectively. Nodes n ∈ N 
+
+represent discrete spatial regions and edges (n1, n 2, δ ) ∈ E carry typed relations 
+
+δ ∈ ∆ encoding navigational affordances (e.g., successor for sequential region transitions, lateral for side-by-side transitions such as lane changes, and entry 
+
+for access relations into junctions or restricted zones). Each node is annotated with domain-dependent attributes such as region type (e.g., vehicle lane, bike lane, intersection), geometric extent (e.g., arc length or bounding polygon), or normative constraints (e.g., permitted crossing directions encoded in lane mark-ings). A trajectory mode for object o is characterised by a derived event sequence 
+
+Θ+ 
+
+> o
+
+capturing qualitatively distinct behavioural events, grounded in a support-ing node sequence (n0, n 1, . . . , n k) through G, constituting a commonsense / qualitative hypothesis about the future behaviour of o.
+
+2.2 Graph Reachability 
+
+Reachability over G is computed as a derived relation that tracks, for each object 
+
+o, the set of nodes reachable within the prediction horizon, together with a traver-sal state σ recording accumulated progress and the history of any mode-changing transitions relevant to the domain (e.g., distance travelled and lateral manoeu-Computing Reasonable Motion 5
+
+vre history in driving, or floor level and door transitions in indoor navigation): 
+
+reachable( o, n, n ′, s, σ ). Rather than embedding recursive traversal directly in-side the choice rule, reachability is defined separately as an inductively derived relation over the environment graph. This follows a modelling pattern used for recursively defined concepts such as graph reachability [2], where auxiliary Horn rules derive the transitive structure independently of the non-deterministic path selection. Operationally, this yields a relatively flat search problem for the solver. Rather than resolving recursive path dependencies during search, the solver op-erates over a pre-instantiated set of independent ground transitions, reducing backtracking and conflict depth. The traversal state σ and its propagation rules remain domain-dependent. An illustration of reachability in a concrete graph is shown in Fig. 2, where an agent is positioned at the red marker. 
+
+2.3 Constrained Mode Hypothesis Generation 
+
+Mode hypotheses are generated by selecting a path through the reachable set via an ASP choice rule:         
+
+> move( o, n, n ′, s ) : reachable( o, n, n ′, s, σ )≤1∀s∈steps( o)(1)
+
+The set of stable models of Π under this rule is denoted M = {M1, . . . , M k},each constituting a distinct, internally consistent trajectory mode hypothesis. Path validity (physical and normative) is enforced by the following integrity constraints, which hold across all domain instantiations: 
+
+> C1
+
+. Mandatory start : ← ¬ move( o, ·, ·, 0) 
+
+Every object must be assigned a transition at step s = 0 , grounding the trajec-tory in the object’s observed state at the first prediction timestep. 
+
+> C2
+
+. Temporal consistency : ← move( o, ·, n ′, s ), move( o, n, ·, s +1) , n ̸ = n′.The destination node at step s must equal the origin node at step s+1 , enforcing that selected transitions form a connected path through G.
+
+> C3
+
+. Continuity : ← ¬ move( o, ·, ·, s ), move( o, ·, ·, s +1) .A transition at step s+1 is only permitted if a transition was chosen at step 
+
+s. Together with C2, this ensures the selected path is contiguous: once a path terminates, no further transitions are admitted. Additional domain-dependent constraints, e.g., bounding the number and spac-ing of mode-changing transitions, can be incorporated per domain. Stable mod-els may furthermore be ranked via ASP weak constraints encoding domain-dependent preferences W—such as penalising lane changes across solid lane markings or favouring paths requiring fewer lateral transitions—yielding an or-dered set of trajectory mode hypotheses from which downstream components can select or sample. Each move( o, n, n ′, s ) atom additionally derives at( o, n ′, s ),recording the node occupied by o at step s, used for event derivation in Sec. 2.4. Exemplary ASP implementation of both domain-specific constraints and prefer-ence ranking is included in Sec. 3.1. 6 Monsen et al. 
+
+2.4 Event-Based Grouping 
+
+Following solving, the resulting stable models are grouped as a post-processing step based on their derived event sequences. To provide interpretable charac-terisations of each mode and enable grouping of behaviourally equivalent stable models, high-level events are derived directly from the selected path:    
+
+> event( e(o, . . . ), s )←at( o, n, s ), ϕ (o, n, s )(2)
+
+where ϕ(o, n, s ) is a domain-supplied condition on the current node and step. The ordered tuple of event atoms derived from each stable model Mi ∈ M serves as a qualitative (event) fingerprint Θ+ 
+
+> Mo
+
+= ( event 1, . . . , event m), ordered by step index s so that simultaneous events at the same step are canonically sorted. Models sharing the same fingerprint, i.e., Mi ∼Θ Mj ⇐⇒ Θ+ 
+
+> Mi
+
+= Θ+ 
+
+> Mj
+
+, are collapsed into a single mode group Gi via the equivalence relation ∼Θ :     
+
+> M∼Θ
+> −−−→ { G1, . . . , G p},p≤k(3)
+
+This grouping serves two purposes: (1) reduction of the mode space to a manage-able set of behaviourally distinct hypotheses (the number of stable models can be large in complex scenarios with many reachable nodes and permitted tran-sitions); and (2) enabling an interpretable high-level description of each mode (e.g., lane change left, go straight , or turn right at intersection ) that can be in-spected for transparency and used to guide downstream trajectory generation together with the resulting lane occupation information. 
+
+2.5 From Commonsense Qualitative Modes to Continuous Geometric Trajectories 
+
+Given the grouped stable models, each mode group Gi is converted into a single continuous trajectory in two steps. 
+
+> (1). Geometric Mode Construction
+
+. Each stable model Mj ∈ Gi yields an ordered sequence of nodes, from which geometric representations (e.g., center-lines or region boundaries) are retrieved. Within a group, different models may follow geometrically distinct but behaviourally equivalent paths. To preserve the qualitative behaviour while reducing mode redundancy, a single representative, approximate geometric path Ci is obtained by stitching and averaging the node geometries across all models in Gi, ensuring C1-continuity at junctions. Since all models in Gi share the same event fingerprint Θ+ 
+
+> Gi
+
+by construction, the averaged path preserves the qualitative behavioural identity of the group while geometri-cally centralising across lane-level variations within it. For instance, if two models both perform a left lane change but at adjacent lane steps, the averaged path will execute the change at an intermediate position. The specific stitching and averaging procedure is domain-dependent and described in Sec. 3.2. 
+
+> (2). Trajectory Following
+
+. Given Ci and the object’s observed state ostate , a trajectory is produced over the planning horizon T . If the object is not already on Ci, a smooth transition curve connects the current position and heading to an entry point on Ci. The entry point is selected by minimising an angular cost Computing Reasonable Motion 7
+
+Algorithm 1: Hybrid Trajectory Mode Computation 
+
+Input: Π = G ∪ O ∪ T , constraints {C1, . . . , C n},preferences W, agent state ostate , horizon T , ∆t 
+
+Output: Y = {(traj i, Θ + 
+
+> Gi
+
+)}pi=1  
+
+> 1
+
+R ← ground( Π) // derive all reachable( o, n prev , n, s, σ ) at ground time // Mode Hypothesis Generation  
+
+> 2
+
+Pmove =
+
+n
+
+{move( o, n, n ′, s ) : reachable( o, n, n ′, s, σ )}1
+
+o 
+
+> 3
+
+P ← R ∪ Pmove ∪ { C1, . . . , C n} ∪ W ; M ← optAnswerSets( P )
+
+// Event-Based Grouping  
+
+> 4
+
+F ← {}  
+
+> 5
+
+foreach Mi ∈ M do  
+
+> 6
+
+Ei ← ∅  
+
+> 7
+
+foreach (o, n, s ) s.t. at( o, n, s ) ∈ Mi do  
+
+> 8
+
+if ϕ(o, n, s ) holds then  
+
+> 9
+
+Ei.add   (e(o, . . . ), s )  
+
+> 10
+
+Θ+ 
+
+> Mi
+
+← sort( Ei); F[Θ+ 
+
+> Mi
+
+].add( Mi) 
+
+> 11
+
+{G1, . . . , G p} ← values( F)
+
+// Trajectory generation  
+
+> 12
+
+Y ← ∅  
+
+> 13
+
+foreach Gi do  
+
+> 14
+
+P ← ∅  
+
+> 15
+
+foreach Mj ∈ Gi do  
+
+> 16
+
+n1, . . . , n k ← at -sequence of Mj 
+
+> 17
+
+P.add  stitch( n1, . . . , n k , G) 
+
+> 18
+
+Ci ← arc _length _average( P); s∗ ← arg min s J (s; ostate , Ci) 
+
+> 19
+
+traj i ← follow( Ci, s ∗, o state , N =T /∆t ); Y.add  (traj i, Θ + 
+
+> Gi
+
+) 
+
+> 20
+
+return Y
+
+penalising misalignment between the object’s heading and the straight line to the entry point, and between that line and the path tangent at entry, with a distance regularisation term: 
+
+J (s) = (1 − cos θdepart ) + (1 − cos θarrive ) + λ ∥p(s) − p0∥
+
+L , (4) 
+
+where θdepart is the angle between the object’s heading and the line to entry point p(s), θarrive is the angle between that line and the path tangent at p(s),
+
+L is the total path length, and λ is a distance weight. The object then follows 
+
+Ci from the entry point under a chosen motion model for the remainder of T ,yielding: 
+
+traj i ∈ RN ×2, N = T /∆t (5) 
+
+Each trajectory traj i is fully traceable to its underlying stable models {Mj ∈ Gi}
+
+and event sequence Θ+ 
+
+> o
+
+, affording verifiable interpretability over the complete pipeline. In Alg. 1 we highlight the flow of the overall system and each functional component as outlined in this section. 8 Monsen et al. 
+
+3 Reasonable Motion in Autonomous Driving 
+
+We apply and practically demonstrate an encoding of the proposed (reasonable) motion trajectory computation method (Sec. 2) for the domain of autonomous driving, where a typical requirement 5 is to compute motion trajectories of dy-namic entities. By reasonable motion, we allude to computed solutions that are both formally well-founded and behaviourally well-justified. Here, two con-notations are implied: (1) in the manner of non-monotonic commonsense rea-soning, our model derives motion trajectories that are “reasoned about”: each motion hypothesis is grounded in a stable model, fully traceable to its sup-porting ASP derivation, and thereby is amenable to inspection and explana-tion; and (2) we also allude to “reasonableness” as a solution criterion, i.e., only trajectories satisfying explicit geometric, physical, and contextual or norm-respecting constraints—encoded as integrity constraints and ranked by prefer-ence minimisation—are admitted. 
+
+3.1 High-Level Commonsense Mode Hypothesis Generation 
+
+Given an ASP problem specification for a motion trajectory computation task in the domain of driving, it is desired that each stable model correspond to a distinct trajectory mode—a high-level behavioural hypothesis capturing the sequence of lanes a vehicle may occupy and the discrete events arising along it (e.g., go straight , turn left , change lane then go straight )—guiding downstream trajectory generation (Sec. 3.2). 
+
+Lane Graph The environment graph G is instantiated with lane segments 
+
+L = {ℓ1, . . . , ℓ n} as nodes. Each edge (ℓ1, ℓ 2, δ ) ∈ E carries a relation type 
+
+δ ∈ { successor , left , right }, and each lane ℓ is annotated with its arc length 
+
+dist( ℓ) ∈ R+, its type (vehicle, bus, bike), and its lane markings on each side. A subset LI ⊆ L of intersection lanes are tagged with a turn direction dir I (ℓ) ∈{left , right , straight }.Lane changes, the domain instantiation of mode-changing transitions, are derived as two-hop paths in G (Eqs. (6)–(7)). A third case (Eq. (8)) captures the common manoeuvre where a turning vehicle drifts into an adjacent parallel exit lane upon leaving an intersection. Let ℓ1 be the turning lane with direction τ , m its primary exit, and ℓ2 the adjacent lane in opposite direction ¯τ relative to the turn direction. Then a connection to ℓ2’s continuation ℓ3 is admitted.    
+
+> 5Section 4 includes an empirical evaluation with the in-the-wild Argoverse 2 [19] mo-tion forecasting community benchmark consisting of complex urban driving scenarios together with corresponding motion data from LIDAR and RGB signals. Here, the motion prediction task operates over a 6-second horizon at 10 Hz.
+
+Computing Reasonable Motion 9
+
+lc( ℓ1, ℓ 2, δ ) ← (ℓ1, m, δ ) ∈ E , (m, ℓ 2, succ) ∈ E , δ ̸ = succ (6) 
+
+lc( ℓ1, ℓ 2, δ ) ← (ℓ1, m, succ) ∈ E , (m, ℓ 2, δ ) ∈ E , δ ̸ = succ (7) 
+
+lc( ℓ1, ℓ 3, ¯τ ) ← (ℓ1, m, succ) ∈ E , ℓ 1 ∈ L I , dir I (ℓ1) = τ, 
+
+(m, ℓ 2, ¯τ ) ∈ E , (ℓ2, ℓ 3, ¯τ ) ∈ E (8) 
+
+Traversal State and Reachability The general traversal state σ (see Sec. 2.2) is instantiated for driving as σ = ( d, δ, κ, d κ, δ κ), where d is the accumulated distance, δ the edge type of the transition from ℓprev to ℓ, κ the lane change count, dκ the cumulative distance at the most recent lane change, and δκ its direction. This yields the following predicate schema: 
+
+> reachable(Trk, L1, L2, Step, sigma(D, Delta, K, DK, DeltaK)) :- ...
+
+The step index orders lane visits but does not correspond to a fixed time in-terval (lanes vary in length). Lane-vehicle type compatibility is enforced via 
+
+allowed_in_lane/2 , and the recursion is bounded by dmax derived from the observed speed under a chosen motion model. 
+
+Start. Each vehicle is seeded at its potential start lane(s) with s = 0 , κ =0, δκ = none . Occupied lane(s) and remaining distance d0 are determined by querying spatially nearby lanes, scoring candidates by heading alignment and containment, and applying robustness heuristics for sensor noise and low-speed ambiguity. If the vehicle is sufficiently far from the lane end, neighbouring lanes of adequate length are also admitted as start lanes. 
+
+Successor propagation. From any state at step s with dold < d max , the vehicle advances to a successor lane ℓ′, accumulating d = dold + dist( ℓ′) while the lane-change state is carried forward unchanged. 
+
+Lane change propagation. A lateral move via lc( ℓ, ℓ ′, δ ) is permitted provided 
+
+κ < κ max and ℓ′ is type-compatible. Three cases govern direction and state update, all incrementing κ and recording dold as the new dκ: (i) first change (δκ = none ): any direction permitted, δκ set to δ; (ii) continued direction ( δ =
+
+δκ): always permitted, δκ unchanged; (iii) opposite direction ( δ = ¯δκ): permitted only if a minimum recovery distance has been observed since the last lane change 
+
+dold − dκ ≥ θlc , then δκ updated to δ.
+
+Mode Selection, Ranking and Events Applied to the driving domain, the mode selection choice rule (Sec. 2.3) takes the form: 
+
+> { move(Trk, L1, L2, S) : reachable(Trk, L1, L2, S, _) } 1 :- step(Trk, S).
+
+In addition to the general constraints C1–C3 described in Sec. 2.3: 10 Monsen et al.    
+
+> :- not move(Trk, _, _, 0), step(Trk, 0). %(C1)
+> :- move(Trk, _, L2, S), move(Trk, L1, _, S+1), L1 != L2. %(C2)
+> :- step(Trk, S), not move(Trk, _, _, S), move(Trk, _, _, S+1). %(C3)
+
+the following driving-specific constraints are enforced: (C4) minimum travel of at least the braking distance; (C5) lane change budget κmax ; and (C6) minimum spacing θlc between opposite-direction changes:     
+
+> :- move(Trk, L1, L2, S), not move(Trk, _, _, S+1), braking_distance(Trk, BD), D < BD, reachable(Trk, L2, _, _, _), reachable(Trk, L1, L2, S, sigma(D, _, _, _, _)). %(C4)
+> :- #count{ S : changed_lane(Trk, S, _) } > max_lane_changes. %(C5)
+> :- consecutive_lc(Trk, S1, S2), #sum{ D, S : move(Trk, _, L2, S), lane_distance(L2, D), S>=S1, S<S2} < lc_distance_threshold. %(C6)
+
+braking_distance/2 is provided as a fact from the observed speed. The pred-icates changed_lane/3 and consecutive_lc/3 are derived helpers capturing lateral transitions and consecutive opposite-direction pairs respectively. Each 
+
+move/4 is converted to at/3 representing lane occupation. Stable models are ranked by a two-level minimisation encoding traffic norm com-pliance via the map’s lane_mark/3 facts. At higher priority, lane changes across transitional markings (e.g., dash_solid ) incur cost 1 and solid or double-solid markings incur cost 5. At lower priority, total lane change count is minimised and better start-lane heading alignment is preferred. The solver is configured with 
+
+–opt-mode=optN and models=0 , directing Clingo to enumerate all cost-optimal stable models. This ensures that every behaviourally distinct trajectory mode— not only the single highest-ranked one—is retained for downstream grouping and trajectory generation. 
+
+> #minimize { C@2, Trk, S, Dir : changed_lane(Trk, S, Dir), move(Trk, L1, _, S), lc_mark_cost(L1, Dir, C) }. #minimize { 1@1, S, Trk : changed_lane(Trk, S, _) }. #minimize { Cost@1, Trk : in_lane(Trk, L, curr_time, D, Cost) }.
+
+Blocked crossings are penalised rather than forbidden, reflecting that vehicles may cross solid markings in practice, albeit rarely. High-level events are derived as described in Sec. 2.4. Additionally, a start_lane event distinguishes modes that share the same future event sequence but start from different lanes: 
+
+> event(start_lane(L), -1) :- at(Trk, L, 0). event(lane_change(Trk, Dir), S) :- changed_lane(Trk, S, Dir). event(intersection(Trk, Dir), S) :- at(Trk, L, S), intersection_lane(L, Dir).
+
+Each resulting stable model constitutes a distinct trajectory mode, e.g., see the scenario of Fig. 3 that are subsequently grouped based on an event fingerprint (Sec 2.4). 
+
+3.2 Trajectory Generation 
+
+Following the general procedure of Sec. 2.5, each mode group Gi is converted into a continuous trajectory via centerline construction and centerline following :
+
+Centerline Construction. Each Mj ∈ Gi yields an ordered sequence of lane identifiers via at/3 , from which lane centerlines are retrieved. To obtain the Computing Reasonable Motion 11 S1LC [L]
+
+> S2
+> S3S4
+> S5
+> INT [R]
+> INT [L]
+> INT [S]
+> INT [S]
+> INT [S]
+> INT [L]
+> INT [R]
+> INT [S]
+
+Fig. 3: Discrete Trajectory Modes . Each mode is highlighted by a path between the lane segments and their representative points •. • denotes the position of the agent. 
+
+INT[S/L/R] denotes an intersection event where the agent goes straight , left or right ,and LC[L/R] a left or right lane change. 
+
+representative path Ci, lane segments of each model are stitched into a con-tinuous polyline. At junctions, a cubic Bézier bridge (a smooth cubic polyno-mial curve matched in position and tangent to the adjoining segments) is in-serted whose longitudinal reach scales with the lateral offset, producing a smooth 
+
+C1-continuous transition reflecting natural lane-change geometry. The polylines across all Mj ∈ Gi are then averaged via arc-length parameterisation—each re-sampled to a common number of points by fractional arc length and averaged element-wise—yielding Ci as the geometric mean of the group’s paths. 
+
+Centerline Following. Assuming constant speed, the agent advances along 
+
+Ci at its observed speed at 10 Hz. If not already within a snap threshold of Ci, a cubic Hermite transition curve connects the current position and heading to the entry point selected by minimising Eq. (4), arriving with heading aligned to the centerline tangent. The agent then follows Ci for the remainder of the horizon, yielding traj i ∈ RN ×2 with N = T /∆t , ∆t = 0 .1 s. 
+
+4 Empirical Evaluation with Argoverse 2 
+
+We evaluate the proposed method and its application in autonomous driving along three dimensions: (1) computational efficiency of the ASP solving pipeline; 
+
+(2) geometric sufficiency of the generated lane-path modes; (3) trajectory fore-casting accuracy against established baselines. All evaluations were conducted on a Apple MacBook Pro (M3) using 23,049 examples from the test split of Ar-goverse 2 6, which had a vehicle as the focal agent (as per the evaluation scheme in [19]). The following parameters were used throughout: lane change budget  
+
+> 6
+
+Argoverse 2 [19]., www.argoverse.org. The Argoverse 2 Motion Forecasting subset is a curated collection of 250,000 scenarios for training and validation. Each scenario is 11 seconds long and contains the 2D, birds-eye-view centroid and heading of each tracked object sampled at 10 Hz. 12 Monsen et al. 
+
+κmax = 2 , minimum recovery distance θlc = 50 m, and a 6-second prediction horizon at 10 Hz ( N = 60 steps). 
+
+4.1 Runtime Complexity 
+
+Fig. 4 reports grounding and solving statistics. Grounding dominates, with a mean of 4.78 ms (std 2.48 ms, max 300 ms). In contrast, solving requires only 0.06 ms on average. This behaviour is consistent with the modelling strategy of deriving reachability separately from the non-deterministic mode selection, thereby shifting much of the structural computation into rule instantiation and propagation while leaving the solver with a comparatively small combinato-rial search space. Additionally, the constant-speed and single-agent assumptions likely contribute to the fast solving speed. Relaxing the constant-speed assump-tion or extending to multi-agent settings would increase grounding cost, and characterising this scaling behaviour remains future work. The strong correla-tion between ground rules and total runtime ( ρ = 0 .948 ) confirms grounding as the primary cost driver, with the right-skewed tail attributable to dense inter-section scenarios. Some outliers exhibit disproportionately high runtime relative to their grounding size, likely due to complex local connectivity, such as round-abouts, that increases the number of admissible transitions per step and thus the combinatorial search space, independent of the total lane count. Solver behaviour is lightweight (mean conflicts 3.19, choices 10.24), reflecting effective constraint pruning. On average, 5.88 stable models (std 3.28, min 2, max 28) collapse to 2.94 trajectory modes (std 1.64, min 1, max 14), confirming that event-based grouping substantially reduces the hypothesis space. Scene complexity varies widely (mean 67.10 lanes, std 31.46, max 264), reflecting the diversity of urban layouts in Argoverse 2. More generally, the admissible mode space is shaped by domain-specific constraints such as lane-change spacing and traversal bounds, introducing an explicit tradeoff between behavioural coverage, normative plau-sibility, and computational tractability. 
+
+4.2 Lane Path Coverage 
+
+We evaluate geometric sufficiency by measuring the fraction of ground truth agent positions across the 6-second horizon that fall within lane polygons of the generated modes. Table 1 reports coverage under three conditions: (i) Reachable union : all lanes across all modes merged, giving an upper bound; (ii) Oracle mode : the single mode with highest coverage, measuring best-case performance; and (iii) Ranked mode : the mode selected by the ASP optimization. 
+
+Results. The reachable union (90.63%) and oracle mode (87.78%) confirm that the lane graph traversal generates a geometrically sufficient hypothesis space and that at least one mode closely tracks the ground truth in most scenarios. The small gap between the two (2.85 pp) indicates that the best mode rarely requires lanes outside the individually reachable set, i.e., most ground truth paths lie within a single coherent mode rather than requiring a union of several. The Computing Reasonable Motion 13 0.01 0.1 1 10                  
+
+> Solving time (ms)
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> Probability density
+> median 0.049 ms
+> 110 100 1000
+> Grounding time (ms)
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> Probability density
+> median 4.522 ms
+> 01000 2000 3000 4000 5000 6000 7000
+> # Ground rules
+> 10 1
+> 10 2
+> Total time (ms)
+> 01000 2000 3000 4000 5000 6000 7000
+> # Ground rules
+> 0
+> 20
+> 40
+> 60
+> 80
+> # Conflicts
+
+Fig. 4: ASP statistics. Top: distributions of solving time (left) and grounding time(right) on a log scale; dashed lines indicate medians. Bottom: total runtime (left) and number of conflicts (right) as a function of the number of ground rules. Table 1: Lane path coverage . A 6-second prediction horizon. 
+
+Condition Coverage (%) ↑
+
+Reachable union 90.63 
+
+Oracle mode 87.78 
+
+Ranked mode 49.61 
+
+ranked mode drops substantially to 49.61%. This is attributable to the coarse resolution of the preference landscape. The minimisation assigns costs from a small discrete set (0, 1, or 5 per lane change, plus a count penalty), meaning that in many scenarios—particularly those where all reachable paths traverse only dashed markings and involve no lane changes—all stable models receive identical cost. Ties are broken arbitrarily, effectively reducing mode selection to random choice among equally-ranked alternatives. Closing this gap through richer preference models or learned preference weights is a natural extension of the framework. Having established that the symbolic mode space is geometrically well-founded, we evaluate continuous trajectory accuracy. 
+
+4.3 Trajectory Evaluation 
+
+We evaluate single-agent vehicle forecasting using standard trajectory forecast-ing metrics. These include minimum Average Displacement Error (minADE), minimum Final Displacement Error (minFDE), and Miss Rate (FDE > 2m). 14 Monsen et al. Table 2: Performance Evaluation . Results with standard trajectory metrics. Our method is compared with baseline models from [19], grouped by method type. For scenarios with less than six modes, only the available ones were used.                                                
+
+> top-k=1 top-k=6 Model Type minADE ↓minFDE ↓MR ↓minADE ↓minFDE ↓MR ↓
+> Constant Velocity [3] Heuristic 7.75 17.44 0.89 –––
+> Ours (map + const. speed) 6.72 16.35 0.92 4.33 10.30 0.85
+> Nearest Neighbor (map) [3] Retrieval 6.45 15.51 0.84 4.30 10.08 0.78
+> LSTM (map) [3] Learning 5.07 12.71 0.90 3.73 9.09 0.85
+> WIMP (map + social) [8] 3.09 7.71 0.84 1.47 2.90 0.42
+
+Results. Table 2 compares our results against Argoverse 2 baselines. Against the most directly comparable method—Constant Velocity, which also uses no learned components and shares the constant motion assumption—our method improves top-1 minADE (6.72 vs. 7.75), confirming that map-guided mode di-versity yields meaningful gains over a single kinematic prediction. Our top-6 performance is comparable to the retrieval-based Nearest Neighbor approach despite using no training data, suggesting that explicit lane-graph reasoning re-covers a similar quality of multi-modal diversity to non-parametric data-driven methods. The Miss Rate at top-1 (0.92) is slightly worse than Constant Velocity (0.89), consistent with the ranked-mode coverage gap where the conservative preference signal occasionally selects a mode that is geometrically plausible but behaviourally misaligned with the ground truth. Learning-based methods out-perform ours on raw displacement metrics, as expected. WIMP [8], a graph neural network approach, additionally incorporates social context, placing it in a different class entirely. We note that our method is not developed or positioned as a competitor or re-placement of these learned approaches; rather, it constitutes an explainable base-line grounded in explicit reasoning over lane-structure and interaction events. Explainability is understood here as traceability in that each trajectory is fully traceable to its underlying stable model, event sequence, and lane-level path. This property is also illustrated in Fig. 5, which shows a few output examples. As such, the method provides a structured, interpretable foundation complemen-tary to learned predictors, and a natural candidate for hybrid integration as a prior or constraint. 
+
+5 Discussion and Related Work 
+
+Contemporary motion trajectory prediction is dominated by purely quantitative data-driven approaches that learn functional mappings from observed scene con-texts to distributions over future trajectories [13]. Transformer-based architec-tures have emerged as the dominant paradigm [22,21,9]. For example, QCNet [22] reformulates agent–scene interaction through a query-centric representation that achieves roto-translation invariance and supports streaming scene encoding, at-Computing Reasonable Motion 15 S3 → INT [S]                                    
+
+> S2→INT [R]
+> S2→INT [S]
+> S1→INT [S]
+> S1→INT [L]S2
+> S2→LC [R]→LC [R]S2→LC [R]
+> S1→INT [R]→LC [R]
+> S2→INT [L]
+> S1→INT [S]→LC [R]→LC [L]
+> S1→INT [S]
+> S2→INT [S]→LC [L]S2→INT [S]
+
+Fig. 5: Predicted Trajectories for Three Argoverse 2 Scenarios . Each coloured path corresponds to one trajectory mode, labelled by its event sequence. Sn denotes the starting node; blue dashed line indicates observation history; green dashed lines represent ground truth. Interpretations for INT[_] and LC[_] are as per Fig. 3. 
+
+taining state-of-the-art performance on Argoverse 2. DeMo [21] decouples tem-poral and social feature extraction into separate pathways, improving efficiency and performance over end-to-end baselines while remaining within the learned latent paradigm. DONUT [9] pushes further by adopting a decoder-only au-toregressive architecture inspired by language modelling, generating trajectory tokens in a single forward pass without an explicit encoder–decoder separation. While these methods achieve strong geometric accuracy on benchmarks, a struc-tural limitation is common to all: the representations that mediate prediction— learned queries, latent modes, decoder hidden states—typically lack explicit in-terpretable semantics. A trajectory generated by QCNet cannot be explained in terms of which lane the vehicle was predicted to occupy, which intersection manoeuvre was anticipated, or which normative constraint was satisfied. The same geometric output could, in principle, arise from multiple qualitatively dis-tinct behaviours without distinction. DeMo’s decoupled features and DONUT’s token sequence likewise provide no symbolic account of the behavioural mode selected. This opacity is not a limitation of any individual architecture but an in-herent consequence of the end-to-end learning paradigm, where interpretability is not an inherent design objective, and mechanisms for systematic verification or retrospective diagnosability not directly achievable. Goal-based and hierarchical methods [20,11,18] address the qualitative vs. quan-titative gap by abstracting prediction into geometric targets or waypoints, but these targets are typically learned rather than derived from explicit commonsense reasoning over the environment structure. We take a complementary stance, closer in spirit to physics- and rule-based approaches [13]. Rather than learning to approximate the distribution of future trajectories, we enumerate qualitatively distinct behavioural hypotheses, e.g., pertaining road network geometry. Each 16 Monsen et al. 
+
+generated trajectory is paired with a verifiable event sequence and a lane-level path, making the reasoning process fully traceable. However, the cost is geomet-ric accuracy: a constant-speed kinematic model cannot match the displacement errors of learned predictors trained on hundreds of thousands of scenarios. On the other hand, the benefit is transparency in the sense that each output can be inspected, explained, and verified against the map and domain norms. 
+
+6 Conclusion and Outlook 
+
+We have developed a declarative method for hybrid qualitative-quantitative com-putation of reasonable trajectories of moving objects. The method is systemati-cally formalised and evaluated with Argoverse 2, a state-of-the-art, community established benchmark in the domain of autonomous driving. The work is a departure from monolithic end-to-end approaches where explainability and in-terpretability are not design considerations per se. Our outlook is geared towards application in integrated perception and control, by combining motion trajectory commonsense about moving objects with (ASP-based) high-level visual sense-making capabilities of neurosymbolic vision techniques (e.g., [16,17,12], as well as with emerging Vision–Language Models (VLMs; e.g., [15,14]) for low-level visual feature analysis in real-time vision tasks. 
+
+Acknowledgements We acknowledge funding by the Swedish Research Coun-cil (Vetenskapsrådet – VR) through the project Counterfactual Commonsense 
+
+(Project ID: 2022-02960_VR). 
+
+Disclosure of Interests. The authors have no competing interests to declare that are relevant to the content of this article. 
+
+References    
+
+> 1. Bhatt, M., Suchan, J.: Artificial visual intelligence: Perceptual commonsense for human-centred cognitive technologies. In: ACAI. LNCS, vol. 13500, pp. 216–242. Springer (2021). https://doi.org/10.1007/978-3-031-24349-3_12 2. Brewka, G., Eiter, T., Truszczyński, M.: Answer set programming at a glance. Com-munications of the ACM 54 (12), 92–103 (2011). https://doi.org/10.1145/2043174. 2043195 3. Chang, M.F., Lambert, J., Sangkloy, P., Singh, J., Bak, S., Hartnett, A., Wang, D., Carr, P., Lucey, S., Ramanan, D., Hays, J.: Argoverse: 3d tracking and forecasting with rich maps. In: 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). pp. 8740–8749 (2019) 4. Davis, E.: Logical formalizations of commonsense reasoning: A survey. Journal of Artificial Intelligence Research 59 , 651–723 (2017). https://doi.org/10.1613/jair. 5339 5. Davis, E., Marcus, G.: Commonsense reasoning and commonsense knowledge in artificial intelligence. Communications of the ACM 58 (9), 92–103 (2015). https: //doi.org/10.1145/2701413
+
+Computing Reasonable Motion 17 6. European Commission: Proposal for a regulation laying down harmonised rules on artificial intelligence (artificial intelligence act) (2021) 7. Gebser, M., Kaminski, R., Kaufmann, B., Schaub, T.: Clingo = ASP + control: Preliminary report. CoRR abs/1405.3694 (2014) 8. Khandelwal, S., Qi, W., Singh, J., Hartnett, A., Ramanan, D.: What-if motion prediction for autonomous driving (2020), https://arxiv.org/abs/2008.10587 9. Knoche, M., de Geus, D., Leibe, B.: DONUT: A decoder-only model for trajec-tory prediction. In: Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV). pp. 28903–28912 (2025) 10. Lifschitz, V.: Answer Set Programming. Springer (2019). https://doi.org/10.1007/ 978-3-030-24658-7 11. Mangalam, K., An, Y., Girase, H., Malik, J.: From goals, waypoints & paths to long term human trajectory forecasting. In: ICCV. pp. 15213–15222 (2021). https: //doi.org/10.1109/ICCV48922.2021.01495 12. Monsen, J., Suchan, J., Bhatt, M.: Probabilistic answer set programming driven ranking of dynamic space-time belief models. In: Rules and Reasoning: 9th International Joint Conference, RuleML+RR 2025, Istanbul, Turkey, Septem-ber 22–24, 2025, Proceedings. p. 156–175. Springer-Verlag, Berlin, Heidelberg (2025). https://doi.org/10.1007/978-3-032-08887-1_10, https://doi.org/10.1007/ 978-3-032-08887-1_10 13. Shi, J., Chen, J., Wang, Y., Sun, L., Liu, C., Xiong, W., Wo, T.: Motion forecasting for autonomous vehicles: A survey (2025), https://arxiv.org/abs/2502.08664 14. Siméoni, O., Vo, H.V., Seitzer, M., Baldassarre, F., Oquab, M., Jose, C., Khalidov, V., Szafraniec, M., Yi, S., Ramamonjisoa, M., Massa, F., Haziza, D., Wehrstedt, L., Wang, J., Darcet, T., Moutakanni, T., Sentana, L., Roberts, C., Vedaldi, A., Tolan, J., Brandt, J., Couprie, C., Mairal, J., Jégou, H., Labatut, P., Bojanowski, P.: Dinov3 (2025), https://arxiv.org/abs/2508.10104 15. Suchan, J., Baloch, S., Bhatt, M.: Towards a VLM-based foundation for generalised neurosymbolic visual commonsense. In: Foundations of Information and Knowl-edge Systems: 14th International Symposium, FoIKS 2026, Hanover, Germany, March 23–26, 2026, Proceedings. p. 359–365. Springer-Verlag, Berlin, Heidelberg (2026). https://doi.org/10.1007/978-3-032-21540-6_24, https://doi.org/10.1007/ 978-3-032-21540-6_24 16. Suchan, J., Bhatt, M., Monsen, J.: ASP-driven visual commonsense: a general framework for reasoning about embodied interaction in the wild. In: Proceedings of the 22nd International Conference on Principles of Knowledge Representation and Reasoning. KR ’25 (2025). https://doi.org/10.24963/kr.2025/61, https://doi. org/10.24963/kr.2025/61 17. Suchan, J., Bhatt, M., Varadarajan, S.: Commonsense visual sensemaking for au-tonomous driving - on generalised neurosymbolic online abduction integrating vi-sion and semantics. Artif. Intell. 299 , 103522 (2021). https://doi.org/10.1016/J. ARTINT.2021.103522 18. Wang, M., Zhu, X., Yu, C., Li, W., Ma, Y., Jin, R., Ren, X., Ren, D., Wang, M., Yang, W.: Ganet: Goal area network for motion forecasting. In: ICRA. pp. 1609–1615 (2023). https://doi.org/10.1109/ICRA48891.2023.10160468 19. Wilson, B., Qi, W., Agarwal, T., Lambert, J., Singh, J., Khandelwal, S., Pan, B., Kumar, R., Hartnett, A., Pontes, J.K., Ramanan, D., Carr, P., Hays, J.: Argoverse 2: Next generation datasets for self-driving perception and forecasting. In: NeurIPS Datasets and Benchmarks (2021) 18 Monsen et al. 20. Yao, Z., Li, X., Lang, B., Chuah, M.C.: Goal-lbp: Goal-based local behavior guided trajectory prediction for autonomous driving. IEEE Transactions on Intelligent Transportation Systems 25 (7), 6770–6779 (2024) 21. Zhang, B., Song, N., Zhang, L.: DeMo: Decoupling motion forecasting into direc-tional intentions and dynamic states. In: The Thirty-Eighth Annual Conference on Neural Information Processing Systems (NeurIPS) (2024) 22. Zhou, Z., Wang, J., Li, Y.H., Huang, Y.K.: Query-centric trajectory prediction. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). pp. 17863–17873 (2023)

@@ -1,0 +1,1187 @@
+Title: Off the Rails: Hijacking the Scoring Head in Generative End-to-End Driving Planners with Safety-Violating Adversarial Perturbations
+
+URL Source: https://arxiv.org/pdf/2606.30807v1
+
+Published Time: Wed, 01 Jul 2026 00:06:40 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# Off the Rails : Hijacking the Scoring Head in Generative End-to-End Driving Planners with Safety-Violating Adversarial Perturbations 
+
+## Halima Bouzidi * Mboutidem Mkpong Haoyu Liu Mohammad Al Faruque University of California, Irvine, CA, USA    
+
+> {hbouzidi, mkpongm, hliu32, alfaruqu }@uci.edu
+
+## Abstract 
+
+Generative models have recently seen rapid adop-tion in End-to-End (E2E) autonomous driving (AD), with diffusion-based denoising and vocabulary-based retrieval becoming the dominant trajectory-decoding paradigms. Despite their architectural diversity, current generative AD planners share a common inference pattern: a fixed set of candidate trajectories (anchors, vocabulary entries, or proposal queries) is scored by one or more learned heads conditioned on the Bird’s-Eye-View (BEV) features, and the highest-scored candidate is returned as the final trajectory. Under this design, the scoring head is the only barrier be-tween perception and the motion command, and its decision margins between competing candidates are often small. We introduce DERAIL , an adversarial framework that exploits this scoring-head attack surface. Evaluated on various gen-erative planners, DERAIL flips the trajectory selection from a safe to an unsafe candidate, with score drops of 39 –80% 
+
+and collision rates of up to 50% , consistently outperform-ing generic loss-maximization and feature-divergence at-tacks. Our analysis suggests that safety-violating objectives govern attack effectiveness against generative AD planners, and that the scoring-head inference pattern itself is a recur-ring attack surface worth explicit defensive consideration. 
+
+## 1. Introduction 
+
+Conditional generative modeling [1, 16, 24, 42, 44] has reshaped policy learning, offering a principled framework to capture the inherent multi-modality of complex au-tonomous applications [15, 19, 50, 51, 57]. In Autonomous Driving (AD), generative planners, spanning diffusion-based denoising and vocabulary-based retrieval, have be-come dominant trajectory-decoding architectures due to their capacity to model non-Gaussian action distributions and outperform regression baselines [2, 10, 17, 20, 26, 31, 33, 51, 58]. Conditioned on multimodal sensor data such as 
+
+> *Corresponding Author.
+
+multi-camera imagery and derived Bird’s-Eye-View (BEV) features, these systems generate trajectories that account for both road topology and the non-linear interactions of sur-rounding agents [27–29, 38, 49, 55, 59, 60]. With the increasing adoption of generative planners in com-mercial AD systems [22], their adversarial robustness has become a first-order safety question. Because generative policies are strictly context-dependent, they inherit the well-known vulnerabilities of deep visual encoders [4, 5, 14, 34, 37, 45, 46]. Existing adversarial work on generative policies, however, has been developed primarily for robotic manipulation, where attacks such as DP-Attacker [9] target the noise-prediction loss inside long denoising chains. This methodology is misaligned with AD planners, which run under tight real-time budgets, use very short denoising or single-step decoding schedules, and, more importantly, do not actually output a freely refined continuous sample: they ultimately select a discrete trajectory from a fixed candidate set via learned scoring. The relevant attack surface in AD is therefore not the denoising chain itself, but the scoring rule that turns visual features into a trajectory selection. The architectures of prominent recent generative AD plan-ners [27, 28] reveal a consistent inference pattern that we abstract into five stages, regardless of whether the decoder is described as diffusion [28] or vocabulary based [27]: (1) the multi-view camera image is encoded into a BEV fea-ture map; (2) a fixed set of candidate trajectories is instan-tiated, either as a small anchor set or as a dense trajec-tory vocabulary; (3) one or more learned heads compute per-candidate scores conditioned on the BEV features; (4) the scoring head selects the highest-scored candidate; (5) no post-hoc geometric or kinematic safety filter is applied. Stages (1) and (3) are fully visual-feature-dependent and differentiable, and the scoring head’s final selection (stage 4) is preceded by score margins that, in practice, are small enough that input-space perturbations within the limited budget can flip the selection from a safe candidate to an unsafe one. The number of denoising steps, the size of the candidate set, and the number of scoring heads change the decision margin but not the underlying surface: perception 1
+
+> arXiv:2606.30807v1 [cs.RO] 29 Jun 2026
+
+flows into a learned score, and the score directly decides the final trajectory in every planner [27, 28]. 
+
+Scientific Contributions. We present a vulnerability study of the scoring-head attack surface in generative E2E AD planners. (i) We identify the scoring-head pattern, a learned scoring head over a fixed candidate set with no post-hoc safety filter, as a recurring attack surface that is shared across diffusion- and vocabulary-based AD planners de-spite their reported architectural differences. (ii) We intro-duce D ERAIL , a ground-truth-free, safety-violating objec-tive composed of three behavior-level terms that are explic-itly aligned with the safety axes of the NAVSIM [13] safety benchmark, and show that this safety-violating objective is significantly more effective than generic loss-maximization, feature-divergence, and native-objective-maximization [9] baselines under the same threat model. (iii) We provide a unified, fully differentiable adversarial attack pipeline that supports both per-frame digital perturbations and simulated, object-aware adversarial patches, allowing the same ob-jective to be deployed across all evaluated planners with-out per-model tuning. (iv) We evaluate D ERAIL on four state-of-the-art generative AD planners [27, 28] spanning diffusion-based denoising and vocabulary-based retrieval, and show consistent collision rate inflation (up to 50% ). 
+
+## 2. Related Work 
+
+Generative Models for Policy Generation. Generative modeling has emerged as a principled framework for policy learning in complex autonomous systems [1, 42, 44]. While classical imitation learning [35, 36, 40] relies on determinis-tic regression that suffers from mode averaging [15, 19, 50], generative models (e.g., diffusion, flow matching) have be-come standard for behavior cloning and trajectory genera-tion [10, 17, 20, 26, 31, 33]. Modern AD planning mod-els [27, 28, 49, 55, 59, 60] incorporate high-level semantic priors such as motion anchors, trajectory vocabularies, and BEV spatial features to meet real-time constraints. We fo-cus on the robustness of generative AD planners, a technol-ogy already integrated into commercial-grade systems such as Waymo ’s MotionDiffuser [22] and Nvidia ’s Cosmos [39]. 
+
+Adversarial Robustness of Generative Planning. The vulnerability of deep neural networks to adversarial attacks is well documented [14, 34, 37, 45, 46]. Attacking genera-tive policies, however, has been studied almost exclusively in robotic manipulation: the recent DP-Attacker [9] targets camera inputs by maximizing the noise-prediction loss of long denoising chains. Such designs are misaligned with AD planning models, which run very short denoising or single-step decoding schedules and ultimately select a dis-crete trajectory from a fixed candidate set via learned scor-ing rather than refining a continuous noise sample. As a result, attacks tuned to maximize per-step noise prediction error often fail to flip the discrete selection that determines the actual planner final motion command. 
+
+Vulnerabilities in E2E Autonomous Driving. Adversarial research on E2E AD has historically targeted regression-based pipelines such as UniAD [18] or vectorized planners such as VAD [21]. These studies expose weaknesses in per-ception encoders [8, 48, 52, 56] but stop at perceptual degra-dation (e.g., detection drops) without examining how down-stream trajectory selection amplifies such corruptions. Gen-erative planners differ along this dimension: their inference reduces to scoring a fixed candidate set and selecting via the scoring head, so small perceptual perturbations can trigger discrete mode flips that turn a minor feature corruption into a full trajectory reassignment toward an unsafe candidate. In the physical domain, prior work has demonstrated adver-sarial patches against object detectors [6, 30], but adversar-ial attacks specifically targeting the scoring-head attack sur-face of generative AD planners have, to our knowledge, not been studied before. D ERAIL provides a first study of how this scoring-head inference pattern, shared across diffusion-based and vocabulary-based AD planners, can be exploited by safety-violating objectives to induce unsafe trajectories that perception-only attacks cannot reach. 
+
+## 3. D ERAIL : Framework Design 
+
+3.1. Preliminaries: Generative Trajectory Planning 
+
+We consider end-to-end generative AD systems that map raw sensor observations to planned trajectories via learned neural networks. Let I = {Ic}Cc=1 denote the set of multi-view camera images from C surrounding cameras, and let 
+
+s ∈ Rds denote the ego-vehicle state (velocity, accelera-tion, heading rate). A generative trajectory planning model 
+
+fθ parameterized by weights θ produces a planned trajec-tory τ = [ p1, p2, . . . , pT ] ∈ RT ×3, where each waypoint 
+
+pt = ( xt, y t, ψ t) specifies the planned position and heading at future timestep t over a horizon of T steps. 
+
+The Shared Inference Chain. Recent generative planners like DiffusionDrive [28] and GTRS [27], although designed under different headings (diffusion-based denoising for Dif-fusionDrive, vocabulary-based retrieval for the GTRS vari-ants), instantiate a single five-stage inference chain: 
+
+I Eθ
+
+−→ Z decoder 
+
+−−−−−→ { (τ (v), ℓ v )}Vv=1 
+
+> scoring head
+
+−−−−−−→ τ . (1) (1) A visual encoder Eθ maps multi-view images I to a BEV feature map Z ∈ Rd×H×W . (2) A fixed candidate set {τ (v)}Vv=1 is materialized at inference time: KMeans anchors for DiffusionDrive, and a vocabulary trajectories for the GTRS variants. The candidate set is independent of 
+
+Z. (3) One or more learned scoring heads compute a per-candidate score ℓv conditioned on Z. In DiffusionDrive this is a single classification head on top of DDIM-refined an-chor features; in GTRS-DP it is a single imitation head; in 2Abrupt deceleration caused Figure 1. Overview of the D ERAIL framework, targeting generative E2E AD systems. 
+
+GTRS-Aug and GTRS-Dense it is a multi-head aggregate combining imitation with predictions of collision, drivable-area compliance, time-to-collision, ego progress, and lane keeping, each implemented as a head on Z rather than a closed-form geometric check. (4) The scoring head selects the highest-scored candidate v⋆, τ = τ (v⋆). (5) No post-hoc geometric or kinematic safety filter at the planner level is applied after generating the final trajectory. 
+
+Why This Chain is Adversarially Exposed? Stages (1) and (3) are end-to-end differentiable in I, and stage (5) is empty. The scoring head’s final selection (stage 4) is non-differentiable, and standard practice handles this with a softmax relaxation ˆτ β = P 
+
+> v
+
+softmax( βℓ v ) τ (v) so that adversarial gradients can be propagated end-to-end without changing the inference path used at evaluation time. As a result, perturbations to I propagate into shifts of the entire score vector ℓ, and a switch of the scoring head’s selection from a safe candidate v⋆ to an unsafe candidate vadv only requires shifting the relative score ℓv⋆ − ℓvadv across zero. In planners like [27, 28], this margin is small relative to the perturbation that can induce in Z. We make this argument explicit and bound it in the Appendix; here we use it only to motivate the attack objective. We emphasize that this is a 
+
+design-enabled attack surface rather than a property of any individual decoder family: any planner that selects from a fixed candidate set via a single neural scoring head and ap-plies no post-hoc safety filter inherits the same surface. 
+
+3.2. Adversarial Attack Formulation 
+
+We now formalize the D ERAIL adversarial attack on gen-erative trajectory planning models. We consider two com-plementary threat models, digital and physical that together expose the vulnerability surface of these systems. 
+
+Threat Model. We assume a white-box attacker with full access to the planning model weights θ and architecture; black-box transferability is reported in the Appendix. The white-box assumption is chosen deliberately to characterize the attack surface that the architectural chain in Eq. (1) per-mits under the strongest gradient access a defender should plan against. The attacker crafts adversarial perturbations to the camera inputs with the goal of inducing dangerous driving behavior, and we formalize two attack modalities: (i) Digital perturbation. Attacker applies an additive, pixel-wise perturbation δc ∈ R3×HI ×WI to a target camera view, bounded by an ℓ∞-norm constraint: 
+
+˜Ic = clamp (Ic + δc, 0, 1) , ∥δc∥∞ ≤ ϵ,  (2) where ϵ controls the imperceptibility budget. This models a cyber-attacker who can intercept and modify the camera feed before it reaches the AD system. (ii ) Physical perturbation. Attacker places an adversarial patch δ ∈ [0 , 1] 3×hp×wp on a physical surface visible to the ego-vehicle. A stitching operator A composites the patch onto the image at the appropriate location and scale: 
+
+˜Ic = A(δ, I c, bc), (3) where bc encodes the placement geometry (position, scale) on camera c, modeling a real-world adversary who attaches a patch to a nearby object (e.g., vehicle). 
+
+DERAIL Attack Objective. Let τ clean = fθ (I, s) de-note the trajectory produced from clean inputs, and τ adv =
+
+fθ (˜I, s) the trajectory under the adversarial perturbation. The attacker’s goal under Eq. (1) is to make the scoring head select a candidate that is unsafe under the NAVSIM PDM Score. Rather than expressing this as a discrete combina-torial objective over the candidate set, we use three differ-entiable, behavior-level surrogates that act on the softmax-relaxed trajectory ˆτ β and that are explicitly aligned with an unsafe behavior (collision, off-road, driver discomfort). Regardless of the attack modality, the attacker solves: 
+
+max  
+
+> δ∈P
+
+LDerail (δ), (4) where P denotes the feasible perturbation set: P = {δ :
+
+∥δ∥∞ ≤ ϵ} for digital attacks, or P = [0 , 1] 3×hp×wp for 3physical patches. The D ERAIL loss is a weighted combi-nation of three safety-violating components, each chosen to push the relaxed trajectory toward a different failure axis: 
+
+LDerail (δ) = waggr ·L aggr +wbound ·L bound +wbrake ·L brake  (5) 
+
+(i) Forward Aggression Loss Laggr (targets NAVSIM Col-lision and TTC sub-metrics). This component pushes the planning model toward aggressive forward motion that ig-nores surrounding agents. It maximizes longitudinal dis-placement while suppressing lateral corrections: 
+
+Laggr = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+xadv  
+
+> t
+
+− γ
+
+> T
+
+X
+
+> t=1
+
+|yadv  
+
+> t
+
+|, (6) where xadv  
+
+> t
+
+and yadv  
+
+> t
+
+are the longitudinal and lateral coordi-nates, and γ controls the lateral suppression, inducing reck-less driving that disregards collision risks. 
+
+(ii) Boundary Push Loss Lbound (targets NAVSIM Drivable-Area and Driving-Direction sub-metrics). This component steers the trajectory toward the edges of the drivable area by maximizing lateral deviation: 
+
+Lbound = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+|yadv  
+
+> t
+
+| + μ · max  
+
+> t
+
+|yadv  
+
+> t
+
+|, (7) where the first term encourages sustained lateral drift and the second amplifies the peak excursion, inducing road de-parture or wrong-lane driving. 
+
+(iii) Sudden Braking Loss Lbrake (targets NAVSIM Comfort and Ego-Progress sub-metrics). Induces abrupt deceleration by penalizing forward velocity in the adversarial trajectory. Given the planned waypoints {padv  
+
+> t
+
+}Tt=1 , we compute the inter-waypoint displacements ∆t = ∥padv  
+
+> t+1
+
+− padv  
+
+> t
+
+∥2 and minimize forward progress while amplifying speed discon-tinuities: 
+
+Lbrake = − 1
+
+T −1 
+
+> T−1
+
+X
+
+> t=1
+
+∆t + λjerk  
+
+> T−1
+
+X
+
+> t=2
+
+(∆ t − ∆t−1)2 , (8) 
+
+Expectation over Transformations. For physical patch at-tacks, robustness to variation in viewpoint and placement geometry is critical. We optimize under an Expectation over Transformations (EOT) [3] framework, applying stochastic geometric augmentations t ∼ T (rotation, translation, scal-ing, shearing) 
+
+LEOT Derail (δ) = Et∼T [ LDerail (t(δ))] , (9) approximated via a single stochastic sample per step. For digital attacks, the perturbation is applied directly without EOT augmentation. 
+
+Optimization. The optimization is adapted to each attack modality. For digital attacks , we employ Projected Gradient Descent (PGD) [32] with step size α:
+
+δ(t+1) = Π ∥·∥ ∞≤ϵ
+
+h
+
+δ(t) + α · sign (∇δ LDerail )
+
+i
+
+,
+
+where Π projects the perturbation back onto the ℓ∞-ball. For physical patch attacks , we use Adam [23] with gradient accumulation across all N scene tokens in a driving sce-nario. 
+
+δ(e+1) = Π [0 ,1] 
+
+"
+
+δ(e) + α · ADAM 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∇δ LEOT Derail 
+
+!# 
+
+,
+
+Π[0 ,1] projects patch pixels to valid ranges. The patch is ini-tialized from δ(0) ∼ U (0 , 1) and optimized over E epochs. 
+
+## 4. Evaluation 
+
+4.1. Experimental Setup 
+
+Generative Planning Models and Datasets. We evalu-ate the D ERAIL attack against four state-of-the-art gener-ative planning models on the NAVSIM benchmark [13]. The target models are: (i) DiffusionDrive [28], a trun-cated denoising diffusion planner that scores KMeans an-chor trajectories with a single classification head after K=2 
+
+DDIM refinement steps. ( ii ) GTRS-DP [27], a vocabulary-based retrieval planner that scores a 4,096 -trajectory vocab-ulary with a single imitation head. (iii ) GTRS-Aug [27], an augmented variant of GTRS that combines the imita-tion head with multiple safety-related scoring heads (colli-sion, drivable-area, time-to-collision, ego progress) over an 
+
+8,192 -trajectory vocabulary. ( iv ) GTRS-Dense [27], a dense prediction variant that applies the same multi-head safety scorer over 16 ,384 vocabulary candidates without pruning. All four planners follow the scoring-head inference chain of Eq. (1): a fixed candidate set is scored by one or more learned heads conditioned on the BEV features, and the fi-nal trajectory is selected by the scoring head with no post-hoc geometric or kinematic safety filter. Each model oper-ates on a multi-view camera setup with left, front, and right cameras, which are cropped and stitched into a panoramic image before being fed to the visual encoder. 
+
+Metrics. We adopt the Planning Decision-Making Score (PDMS) [12] as our evaluation metric. PDMS provides a comprehensive assessment of planning quality through a combination of safety and comfort sub-scores: ( i) Collision Rate (CR) : the fraction of scenarios with at-fault collisions. (ii ) Off-Road Rate (OR) : the fraction of scenarios violat-ing drivable area compliance. ( iii ) Wrong-Way Rate (WW) :the fraction of scenarios violating driving direction compli-ance. ( iv ) Unsafe Time-To-Collision rate (TTC) : the fraction of scenarios where the ego vehicle’s time-to-collision falls 4below a safe threshold. ( v) Comfort (CM) : fraction of sce-narios with jerk and acceleration within acceptable bounds. 
+
+Baselines. We compare against three adversarial baselines under the same threat model on a single camera view: Un-targeted PGD [32] applies standard Projected Gradient De-scent to maximize the model’s evaluation-mode training loss via gradient ascent on camera inputs. Encoder Attack 
+
+maximizes L2 and cosine distance between clean and adver-sarial vision encoder features. DP-Attacke r [9] maximizes the training-mode denoising loss at randomly sampled gen-erative timestamps. Unlike these baselines, which rely on the model’s own training objective or intermediate features, DERAIL uses a ground-truth-free, multi-objective loss de-signed to induce specific unsafe driving behaviors 
+
+Digital Perturbation Setting. For digital attacks, we apply PGD [32] directly on the raw camera pixel values. The per-turbation is constrained to an ℓ∞-ball with radius ϵ = 8 /255 
+
+and optimized with step size α = 2 /255 over K=20 itera-tions. The attack targets a single camera view (front camera by default) while leaving the remaining views unperturbed (See Appendix for multi-camera analysis). The perturba-tion is updated via signed gradient ascent on LDerail .
+
+Physical Perturbation Setting. For physical attacks, we optimize a universal adversarial patch δ ∈ [0 , 1] 3×256 ×256 
+
+that is composited onto the camera image via differentiable stitching. The patch is placed using object-aware place-ment : the 3D bounding boxes of surrounding vehicles are projected onto the camera plane. The patch is resized to cover ρ=0 .5 of the target vehicle’s bounding box. For phys-ical robustness, the patch undergoes stochastic geometric augmentations at each training step (Details in Appendix). 
+
+Optimization Details. We optimize a single universal patch across all scenes using Adam [23]. The same D E- 
+
+> RAIL
+
+loss weights ( wbrake , waggr , wbound ) are used across all models and both attack modalities. All experiments are con-ducted on a single NVIDIA RTX 3060 GPU. Crafting digi-tal perturbation takes 1-2 sec. Training a single patch takes roughly 10-15 minutes depending on the target model. 
+
+4.2. Experimental Results 4.3. Digital Attack Evaluation 
+
+Table 1 summarizes digital attack results across the four planning models. DERAIL is the only method achieving 
+
+100% Attack Success Rate (ASR) on every model, with score drops of 39 .8–80 .1% and collision rates of 25 .8–
+
+50 .7% , consistently outperforming all baselines. The most informative comparison is with DP-Attacker [9], which uses the same PGD optimization loop and the same ϵ=8 /255 
+
+perturbation budget yet only reaches 85 –100% ASR with significantly smaller score drops ( 16 –34% ). The two at-tacks therefore differ only in their objective: DP-Attacker 
+
+Table 1. Adversarial attacks comparison on NAVSIM [13].                                                                                                                                                                                 
+
+> Adv. Attack PDM ↓Drop ↑ASR ↑CR ↑OR ↑WW ↑TTC ↑CM ↑
+> Attacked Model: DiffusionDrive [13] Clean 0.91 0.00 0.00 0.99 2.01 2.24 4.33 0.01 Untargeted PGD 0.77 15.86 95.71 9.14 6.74 4.30 21.50 0.01 Encoder Attack 0.92 -0.12 44.29 1.02 2.07 2.23 4.00 0.01 DP Attacker [9] 0.60 34.19 100.00 21.01 10.14 8.21 31.35 0.23
+> Derail (Ours) 0.37 60.02 100.00 38.42 31.95 22.63 52.67 3.79
+> Attacked Model: GTRS-DP [27] Clean 0.78 0.00 0.00 11.28 3.51 0.57 12.12 0.93 Untargeted PGD 0.42 46.03 98.57 29.80 27.15 13.85 33.20 5.80 Encoder Attack 0.62 20.44 90.00 15.98 15.86 4.81 17.68 0.91 DP Attacker [9] 0.59 24.26 94.29 17.87 19.22 6.99 19.26 0.90
+> Derail (Ours) 0.16 80.10 100.00 50.65 60.38 42.24 58.18 18.90
+> Attacked Model: GTRS-AUG [27] Clean 0.83 0.00 0.00 9.51 0.40 0.30 9.99 0.80 Untargeted PGD 0.46 45.03 98.57 30.72 20.70 8.46 32.55 1.54 Encoder Attack 0.64 23.09 92.86 11.19 17.01 6.15 13.47 3.89 DP Attacker [9] 0.46 44.74 98.57 30.83 20.25 8.75 33.07 1.61
+> Derail (Ours) 0.22 72.85 100.00 45.04 47.92 33.66 51.41 8.19
+> Attacked Model: GTRS-Dense [27] Clean 0.83 0.00 0.00 7.90 1.00 0.29 8.22 0.88 Untargeted PGD 0.69 16.82 87.14 8.01 10.70 3.56 8.83 4.85 Encoder Attack 0.67 19.07 90.00 5.66 10.04 2.31 7.04 7.52 DP Attacker [9] 0.69 16.42 85.71 7.54 10.73 3.90 8.28 4.17
+> Derail (Ours) 0.50 39.78 100.00 25.82 10.49 4.10 27.45 43.25
+
+maximizes the model’s own training-mode loss (e.g., diffu-sion noise prediction), which is well aligned with degrading per-step denoising quality but has no relationship to whether the scoring head in Eq. (1) switches to an unsafe candidate. DERAIL , by contrast, operates directly in the trajectory-output space through behavior-level surrogates (forward ag-gression, boundary push, sudden braking) that are aligned with the safety axes of the PDM Score, so its gradients con-sistently push the relaxed trajectory in directions that corre-late with flipping the scoring head’s selection from a safe to an unsafe candidate. The Encoder Attack is the most direct comparison for a model-agnostic, encoder-targeting base-line: it underperforms D ERAIL on every model and is nearly ineffective on DiffusionDrive (Drop = − 0.12% ), where the very short ( K=2 ) DDIM chain still gives the scoring head enough margin to recover from generic feature corruption. GTRS-Dense exhibits the highest resilience among base-lines, consistent with its multi-head safety scorer aggre-gating evidence across several auxiliary predictions; even so, D ERAIL induces a 25 .8% collision rate and the highest 
+
+43 .3% discomfort rate observed in our experiments. 
+
+4.4. Qualitative Analysis 
+
+Figures 2 presents scenarios comparing clean and adversar-ially perturbed trajectory predictions alongside their cor-responding front-camera views. Under clean conditions, the planning model (DiffusionDrive [13]) consistently pro-duces safe, lane-centered trajectories (green) that maintain appropriate following distance and respect road boundaries. Under D ERAIL , the predicted trajectories (red) exhibit three qualitatively distinct failure modes, each corresponding to the scoring head in Eq. (1) switching to a different fam-ily of unsafe candidates in the model’s fixed trajectory set. First, in highway and urban following scenarios (top row, 5Clean Trajectory Prediction Clean Trajectory Prediction Clean Trajectory Prediction               
+
+> Clean Trajectory Prediction Clean Trajectory Prediction
+> Under Derail Attack Under Derail Attack Under Derail Attack
+> Under Derail Attack Under Derail Attack
+> Clean cam_0 Perturbed cam_0 Clean cam_0 Perturbed cam_0 Clean cam_0 Perturbed cam_0
+> Clean cam_0 Perturbed cam_0 Clean cam_0 Perturbed cam_0
+> Clean Trajectory Prediction Under Derail Attack
+> Clean cam_0 Perturbed cam_0
+
+Figure 2. Qualitative visualization of D ERAIL digital attacks across six NAVSIM scenarios. Each scenario shows the BEV trajectory prediction and front-camera view under clean (left) and adversarially digital perturbed (right) conditions. Green trajectories indicate clean predictions; red trajectories indicate collision-inducing predictions under D ERAIL .
+
+columns 1–2), Laggr drives the scoring head toward high-speed forward anchors/vocabulary entries that ignore the leading agent, steering the ego vehicle directly into a col-lision. Second, in scenarios involving curved roads and intersections (bottom row), Lbound shifts the scoring head toward laterally displaced candidates, producing off-road or wrong-lane trajectories. Third, across multiple scenar-ios, Lbrake selects candidates with abrupt velocity profiles relative to the smooth clean baseline. Critically, the front-camera views reveal that the adversarial perturbations are visually subtle, the perturbed images appear nearly iden-tical to their clean counterparts, confirming that D ERAIL 
+
+achieves safety-critical trajectory switching through imper-ceptible pixel-space modifications without altering the se-mantic content of the scene. 
+
+4.5. Universal Physical Patch Evaluation 
+
+Single Driving Log. Table 2 presents physical patch re-sults on a representative driving log. The collision-focused patch achieves 100% ASR across all four models, while the random-texture patch produces no systematic degrada-tion, despite a spurious 100% ASR on GTRS-AUG, colli-sion rates remain unchanged across all models, confirming that adversarial effectiveness requires targeted optimization and cannot arise from arbitrary visual perturbations. Diffu-sionDrive and GTRS-Dense suffer the largest collision rate increases ( 16 .7% → 33 .3% each), with DiffusionDrive ad-
+
+Table 2. Patch attack on one driving log from NAVSIM [13]. 
+
+Adv. Attack PDM ↓ Drop ↑ ASR ↑ CR ↑ OR ↑ WW ↑ TTC ↑
+
+Attacked Model: DiffusionDrive [13] Clean 0.81 0.00 0.00 16.67 0.00 0.00 16.67 Random Patch 0.73 9.46 100.00 25.00 0.00 0.00 25.00 
+
+Derail Patch (Ours) 0.66 18.49 100.00 33.33 0.00 0.00 33.33 
+
+Attacked Model: GTRS-DP [27] Clean 0.84 0.00 0.00 8.33 0.00 0.00 16.67 Random Patch 0.87 -3.51 0.00 8.33 0.00 0.00 8.33 
+
+Derail Patch (Ours) 0.71 15.22 100.00 25.00 0.00 0.00 25.00 
+
+Attacked Model: GTRS-AUG [27] Clean 0.82 0.00 0.00 16.67 0.00 0.00 16.67 Random Patch 0.82 0.01 100.00 16.67 0.00 0.00 16.67 
+
+Derail Patch (Ours) 0.74 10.17 100.00 25.00 0.00 0.00 25.00 
+
+Attacked Model: GTRS-Dense [27] Clean 0.85 0.00 0.00 8.33 0.00 0.00 8.33 Random Patch 0.85 -1.11 0.00 8.33 0.00 0.00 8.33 
+
+Derail Patch (Ours) 0.62 26.18 100.00 33.33 0.00 0.00 33.33 
+
+ditionally exhibiting the largest score drop ( 18 .5% ), con-sistent with its sensitivity to input-space perturbations ob-served in the digital setting. GTRS-DP also shows mean-ingful degradation, with its collision rate rising from 8.3% 
+
+to 25 .0% (Drop : 15 .2% ). GTRS-AUG proves the most resilient (Drop : 10 .2% ), suggesting that augmentation-hardened encoders partially mitigate patch-induced pertur-bations in the physical setting, though this resilience does not generalize to digital attacks, where the model remains highly vulnerable (see Table 1). Notably, off-road and wrong-way rates remain at 0% across all conditions, reveal-ing that physical patches primarily induce frontal collisions 6Clean Trajectory Prediction Clean Trajectory Prediction Clean Trajectory Prediction Under Derail Patch Attack      
+
+> Clean cam_0 Perturbed cam_0 Clean cam_0 Perturbed cam_0 Clean cam_0 Perturbed cam_0
+> Under Derail Patch Attack Under Derail Patch Attack
+
+Figure 3. Qualitative visualization of D ERAIL physical patch-based attacks across three NAVSIM scenarios. Each scenario shows the BEV trajectory prediction and front-camera view under clean (left) and adversarially perturbed via physical patch (right) conditions. Table 3. Patch attack comparison on NAVSIM [13] (all-logs). 
+
+Adv. Attack PDM ↓ Drop ↑ ASR ↑ CR ↑ OR ↑ WW ↑ TTC ↑
+
+Attacked Model: DiffusionDrive [13] Clean 0.91 0.00 0.00 1.30 1.86 1.96 4.89 Random Patch 0.90 0.50 44.78 2.15 0.94 0.63 7.07 
+
+Derail Patch (Ours) 0.79 13.38 68.66 13.56 1.17 1.15 22.80 
+
+Attacked Model: GTRS-DP [27] Clean 0.80 0.00 0.00 9.34 1.15 0.62 9.49 Random Patch 0.81 -0.09 55.22 9.24 1.13 0.65 9.26 
+
+Derail Patch (Ours) 0.78 2.91 61.19 10.68 2.11 0.64 10.86 
+
+Attacked Model: GTRS-AUG [27] Clean 0.93 0.00 0.00 2.59 0.36 0.11 2.66 Random Patch 0.93 0.39 47.76 2.60 1.00 0.10 2.56 
+
+Derail Patch (Ours) 0.86 7.37 50.75 9.12 1.47 0.28 8.50 
+
+Attacked Model: GTRS-Dense [27] Clean 0.91 0.00 0.00 0.69 1.22 0.33 0.83 Random Patch 0.91 0.05 41.79 0.73 1.20 0.33 1.01 
+
+Derail Patch (Ours) 0.88 3.29 52.24 2.90 1.50 0.35 2.64 
+
+without broader trajectory failures, a narrower but safety-critical failure mode that demonstrates the practical danger of physically deployable adversarial patches against gener-ative end-to-end AD systems. 
+
+All Driving Logs. Table 3 reports results averaged across all 50% driving logs from NAVSIM. DiffusionDrive re-mains the most vulnerable (Drop : 13 .4% , CR : 1 .3% →
+
+13 .6% ), with GTRS-AUG also exhibiting meaningful degradation (CR : 2.6% → 9.1% ). While GTRS-Dense shows lower sensitivity to patch-based perturbations (Drop ≤ 3.3% , CR ≤ 3.7% ), this is consistent with the con-strained nature of universal patch optimization rather than general adversarial robustness, as the model suffers sub-stantial degradation under digital attacks in Table 1. The re-duced effectiveness relative to pixel-space attacks (collision rates of 13 .6% versus 38 .4% under D ERAIL ) is expected given that a single frame-independent patch must generalize across diverse visual contexts without per-frame adaptation, a significantly harder optimization problem. Importantly, even under this constrained threat model, DiffusionDrive’s unsafe TTC rate rises from 4.9% to 22 .8% , confirming that universal physical patches constitute a realistic and mean-ingful safety threat. 
+
+Table 4. Ablation analysis on the D ERAIL loss components.                                                                                  
+
+> Adv. Loss DiffusionDrive [28] GTRS-DP [27] GTRS-AUG [27] GTRS-Dense [27] PDM ↓CR ↑OR ↑PDM ↓CR ↑OR ↑PDM ↓CR ↑OR ↑PDM ↓CR ↑OR ↑
+> Clean 0.92 2.53 0.00 0.87 5.06 0.00 0.84 11.39 0.00 0.86 6.33 0.00 w/o Laggr 0.31 40.51 37.97 0.32 53.16 53.16 0.38 44.30 32.91 0.60 17.72 13.92 w/o Lbound 0.42 46.84 3.80 0.22 59.49 31.65 0.32 58.86 15.19 0.42 43.04 3.80 w/o Lbrake 0.15 63.92 36.71 0.05 70.89 77.22 0.23 55.70 27.85 0.32 56.96 3.80
+> Full LDerail 0.19 63.29 40.51 0.05 66.46 82.28 0.22 60.76 29.11 0.38 48.73 5.06
+
+4.6. Ablation Study 
+
+Adversarial Loss Components. Table 4 reports the con-tribution of each loss component by ablating Laggr , Lbound ,and Lbrake individually across the four planning models. Removing Laggr produces the largest drop in collision rate across all models (e.g., DiffusionDrive: 63 .29% →
+
+40 .51% , GTRS-Dense: 48 .73% → 17 .72% ), confirming that the longitudinal axis is the dominant driver of frontal collisions. Removing Lbound substantially reduces off-road rate across all models (e.g., GTRS-DP: 82 .28% → 31 .65% ,DiffusionDrive: 40 .51% → 3.80% ), demonstrating that the lateral term is what pushes the scoring head toward lat-erally displaced vocabulary/anchor candidates rather than collision-inducing ones. Removing Lbrake occasionally yields marginally higher collision rates on individual mod-els (e.g., GTRS-DP: 70 .89% vs. 66 .46% full), reflecting a mild tension between velocity-discontinuity induction and collision rate. The full loss consistently achieves the best 
+
+joint degradation across both CR and OR, confirming that the three task-directed terms address complementary axes of the PDM Score and that their combination produces the most comprehensive safety-critical degradation. 
+
+Parameters Sensitivity Analysis. Table 5 reports the sen-sitivity of D ERAIL to two key optimization parameters: the number of PGD iterations and the perturbation budget 
+
+ϵ, evaluated on GTRS-AUG. D ERAIL exhibits consistent monotonic improvement with increasing iterations across all safety-critical metrics, with collision rate rising from 31.65% at 5 iterations to 60.76% at 50 iterations. However, gains exhibit clear diminishing returns beyond 20 iterations, 7Table 5. Sensitivity analysis of DERAIL attack strength to PGD optimization iterations or perturbation budget.                                                                                         
+
+> Metric PGD Iterations (ϵ= 8 /255 )Metric Perturbation Budget (α= 2 /255 )510 15 20 25 30 50 ϵ= 2 /255 ϵ= 4 /255 ϵ= 8 /255 ϵ= 16 /255 ϵ= 32 /255
+> PDM ↓0.45 0.30 0.29 0.25 0.23 0.21 0.20 PDM ↓0.48 0.31 0.25 0.23 0.22 CR ↑31.65 44.30 48.10 50.63 51.90 56.96 60.76 CR ↑30.38 44.94 50.63 54.43 54.43 OR ↑29.11 40.51 41.77 43.04 44.30 45.57 44.30 OR ↑25.32 39.24 43.04 45.57 46.84 WW ↑4.43 13.29 16.46 17.09 23.42 23.42 26.58 WW ↑3.16 10.13 17.09 21.52 23.42 TTC ↑51.90 64.56 68.35 72.15 75.95 74.68 82.28 TTC ↑45.57 65.82 72.15 78.48 78.48
+> Figure 4. Gradient alignment with the collision objective across scene tokens (02 logs).
+
+the largest single improvement occurs between 5 and 10 it-erations (+12.65% CR), whereas subsequent increments of 5 iterations contribute progressively smaller gains, suggest-ing that the attack converges to a strong adversarial solution within a moderate optimization budget. Notably, off-road rate peaks at 45.57% at 30 iterations before slightly declin-ing at 50, indicating a mild tension between maximizing frontal collisions and lateral boundary violations at higher iteration counts. With respect to perturbation budget, at-tack effectiveness scales consistently from ϵ = 2 /255 to 
+
+ϵ = 8 /255 , with the largest gains concentrated in this range (CR: 30.38% →50.63%, TTC: 45.57% →72.15%). Beyond 
+
+ϵ = 8 /255 , improvements plateau for CR and TTC (54.43% at both ϵ = 16 /255 and ϵ = 32 /255 ), while OR and WW continue to grow marginally, suggesting that the collision-inducing objective saturates at moderate budgets while lat-eral and directional failures remain responsive to larger per-turbations. Together, these results confirm that D ERAIL 
+
+achieves strong attack performance within a practical op-timization budget of 20 iterations and ϵ = 8 /255 , balancing effectiveness with computational efficiency. 
+
+Gradient Alignment Analysis. The gap between D ERAIL 
+
+and the DP-Attacker baseline [9] in Table 1 cannot be at-tributed to perturbation budget or optimization strength, since both attacks share the same PGD loop, same ϵ, and same number of iterations. To isolate the role of the objec-tive, we measure the per-scene-token cosine similarity be-tween each attack’s input gradient and a reference collision-inducing gradient (the gradient of a separately constructed collision-event loss) across two representative driving logs. As shown in Fig. 4, D ERAIL achieves consistently positive gradient alignment with the collision reference (mean 0.354 
+
+and 0.502 across the two logs), with the red band remain-ing predominantly above zero throughout the scene-token sequence. In contrast, DP-Attacker’s gradients are effec-tively orthogonal to the collision reference (mean −0.017 
+
+and −0.065 ), oscillating randomly around zero without any systematic alignment. We interpret this not as evidence that the diffusion decoder is intrinsically less vulnerable than vo-cabulary decoders, but as direct evidence that the choice of objective, task-directed (D ERAIL ) versus generic loss maxi-mization (DP-Attacker), is what determines whether adver-sarial gradients steer the scoring head in Eq. (1) toward un-safe candidates within a fixed perturbation budget. 
+
+## 5. Discussion 
+
+DERAIL demonstrated that current generative end-to-end autonomous driving planners share a design-enabled adver-sarial attack surface that follows directly from how they as-semble their final motion command. Across diffusion-based (DiffusionDrive [28]) and vocabulary-based (GTRS vari-ants [27]) planners, inference reduces to the same five-stage chain of Eq. (1): a learned scoring head over a fixed can-didate set, with no post-hoc safety filter at the model level. Because the scoring head is the only barrier between the BEV features and the selected trajectory, adversarial pertur-bations to the camera input can switch the scoring head’s selection from a safe to an unsafe trajectory. 
+
+## 6. Conclusion 
+
+This paper presents D ERAIL , an adversarial framework that targets a recurring scoring-head attack surface in current generative E2E AD planners. Across four state-of-the-art models spanning diffusion-based and vocabulary-based trajectory decoding on NAVSIM, D ERAIL achieves 100% 
+
+ASR on every model with collision rates of 25 .8–60 .4% .Our analysis suggests that safety-violating objectives gov-ern attack effectiveness against this class of planners and that explicit downstream safety filtering between the scor-ing head and the executed trajectory deserves attention as a defensive direction for next-generation of generative end-to-end autonomous driving systems. 8References 
+
+[1] Anurag Ajay, Yilun Du, Abhi Gupta, Joshua B Tenenbaum, Tommi S Jaakkola, and Pulkit Agrawal. Is conditional gen-erative modeling all you need for decision making? In The Eleventh International Conference on Learning Representa-tions . 1, 2 [2] Henrik Arnelid, Edvin Listo Zec, and Nasser Mohammadiha. Recurrent conditional generative adversarial networks for autonomous driving sensor modelling. In 2019 IEEE Intelli-gent transportation systems conference (ITSC) , pages 1613– 1618. IEEE, 2019. 1 [3] Anish Athalye, Logan Engstrom, Andrew Ilyas, and Kevin Kwok. Synthesizing robust adversarial examples. In Inter-national conference on machine learning , pages 284–293. PMLR, 2018. 4 [4] Halima Bouzidi, Haoyu Liu, and Mohammad Abdullah Al Faruque. See no evil: Adversarial attacks against linguistic-visual association in referring multi-object tracking systems. 
+
+arXiv preprint arXiv:2509.02028 , 2025. 1 [5] Halima Bouzidi, Haoyu Liu, Yonatan Achamyeleh, Praneet-sai Iddamsetty, and Mohammad Al Faruque. Out of sight, out of track: Adversarial attacks on propagation-based multi-object trackers via query state manipulation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 13326–13335, 2026. 1 [6] Tom B Brown, Dandelion Man´ e, Aurko Roy, Mart´ ın Abadi, and Justin Gilmer. Adversarial patch. arXiv preprint arXiv:1712.09665 , 2017. 2 [7] Holger Caesar, Juraj Kabzan, Kok Seang Tan, Whye Kit Fong, Eric Wolff, Alex Lang, Luke Fletcher, Oscar Beijbom, and Sammy Omari. nuplan: A closed-loop ml-based plan-ning benchmark for autonomous vehicles. arXiv preprint arXiv:2106.11810 , 2021. 6 [8] Amirhosein Chahe, Chenan Wang, Abhishek Jeyapratap, Kaidi Xu, and Lifeng Zhou. Dynamic adversarial at-tacks on autonomous driving systems. arXiv preprint arXiv:2312.06701 , 2023. 2 [9] Yipu Chen, Haotian Xue, and Yongxin Chen. Diffusion pol-icy attacker: Crafting adversarial attacks for diffusion-based policies. Advances in Neural Information Processing Sys-tems , 37:119614–119637, 2024. 1, 2, 5, 8, 7 [10] Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran Song. Diffusion policy: Visuomotor policy learning via action dif-fusion. The International Journal of Robotics Research , 44 (10-11):1684–1704, 2025. 1, 2 [11] OpenScene Contributors. Openscene: The largest up-to-date 3d occupancy prediction benchmark in autonomous driving. https://github.com/OpenDriveLab/ OpenScene , 2023. 6 [12] Daniel Dauner, Marcel Hallgarten, Andreas Geiger, and Kashyap Chitta. Parting with misconceptions about learning-based vehicle motion planning. In Conference on Robot Learning , pages 1268–1281. PMLR, 2023. 4 [13] Daniel Dauner, Marcel Hallgarten, Tianyu Li, Xinshuo Weng, Zhiyu Huang, Zetong Yang, Hongyang Li, Igor Gilitschenski, Boris Ivanovic, Marco Pavone, et al. Navsim: Data-driven non-reactive autonomous vehicle simulation and benchmarking. Advances in Neural Information Processing Systems , 37:28706–28719, 2024. 2, 4, 5, 6, 7, 9 [14] Adam Gleave, Michael Dennis, Cody Wild, Neel Kant, Sergey Levine, and Stuart Russell. Adversarial policies: Attacking deep reinforcement learning. arXiv preprint arXiv:1905.10615 , 2019. 1, 2 [15] Sebastian Gomez-Gonzalez, Sergey Prokudin, Bernhard Sch¨ olkopf, and Jan Peters. Real time trajectory prediction using deep conditional generative models. IEEE Robotics and Automation Letters , 5(2):970–976, 2020. 1, 2 [16] Haoran He, Chenjia Bai, Kang Xu, Zhuoran Yang, Weinan Zhang, Dong Wang, Bin Zhao, and Xuelong Li. Diffusion model is an effective planner and data synthesizer for multi-task reinforcement learning. Advances in neural information processing systems , 36:64896–64917, 2023. 1 [17] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 1, 2 [18] Yihan Hu, Jiazhi Yang, Li Chen, Keyu Li, Chonghao Sima, Xizhou Zhu, Siqi Chai, Senyao Du, Tianwei Lin, Wenhai Wang, et al. Planning-oriented autonomous driving. In Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 17853–17862, 2023. 2 [19] Boris Ivanovic, Karen Leung, Edward Schmerling, and Marco Pavone. Multimodal deep generative models for tra-jectory prediction: A conditional variational autoencoder ap-proach. IEEE Robotics and Automation Letters , 6(2):295– 302, 2020. 1, 2 [20] Michael Janner, Yilun Du, Joshua B Tenenbaum, and Sergey Levine. Planning with diffusion for flexible behavior synthe-sis. arXiv preprint arXiv:2205.09991 , 2022. 1, 2 [21] Bo Jiang, Shaoyu Chen, Qing Xu, Bencheng Liao, Jiajie Chen, Helong Zhou, Qian Zhang, Wenyu Liu, Chang Huang, and Xinggang Wang. Vad: Vectorized scene representa-tion for efficient autonomous driving. In Proceedings of the IEEE/CVF International Conference on Computer Vision ,pages 8340–8350, 2023. 2 [22] Chiyu Jiang, Andre Cornman, Cheolho Park, Benjamin Sapp, Yin Zhou, Dragomir Anguelov, et al. Motiondiffuser: Controllable multi-agent motion prediction using diffusion. In Proceedings of the IEEE/CVF conference on computer vi-sion and pattern recognition , pages 9644–9653, 2023. 1, 2 [23] Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 ,2014. 4, 5, 8 [24] Jiachen Li, Hengbo Ma, and Masayoshi Tomizuka. Con-ditional generative neural system for probabilistic trajectory prediction. In 2019 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 6150–6156. IEEE, 2019. 1 [25] Kailin Li, Zhenxin Li, Shiyi Lan, Yuan Xie, Zhizhong Zhang, Jiayi Liu, Zuxuan Wu, Zhiding Yu, and Jose M Alvarez. Hydra-mdp++: Advancing end-to-end driv-ing via expert-guided hydra-distillation. arXiv preprint arXiv:2503.12820 , 2025. 4 
+
+9[26] Xiang Li, Varun Belagali, Jinghuan Shang, and Michael S Ryoo. Crossway diffusion: Improving diffusion-based vi-suomotor policy via self-supervised learning. In 2024 IEEE International Conference on Robotics and Automation (ICRA) , pages 16841–16849. IEEE, 2024. 1, 2 [27] Zhenxin Li, Wenhao Yao, Zi Wang, Xinglong Sun, Joshua Chen, Nadine Chang, Maying Shen, Zuxuan Wu, Shiyi Lan, and Jose M Alvarez. Generalized trajectory scor-ing for end-to-end multimodal planning. arXiv preprint arXiv:2506.06664 , 2025. 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12 [28] Bencheng Liao, Shaoyu Chen, Haoran Yin, Bo Jiang, Cheng Wang, Sixu Yan, Xinbang Zhang, Xiangyu Li, Ying Zhang, Qian Zhang, et al. Diffusiondrive: Truncated diffusion model for end-to-end autonomous driving. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 12037–12047, 2025. 1, 2, 3, 4, 7, 8, 10, 11 [29] Jiaqi Liu, Peng Hang, Xiaocong Zhao, Jianqiang Wang, and Jian Sun. Ddm-lag: A diffusion-based decision-making model for autonomous vehicles with lagrangian safety en-hancement. IEEE Transactions on Artificial Intelligence , 6 (3):780–791, 2024. 1 [30] Xin Liu, Huanrui Yang, Ziwei Liu, Linghao Song, Hai Li, and Yiran Chen. Dpatch: An adversarial patch attack on object detectors. arXiv preprint arXiv:1806.02299 , 2018. 2 [31] Yunhao Luo, Chen Sun, Joshua B Tenenbaum, and Yilun Du. Pot potential based diffusion motion planning ential based diffusion motion planning. In Proceedings of the 41st In-ternational Conference on Machine Learning , pages 33486– 33510, 2024. 1, 2 [32] Aleksander Madry, Aleksandar Makelov, Ludwig Schmidt, Dimitris Tsipras, and Adrian Vladu. Towards deep learn-ing models resistant to adversarial attacks. In International Conference on Learning Representations , 2018. 4, 5 [33] Utkarsh Aashu Mishra, Shangjie Xue, Yongxin Chen, and Danfei Xu. Generative skill chaining: Long-horizon skill planning with diffusion models. In Conference on Robot Learning , pages 2905–2925. PMLR, 2023. 1, 2 [34] Kanghua Mo, Weixuan Tang, Jin Li, and Xu Yuan. Attack-ing deep reinforcement learning with decoupled adversarial policy. IEEE Transactions on Dependable and Secure Com-puting , 20(1):758–768, 2022. 1, 2 [35] Takayuki Osa, Joni Pajarinen, Gerhard Neumann, J Andrew Bagnell, Pieter Abbeel, and Jan Peters. An algorithmic per-spective on imitation learning. Foundations and Trends® in Robotics , 7(1-2):1–179, 2018. 2 [36] Yunpeng Pan, Ching-An Cheng, Kamil Saigol, Keuntak Lee, Xinyan Yan, Evangelos Theodorou, and Byron Boots. Agile autonomous driving using end-to-end deep imitation learn-ing. In Robotics: science and systems , 2018. 2 [37] Anay Pattanaik, Zhenyi Tang, Shuijing Liu, Gautham Bom-mannan, and Girish Chowdhary. Robust deep reinforcement learning with adversarial attacks. In Proceedings of the 17th International Conference on Autonomous Agents and Multi-Agent Systems , pages 2040–2042, 2018. 1, 2 [38] Ruturaj Reddy, Hrishav Bakul Barua, Junn Yong Loo, Thanh Thi Nguyen, and Ganesh Krishnasamy. Rapid: Real-time deterministic trajectory planning via diffusion behav-ior priors for safe and efficient autonomous driving. arXiv preprint arXiv:2602.07339 , 2026. 1 [39] Xuanchi Ren, Yifan Lu, Tianshi Cao, Ruiyuan Gao, Shengyu Huang, Amirmojtaba Sabour, Tianchang Shen, Tobias Pfaff, Jay Zhangjie Wu, Runjian Chen, et al. Cosmos-drive-dreams: Scalable synthetic driving data generation with world foundation models. arXiv preprint arXiv:2506.09042 ,2025. 2 [40] Stefan Schaal. Is imitation learning the route to humanoid robots? Trends in cognitive sciences , 3(6):233–242, 1999. 2 [41] Chonghao Sima, Wenwen Tong, Tai Wang, Li Chen, Silei Wu, Hanming Deng, Yi Gu, Lewei Lu, Ping Luo, Dahua Lin, and Hongyang Li. Scene as occupancy. 2023. 6 [42] Kihyuk Sohn, Honglak Lee, and Xinchen Yan. Learning structured output representation using deep conditional gen-erative models. Advances in neural information processing systems , 28, 2015. 1, 2 [43] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denois-ing diffusion implicit models. In International Conference on Learning Representations , . 7 [44] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Ab-hishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equa-tions. In International Conference on Learning Represen-tations , . 1, 2 [45] Jianwen Sun, Tianwei Zhang, Xiaofei Xie, Lei Ma, Yan Zheng, Kangjie Chen, and Yang Liu. Stealthy and effi-cient adversarial attacks against deep reinforcement learning. In Proceedings of the AAAI conference on artificial intelli-gence , pages 5883–5891, 2020. 1, 2 [46] Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan, Ian Goodfellow, and Rob Fergus. Intriguing properties of neural networks. arXiv preprint arXiv:1312.6199 , 2013. 1, 2 [47] Aladin Virmaux and Kevin Scaman. Lipschitz regularity of deep neural networks: analysis and efficient estimation. Ad-vances in neural information processing systems , 31, 2018. 2[48] Lu Wang, Tianyuan Zhang, Yikai Han, Muyang Fang, Ting Jin, and Jiaqi Kang. Attack end-to-end autonomous driv-ing through module-wise noise. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8349–8352, 2024. 2 [49] Tao Wang, Cong Zhang, Xingguang Qu, Kun Li, Weiwei Liu, and Chang Huang. Diffad: A unified diffusion mod-eling approach for autonomous driving. arXiv preprint arXiv:2503.12170 , 2025. 1, 2 [50] Yufei Wang, Zhou Xian, Feng Chen, Tsun-Hsuan Wang, Yian Wang, Katerina Fragkiadaki, Zackory Erickson, David Held, and Chuang Gan. Robogen: Towards unleashing in-finite data for automated robot learning via generative sim-ulation. In Forty-first International Conference on Machine Learning . 1, 2 [51] Yuping Wang, Shuo Xing, Cui Can, Renjie Li, Hongyuan Hua, Kexin Tian, Zhaobin Mo, Xiangbo Gao, Keshu Wu, Sulong Zhou, et al. Generative ai for autonomous driving: Frontiers and opportunities. arXiv preprint arXiv:2505.08854 , 2025. 1 
+
+10 [52] Han Wu, Syed Yunas, Sareh Rowlands, Wenjie Ruan, and Johan Wahlstr¨ om. Adversarial driving: Attacking end-to-end autonomous driving. In 2023 IEEE intelligent vehicles symposium (IV) , pages 1–7. IEEE, 2023. 2 [53] Cihang Xie, Zhishuai Zhang, Yuyin Zhou, Song Bai, Jianyu Wang, Zhou Ren, and Alan Yuille. Improving transferability of adversarial examples with input diversity, 2019. 12 [54] Zetong Yang, Li Chen, Yanan Sun, and Hongyang Li. Visual point cloud forecasting enables scalable autonomous driving. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2024. 6 [55] Xuemei Yao, Xiao Yang, Jianbin Sun, Liuwei Xie, Xue-bin Shao, Xiyu Fang, Hang Su, and Kewei Yang. Reflexd-iffusion: Reflection-enhanced trajectory planning for high-lateral-acceleration scenarios in autonomous driving. arXiv preprint arXiv:2601.09377 , 2026. 1, 2 [56] Jingyu Zhang, Jacky Wai Keung, Yan Xiao, Yihan Liao, Yishu Li, and Xiaoxue Ma. Uniada: Universal adaptive multiobjective adversarial attack for end-to-end autonomous driving systems. IEEE Transactions on Reliability , 73(4): 1892–1906, 2024. 2 [57] Kun Zhang, Peng Yun, Jun Cen, Junhao Cai, Didi Zhu, Hangjie Yuan, Chao Zhao, Tao Feng, Michael Yu Wang, Qifeng Chen, et al. Generative artificial intelli-gence in robotic manipulation: A survey. arXiv preprint arXiv:2503.03464 , 2025. 1 [58] Wenzhao Zheng, Ruiqi Song, Xianda Guo, Chenming Zhang, and Long Chen. Genad: Generative end-to-end au-tonomous driving. In European Conference on Computer Vision , pages 87–104. Springer, 2024. 1 [59] Yinan Zheng, Ruiming Liang, Kexin ZHENG, Jinliang Zheng, Liyuan Mao, Jianxiong Li, Weihao Gu, Rui Ai, Shengbo Eben Li, Xianyuan Zhan, et al. Diffusion-based planning for autonomous driving with flexible guidance. In 
+
+The Thirteenth International Conference on Learning Rep-resentations . 1, 2 [60] Yinan Zheng, Tianyi Tan, Bin Huang, Enguang Liu, Ruim-ing Liang, Jianlin Zhang, Jianwei Cui, Guang Chen, Kun Ma, Hangjun Ye, et al. Unleashing the potential of diffusion models for end-to-end autonomous driving. arXiv preprint arXiv:2602.22801 , 2026. 1, 2 
+
+11 Off the Rails : Hijacking the Scoring Head in Generative End-to-End Driving Planners with Safety-Violating Adversarial Perturbations 
+
+# Supplementary Material 
+
+## Supplementary Material Overview 
+
+Contents 7. Why D ERAIL can Break Generative AD? 1
+
+7.1. The Shared Inference Chain . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27.2. Encoder Sensitivity and Feature Perturbation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27.3. Perturbation Amplification in Decoders . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27.3.1 . Diffusion-Based Trajectory Planning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27.3.2 . Vocabulary-Based Trajectory Planning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37.4. Gradient Flow Through Discrete Selection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47.5. Unified Vulnerability Bound Across Decoders . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 57.6. Generative Decoder Vulnerability Exploitation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 57.7. Convergence for Universal Perturbations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 57.8. Summary and Defense Implications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+
+8. Experimental Setup Details 6
+
+8.1. Evaluation Benchmark . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 68.2. Target Generative Planning Models . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 68.3. Digital Pixel-Level Perturbation Attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 78.3.1 . Attack Protocol . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 78.3.2 . Baseline Attack (Training Loss Maximization) . . . . . . . . . . . . . . . . . . . . . . . . . . 78.3.3 . DP-Attacker (Training Mode Loss Maximization) . . . . . . . . . . . . . . . . . . . . . . . . 78.3.4 . Encoder Attack (Feature Divergence) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88.3.5 . Derail Attack (GT-Free Adversarial Loss) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88.4. Patch-Based Attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88.4.1 . Adversarial Patch Formulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88.4.2 . Object-Aware Placement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88.4.3 . Patch Training Protocol . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 98.5. Evaluation Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 98.6. Implementation Details . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+9. Additional Analysis and Ablation Studies 10 
+
+9.1. Attacking Different Camera Views . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10 9.2. Online Per-Frame vs. Offline Attack Analysis . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10 9.3. D ERAIL under Common Defenses . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 9.4. Cross-Model Adversarial Transferability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 9.4.1 . Partial Intra-Family Transferability. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 9.5. Transferability across Heterogeneous Models . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12 9.6. Directions Toward More Transferable Attacks. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12 
+
+## 7. Why D ERAIL can Break Generative AD? 
+
+This appendix provides the analytic framework that sup-ports the architectural argument of the main paper: that current generative AD planners share a scoring-head infer-ence chain (Eq. (1), main paper) whose decision margins are small enough that pixel-space and patch-based perturba-tions can flip the selected trajectory from a safe to an unsafe candidate. We instantiate this argument for the two repre-sentative decoder families present in the planners we evalu-ate, namely diffusion-based refinement of a fixed anchor set (DiffusionDrive [28]) and vocabulary-based scoring over a 1fixed trajectory set (GTRS variants [27]), and we show that, in both cases, the trajectory deviation under an adversar-ial perturbation can be bounded by a product of an encoder sensitivity term and a decoder amplification term that arises directly from the iterative structure of the chain. 
+
+Scope of the claim. The bounds below are intentionally architecture-specific: they apply to the decoder families we actually evaluate, and they should be read as describing a 
+
+design-enabled attack surface. Any planner whose decoder unrolls into K≥1 feature-conditioned steps before the scor-ing head’s final selection, and that does not apply a non-learned downstream safety filter, inherits the same mul-tiplicative amplification structure; whether other decoder families exhibit it in practice is an empirical question we do not attempt to settle here. 
+
+7.1. The Shared Inference Chain 
+
+We summarize three properties of the chain in Eq. (1) of the main paper that expose the scoring-head attack surface: 1. Feature-conditioned scoring : The per-candidate score 
+
+ℓv at the head of the chain is computed by a learned neu-ral network conditioned on the BEV features Z = Eθ (I).The chain therefore has a single differentiable bottleneck through which adversarial influence propagates. 2. Iterative amplification of the conditioning signal :When the decoder applies the conditioning features Z
+
+across K≥1 sequential refinement steps (denoising it-erations in DiffusionDrive, denoising in the diffusion-policy head of GTRS-DP, or vocabulary scoring rounds in GTRS-Aug/Dense), small feature perturbations com-pound multiplicatively along the chain. 3. Small candidate-margin to dangerous trajectories :The fixed candidate set contains many trajectories that lie close in score, including candidates that the PDM Score would label as unsafe. Switching the scoring head’s selection from a safe to an unsafe candidate only requires shifting the relative score across a small margin. We formalize the first two properties as Lipschitz-style bounds on ∥∆Z∥F and on the trajectory deviation, and the third as a margin condition on the scoring head; the loss-alignment results in Sec. 7.6 then explain why the safety-violating D ERAIL objectives is matched to these bounds. 
+
+7.2. Encoder Sensitivity and Feature Perturbation 
+
+Let Eθ : RC×3×HI ×WI → Rd×H×W denote the visual en-coder. We begin by characterizing how input-space pertur-bations translate to feature-space deviations. 
+
+Definition 1 (Encoder Lipschitz Constant) . The encoder Eθ
+
+is Lipschitz continuous with constant LE if for all input pairs I, ˜I:
+
+∥E θ (˜I) − E θ (I)∥F ≤ LE · ∥ ˜I − I∥∞, (10) 
+
+where ∥ · ∥ F denotes the Frobenius norm on the feature ten-sor and ∥ · ∥ ∞ is the pixel-space ℓ∞ norm. 
+
+Proposition 1 (Feature Perturbation Bound) . Under the digital attack model (Eq. 5 main paper) with budget ϵ, the adversarial feature deviation satisfies: 
+
+∥∆Z∥F ≜ ∥E θ (˜I) − E θ (I)∥F ≤ LE · ϵ.  (11) 
+
+Proof. Direct application of Definition 1 with ∥˜I − I∥∞ =
+
+∥δ∥∞ ≤ ϵ.
+
+Remark. While the bound (11) is linear in ϵ, the effec-tive Lipschitz constant LE of modern convolutional and transformer-based encoders is typically very large due to the composition of many layers with ReLU or GELU acti-vations. Empirically, LE scales exponentially with network depth for unconstrained architectures [46, 47]. This means even a small ϵ (e.g., 8/255 ≈ 0.031 ) can induce feature deviations ∥∆Z∥F that are orders of magnitude larger than the pixel perturbation norm. 
+
+Local Sensitivity via the Jacobian. For a more pre-cise characterization, consider the encoder Jacobian JE =  
+
+> ∂Eθ(I)
+> ∂I
+
+∈ R(dHW )×(3 CH I WI ). By first-order Taylor expan-sion: 
+
+∆Z ≈ JE · δ, ∥∆Z∥F ≈ ∥ JE · δ∥2. (12) The adversarial perturbation δ∗ = ϵ · sign (J⊤E v), where v is aligned with the attack objective gradient in feature space, maximizes the projection of ∆Z along the direction most harmful to the downstream trajectory decoder. This is pre-cisely what PGD computes through end-to-end backpropa-gation. 
+
+7.3. Perturbation Amplification in Decoders 
+
+The key insight enabling the D ERAIL attack is that gen-erative trajectory decoders do not merely propagate fea-ture perturbations, they amplify them through iterative gen-eration process. We formalize this for each architectural paradigm. 
+
+7.3.1. Diffusion-Based Trajectory Planning 
+
+Diffusion-based planning models (e.g., Diffusion-Drive [28]) decode trajectories through a learned re-verse diffusion process. Starting from Gaussian noise 
+
+τ K ∼ N (0, I), the decoder iteratively denoises over K
+
+steps: 
+
+τ k−1 = 1
+
+√αk
+
+
+
+τ k − 1 − αk
+
+√1 − ¯αk
+
+ϵθ (τ k, k, Z)
+
+
+
++ σkzk,
+
+(13) where ϵθ (·, k, Z) is the learned noise predictor conditioned on features Z, αk, ¯αk are the noise schedule parameters, and 
+
+zk ∼ N (0, I).2Theorem 1 (Diffusion Perturbation Amplification) . Let τ 0
+
+and ˜τ 0 denote the final trajectories produced under clean features Z and adversarial features ˜Z = Z + ∆ Z, re-spectively, starting from the same noise realization τ K . If the noise predictor satisfies ∥ϵθ (τ , k, ˜Z) − ϵθ (τ , k, Z)∥2 ≤
+
+Lϵ∥∆Z∥F for all k and τ , then the trajectory deviation sat-isfies: 
+
+∥˜τ 0 − τ 0∥2 ≤ Lϵ∥∆Z∥F ·
+
+> K
+
+X
+
+> k=1
+
+1 − αk
+
+pαk(1 − ¯αk)
+
+·
+
+> k−1
+
+Y
+
+> j=1
+
+1
+
+√αj
+
++ (1 − αj )Lτ
+
+pαj (1 − ¯αj )
+
+!
+
+,
+
+(14) 
+
+where Lτ is the Lipschitz constant of ϵθ with respect to τ .Proof. Define ∆k ≜ ˜τ k − τ k as the trajectory deviation at step k. At the initial noise step K, ∆K = 0 (same noise realization). From the reverse process (13), the deviation at step k − 1 is: 
+
+∆k−1 = 1
+
+√αk
+
+∆k
+
+− 1 − αk
+
+pαk(1 − ¯αk)
+
+h
+
+ϵθ (˜ τ k, k, ˜Z) − ϵθ (τ k, k, Z)
+
+i
+
+.
+
+(15) Decomposing the noise predictor difference via the triangle inequality: 
+
+∥ϵθ (˜ τ k, k, ˜Z) − ϵθ (τ k, k, Z)∥2
+
+≤ ∥ ϵθ (˜ τ k, k, ˜Z) − ϵθ (τ k, k, ˜Z)∥2
+
+| {z }      
+
+> ≤Lτ∥∆k∥2(Lipschitz in τ)
+
++ ∥ϵθ (τ k, k, ˜Z) − ϵθ (τ k, k, Z)∥2
+
+| {z }   
+
+> ≤Lϵ∥∆Z∥F(Lipschitz in Z)
+
+. (16) Taking norms on both sides of (15): 
+
+∥∆k−1∥2 ≤ 1
+
+√αk
+
++ (1 − αk)Lτ
+
+pαk(1 − ¯αk)
+
+!| {z }
+
+> Ak
+
+∥∆k∥2
+
++ (1 − αk)Lϵ
+
+pαk(1 − ¯αk)
+
+| {z }
+
+> Bk
+
+∥∆Z∥F .
+
+(17) This is a linear recurrence ∥∆k−1∥2 ≤ Ak∥∆k∥2 +
+
+Bk∥∆Z∥F with ∥∆K ∥2 = 0 . Unrolling from k = K to 
+
+k = 1 yields: 
+
+∥∆0∥2 ≤ ∥ ∆Z∥F ·
+
+> K
+
+X
+
+> k=1
+
+Bkk−1Y
+
+> j=1
+
+Aj , (18) which is (14). Substituting ∥∆Z∥F ≤ LE ϵ (Proposition 1) gives the end-to-end bound in terms of the pixel budget ϵ.
+
+Interpretation. The bound (14) reveals a critical structural vulnerability: the trajectory deviation grows as a product of per-step amplification factors Ak, summed over all de-noising steps. For typical noise schedules where early steps have small αk (high noise), the amplification factors Ak
+
+are large. This means that even a modest feature devia-tion ∥∆Z∥F is amplified multiplicatively through the re-verse chain. 
+
+Corollary 1 (Exponential Amplification Regime) . If the per-step amplification factor satisfies Ak ≥ 1 + η for some 
+
+η > 0 across all k, then: 
+
+∥˜τ 0 − τ 0∥2 = O Lϵ∥∆Z∥F · K · (1 + η)K  , (19) 
+
+i.e., the trajectory deviation grows exponentially with the number of denoising steps K.Proof. When Ak ≥ 1 + η for all k, each inner prod-uct in (18) satisfies Qk−1 
+
+> j=1
+
+Aj ≥ (1 + η)k−1. Summing 
+
+PKk=1 (1 + η)k−1 = (1+ η)K −1 
+
+> η
+
+= O((1 + η)K ) gives the result. In DiffusionDrive [28], the truncated diffusion schedule re-duced the denoising steps from K = 20 to K = 2 with anchor-based initialization for efficiency. While the an-chor initialization reduces the effective noise level (and thus the amplification in the earliest steps), the multiplicative compounding still produces substantial amplification. Even with K = 20 denoising steps, we observe trajectory devia-tions of 2–5 meters from pixel perturbations of ϵ = 8 /255 .
+
+7.3.2. Vocabulary-Based Trajectory Planning 
+
+Vocabulary-based planning models (e.g., GTRS [27]) main-tain a fixed set of V prototype trajectories {τ (v)}Vv=1 and select the optimal trajectory via learned scoring. Given fea-tures Z, the model computes logits ℓv = ϕθ (Z, τ (v)) for each vocabulary entry and selects the highest-scored trajec-tory: 
+
+v∗ = top -1 
+
+> v∈{ 1,...,V }
+
+ℓv , τ = τ (v∗). (20) The scoring head’s discrete selection introduces a qualita-tively different vulnerability: rather than smooth amplifi-cation, adversarial perturbations can cause discrete mode switches to entirely different trajectories. 
+
+Theorem 2 (Vocabulary Mode-Switching Vulnerability) .
+
+Let v∗ be the selected vocabulary index under clean fea-tures Z, and let vdanger be a dangerous trajectory index. De-fine the decision margin :
+
+m(v∗, v danger ) ≜ ℓv∗ − ℓvdanger . (21) 3If the scoring function ϕθ is Lipschitz in Z with constant 
+
+Lϕ, then a feature perturbation ∥∆Z∥F > m(v∗,v danger )2Lϕ is sufficient to switch the selected trajectory from v∗ to vdanger .Proof. Under adversarial features ˜Z = Z + ∆ Z, the per-turbed logits satisfy: 
+
+|˜ℓv − ℓv | = |ϕθ (˜Z, τ (v)) − ϕθ (Z, τ (v))| ≤ Lϕ∥∆Z∥F , ∀v. 
+
+(22) For the mode switch vdanger ≻ v∗ to occur, we need ˜ℓvdanger >
+
+˜ℓv∗ . In the worst case (for the attacker), this requires: 
+
+˜ℓvdanger ≥ ℓvdanger + Lϕ∥∆Z∥F (maximizing the target logit) ,
+
+(23) 
+
+˜ℓv∗ ≤ ℓv∗ − Lϕ∥∆Z∥F (decreasing the safe logit) .
+
+(24) For the switch: ˜ℓvdanger > ˜ℓv∗ requires ℓvdanger + Lϕ∥∆Z∥F >ℓv∗ − Lϕ∥∆Z∥F , i.e., 2Lϕ∥∆Z∥F > m (v∗, v danger ).
+
+Interpretation. The vulnerability of vocabulary-based planning models is governed by the decision margin 
+
+m(v∗, v danger ) between the safe and dangerous trajectories. Crucially, in dense vocabulary sets ( Vaug = 8192 in GTRS-Aug and Vdense = 16384 in GTRS-Dense [27]), there exist many trajectory candidates with small margins to the cur-rently selected safe trajectory. This creates a rich attack surface: the attacker need not target a specific dangerous trajectory but can simply push the selection toward any of the many available dangerous modes. 
+
+Corollary 2 (Attack Surface Density) . Let Vdanger = {v :
+
+τ (v) is dangerous } and mmin = min v∈V danger m(v∗, v ) be the minimum margin to any dangerous trajectory. Then the perturbation budget required for a mode switch satisfies: 
+
+ϵswitch ≤ mmin 
+
+2LϕLE
+
+, (25) 
+
+where LE is the encoder Lipschitz constant. For vocabular-ies with high density around the safe trajectory ( mmin ≪
+
+mavg ), the switching budget can be very small. 
+
+Also, GTRS [27] employs architectural variants, Diffusion Policy (DP), augmented teacher-student (Aug), and dense retrieval (Dense), each with different decoder structures but sharing the same vulnerability to feature-level pertur-bations: • GTRS-DP [27] combines vocabulary retrieval with adiffusion-based trajectory head, inheriting both the mode-switching vulnerability (Theorem 2) and the diffusion amplification effect (Theorem 1). The diffusion head re-fines the vocabulary-selected trajectory through denoising steps, during which the corrupted features continue to ex-ert influence. • GTRS-Aug [27] uses a teacher-student architecture where the teacher model processes the full temporal sequence of camera features. The adversarial perturbation at the cur-rent timestep propagates into the teacher’s temporal atten-tion mechanism, corrupting the temporal context that the student distills. This temporal propagation introduces an additional amplification factor proportional to the tempo-ral sequence length. • GTRS-Dense [27] performs dense trajectory retrieval with PDM scoring [25], where the feature perturbation simultaneously corrupts both the retrieval logits and the downstream scoring mechanism, compounding the effect. 
+
+7.4. Gradient Flow Through Discrete Selection 
+
+A technical challenge specific to vocabulary-based planning models is that the scoring head’s discrete selection (20) is non-differentiable, potentially blocking gradient-based at-tacks. We address this through softmax relaxation and prove that it provides a faithful gradient surrogate. 
+
+Proposition 2 (Softmax Surrogate Gradient Consistency) .
+
+Define the softmax-relaxed trajectory as: 
+
+ˆτ β =
+
+> V
+
+X
+
+> v=1
+
+softmax (βℓ v ) · τ (v) =
+
+> V
+
+X
+
+> v=1
+
+eβℓ v
+
+PVj=1 eβℓ j
+
+· τ (v),
+
+(26) 
+
+where β > 0 is a temperature parameter. Then: 1. As β → ∞ , ˆτ β → τ (v∗) (consistency with discrete se-lection). 2. The gradient ∇Z ˆτ β exists and is non-zero for all finite 
+
+β.3. The surrogate gradient ∇Z ˆτ β is aligned with the true adversarial direction: perturbations that increase ˆτ β
+
+along dangerous directions also tend to switch the scor-ing head to dangerous vocabulary entries. Proof. (a) follows from the well-known property that softmax (βℓ) → ev∗ as β → ∞ , where ev∗ is the one-hot vector at the scoring head’s selected index. (b) The softmax function and its composition with linear combinations are smooth for finite β, hence differentiable. The gradient with respect to the feature representation decomposes as: 
+
+∂ ˆτ β
+
+∂Z = β
+
+> V
+
+X
+
+> v=1
+
+pv
+
+
+
+τ (v) − ˆτ β
+
+ ∂ℓ v
+
+∂Z , (27) where pv = softmax (βℓ v ). Each term is weighted by both the current selection probability pv and the trajectory devi-ation (τ (v) − ˆτ β ). Vocabulary entries that are both proba-ble (high pv ) and different from the current selection (large 
+
+∥τ (v) − ˆτ β ∥) contribute most to the gradient. This natu-rally prioritizes mode-switching to nearby alternatives, pre-cisely the entries with small decision margins that Theo-rem 2 identifies as vulnerable. 47.5. Unified Vulnerability Bound Across Decoders 
+
+We now combine the architecture-specific results into a sin-gle framework that describes the scoring-head attack sur-face for the decoder families we evaluate. 
+
+Theorem 3 (Unified Vulnerability Bound) . Let fθ = Dθ ◦Eθ be a generative trajectory planning model instantiating the chain of Eq. (1) (main paper), with encoder Lipschitz constant LE and decoder amplification factor AD . Under a digital perturbation with budget ϵ, the adversarial trajec-tory deviation satisfies: 
+
+∥τ adv − τ clean ∥2 ≤ A D · LE · ϵ,  (28) 
+
+where the decoder amplification factor AD is decoder-family dependent: 
+
+AD =
+
+
+
+LϵKX
+
+> k=1
+
+1 − αk
+
+pαk(1 − ¯αk)
+
+> k−1
+
+Y
+
+> j=1
+
+Aj
+
+(Diffusion-refined anchors, Thm. 1) ,
+
+max v∈V danger ∥τ (v) − τ (v∗)∥2
+
+mmin /(2 Lϕ)
+
+(Vocabulary scoring, Thm. 2) .
+
+(29) 
+
+Reading the bound. For both decoder families covered above, AD is larger than the per-layer Lipschitz constant of the encoder alone: the iterative refinement of an anchor through the diffusion head, and the discrete switching of the scoring head across a dense vocabulary, both compose with 
+
+LE rather than being filtered out by it. The bound therefore says that the chain in Eq. (1) does not attenuate pixel-space perturbations on their way to the motion command, consis-tent with our empirical observation that an ϵ=8 /255 per-turbation is enough to flip the selected trajectory in every evaluated scenario. 
+
+7.6. Generative Decoder Vulnerability Exploitation 
+
+We now prove that the specific components of the D ERAIL 
+
+loss ( LDerail ) (Eq. 8 main paper) are optimally aligned with the vulnerability structure of generative planning models, explaining the attack’s effectiveness at inducing collisions. 
+
+Proposition 3 (Gradient Alignment with Dangerous Modes) . Consider a trajectory space partitioned into safe 
+
+and dangerous regions, S and D, where D contains tra-jectories leading to collisions, road departures, or comfort violations. The DERAIL loss gradient ∇ZLDerail satisfies: 
+
+⟨∇ ZLDerail , ∇Zd(τ , ∂ D)⟩ > 0, (30) 
+
+where d(τ , ∂ D) is the distance from the current trajectory to the boundary of the dangerous region, and ⟨· , ·⟩ denotes the inner product. That is, maximizing LDerail consistently moves the trajectory toward dangerous regions. Proof. We verify alignment for each loss component: 1. Forward aggression Laggr . The gradient ∇τ Laggr has positive components in the longitudinal ( x) direction and negative in the lateral ( y) direction (Eq. 9 main paper). This pushes trajectories toward high-speed, straight-line driving that ignores obstacle avoidance, which all together trans-lates into a collision-inducing behavior. By the chain rule, 
+
+∇ZLaggr = ( ∂τ /∂ Z)⊤∇τ Laggr projects this dangerous di-rection back into feature space. 2. Boundary push Lbound . The gradient ∇τ Lbound pushes toward maximal lateral excursion (Eq. 10 main paper), tar-geting road departure and wrong-lane driving. This is or-thogonal to Laggr in trajectory space, ensuring the combined attack covers both longitudinal (rear-end collision) and lat-eral (side-swipe, road departure) failure modes. 3. Sudden braking Lbrake . The gradient ∇τ Lbrake induces abrupt velocity changes (Eq. 11 main paper), maximizing the jerk metric. This targets a third failure mode: erratic speed profiles that cause following vehicles to D ERAIL or create unsafe situations. The combined gradients spans a three-dimensional sub-space of dangerous trajectory perturbations (forward ag-gression, lateral deviation, speed discontinuity), cover-ing the primary collision-inducing modes identified by the PDM safety metric [13]. By weighting these components (Eq. 8 main paper), the attacker can prioritize specific fail-ure modes depending on the scenario. 
+
+Proposition 4 (Multimodal Exploitation) . For generative planning models maintaining a multimodal trajectory dis-tribution, the DERAIL loss gradient is biased toward mode switches to dangerous trajectories rather than smooth de-formation of the current trajectory [9]. Formally, let 
+
+τ 1, . . . , τ M be the trajectory modes maintained by the de-coder (e.g., denoising from different noise samples, or top-
+
+M vocabulary entries). The DERAIL gradient satisfies: 
+
+∇ZLDerail =
+
+> M
+
+X
+
+> m=1
+
+wm · ∇ ZLDerail (τ m), (31) 
+
+where the weights wm depend on the selection mechanism (softmax scores or denoising likelihoods). The gradient naturally concentrates on modes near the safe-dangerous boundary, because these modes exhibit the largest gradient magnitudes (high ∥∇ τ LDerail ∥ due to proximity to danger-ous regions) and the highest sensitivity to feature perturba-tions (small decision margins). 
+
+7.7. Convergence for Universal Perturbations 
+
+For the universal perturbation setting (for both digital and physical attacks, see Sec 9), where a single δ must be effec-tive across N scenes, we provide convergence guarantees for the Adam-based optimization (Eq. 14 min paper). 5Theorem 4 (Universal Perturbation Convergence) . Con-sider the empirical attack objective over N scenes: 
+
+ˆL(δ) = 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+LDerail (δ; I(n), s(n)). (32) 
+
+Under the following assumptions: 1. ˆL is L-smooth: ∥∇ ˆL(δ) − ∇ ˆL(δ′)∥2 ≤ L∥δ − δ′∥2.2. The stochastic gradient (using mini-batch of size B) has bounded variance: E∥ˆgB − ∇ ˆL∥ 2 ≤ σ2/B .3. The perturbation is projected onto P = {δ : ∥δ∥∞ ≤ ϵ}
+
+after each step. Then Adam with learning rate η, gradient accumulation over B samples, and cosine annealing over E epochs achieves: 
+
+min  
+
+> e∈[E]
+
+∥∇ δ ˆL(δ(e))∥22 ≤ O ˆL∗ − ˆL(δ(0) )
+
+ηE + ηLσ 2
+
+B
+
+!
+
+,
+
+(33) 
+
+where ˆL∗ = max δ∈P ˆL(δ). Setting η = O(1 /√E) and 
+
+B = O(√E) yields ϵ-stationarity in E = O(1 /ϵ 4) epochs. 
+
+Practical Implication. The convergence rate (33) reveals the trade-off governing the attack: larger gradient accumu-lation B reduces variance but requires more computation per step, while more epochs E improve convergence but in-crease wall-clock time. The cosine annealing schedule im-proves practical convergence by using large learning rates early (for broad exploration of the ℓ∞ ball) and small rates later (for fine-tuning near the optimum). 
+
+7.8. Summary and Defense Implications 
+
+The bounds developed in this appendix support the architec-tural argument of the main paper. Concretely, for the plan-ners we evaluate (a diffusion-refined anchor planner and three vocabulary-scoring planners), the trajectory deviation under a pixel-space perturbation of budget ϵ is bounded by an encoder Lipschitz term composed with a decoder ampli-fication term that is determined by how the decoder uses the conditioning features. In both decoder families, that ampli-fication term does not shrink below unity, so the chain in Eq. (1) (main paper) propagates input-space perturbations to the selected trajectory with no analytic damping. Com-bined with the empirical observation that the candidate-margin to dangerous trajectories is small in practice, this gives a coherent explanation for the consistent attack suc-cess of D ERAIL across all four evaluated planners. 
+
+Remark 1 (Defense Implications) . The bound in Eq. (28) 
+
+also suggests natural defense directions for this specific attack surface. From the bound, the trajectory deviation can be reduced by: (i) constraining the encoder Lips-chitz constant LE via spectral normalization or Lipschitz-constrained training; (ii) reducing the decoder amplifica-tion factor AD by limiting the number of refinement steps or introducing perturbation-aware denoising; (iii) increas-ing decision margins for vocabulary-based models through margin-maximizing training objectives; or (iv) adding a non-learned downstream safety filter (geometric/kinematic check) between the scoring head and the executed trajec-tory, which removes the scoring head as the sole barrier between perception and motion. Each of (i)–(iii) involves a trade-off with generation quality, since the very properties that make the scoring head expressive ( K refinement steps, dense vocabularies) are also what allow it to be flipped; (iv) is largely orthogonal to generation quality but requires a reliable geometric oracle at inference time. 
+
+## 8. Experimental Setup Details 
+
+This section describes the experimental configuration for evaluating adversarial attacks on generative trajectory plan-ning models, covering the evaluation benchmark, target models, attack implementations, and scoring protocol. 
+
+8.1. Evaluation Benchmark 
+
+We conduct all experiments on the NAVSIM [13] frame-work using the navtest split of the OpenScene [11, 41, 54] dataset. The test set comprises 136 driving logs span-ning diverse urban environments across four U.S. cities (Boston, Las Vegas, Pittsburgh) and Singapore, collected from the nuPlan [7] platform. Each driving log provides a sequence of multi-camera frames (front, front-left, front-right), LiDAR point clouds, ego status features, and 3D bounding box annotations for surrounding agents. 
+
+Scene Coverage. The 136 logs are drawn from 16 record-ing sessions (unique date-vehicle combinations) and en-compass a range of traffic conditions, highway merges, dense intersections, lane changes, and residential streets. Together they provide approximately 3,000–5,000 evalu-able scene tokens after metric cache matching. For com-putational cost, we split the log set into two halves in an alphabetic order. We use the first half of test-set logs in our main experiments. 
+
+Sensor Configuration. Each scene token provides three monocular RGB camera images from the last frame: • CAM L0 (front-left): 900 × 1600 pixels, • CAM F0 (front-center): 900 × 1600 pixels, • CAM R0 (front-right): 900 × 1600 pixels. Following the standard preprocessing pipeline shared across all target models, the three images are cropped (removing 28 pixels top/bottom, and 416 pixels left/right for the side cameras) and horizontally stitched as [CAM L0 | CAM F0 |
+
+CAM R0 ], then resized to the model’s expected resolution (256 × 1024 for DiffusionDrive and GTRS). 
+
+8.2. Target Generative Planning Models 
+
+We evaluate attacks against four generative trajectory plan-ning models, all of which instantiate the scoring-head infer-6ence chain of Eq. (1) in the main paper: 
+
+DiffusionDrive [28]. A diffusion-based planning model that frames trajectory prediction as iterative denoising (DDIM [43]) over a fixed set of 20 KMeans anchor trajec-tories. It uses a ResNet-based image encoder with BEV feature extraction, followed by a truncated diffusion head that refines anchor proposals and a single classification head 
+
+poses cls that scores them. At inference time it uses 2-step DDIM with a fixed seed for deterministic output, and the final trajectory is selected by the scoring head over the classification logits with no post-hoc geometric filter. 
+
+GTRS [27] (three variants). A vocabulary-based planning model framework with three decoding variants, all of which select trajectories via the scoring head over a precomputed trajectory vocabulary with no post-hoc geometric or kine-matic filter: • GTRS-Aug (teacher-student): Uses a multi-head safety scorer (imitation, no-at-fault-collision, drivable-area, time-to-collision, ego-progress, lane-keeping) over an 
+
+8,192 -trajectory vocabulary, with a teacher-student knowledge distillation framework. • GTRS-Dense : A dense retrieval variant that applies the same multi-head safety scorer over 16 ,384 vocabulary candidates without pruning. • GTRS-DP (diffusion policy): A single imitation head imi 
+
+over a 4,096 -trajectory vocabulary, augmented with a dif-fusion policy (DP) head that generates K trajectory pro-posals and scores them, combining vocabulary-based and diffusion-based decoding. A critical implementation detail for the GTRS family: since 
+
+argmax is non-differentiable, we compute a soft trajectory 
+
+for gradient-based attacks: 
+
+ˆτ soft = softmax (s)⊤ V, s ∈ R|V| , V ∈ R|V|× N ×3,
+
+(34) where s denotes the IMI logits and V the trajectory vocabu-lary. This maintains gradient flow from the loss through the scoring logits back to the camera input, whereas the hard 
+
+argmax trajectory has zero gradients everywhere. 
+
+8.3. Digital Pixel-Level Perturbation Attacks 
+
+We implement four pixel-level adversarial attack methods, each targeting a single camera (default: CAM F0 ) with per-turbations constrained to an ℓ∞ ball. All attacks operate on raw RGB images before the stitching and resizing pipeline, ensuring perturbations are applied in the original image space. 
+
+8.3.1. Attack Protocol 
+
+All pixel-level attacks share the following configuration: • Perturbation budget: ϵ = 8 /255 ≈ 0.0314 in [0 , 1] -normalized pixel space. • Step size: α = 2 /255 ≈ 0.0078 , satisfying α = ϵ/ 4.• PGD iterations: T = 20 for DiffusionDrive and GTRS. • Camera targeted: By default CAM F0 (front center). Experiments with CAM L0 and CAM R0 are also con-ducted (See the ablation in 9). • Gradient computation: End-to-end through the full model pipeline; the perturbation δ is the only learnable parameter. • Projection: After each PGD step, δ is clamped to [−ϵ, ϵ ]
+
+and the perturbed image is clamped to [0 , 1] to maintain pixel validity. Concretely, at each PGD iteration t, the perturbation update rule is: 
+
+δ(t+1) = Π B∞(ϵ)
+
+h
+
+δ(t) + α · sign  ∇δ L(x + δ(t); θ)i
+
+, (35) where ΠB∞(ϵ) projects onto the ℓ∞ ball of radius ϵ and ad-ditionally enforces x + δ ∈ [0 , 1] d.
+
+8.3.2. Baseline Attack (Training Loss Maximization) 
+
+The baseline attack follows the standard adversarial attack paradigm: maximize the model’s own training loss. The model is set to evaluation mode and the training loss is com-puted against ground-truth labels: 
+
+Lbaseline = Ltrain (fθ (x + δ), y), (36) where Ltrain is the weighted combination of the model’s training objectives (trajectory regression, BEV segmenta-tion, agent detection). The perturbation is initialized at 
+
+δ(0) = 0. This attack requires access to the ground-truth labels y, including future trajectories, BEV semantic maps, and agent bounding boxes. 
+
+8.3.3. DP-Attacker (Training Mode Loss Maximization) 
+
+The DP-Attacker [9] differs from the baseline in two key aspects: 1. Training mode: The model runs in train() mode rather than eval() mode. For diffusion-based mod-els (DiffusionDrive, GTRS-DP), this means the forward pass computes the actual denoising loss at random diffu-sion timesteps , the full multi-step diffusion training ob-jective, rather than the deterministic 2-step DDIM infer-ence trajectory. 2. Random initialization: The perturbation δ(0) is sam-pled uniformly from [−ϵ, ϵ ]d rather than initialized at zero. This provides better exploration of the perturba-tion space. The loss is: 
+
+LDP = Ltrain-mode train (fθ (x + δ), y), (37) where the superscript denotes the training-mode forward pass. For DiffusionDrive, this includes trajectory regres-sion + mode classification sub-losses; the attack supports selecting specific sub-losses (e.g., total , diffusion ,
+
+trajectory ) via configuration. 78.3.4. Encoder Attack (Feature Divergence) 
+
+The encoder attack targets the vision backbone rather than the planning output, maximizing the feature-space diver-gence between clean and adversarial representations: 
+
+Lencoder = wℓ2 · ∥ ϕ(x) − ϕ(x + δ)∥2
+
+− wcos · ϕ(x)⊤ϕ(x + δ)
+
+∥ϕ(x)∥ · ∥ ϕ(x + δ)∥ , (38) where ϕ(·) denotes the output of the image encoder (e.g., ResNet backbone features for DiffusionDrive). The clean features ϕ(x) are computed once before the PGD loop and frozen. Default weights are wℓ2 = 1 .0, wcos = 1 .0. This attack is self-supervised : it requires no ground-truth labels. 
+
+8.3.5. Derail Attack (GT-Free Adversarial Loss) 
+
+Our proposed D ERAIL attack uses a composite, ground-truth-free adversarial loss designed to directly maximize dangerous driving behaviors from the model’s own predic-tions, without requiring access to GT labels. The loss is composed of multiple safety-relevant components: 
+
+LDerail = X
+
+> k
+
+wk · ℓk(ˆ τ ), (39) where ˆτ denotes the predicted trajectory and {(ℓk, w k)} are the individual loss components and their weights. The key components are: • Forward aggression : Accelerates aggressively toward obstacles. • Boundary push : Pushes trajectory toward drivable area boundaries. • Sudden braking : Encourages abrupt velocity drops. All loss components are computed solely from model pre-dictions and are designed so that PGD ascent increases dan-gerous behavior. The model runs in evaluation mode and the perturbation is initialized at zero. 
+
+8.4. Patch-Based Attacks 
+
+In addition to pixel-level perturbations, we evaluate physically-realizable adversarial patches that are trained globally across scenes and placed on detected vehicles via object-aware projection. 
+
+8.4.1. Adversarial Patch Formulation 
+
+The adversarial patch p ∈ [0 , 1] 3×Hp×Wp is a learnable RGB tensor of base size Hp = Wp = 256 pixels that is op-timized using the Adam optimizer [23]. Unlike pixel-level attacks, patches are not constrained to an ℓ∞ ball, any valid RGB values are allowed, but they are clamped to [0 , 1] after each optimizer step to maintain pixel validity. The patch is initialized with uniform random values pc,i,j ∼ U (0 , 1) and optimized to minimize a negated adversarial loss (equiva-lently, maximize the Derail loss): 
+
+p∗ = arg min 
+
+> p∈[0 ,1] d
+
+1
+
+|D| 
+
+X
+
+> (x,a)∈D
+
+−L Derail 
+
+ fθ (A(x, p, a),
+
+(40) where A(x, p, a) is the patch application operator that stitches p onto image x at the position determined by an-notations a, and D is the set of scene tokens within a given driving log. 
+
+8.4.2. Object-Aware Placement 
+
+Rather than placing patches at fixed image locations, we employ object-aware placement using 3D bounding box an-notations projected into camera coordinates. The placement procedure operates as follows: 1. 3D-to-2D projection: For each annotated object in the scene, transform its 3D bounding box center and 8 cor-ners from the LiDAR frame to the camera frame using the known extrinsic parameters (sensor-to-LiDAR rota-tion and translation), then project to image coordinates using the camera intrinsic matrix. 2. Object filtering: Retain only objects satisfying: • Label is vehicle (exclude pedestrians, cyclists, etc.). • Dimensions are car-like ( 3.5–6.5m length, 1.5–2.5mwidth, 1.2–2.5m height) or bus/truck-like ( 8–16 mlength). • 3D distance from ego is in [dmin , d max ] (default: 
+
+[5 , 10] m). • Projected 2D bounding box has minimum dimension 
+
+≥ 50 pixels. • Object is in front of the ego vehicle ( x > 0 in LiDAR frame) and within lateral range ( |y| ≤ 15 m). 3. Target selection: Among valid objects, select the clos-est vehicle to the ego. 4. Dynamic sizing: The patch is resized to cover a fraction 
+
+rbbox (default: 0.5) of the target vehicle’s projected 2D bounding box: 
+
+(Hpatch , W patch ) =  ⌊rbbox ·hbbox ⌋, ⌊rbbox ·wbbox ⌋, (41) where (hbbox , w bbox ) are the projected 2D bounding box dimensions. The base 256 × 256 patch tensor is resized via bilinear interpolation to match the target size, pre-serving gradient flow. 5. Application: The resized patch is differentiably com-posited onto the camera image using alpha blending: 
+
+x′ 
+
+> c,i,j
+
+=
+
+(
+
+p′ 
+
+> c,i −y1,j −x1
+
+if (i, j ) ∈ R patch ,
+
+xc,i,j otherwise , (42) where Rpatch is the patch region centered on the target vehicle’s projected center and p′ is the resized patch ten-sor. 8Scene Filtering. Before patch training, scenes are filtered to retain only those with at least one valid vehicle visible in the targeted camera within the specified distance range. Scenes that do not pass the object-proximity filter (no visi-ble vehicle in [dmin , d max ] with sufficient pixel area) are ex-cluded from both training and evaluation. This filtering en-sures that every training and evaluation sample has a mean-ingful patch placement target. 
+
+8.4.3. Patch Training Protocol 
+
+Patch optimization is performed per driving log, training 
+
+one global patch across all valid scene tokens within the log. We also evaluate patches trained on multiple logs in Sec. 9. The training protocol is: • Optimizer: Adam with learning rate α = 0.01 –0.1
+
+(model-dependent) • Epochs: 10–20 full passes over all scene tokens in the log. • Gradient accumulation: Gradients are accumulated over all scene tokens in the log before each Adam step (i.e., one update per epoch), providing a full-batch gradi-ent estimate. This is configurable. • Token shuffling: Scene ordering is randomized each epoch for better generalization. • Deterministic forward pass: A fixed random seed is set before each model forward pass to ensure determinis-tic denoising (important for diffusion-based models with stochastic sampling). • Checkpoint selection: The patch achieving the highest mean attack loss across the epoch is saved as the best checkpoint. 
+
+8.5. Evaluation Metrics 
+
+We evaluate all attacks using the PDM Score (Planning Decision-Making Score) [13], which simulates the effect of planned trajectories in a closed-loop evaluation frame-work. For each scene token, the predicted trajectory is con-verted from the ego reference frame to global coordinates, simulated through an LQR-based PDM simulator with a bi-cycle kinematic model, and scored against pre-computed metric caches containing ground-truth observations, center-lines, route lane IDs, and drivable area polygons. The PDM Score comprises the following sub-metrics: • No At-Fault Collision (NC): Binary indicator: 1 if the ego avoids causing any collision, 0 otherwise. This is the primary safety metric. • Drivable Area Compliance (DAC): Binary indicator: 1 if the ego stays within the drivable area throughout the planning horizon. • Ego Progress (EP): A weighted score measuring how much progress the ego makes along the planned route rel-ative to the expert trajectory. • Time-to-Collision (TTC): A weighted metric penalizing scenarios where the ego enters an unsafe time-to-collision window with other agents. • Comfort (C): A weighted score penalizing uncomfort-able maneuvers (excessive jerk, lateral acceleration, etc.). • Driving Direction Compliance (DDC): A weighted score penalizing wrong-way driving or travel against the designated traffic direction. • Overall Score (PDMS): The composite score combining all sub-metrics: 
+
+PDMS = NC × DAC ×  wEP · EP + wTTC · TTC 
+
++ wC · C + wDDC · DDC , (43) where NC and DAC act as binary multipliers (any colli-sion or off-road violation zeroes the score), and the re-maining metrics contribute with learnable weights. For attack effectiveness, we report the collision rate 
+
+(1 − NC), off-road rate (1 − DAC), and drop in PDMS 
+
+(∆PDMS = PDMS clean − PDMS attack ) as primary attack success indicators. We also report the Attack Success Rate (ASR): The attack is considered successful if the attacked PDMS score is lower than the baseline score and ASR% is the percentage of driving scenarios where this condition holds. 
+
+Per-Log Evaluation. Both pixel-level and patch attacks are executed and evaluated independently for each of the first-half test-set driving logs. For pixel-level attacks, a separate perturbation δi is optimized for each scene token. For patch attacks, a single global patch is trained per log and then evaluated on all valid scenes within that log. Final results are aggregated (averaged) across all logs. 
+
+8.6. Implementation Details 
+
+Hardware. All experiments are conducted on a single NVIDIA GPU. Pixel-level attacks (which optimize per-sample) require approximately 2–5 minutes per driving log. Patch attacks (which optimize globally across all tokens in a log) require 15–20 minutes per log depending on the num-ber of valid scene tokens and training epochs. 
+
+Model Inference. All target models run in evaluation mode with frozen weights ( ∇θ = 0 ) during attacks, except for the DP-Attacker which uses training mode. For DiffusionDrive, we use the 2-step DDIM inference with a fixed seed; for GTRS-DP, we reduce the number of proposals from 100 to 4 and denoising steps from the full schedule to 5 during PGD to avoid out-of-memory errors. 
+
+Gradient Flow. Gradient computation flows end-to-end from the loss through the model and the camera preprocess-ing pipeline (crop, stitch, resize) to the raw pixel perturba-tion. For patch attacks, gradients flow through the bilin-ear interpolation (patch resizing) and differentiable stitch-ing operations, enabling optimization of the base patch ten-sor regardless of the per-scene dynamic resizing. 9Table 6. Attacking different camera views (Left, Front, Right).                                                                                                                                          
+
+> Target Camera PDM ↓Drop ↑ASR ↑CR ↑OR ↑WW ↑TTC ↑CM ↑
+> Attacked Model: DiffusionDrive [28] Clean 0.93 0.00 0.00 0.87 1.63 4.88 4.90 0.00
+> Cam Left 0.45 51.20 100.00 41.17 17.89 15.80 54.56 4.12
+> Cam Right 0.46 50.27 100.00 41.42 16.85 15.91 53.73 4.21
+> Cam Front 0.39 57.84 100.00 44.29 26.38 17.78 57.92 3.73
+> Attacked Model: GTRS-DP [27] Clean 0.76 0.00 0.00 14.72 2.80 0.00 15.55 1.10
+> Cam Left 0.62 19.21 100.00 25.44 9.27 2.34 28.18 1.31
+> Cam Right 0.71 7.27 80.00 18.87 4.33 0.83 21.00 1.33
+> Cam Front 0.20 73.77 100.00 54.05 51.71 33.13 61.19 18.21
+> Attacked Model: GTRS-AUG [27] Clean 0.80 0.00 0.00 13.78 0.00 0.00 14.39 1.10
+> Cam Left 0.71 11.60 90.00 22.66 0.90 0.08 24.50 0.97
+> Cam Right 0.70 12.06 90.00 23.34 0.58 0.00 24.63 1.12
+> Cam Front 0.28 65.13 100.00 44.64 42.63 25.92 50.54 9.24
+> Attacked Model: GTRS-Dense [27] Clean 0.82 0.00 0.00 11.12 0.49 0.00 11.87 1.23
+> Cam Left 0.67 17.69 100.00 18.57 4.04 0.18 20.43 15.19
+> Cam Right 0.68 17.13 90.00 17.18 5.04 0.57 18.45 14.27
+> Cam Front 0.44 46.62 100.00 37.27 10.46 3.24 38.74 40.33
+
+## 9. Additional Analysis and Ablation Studies 
+
+9.1. Attacking Different Camera Views 
+
+We analyze the impact of camera view (Left, Front, Right) on D ERAIL ’s digital (pixel-level) attack effectiveness. Ta-ble 6 reveals a consistent and pronounced hierarchy in at-tack effectiveness across the three camera positions. At-tacking the front camera ( Cam Front ) yields the most se-vere degradation for every model, with score drops rang-ing from 46.62% (GTRS-Dense) to 73.77% (GTRS-DP), compared to 7.27–51.20% for the side cameras. This dis-parity is expected: the front camera captures the ego ve-hicle’s primary driving corridor, and its feature representa-tions carry disproportionate weight in trajectory prediction. Notably, all models reach 100% ASR under front-camera attack, whereas side-camera attacks occasionally fall short (e.g., GTRS-DP Cam Right at 80%, GTRS-AUG at 90% for both side cameras). The safety-critical metrics rein-force this trend, collision rates under Cam Front attack exceed those of side cameras by 15–30 percentage points for GTRS variants, and off-road violations surge from near-zero to 42–52% for GTRS-DP and GTRS-AUG, indicat-ing that front-camera perturbations disrupt both longitudi-nal and lateral planning. Comparing left ( Cam Left ) and right ( Cam Right ) cameras, the differences are markedly smaller and model-dependent. For DiffusionDrive, both side cameras produce nearly identical degradation (score drops of 51.20% vs. 50.27%), suggesting symmetric re-liance on lateral views. GTRS-DP exhibits the largest left– right asymmetry, with Cam Left causing a 19.21% score drop versus only 7.27% for Cam Right , likely reflect-ing route-specific left-turn maneuvers in the evaluation logs 
+
+Table 7. Online per-frame vs. offline universal perturbation.                                                                                                             
+
+> Attack Strategy PDM ↓Drop ↑ASR ↑CR ↑OR ↑WW ↑TTC ↑CM ↑
+> Attacked Model: DiffusionDrive [28] Clean 0.93 0.00 0.00 0.87 1.63 4.88 4.90 0.00 Offline Universal 0.54 41.88 100.00 34.74 7.96 10.63 46.36 0.23
+> Online Per-frame 0.39 57.84 100.00 44.29 26.38 17.78 57.92 3.73
+> Attacked Model: GTRS-DP [27] Clean 0.76 0.00 0.00 14.72 2.80 0.00 15.55 1.10 Offline Universal 0.19 75.60 100.00 44.71 68.87 50.73 53.88 18.75
+> Online Per-frame 0.20 73.77 100.00 54.05 51.71 33.13 61.19 18.21
+> Attacked Model: GTRS-AUG [27] Clean 0.80 0.00 0.00 13.78 0.00 0.00 14.39 1.10 Offline Universal 0.39 50.84 90.00 35.99 34.00 18.63 41.07 4.62
+> Online Per-frame 0.28 65.13 100.00 44.64 42.63 25.92 50.54 9.24
+> Attacked Model: GTRS-Dense [27] Clean 0.82 0.00 0.00 11.12 0.49 0.00 11.87 1.23 Offline Universal 0.59 28.05 90.00 15.24 4.82 0.95 15.85 37.89
+> Online Per-frame 0.44 46.62 100.00 37.27 10.46 3.24 38.74 40.33
+
+where left-camera features become more safety-relevant. GTRS-Dense shows similarly balanced side-camera vulner-ability. These findings suggest that while adversarial robust-ness efforts should prioritize the front camera, where a sin-gle perturbed input can reduce driving scores by nearly half, side cameras remain non-negligible attack surfaces whose relative importance varies with the driving context. 
+
+9.2. Online Per-Frame vs. Offline Attack Analysis 
+
+We analyze D ERAIL ’s effectiveness under Online vs. Of-fline attack settings. Table 7 presents the results of the universal (frame-agnostic) attack, in which a single pertur-bation is optimized offline (using the same D ERAIL strat-egy) and applied identically to every frame, as opposed to the online per-frame attack (Table 6, where perturba-tions are crafted independently for each input. Despite the more constrained threat model (i.e., no access to per-frame features at inference time), the universal attack still achieves 100% ASR on two of four models (Diffusion-Drive, GTRS-DP) and 90% on the remaining two (GTRS-AUG, GTRS-Dense). GTRS-DP proves the most vulnera-ble under both settings, with the universal perturbation even slightly surpassing the online attack in score drop (75.60% vs. 73.77%) and off-road rate (68.87% vs. 51.71%). This counter-intuitive result suggests that GTRS-DP’s feature space admits a highly transferable adversarial direction that generalizes across frames more effectively than individually optimized perturbations, possibly due to the model’s lim-ited feature diversity under truncated diffusion-based tra-jectory decoding. For the remaining models, the on-line attack consistently outperforms the universal variant, though the gap varies considerably. DiffusionDrive ex-hibits a moderate degradation gap (score drop of 57.84% online vs. 41.88% universal), with the universal attack still inducing substantial collision (34.74%) and unsafe TTC 10 rates (46.36%). GTRS-AUG shows a larger gap, 65.13% vs. 50.84%, indicating that its per-frame feature variability provides some implicit robustness against static perturba-tions. GTRS-Dense is the most resilient to universal attacks (28.05% score drop), yet notably suffers from a high dis-comfort rate (37.89%) that far exceeds its online counter-part (40.33%), suggesting the universal perturbation dispro-portionately disrupts comfort-related trajectory smoothness rather than safety-critical metrics. Overall, these results demonstrate that even a single, frame-agnostic perturbation poses a significant threat to all evaluated planning models, demonstrating the practical feasibility of physical-world ad-versarial attacks where per-frame optimization is infeasible (no access to intermediate features or model’s output). 
+
+9.3. DERAIL under Common Defenses 
+
+We evaluate three commonly used input-level preprocess-ing defenses: Color Jitter (CJ), Spatial Smoothing (SS), and Gaussian Noise (GN), applied to the perturbed all cam-era view inputs (Left, Front, Right) before they are fed to each planning model. Table 8 reports the results alongside the undefended attack (Derail None) on the front camera 
+
+Cam f0 (See Table 6 for reference). A notable finding is that all three defenses fail to reduce the ASR below 100% for any model, confirming that the proposed attack produces perturbations that are robust to standard input transforma-tions. Nonetheless, defenses provide partial score recov-ery in a model-dependent manner. DiffusionDrive benefits the most: Spatial Smoothing lifts the score from 0.391 (un-defended) to 0.622, reducing the score drop from 57.84% to 33.01%, while collision and off-road rates decrease by approximately 17 and 19 percentage points, respectively. Gaussian Noise and Color Jitter offer more modest im-provements for DiffusionDrive, recovering roughly 15 and 12 percentage points of score drop. For the GTRS family, defenses are largely ineffective and occasionally counterproductive. GTRS-DP shows virtually no recovery under any defense: score drops remain between 65% and 73%, comparable to or worse than the 73.77% undefended baseline, while off-road and wrong-way vio-lation rates stay above 39% and 22%, respectively. This suggests that the adversarial perturbations learned against GTRS-DP reside in feature subspaces that are orthogonal to the transformations applied by these defenses. GTRS-AUG and GTRS-Dense exhibit similarly negligible recov-ery, with GTRS-Dense defenses even slightly increasing the score drop (e.g., GN at 50.92% vs. 46.62% undefended). These results demonstrate the insufficiency of input-level preprocessing as a standalone defense against optimized ad-versarial perturbations and motivate the need for more prin-cipled defenses tailored to the scoring-head attack surface we identify (e.g., margin-maximizing training of the scor-ing head, or non-learned downstream geometric/kinematic 
+
+Table 8. Impact of different input-level defenses (CJ, SS, and GN) on the D ERAIL attack across different planning models.                                                                                                                                                                             
+
+> Attack / Defense PDM ↓Drop ↑ASR ↑CR ↑OR ↑WW ↑TTC ↑CM ↑
+> Attacked Model: DiffusionDrive [28] Clean 0.93 0.00 0.00 0.87 1.63 4.88 4.90 0.00
+> Derail CJ 0.50 45.89 100.00 36.69 14.54 10.27 49.48 2.71
+> Derail SS 0.62 33.01 100.00 27.15 7.93 6.69 38.63 1.33
+> Derail GN 0.55 41.23 100.00 34.46 10.51 9.18 46.11 2.41
+> Derail None 0.39 57.84 100.00 44.29 26.38 17.78 57.92 3.73
+> Attacked Model: GTRS-DP [27] Clean 0.76 0.00 0.00 14.72 2.80 0.00 15.55 1.10
+> Derail CJ 0.22 71.23 100.00 53.51 48.96 30.19 61.73 16.92
+> Derail SS 0.21 72.67 100.00 54.70 50.21 31.92 61.52 18.89
+> Derail GN 0.26 65.41 100.00 53.31 39.80 22.90 60.42 13.37
+> Derail None 0.20 73.77 100.00 54.05 51.71 33.13 61.19 18.21
+> Attacked Model: GTRS-AUG [27] Clean 0.80 0.00 0.00 13.78 0.00 0.00 14.39 1.10
+> Derail CJ 0.32 60.28 100.00 41.46 37.33 20.24 47.91 8.43
+> Derail SS 0.30 62.84 100.00 42.42 37.93 22.08 49.70 8.10
+> Derail GN 0.31 61.40 100.00 42.94 35.78 20.85 49.59 6.41
+> Derail None 0.28 65.13 100.00 44.64 42.63 25.92 50.54 9.24
+> Attacked Model: GTRS-Dense [27] Clean 0.82 0.00 0.00 11.12 0.49 0.00 11.87 1.23
+> Derail CJ 0.43 47.47 100.00 37.64 10.23 2.83 39.98 43.98
+> Derail SS 0.44 45.97 100.00 38.77 10.19 3.34 39.81 44.17
+> Derail GN 0.40 50.92 100.00 41.16 11.58 3.31 43.00 43.31
+> Derail None 0.44 46.62 100.00 37.27 10.46 3.24 38.74 40.33
+
+safety filtering between the scoring head and the executed trajectory). 
+
+9.4. Cross-Model Adversarial Transferability 
+
+To assess adversarial transferability, we adopt the follow-ing protocol. For each of the four models, we first craft a 
+
+universal adversarial perturbation δ∗ ∈ RH×W ×3 by op-timizing the D ERAIL attack objective over multiple driv-ing scenarios on the source model in a white-box setting. The resulting perturbation is image-agnostic: the same δ∗
+
+is added to every frame of the targeted camera before any model-specific preprocessing. We then freeze δ∗ and evalu-ate it on each of the remaining three target models without any further optimization, i.e., the target model is treated as a complete black box. The perturbation is applied in raw pixel space and each target model’s own crop–stitch–resize pipeline processes the perturbed image normally. This yields 4 × 3 = 12 cross-model attack combinations. We observe near-zero transferability across architecturally dis-tinct families and partial transferability within the GTRS family (Table 9). Below we provide a systematic expla-nation grounded in the architectural and algorithmic differ-ences among the four tested models. 
+
+9.4.1. Partial Intra-Family Transferability. 
+
+As shown in Table 9, perturbations transferred within the GTRS family exhibit modest but statistically meaningful degradation, providing insight into the conditions under 11 Table 9. Black-box transferability analysis of D ERAIL .                                                                  
+
+> White-box Surrogate Black-box Target Models →
+> GTRS-DP [27] GTRS-AUG [27] GTRS-Dense [27] PDM ↓Drop ↑ASR ↑CR ↑PDM ↓Drop ↑ASR ↑CR ↑PDM ↓Drop ↑ASR ↑CR ↑
+> Clean (no attack) 0.87 0.00 0.00 5.06 0.84 0.00 0.00 11.39 0.86 0.00 0.00 6.33
+> GTRS-DP 0.09 0.78 100 66.46 0.80 0.03 100 15.19 0.78 0.09 100 10.13
+> GTRS-AUG 0.84 0.03 100 7.59 0.49 0.35 100 30.38 0.84 0.02 100 7.59
+> GTRS-Dense 0.81 0.07 100 11.39 0.81 0.03 100 15.19 0.57 0.29 100 20.25
+
+which transferability can emerge. A perturbation optimized on GTRS-DP reduces GTRS-Dense’s PDM score from 0.862 to 0.776 ( ∆ = −0.086 ), and vice versa from 0.875 to 0.808 ( ∆ = −0.067 ), weaker than white-box attacks, but significantly stronger than the near-zero impact observed across architecturally distinct families. This partial trans-ferability is explained by three shared architectural compo-nents: an identical VoVNet-99 backbone with attention, the same crop–stitch–resize preprocessing pipeline producing 
+
+512 × 2048 inputs, and a common HydraBackboneBEV 
+
+module creating a shared BEV representation space. Per-turbations that corrupt these shared early representations retain partial effectiveness because the feature extraction pathway is identical up to the trajectory generation head. Notably, transfer is asymmetric: GTRS-DP perturbations transfer slightly better to GTRS-Dense than vice versa, because GTRS-DP’s 100-step denoising optimization pro-duces multi-scale BEV feature corruption that partially dis-rupts vocabulary scoring, whereas GTRS-Dense’s pertur-bations are optimized to manipulate discrete score predic-tions, a more targeted and thus less transferable objec-tive. GTRS-AUG exhibits the strongest resistance to trans-ferred perturbations across both sources, consistent with its augmentation-robustness training and teacher–student distillation explicitly hardening its representations against input-space perturbations. 
+
+9.5. Transferability across Heterogeneous Models 
+
+Beyond the GTRS family, perturbations optimized for one generative planning model exhibit near-zero transferabil-ity to architecturally distinct models, a finding attributable mainly to compounding structural divergence. Diffusion-Drive’s ResNet-34 backbone operates at 256 × 1024 reso-lution while all GTRS variants use VoVNet-99 with FPN at 512 × 2048 , a 4× resolution difference that causes the same pixel-space perturbation to be downsampled differ-ently, altering which spatial frequencies survive into fea-ture extraction and producing near-random activations in the non-target backbone. The four models further instan-tiate three distinct decoder configurations: truncated DDIM with 2 denoising steps (DiffusionDrive), full DDPM with 100 steps (GTRS-DP), and vocabulary-based scoring over 4096–8192 discrete candidates (GTRS-Dense/AUG), each defining a qualitatively different mapping from pixel per-turbations to trajectory outputs. The Jacobians ∂ ˆτ /∂δ are consequently structurally dissimilar across families, such that a perturbation optimized through DiffusionDrive’s 2-step DDIM chain has no reason to remain effective when processed by GTRS-DP’s 100-step DDPM chain. These re-sults confirm that transferability in generative AD is gated by shared backbone and preprocessing structure, and that the architectural heterogeneity of current generative plan-ning models constitutes a meaningful, if unintentional, bar-rier to black-box adversarial attacks. 
+
+9.6. Directions Toward More Transferable Attacks. 
+
+We adopt a white-box threat model as our primary setting because it provides the gradient access needed to isolate and attribute each failure mode to a specific stage of the chain in Eq. (1) (main paper); the transferability analysis is therefore complementary, serving as a diagnostic that characterizes the boundary conditions of D ERAIL ’s effec-tiveness beyond the white-box setting. This diagnostic re-veals that cross-family transfer is constrained by the archi-tectural heterogeneity of current generative planning mod-els, a property of the model class itself that, as we show, can be partially addressed through ensemble optimization and surrogate model selection. Partial intra-family transfer within GTRS variants confirms that shared backbone struc-ture and preprocessing pipelines are the primary enablers of cross-model generalization, providing a clear roadmap for improving transferability beyond the white-box set-ting. Specifically, ensemble-based optimization, jointly maximizing D ERAIL ’s objective across multiple surrogate models simultaneously, would encourage perturbations to exploit shared vulnerability directions rather than model-specific gradient pathways. Input diversity techniques such as random resizing and padding during optimization [53] could further mitigate the resolution sensitivity between DiffusionDrive ( 256 × 1024 ) and GTRS ( 512 × 2048 ), en-couraging perturbations that remain effective across differ-ent downsampling scales. Attacking at the BEV feature level rather than pixel level, if partial model access is avail-able, would bypass backbone-specific frequency sensitiv-ities entirely, as the BEV bottleneck constitutes a shared representation space across all evaluated architectures. Fi-nally, the asymmetric transfer from GTRS-DP to GTRS-Dense suggests that surrogate models with longer iterative optimization horizons (e.g., full DDPM schedules) produce broader multi-scale feature corruption and may serve as more effective general-purpose surrogates for black-box at-tack crafting. Together, these directions suggest that trans-ferable adversarial attacks against generative AD systems are achievable beyond the white-box setting, but require de-liberate optimization strategies that account for the archi-tectural diversity of this emerging model class. 12

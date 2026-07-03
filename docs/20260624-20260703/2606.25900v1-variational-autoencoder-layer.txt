@@ -1,0 +1,90 @@
+Title: Variational Autoencoder Layer
+
+URL Source: https://arxiv.org/pdf/2606.25900v1
+
+Published Time: Thu, 25 Jun 2026 01:07:05 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Variational Autoencoder Layer 
+
+## Gananath R 
+
+## gananathr@gmail.com 
+
+Abstract 
+
+Variational Autoencoders (VAEs) belong to a family of autoencoders with probabilistic properties, making them well suited for generating data by producing a smooth and continuous latent space. Despite be-ing introduced over a decade ago, the method continues to be widely adopted in both research and industry for diverse applications. While VAEs are typically used as standalone models, this paper introduces a novel approach to integrate them as a neural network layer. Fur-thermore, a new training strategy is proposed for models incorporating these layers, and their performance is thoroughly analyzed. 
+
+# 1 Introduction 
+
+Autoencoder (AE) is a special class of neural networks widely used in deep learning (DL). They are generally trained without labeled data, in a unsu-pervised manner, where the model learns to reconstruct its own inputs. An AE comprises two parts: an encoder and a decoder. The encoder compresses and encodes the input data into a meaningful low-dimensional representation, while the decoder reconstructs the input from this latent representation. In modern AEs, backpropagation and reconstruction loss are important compo-nents of DL training. AEs have many applications, with prominent use in dimensionality reduction and feature learning. Since their introduction nearly forty years ago, various variants of AEs have been proposed, including sparse, denoising, and contractive AEs. VAEs are a special flavor of autoencoders used not only for representation learning but also for data generation [1, 2, 3]. VAEs fall under the class of generative autoencoders, which learn data dis-tributions and can synthesize new samples. They were first proposed in 2013 1
+
+> arXiv:2606.25900v1 [cs.LG] 24 Jun 2026
+
+by Kingma and Welling as an extension inspired by the Helmholtz Machine. The main difference between a vanilla AE and a VAE is that a vanilla AE learns fixed low-dimensional latent representations of the input, whereas a VAE learns the underlying probability distribution of the input data. A VAE can be viewed as a deep latent variable model (DLVM) that assumes the ob-served data x is generated from a latent variable z through an underlying probabilistic process. 
+
+pθ(x, z) = pθ(x | z)p(z)The main challenge in DLVM is that exact posterior inference is generally in-tractable because computing the marginal likelihood pθ(x) requires integrating over all latent variables. To address this, variational inference is employed by introducing a parametric approximate posterior qϕ(z | x), also known as an encoder or recognition model, which serves as a tractable approximation to the true posterior pθ(z | x), thereby enabling optimization of the model through a lower bound on the marginal likelihood [4, 5]. Backpropagation is a cornerstone of training in modern artificial neural net-works, yet it lacks a biological counterpart in natural brains. As an alterna-tive, Hinton introduced the Forward-Forward algorithm, which diverges from traditional backpropagation. Building on this, researchers developed Forward-Forward Contrastive Learning (FFCL), a three-stage method. However, FFCL still depended on backpropagation in its final stage. To address this limitation, Improved Forward-Forward Contrastive Learning (IFFCL) was proposed; a streamlined, single-stage approach that employs two distinct neural networks. In IFFCL, these networks are trained layer-wise using a shared loss function for localized updates. The output of one model serves as a reference for train-ing the corresponding layer in the other network. [6]. The IFFCL framework forms the foundation of the training procedure employed in this research. 
+
+# 2 Methods 
+
+Traditionally, VAEs are trained as full networks, consisting of multiple inter-connected layers much like AEs, which similarly feature encoder and decoder sections with equivalent functions. However, in this paper, we shift our ap-proach by treating VAEs not as standalone models but as individual neural network layers. Additionally, by incorporating the IFFCL algorithm, we intro-duce a training method that eliminates the need for backpropagation through layers. 2Figure 1: This figure provides a visual overview of our IFFCL model, including a detailed, magnified depiction of the VAELinear layer and its constituent components. 
+
+## 2.1 VAELinear 
+
+A standard hidden linear (dense) layer in a multilayer perceptron performs a linear transformation of the input, followed by a nonlinear activation func-tion. The purpose of this transformation is to map the input data into a new representation that can be further processed by subsequent layers. Given an input vector x ∈ Rdin , the layer computes a weighted sum using a weight matrix W ∈ Rdout ×din and a bias vector b ∈ Rdout . The resulting output vector z ∈ Rdout is given by 
+
+z = W x + b
+
+The transformed representation z is then passed through a nonlinear activation function before being forwarded to the next layer. Our VAELinear architecture comprises two key components: a VAELayer and a normalization layer. The VAELayer operates conceptually and functionally like a standard VAE model, with the primary distinction being its imple-mentation as a neural network layer rather than a standalone model. Unlike conventional Linear/Dense layers that rely on standard linear transformations, we employ a specialized linear transformation introduced in the original VAE paper called the reparameterization trick. 3μ = W1x
+
+σ = exp 
+
+12 log σ2
+
+
+
+log σ2 = W2xz = μ + σ ⊙ ε + b, ε ∼ N (0, I )The mean μ and standard deviation σ are trainable functions with their own parameters. The reparameterization trick was first proposed as a determinis-tic alternative for the stochastic sampling process so that gradients can pass through it while training. In addition to the VAELayer, VAELinear also consists of a normalization layer. In this paper we have used batch normalization but in our experiments layer normalization also gives similar results. Figure 1 is our IFFCL implementation with VAELayer. 
+
+## 2.2 MVAE 
+
+The original VAE uses the Evidence Lower Bound (ELBO) loss as the funda-mental objective function for variational inference. The primary goal is to max-imize the ELBO, which in turn maximizes a lower bound on the log-likelihood, log pθ(x), of the observed data. The first term in the ELBO corresponds to the reconstruction loss, while the second term represents the Kullback–Leibler (KL) divergence. ELBO( x) = Eqϕ(z|x) [log pθ(x | z)] − KL ( qϕ(z | x) ∥ p(z)) The conventional ELBO formulation is designed under the assumption that training is performed on a single-modality dataset. In contrast, the IFFCL framework employs at least two models during the training process. In this work, we consider the input to the second model as an additional modality associated with the input of the first model. Under this multimodal setting, the standard ELBO objective is no longer suitable and therefore cannot be directly applied. To address multimodal learning, Wu and Goodman introduced the Multimodal Variational Autoencoder (MVAE) in 2018, together with a subsampled train-ing strategy for variational autoencoders. One of the primary strengths of MVAE is its ability to learn a unified latent representation that captures the 4joint distribution of multiple modalities. The following equation presents the joint ELBO objective for a bimodal MVAE. ELBO( x1, x2) = Eqϕ(z|x1,x2) [log pθ(x1 | z) + log pθ(x2 | z)] −KL( qϕ(z | x1, x2) ∥ p(z)) where the posterior is defined using a product of experts (PoE) formulation: 
+
+qϕ(z | x1, x2) ∝ p(z) qϕ1 (z | x1) qϕ2 (z | x2)The joint ELBO loss alone is not sufficient as the final objective for training a multimodal network. In practice, the MVAE objective optimizes ELBOs over different subsets of modalities, ensuring consistent inference and robustness to missing modalities during training and evaluation [7]. In this paper, we use a simplified version of the MVAE objective for computing the total loss, instead of the original subset-based ELBO formulation proposed in the original paper. ELBO Total = ELBO( x1, x2) + ELBO( x1) + ELBO( x2)
+
+## 2.3 Reconstruction Loss 
+
+In our implementation, the VAE is employed as a layer and does not include an explicit decoder network, unlike the standard formulation. Instead, the decoder is assumed to be an identity mapping, such that the reconstructed data are identical to the latent representation. Consequently, the reconstructed data from the first model’s layer are denoted by x ≡ z, and the reconstructed data from the second model’s corresponding layer are denoted by ˆx ≡ z, where both share the same latent space representation. Under the Gaussian prior imposed on z, the latent representation is encouraged to follow a Gaussian distribution during training. Since the decoder is assumed to be an identity mapping, the reconstruction x and ˆx inherits the same distributional characteristics as z.In the MVAE paradigm, the approximate posterior is defined as qϕ(z | x, ˆx), which represents the distribution of the latent variable z conditioned on the observations from both modalities, x and ˆx. By combining this with the IFFCL concept, we assume that the conditional likelihood of a layer can be represented as an isotropic Gaussian distribution whose mean is given by the latent variable z. Since ˆx ≡ z, the conditional likelihood is given by 5pθ(x | z) = N (x; ˆx, σ 2I).
+
+Under these assumptions, the reconstruction loss can be derived from the negative log-likelihood, where the expectation is taken over the approximate posterior, averaging the reconstruction error across latent samples. log pθ(x | z) = −D
+
+2 log(2 πσ 2) − 12σ2 ∥x − ˆx∥2
+
+Lrecon = −Eqϕ(z|x,ˆx) [log pθ(x | z)] = 12σ2 Eqϕ(z|x,ˆx)
+
+∥x − ˆx∥2 + const = λEqϕ(z|x,ˆx)
+
+∥x − ˆx∥2 + const , λ = 12σ2 .
+
+≈ λ∥x − ˆx∥2 + const .
+
+where σ2 > 0 denotes the variance of the Gaussian likelihood. In the limit 
+
+σ2 → 0, the distribution converges to a Dirac delta function, yielding a deter-ministic mapping. A strictly positive variance is required to define a proper stochastic likelihood in the VAE structure. For ease of implementation, we set 
+
+λ = 1 in all experiments. 
+
+# 3 Results and Discussion 
+
+The training followed the same procedure used in the original IFFCL study. The model contains of three layers: the first is VAELinear1, implemented as 
+
+VAELinear (784 , 512), where 784 is the input dimension and 512 is the output dimension; the second is VAELinear2, implemented as VAELinear (512 , 256); and the final layer is a standard Linear (256 , 10). Each layer was trained in-dependently, with no backpropagation across layers. We used the Adam opti-mizer for all layers with a fixed learning rate of 0.0001 and L2 regularization with a weight decay of 0.0001. All layers used tanh activations after their outputs, except for the final classification linear layer, which used a softmax activation. The models were trained for 10 epochs on the MNIST training set using positive sampling and evaluated on the MNIST test set. The VAE layers were trained with the ELBO Total objective, while the classification layer was trained with cross-entropy loss. To improve reliability, all experiments were repeated three times. Figure 2 presents the training results. The left panel shows the normalized training loss for each layer, while the right panel displays the accuracy curves 6Figure 2: The figure illustrates the triplicate experimental results of our study, where the mean is shown as a dotted curve and the standard deviation is represented by shaded regions. (a) Results of normalized training loss across all three layers; (b) a plot of training and testing accuracy for a single model. for both the training and evaluation datasets. All three layers exhibit a sharp decrease in loss, which indicates effective model training. The two VAE-based intermediate layers, VAELinear1 and VAELinear2, show very little variation in loss, whereas the final layer shows a slight fluctuation. The accuracy curves increase steadily with each epoch, reaching peak accuracies of 53% on the training set and 55% on the test set. We observed that, with longer training, both training and testing accuracies gradually decrease. Closer examination indicates that the VAE-based layers remain stable, whereas the final classification layer degrades and loses its gen-eralization ability. As shown in Figure 2, after epoch 6 the accuracy begins to drop steadily, while the loss of the Linear layer starts increasing. We also per-formed similar experiments on a different, smaller dataset, where no decrease in training or testing accuracy was observed even after tens of thousands of training epochs (data not included). 
+
+# 4 Conclusion 
+
+VAE is a type of autoencoder commonly used for data generation. In this pa-per, we propose a technique that, rather than treating it as a fully fledged deep learning model, views it as a neural network layer. The IFFCL algorithm a non-backpropagation based method was employed to train models constructed with this novel layer. 7The results indicate that the model built with VAE based layers could learn meaningful representations from the data; however, its overall performance re-mained limited, with both training and testing accuracies reaching only about 55%. These results fall significantly short of the performance achieved by cur-rent state-of-the-art models on the same dataset. While the proposed layer successfully demonstrated learning capability, further research is needed to address its limitations and enhance its overall effectiveness. 
+
+# References 
+
+[1] Dor Bank, Noam Koenigstein, and Raja Giryes. “Autoencoders”. In: (Mar. 2020). doi : 10 . 48550 / ARXIV . 2003 . 05991 . arXiv: 2003 . 05991 [cs.LG] .[2] Ibomoiye Domor Mienye and Theo G. Swart. “Deep Autoencoder Neural Networks: A Comprehensive Review and New Perspectives”. In: Archives of Computational Methods in Engineering 32.7 (Mar. 2025), pp. 3981– 4000. issn : 1886-1784. doi : 10.1007/s11831-025-10260-5 .[3] Michael Tschannen, Olivier Bachem, and Mario Lucic. Recent Advances in Autoencoder-Based Representation Learning . 2018. doi : 10 . 48550 / ARXIV.1812.05069 .[4] Diederik P Kingma and Max Welling. “Auto-Encoding Variational Bayes”. In: (Dec. 2013). doi : 10.48550/ARXIV.1312.6114 . arXiv: 1312.6114 [stat.ML] .[5] Diederik P. Kingma and Max Welling. “An Introduction to Variational Autoencoders”. In: Foundations and Trends in Machine Learning: Vol. 12 (2019): No. 4, pp 307-392 12.4 (June 6, 2019), pp. 307–392. issn :1935-8245. doi : 10.1561/2200000056 . arXiv: 1906.02691 [cs.LG] .[6] Gananath R. “Improved Forward-Forward Contrastive Learning”. In: (May 2024). doi : 10.48550/ARXIV.2405.03432 . arXiv: 2405.03432 [cs.LG] .[7] Mike Wu and Noah Goodman. “Multimodal Generative Models for Scal-able Weakly-Supervised Learning”. In: (Feb. 2018). doi : 10 . 48550 / ARXIV.1802.05335 . arXiv: 1802.05335 [cs.LG] .8

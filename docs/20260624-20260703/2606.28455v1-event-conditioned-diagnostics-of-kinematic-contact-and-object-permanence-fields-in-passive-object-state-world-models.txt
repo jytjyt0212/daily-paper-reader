@@ -1,0 +1,2454 @@
+Title: Event-Conditioned Diagnostics of Kinematic, Contact, and Object-Permanence Fields in Passive Object-State World Models
+
+URL Source: https://arxiv.org/pdf/2606.28455v1
+
+Published Time: Tue, 30 Jun 2026 00:05:00 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+Event -Conditioned Diagnostics of Kinematic, Contact, and Object -
+
+# Permanence Fields in Passive Object -State World Models 
+
+Yang Liu *, Yuming Chen *
+
+College of Intelligent Robitcs and Advanced Manufacturing, Fudan University 
+
+Shanghai , China 
+
+{ly,  yumingchen}@fudan.edu.cn 
+
+Abstract 
+
+World models can predict future physical states, but prediction accuracy alone does not explain how physical 
+
+information is organized and used inside their latent dynamics. We introduce a controlled diagnostic protocol 
+
+for studying event -conditioned latent  physical structure in passive object -state world models. The protocol 
+
+tests whether hidden representations encode event -regime information, whether event contexts reweight non -
+
+exclusive physical field readouts, and whether field -aligned representational c omponents have functional 
+
+consequences for prediction. Using a balanced controlled -generator dataset with free -motion, collision, and 
+
+occlusion events, we evaluate recurrent, attention -based, and latent state -space transition models under a 
+
+fixed -horizon f orecasting setup. The models learn useful predictive dynamics and their hidden states support 
+
+reliable event -regime readout. Event contexts systematically reweight kinematic, contact, and object -
+
+permanence field readouts: free motion is kinematic -dominant,  collision combines kinematic and contact 
+
+structure, and occlusion combines motion -related and object -permanence structure. Time -aligned and 
+
+directional -consistency analyses further show phase -related shifts in field emphasis. Finally, fixed -horizon 
+
+projec tion  causal field effect ( CFE ) shows that suppressing field -aligned directions can degrade event -
+
+relevant prediction, with strongest evidence for contact -aligned structure in collision -contact windows and 
+
+more qualified evidence for object -permanence -align ed structure in hard -occlusion hidden windows. These 
+
+results support event -conditioned organization and fixed -horizon functional sensitivity of latent physical 
+
+fields, while not implying explicit physical modules, isolated causal circuits, or context -invar iant sliding -
+
+window generalization. 
+
+1.  Introduction 
+
+World models have become a central framework for learning predictive models of physical dynamics. They 
+
+compress observations into latent states and roll those states forward in time.  This allows them to  support 
+
+planning, control, and policy learning without evaluating every decision directly in the external environment 
+
+(Ha & Schmidhuber, 2018; Hafner et al., 2019; Hafner et al., 2023; Micheli et al., 2022) . Early  neural  world 
+
+models  showed that agents could  use  learned internal simulations for control  (Ha & Schmidhuber, 2018) .
+
+PlaNet showed that latent dynamics can support planning from high -dimensional observations  (Hafner et al., 
+
+2019) . More recent Dreamer -style systems showed that learned world models can support behavior learning 
+
+across diverse domains  (Hafner et al., 2023) . Transformer -based world models further suggest that this 
+
+paradigm is not tied to a single recurrent architecture  (Micheli et al., 2022) . However, strong prediction or     
+
+> *Equal contribution
+> Source codes and data can be fou nd at https://github.com/lysea8282/event -conditioned -world -model -diagnostics
+
+control performance does not explain how physical information is organized inside the model. A model may 
+
+predict future states accurately while representing speed, direction, contact, or object persistence in 
+
+distributed and task -specific ways. These struc tures may not appear as explicit, factorized physical variables 
+
+(Joseph et al., 2026) . This motivates a shift in focus. Instead of asking only whether a world model can 
+
+predict physical dynamics, we ask how  physical structure is organized, reweighted , and used within latent 
+
+dynamics. 
+
+Our work builds on prior progress in physical reasoning benchmarks, object -centric dynamics modeling, and 
+
+representation analysis, but asks a more specific question.  We move the question toward event -conditioned 
+
+organization and functional use of latent physical structure. By state -conditioned, we mean that the model ’s
+
+internal representation may depend not only on which physical variable is present, but also on which physical 
+
+event is currently unfolding. We also treat physical fields as non -exclusive. A collision sequence still contains 
+
+kinematic structure before con tact, but it should place additional emphasis on contact -sensitive structure 
+
+when objects interact. An occlusion sequence still contains visible motion before hiding, but it should place 
+
+additional emphasis on object -permanence structure when an object bec omes hidden or reappears. This 
+
+distinction matters because a model that  bears  velocity  information  may still fail at collision if it does not 
+
+use contact -sensitive structure, and a model that tracks visible objects may still fail at occlusion if it does not 
+
+maintain hidden object state .
+
+The remaining deeper gap is that current evaluation, modeling, and interpretability lines do not yet provide 
+
+a controlled way to test how physical event context changes the organization and functional role of latent 
+
+physical structure. Benchmarks tell us w hether a model succeeds or fails. Object -centric dynamics models 
+
+improve prediction and generalization. Probing and steering studies show that physical information can be 
+
+readable or manipulable. What remains less clear is how these pieces fit together ins ide a world model as the 
+
+physical event changes. We address this gap with a hierarchical diagnostic framework , which  tests event -
+
+level separability, event -conditioned field reweighting,  fixed -horizon causal sensitivity under field -aligned 
+
+projection suppression , and partial time -resolved consistency under phase -aligned analyses. 
+
+2.  Related Work 
+
+2.1  Physical reasoning benchmarks 
+
+Physical reasoning benchmarks make physical success and failure measurable. Physion evaluates visual 
+
+physical prediction across collisions, stability, rolling, sliding, and projectile motion  (Bear et al., 2021) .
+
+CLEVRER focuses on collision events and asks descriptive, explanatory, predictive, and counterfactual 
+
+questions about videos  (Yi et al., 2019) . IntPhys and IntPhys2 test violation -of -expectation judgments for 
+
+intuitive -physics principles such as permanence, continuity, and solidity  (Bordes et al., 2025) . CATER 
+
+stresses compositional actions, temporal reasoning, and object tracking under controlled scene biases 
+
+(Girdhar & Ramanan, 2019) . PHYRE evaluates sample -efficient physical problem solving in 2D mechanics 
+
+puzzles  (Bakhtin et al., 2019) . These benchmarks define observable behavioral criteria for physical reasoning. 
+
+But they mainly evaluate task behavior, plausibility judgments, causal question answering, or planning 
+
+outcomes. They do not by themselves explain how physical information is organized inside a model. 
+
+2.2 Object -centric dynamics and world models 
+
+Object -centric dynamics  models decompose scenes into objects, slots, particles, or relational state variables, 
+
+and then learn how these entities evolve over time  (Shamsian  et al., 2020; Song et al., 2025; Villar -Corrales et al., 2023; Wu et al., 2022) . The y can improve long -horizon prediction, future reasoning, visual question 
+
+answering, planning, and object tracking.  Some models directly target object permanence and occlusion. 
+
+They learn to track hidden objects, anticipate reappearance, or maintain object -specific state through 
+
+occlusion  (Shamsian et al., 2020; Traub et al., 2024) . Other models introduce explicit kinematic structure or 
+
+separate object dynamics from object interactions  (Song et al., 2025; Villar -Corrales et al., 2023) . This line 
+
+of work shows that object structure, kinematic structure, and interaction structure can improve prediction 
+
+and generalization. Its main goal, however, is usually better rollout, better prediction, better planning, or 
+
+better generalization. It is  less often focused on how latent physical structure changes its organization and 
+
+functional role when the physical event changes. 
+
+2.3 Probing, steering, and representation diagnostics 
+
+Internal representation analysis comes closer to our diagnostic focus.  Recent interpretability studies show 
+
+that physical variables can be decoded from hidden states of video or world models. Speed, acceleration, 
+
+motion direction, object position, and game -state variables can become accessible in learned representations 
+
+(Joseph et al., 2026; Zhang, 2026) . These representations are not always simple factorized variables. For 
+
+example, direction can be encoded through a distributed population geometry rather than a single explicit 
+
+coordinate  (Joseph et al., 2026) . Other work goes beyond probing. Probe -derived Concept Activation Vectors 
+
+can steer physical plausibility judgments in video world models  (Alam, 2026) . Interventions along probe -
+
+derived directions can also change the predictions of learned environment simulators  (Zhang, 2026) . Causal 
+
+and contextual world -model studies further show that learned latent structure can support counterfactual 
+
+dynamics, intervention -aware prediction, or context -dependent rollout behavior  (Ding et al., 2026; Lei et al., 
+
+2022; Röder et al., 2026) . These results show that physical information can be readable, geometrically 
+
+organized, and sometimes functionally used. 
+
+3.  Problem formulation 
+
+3.1 Passive Object -State World Models 
+
+In this  work , w e study  passive object -state world models , where  a model observes a sequence of object states 
+
+and predicts how those states evolve over time. Each state contains object -level variables such as position, 
+
+velocity, size, visibility, or other available annotations. We write the object -state sequence as  𝑠 1:𝑇 , where  𝑠 𝑡 
+
+summarizes the scene at time  t. A transition model is the part of the world model that maps observed states 
+
+to future states. It encodes the observed prefix into hidden states  ℎ𝑡 , and predicts a future trajectory  𝑠 ̂𝑡 +1:𝑡 +𝐻 ,
+
+where  H is the prediction horizon.  In  our  experiments, this prefix -horizon  interface is fixed: the models 
+
+observe the first eight frames and predict the next eight frames.  Although this fixed -horizon setup does not 
+
+test arbitrary sliding -context generalization, it provides a controlled forecasting interface in which all 
+
+architectures receive the same observed prefix and are evaluated over the same future target horizon. This 
+
+design makes the subsequent diagnostic comparisons more interpretable by minimizi ng potential confounds 
+
+from differences in context length, prediction horizon, and event -aligned resampling. 
+
+The word passive means that the models considered here do not receive agent actions as input. They are not 
+
+trained to choose actions, plan interventions, or control a robot. They  only  learn the dynamics of observed 
+
+physical scenes , which  makes the setting different from action -conditioned reinforcement -learning world 
+
+models.  Therefore, our  diagnostic target  is narrowed .
+
+We use object -state inputs rather than raw pixels. This choice removes the confound of object discovery, segmentation, and visual feature extraction. It allows us to focus on the transition dynamics themselves. The 
+
+goal  of this article  is not to test whether a model can perceive objects from video , but  to test whether, given 
+
+object -level state information, the transition model organizes latent physical structure in a way that depends 
+
+on the physical event context. 
+
+Although our setting is passive, it is still relevant to more general action -conditioned and control -oriented 
+
+world models. Such models also rely on latent states to predict future dynamics, evaluate possible futures, 
+
+or support downstream planning and con trol. In those settings, action selection depends on how the model 
+
+represents the physical consequences of states and actions.  Though a  passive transition model does not 
+
+choose actions , it provides a controlled setting for a prerequisite question: whether  the latent state contains 
+
+event -sensitive physical structure at all. 
+
+3.2 Physical Event Contexts 
+
+We use physical event context to describe the type of physical situation shown by  an observed trajectory 
+
+segment. An event context is not necessarily a label given to the model as input. It is a diagnostic grouping 
+
+used . It helps us ask what kind of physical structure the model must represent in order to predict the sequence. 
+
+In this paper, we focus on three event families: free motion, collision, and occlusion. 
+
+A free -motion context is a segment in which objects move without contact or disappearance. Prediction in 
+
+this regime mainly depends on kinematic structure, such as position, velocity, and smooth motion. A collision 
+
+context is a segment in which objects com e into contact and their motion changes after interaction. Prediction 
+
+in this regime requires sensitivity to contact, interaction, and post -contact state changes. An occlusion context 
+
+is a segment in which an object becomes partially or fully hidden and la ter reappears. Prediction in this 
+
+regime requires the model to maintain object -specific state across temporary invisibility. 
+
+These event families do not cover all of physical reasoning. They are chosen because they isolate three 
+
+common demands on a physical prediction model. Free motion stresses kinematic continuation. Collision 
+
+stresses interaction and contact -sensitive dynamic s. Occlusion stresses object permanence. Together, they 
+
+provide a controlled setting for asking whether different physical contexts  reweight  different latent physical 
+
+structures. 
+
+Importantly, the event families are not exclusive field assignments. Collision contains kinematic approach 
+
+before contact, and occlusion contains visible kinematic motion before the object is hidden. Our claim is 
+
+therefore not that an event contains only o ne field. The claim is that the relative importance of latent physical 
+
+structure should change as the event regime changes. 
+
+3.3 Latent Physical Fields 
+
+We use the term  “latent physical field ” to refer to a structured pattern in the hidden states of a transition 
+
+model that becomes relevant under a particular class of physical states or event contexts. A field is not 
+
+assumed to be a single neuron, a single coordinate, or an explicit physical var iable. It may be distributed 
+
+across many dimensions of the hidden state. It may also appear as a direction, subspace, cluster structure, or 
+
+event -sensitive activation pattern. Our use of the term  “field ” is diagnostic  rather than ontological. We do 
+
+not assume that the model contains a human -interpretable physical module. 
+
+We focus on three latent physical fields. The kinematic field refers to hidden -state structure associated with 
+
+smooth motion, position, velocity, and trajectory continuation. The contact field refers to hidden -state 
+
+structure associated with object contact , collision, and post -contact change. The object -permanence field refers to hidden -state structure associated with maintaining object identity and state across temporary 
+
+invisibility. 
+
+These fields are defined by their diagnostic role, not by direct supervision. We do not train the transition 
+
+model with separate field labels. We also do not require the model to expose explicit physical variables. 
+
+Instead, we examine whether hidden -state  patterns align with event contexts, whether field emphasis changes 
+
+across event phases, and whether changing such patterns changes event -relevant predictions. A physical field 
+
+is therefore a testable hypothesis about the organization of latent dynamics, no t a claim that the model 
+
+contains a symbolic physical module. 
+
+This definition separates our question from ordinary variable probing. A probe may show that velocity, 
+
+contact, or visibility can be decoded from a hidden state. That is useful, but it mainly shows that the 
+
+information is present. A latent physical field s hould show context sensitivity, selectivity, and functional 
+
+relevance. It should not merely be readable. 
+
+3.4  State -Conditioned Field Diagnostics 
+
+We define state -conditioned field diagnostics as tests that ask whether latent physical fields become 
+
+selectively relevant under different physical event contexts. The diagnostic target is not a single decoded 
+
+variable. It is the relationship among three elements: the physical state or event context, the model ’s hidden -
+
+state structure, and the prediction behavior of the transition model. 
+
+This distinction separates our setting from ordinary variable probing and from prediction -oriented structure 
+
+learning. A standard probe may show that position, velocity, contact, or visibility can be decoded from hidden 
+
+state . Other models may also use object -centric structure, kinematic variables, interaction modules, or causal 
+
+factors to improve prediction, tracking, planning, or generalization. These are strong forms of physical 
+
+structure. However, they do not by themselves  answer a different question: h ow the relevance and functional 
+
+role of these structures change with the physical event context. 
+
+We analyze this question at three levels. Event -level diagnostics use a sequence -level or final hidden 
+
+representation to ask whether free motion, collision, and occlusion are separable and whether the 
+
+corresponding field structure is emphasized. Here, an e vent refers to the overall physical regime of a full 
+
+trajectory segment. Phase -level diagnostics operate at a finer temporal scale. We define an event phase as a 
+
+diagnostic time -step label that marks where a frame lies within an event process. Free -motion  sequences 
+
+contain a free -motion phase.  Collision sequences are divided into pre -contact, contact, and post -contact 
+
+phases. Occlusion trajectories can be annotated as pre -occlusion, hidden, and reappearance phases when 
+
+these phases are present within the analyzed trajectory range. Not every diag nostic necessarily uses all 
+
+annotated phases; each analysis uses the phase labels that are available for the corresponding representation, 
+
+prediction horizon, or time -aligned readout.  These phase labels are derived fr om dataset annotations such as 
+
+contact timing, visibility, object states, and pairwise relations. They are used only for analysis, not as model 
+
+inputs. Phase -level diagnostics therefore ask how the physical demands of an event change over time. This 
+
+level  is a data -level proxy unless the analysis directly uses per -time -step model hidden states aligned with 
+
+the same phase labels. 
+
+The three levels have different evidential strength. Event -level evidence is the main cross -architecture 
+
+evidence. Phase -level proxy evidence helps interpret why collision and occlusion are mixtures rather than 
+
+single -field events. Timewise hidden -state ev idence is stronger, but in our current implementation it is 
+
+architecture -limited. We therefore treat timewise results as supplementary evidence unless they are available across models with comparable hidden -state interfaces. 
+
+Our goal is not to prove that the model contains explicit physical modules or human -defined physical laws. 
+
+The goal is to obtain controlled evidence about how physical structure is organized, reweighted, and used 
+
+inside passive transition dynamics. 
+
+4.  Diagnostic Protocol 
+
+4.1 Overview 
+
+Our diagnostic protocol tests whether latent physical structure is organized and used in an  event -conditioned 
+
+manner. The protocol has three main parts. The first part tests separability: can hidden states distinguish free 
+
+motion, collision, and occlusion? The second part tests selectivity: are event contexts associated with the 
+
+expected physical  field emphasis? The third part tests functional relevance: does suppressing a field -related 
+
+pattern change event -relevant predictions?  In the present experiments, this functional -relevance test is 
+
+evaluated within the configured future prediction horizon. 
+
+We also use phase -level and timewise analyses to interpret field reweighting over event trajectories. These 
+
+analyses must be read carefully. Phase -level analysis based on object states, relations, and event phases is a 
+
+data -level proxy. It explains the phy sical structure of the event. Timewise analysis based on  ℎ𝑡  is a hidden -
+
+state analysis. It explains how the model representation changes over time. We keep these two sources of 
+
+evidence separate throughout the paper. 
+
+The protocol is a controlled diagnostic framework, not a full mechanistic explanation. Event probes may 
+
+detect superficial event cues. Field selectivity may show structured association, but not functional use. 
+
+Causal field effect adds intervention evidence , but still does not identify a complete mechanism. The 
+
+following subsections define the components of the protocol. 
+
+4.2 Event Probe 
+
+The first part of the protocol asks whether the model’s hidden states separate different physical events. Given 
+
+a hidden state  ℎ𝑡 , we train a  lightweight probe to classify whether the sequence is free motion, collision, or 
+
+occlusion. The event label is used only for diagnosis. It is not given to the transition model as an input. 
+
+This probe answers a basic question: does the hidden state contain information about which physical situation 
+
+the model is currently predicting? A successful event probe does not prove that the model has learned a 
+
+kinematic field, a contact field, or an ob ject -permanence field. It only shows that event -regime information 
+
+is readable from the hidden representation. 
+
+4.3 Field Selectivity 
+
+The second part of the protocol asks whether event contexts are associated with the expected field emphasis. 
+
+We do not interpret the mapping as one -to -one or exclusive. Instead, field selectivity measures relative 
+
+emphasis. Free motion should be kinematic -dominant. Collision should retain kinematic structure but place 
+
+additional emphasis on contact -sensitive structure. Occlusion should retain motion -related structure but 
+
+place additional emphasis on object -permanence structure during hidden or reappearance  phases. 
+
+Field selectivity compares field -related hidden -state patterns across event types and controls. A field is 
+
+selective if it is stronger, more diagnostic, or more useful in the event type where it is expected. This part 
+
+goes beyond ordinary variable probing  because it asks whether the model emphasizes the relevant physical structure under the event condition where that structure matters. 
+
+4.4 Causal Field Effect  (CFE) 
+
+The third  part of the protocol asks whether a field -related pattern matters for prediction. We call this causal 
+
+field effect. If a hidden -state pattern is important for a physical event, then changing or suppressing that 
+
+pattern should affect the model ’s prediction for that event.  In the present implementation, CFE is measured 
+
+as a prediction -loss change inside event -relevant windows that fall within the configured fixed future horizon. 
+
+For example, if a contact field is functionally relevant, suppressing a  contact -related pattern should affect 
+
+collision predictions more than free -motion predictions. If an object -permanence field is functionally 
+
+relevant, suppressing an object -permanence -related pattern should affect hard -occlusion predictions. We 
+
+interpret c ausal field effect as evidence of causal sensitivity, not as a full explanation of the model ’s
+
+mechanism.  To avoid over -interpreting the intervention, we compare target -field suppression with controls 
+
+such as random subspaces, matched -norm random direction s, mismatched fields, and field -label shuffles. 
+
+4.5 Controls and Input Variants 
+
+The protocol includes controls for shortcut and leakage. If the model receives direct event labels, contact 
+
+labels, future states, or hidden true states as input, then a probe or field diagnostic may succeed for trivial 
+
+reasons.  We  therefore  test whether the diagnostic signals persist after removing obvious shortcut information 
+
+from the input. First, we use a motion -only setting in which the model receives only object -level position 
+
+and velocity, without explicit event, contact, or occlusion  labels. Second,  for occlusion sequences, we use an 
+
+observation -like setting in which the model receives only visible state information and visibility indicators, 
+
+without access to the true hidden state of the occluded object. If the diagnostic signals remain under these 
+
+restricted settings, they are less likely to be explained by direct label leakage or trivial input cues. 
+
+5.  Dataset and Models 
+
+5.1 Main Controlled Public -Generator Dataset 
+
+Our main experiments  use a Kubric -style public -generator pipeline to construct an object -state dataset (Greff 
+
+et al., 2022) . The dataset is designed for diagnostic analysis, not as a general -purpose video benchmark.  In 
+
+our dataset , physical event types are balanced, object -level states are available, and diagnostic labels can be 
+
+separated from model inputs. 
+
+The main dataset contains three event families: free motion, collision, and occlusion. Each family contains 
+
+300 sequences, giving 900 sequences in tota l. Free -motion sequences test kinematic continuation. Collision 
+
+sequences test contact -sensitive interaction. Occlusion sequences test object permanence when an object 
+
+becomes temporarily hidden. This balanced design lets us compare event -conditioned latent  structure across 
+
+physical regimes without making the analysis dominated by a single event type. 
+
+The dataset provides object -level information and diagnostic annotations. These include object states, masks, 
+
+centroid heatmaps, pairwise relations, event family labels, event phase labels, and metadata. Collision 
+
+sequences are audited to ensure that they  contain true contact events, rather than only near -contact cases. 
+
+Occlusion sequences are divided into easy and hard cases. 
+
+The dataset also contains held -out stress -test splits. For collision, the held -out split emphasizes more difficult 
+
+collision regimes, such as larger collision angles and higher approach -speed conditions. For occlusion, the held -out split emphasizes longer hard -occlusion windows. We refer to these as out -of -distribution, or OOD, 
+
+tests , which  means testing on harder parameter regimes within the same controlled generator setting. 
+
+5.2 Event Families and Annotations 
+
+The dataset contains three event families: free motion, collision, and occlusion. These event families are not 
+
+meant to cover all  possible physical situations. They are chosen because they place different demands on a 
+
+passive object -state prediction model. 
+
+In free -motion sequences, objects move without contact and without becoming hidden. In collision 
+
+sequences, two or more objects come into contact and their motion changes after interaction. In occlusion 
+
+sequences, an object becomes partially or fully hidde n and later reappears. The dataset also records event 
+
+phases such as pre -contact, contact, post -contact, pre -occlusion, hidden, and reappearance. These phase 
+
+labels are used for analysis and auditing. They are not treated as ordinary model inputs. 
+
+This annotation design allows us to compare free motion, collision, and occlusion under a shared object -
+
+state format. It also allows us to distinguish event -level diagnostics from phase -level proxy analysis. 
+
+5.3 Transition Models 
+
+We evaluate the diagnostic protocol on three passive object -state transition models: a GRU -based recurrent 
+
+model, a Transformer -lite model, and an  RSSM -lite model. These models serve as architecture -family 
+
+controls. The purpose is to test whether the diagnostic results depend on one particular transition architecture, 
+
+or whether similar event -conditioned patterns can be observed across different ways  of modeling temporal 
+
+dynamics. 
+
+The GRU -based model represents a recurrent transition architecture. The Transformer -lite model represents 
+
+an attention -based transition architecture. The RSSM -lite model represents a latent state -space style 
+
+transition architecture. We do not claim that th e RSSM -lite variant is equivalent to a full Dreamer -style agent. 
+
+We use it only to test whether the diagnostic protocol remains meaningful in a state -space transition setting. 
+
+For all three models, the diagnostic target is the hidden representation produced during passive prediction. 
+
+We train the models to predict future object states. We then analyze their hidden states using event probes, 
+
+field selectivity, causal field effect , and timewise readouts when appropriate. 
+
+5.4 Input Variants and Leakage Control 
+
+We evaluate several input variants. The first variant uses object -state information for passive prediction. The 
+
+second variant is a kinematic -only input, which uses only basic motion variables such as object  position and 
+
+velocity. The third variant is an observation -like input, which is designed for occlusion. It uses visible state 
+
+information, the last observed position, and a visibility flag, without giving the model the true hidden position 
+
+of an occluded o bject. 
+
+A central risk in event -conditioned diagnostics is shortcut learning. If the model directly receives event labels, 
+
+contact labels, future states, or hidden true states as input, then the diagnostic may succeed for a trivial reason. 
+
+To avoid this problem, e vent family labels, event phase labels, contact labels, future states, and hidden true 
+
+object states are absent from context inputs. They are used only to define diagnostic groups, check dataset 
+
+quality, and compute evaluation metrics. 5.5 Training and Diagnostic Readouts 
+
+All transition models are trained for passive future -state prediction. Given an observed prefix of object states, 
+
+the model predicts future object states. The training objective is prediction loss on future object states. The 
+
+models are trained separately  for each architecture, input variant, and random seed. The main evaluation 
+
+uses the in -distribution test split. Held -out collision and occlusion splits are used later for stress tests.  In the 
+
+reported experiments, the primary training and evaluation interf ace is fixed -horizon: an observed prefix is 
+
+used to predict a configured future horizon. 
+
+After training, we analyze the hidden states of the trained transition models. The diagnostic readouts are 
+
+fitted after the transition model has learned the prediction task. They are used only for analysis, not used to 
+
+train the transition model, and their  labels are not given to the model as input. 
+
+The first readout is an event probe. Both standard variable probes and our event probe take model hidden 
+
+states as input. The difference lies in the prediction target. A standard variable probe usually predicts a 
+
+specific physical variable, such as positio n, velocity, contact, or visibility ; while o ur event probe predicts the 
+
+physical event regime of the sequence: free motion, collision, or occlusion. 
+
+Field selectivity and causal field effect ask stronger questions. Field selectivity tests whether hidden -state 
+
+patterns align with expected field emphasis.  CFE  tests whether suppressing a field -related pattern changes 
+
+event -relevant predictions. Exact architecture sizes, optimizer settings, training epochs, normalization details, 
+
+and intervention implementation are provided in  Appendix A .
+
+6.  Main results 
+
+6.1  Models Learn Predictive Dynamics and Encode Event -Regime Information 
+
+Before analyzing latent physical fields, we first check whether the models have learned the basic predictive 
+
+dynamics of the dataset.  Table  1 reports this check under the kinematic -only input setting. Here, kinematic -
+
+only refers to the input variant, not to the free -motion event family. Across all evaluated architectures and 
+
+seeds, the learned models predict future object states better than the  constant -velocity baseline in the in -
+
+distribution test split. This result shows that the transition models have learned useful object -state dynamics, 
+
+rather than producing arbitrary hidden states. It also gives a basic foundation for later latent -state di agnostics. 
+
+We then apply the event probe defined in Section 4. 2. Prior work has already shown that physical variables 
+
+can often be decoded from learned representations. Here, the probe mainly checks whether, in our trained 
+
+passive object -state models, the hidden states contain stable information about the current even t regime. 
+
+As shown in  Table  1, the event probe succeeds across the evaluated models and seeds. This result shows that 
+
+event -regime information is available in the hidden states. We do not interpret event -probe success as 
+
+evidence of a physical field by itself. The main evidence comes  from whether the event -related structure 
+
+aligns with field emphasis, whether it changes over event phases, and whether suppressing a field -related 
+
+pattern changes event -relevant predictions. 
+
+Table  1 Prediction sanity and event -regime readout under kinematic -only input. Seed denotes the random 
+
+seed used for model training and evaluation.  MSE denotes normalized future -position MSE over predicted 
+
+object x/y coordinates in the fixed -horizon target window . CV_MSE is the same metric computed for the 
+
+constant -velocity baseline.  Event probe F1 is the macro -F1 score of the lightweight probe that predicts free motion, collision, or occlusion from frozen model hidden states. 
+
+Model  Seed  MSE  CV_MSE  MSE/CV  Probe  F1  Verdict 
+
+GRU  3407  2.46E -04  3.35E -04  0.73  1.00  Pass 
+
+Transformer  3407  9.98E -05  3.35E -04  0.30  1.00  Pass 
+
+RSSM  3407  1.49E -04  3.35E -04  0.45  1.00  Pass 
+
+GRU  3408  2.23E -04  3.35E -04  0.66  1.00  Pass 
+
+Transformer  3408  1.21E -04  3.35E -04  0.36  1.00  Pass 
+
+RSSM  3408  1.40E -04  3.35E -04  0.42  1.00  Pass 
+
+6.2 Event Contexts Reweight Non -Exclusive Physical Fields 
+
+The event probe in Section  6.1 shows that the hidden states contain information about the current physical 
+
+event. We now ask a stronger question: how is this event information organized with respect to the physical 
+
+fields defined in Section  3.3?  Our results do not imply a one -to -one mapping between events and exclusive 
+
+fields. Rather, different event contexts systematically shift the relative weighting among multiple physical 
+
+fields. 
+
+A collision sequence is not purely a contact process. Before contact, it still contains  ordinary motion and 
+
+approach dynamics. An occlusion sequence is not purely an object -permanence process either. Before the 
+
+object becomes hidden, it still contains visible motion, and after reappearance it again contains visible -state 
+
+information. For this  reason, we interpret field selectivity as relative field emphasis, not as a one -to -one 
+
+event -to -field assignment. In our setting, free motion is expected to be mainly kinematic -dominant; collision 
+
+is expected to combine kinematic and contact structure; an d occlusion is expected to combine kinematic and 
+
+object -permanence structure. 
+
+Figure  1 presents the results of physical -field reweighting induced by event contexts at event, phase, and 
+
+timewise levels.  Event -level diagnostics use a sequence -level hidden representation to ask whether free 
+
+motion, collision, and occlusion differ in their relative field emphasis. Phase -level diagnostics use dataset -
+
+defined event phases to describe how the physical demands o f a trajectory change over time. For collision, 
+
+we divide the sequence into pre -contact, contact, and post -contact phases. For occlusion, we  divide the 
+
+sequence into pre -occlusion and hidden phases, and include reappearance when that phase is available in the 
+
+selected analysis. These phase -level results are data -level proxies unless they are computed from per -time -
+
+step hidden states. Finally, t imewise diagnostics use per -time -step hidden states, when available, to test 
+
+whether field scores shift over event phases inside the learned representation. 
+
+For  figures concerning  the hidden -state , i.e.  Figure  1A, D, and E, the y -axis reports a field readout score : a 
+
+softmax probability produced by a trained 3 -class linear probe applied to z -scored hidden states . For  Figure 
+
+1B and C,  the y -axis reports a data -level proxy z -score computed from annotated object -state and event -
+
+phase information , not a model activation. For  Figure  1F,  the y -axis reports a positive shift fraction rather 
+
+than a readout magnitude. Appendix B gives the mathematical definitions and aggregation rules for these 
+
+quantities .
+
+At the event level, the RSSM hidden -state readouts support the expected ordering of field emphasis.  Figure 
+
+1A shows that free motion is strongly kinematic -dominant. Collision retains a substantial kinematic 
+
+component, but also shows a clear rise in the contact field. Occlusion retains a residual motion -related 
+
+component, but shows a much stronger object -permanen ce field. This is the main cross -event result. It shows 
+
+that the representation does not simply store generic trajectory information. Instead, the relative weighting of physical structure changes systematically with event context. 
+
+We then use phase -level proxy analysis to interpret why collision and occlusion should be viewed as mixed 
+
+events rather than single -field events. This analysis uses object states, pairwise relations, and event -phase 
+
+labels from the dataset. It does not use  model hidden states. Its role is to describe the changing physical 
+
+demands of the trajectory itself. In the collision case,  Figure  1B shows a transition from kinematic -dominant 
+
+pre -contact motion to contact -sensitive interaction at the contact phase, followed by a partial return to a more 
+
+kinematic regime after contact. In the occlusion case,  Figure  1C shows a transition from visible kinematic 
+
+motion before hiding to object -permanence -dominant structure during the hidden interval. When 
+
+reappearance is included, visible -state structure partially returns, but object -permanence remains elevated 
+
+relative t o pre -occlusion. These proxy profiles explain why event -conditioned field diagnostics should not 
+
+be interpreted as hard category boundaries. 
+
+The next question is whether a similar reweighting pattern appears inside model hidden states over time. For 
+
+RSSM future rollout latents, the answer is yes.  Figure  1D and E show time -aligned hidden -state field 
+
+dynamics. In collision sequences aligned to contact onset, kinematic scores are higher before contact, while 
+
+contact scores rise around the event boundary and dominate afterward. In occlusion sequences aligned t o
+
+hidden -start, kinematic scores are higher before hiding, while object -permanence scores rise sharply around 
+
+the hidden interval and remain dominant afterward. A strict phase -aware field readout on RSSM hidden 
+
+states reaches a mean test macro -F1 of 0.900,  which provides direct time -resolved evidence that field 
+
+structure changes with event phase inside the learned representation. 
+
+For GRU and Transformer -lite, we do not claim the same level of time -resolved evidence as in RSSM rollout 
+
+latents, because the current implementations expose sequence -level or prefix -conditioned hidden 
+
+representations rather than a directly comparable futu re rollout latent trajectory. Instead, we use a lighter 
+
+sliding -prefix hidden -state analysis. This analysis tests whether the direction of the expected field shift is 
+
+present as prefixes move across event phases, but it does not reconstruct full phase -reso lved hidden dynamics 
+
+within a single future rollout.  Across the evaluated cases, contact -related scores increase at collision phases, 
+
+and object -permanence -related scores increase at hidden phases. The joint directional consistency score is 
+
+1.000, with positive contact -phase and hidden -phase shifts in all ev aluated GRU and Transformer -lite cases. 
+
+Figure  1F summarizes this weaker but still consistent evidence. 
+
+Taken together, the results support a hierarchical interpretation. First, at the event level, hidden states separate 
+
+physical regimes and show different relative field emphasis. Second, phase -level proxy analysis explains 
+
+why collision and occlusion are mi xtures rather than single -field events. Third, timewise hidden -state 
+
+analysis shows phase -aligned field reweighting inside model representations, strongest in RSSM rollout 
+
+latents and directionally consistent in GRU and Transformer -lite. This is stronger t han ordinary variable 
+
+probing, because it studies how field emphasis changes with event context and event phase. At the same time, 
+
+we do not claim a full mechanistic decomposition. Our evidence supports event -conditioned field 
+
+reweighting in passive object -state world models, not the discovery of explicit field modules. Figure  1 Event contexts reweight non -exclusive physical fields at event, phase, and timewise levels. The 
+
+panels use different y -axes because they report different diagnostics:  Panels A, D, and E report softmax 
+
+probabilities from a 3 -class linear probe applied to z -scored hidden states ; Panels B and C report data -level 
+
+proxy z -scores computed from annotated object -state and event -phase information; and Panel F reports the 
+
+fraction of evaluated GRU and Transformer -lite cases with positive shifts in the expected field  direction. 
+
+Values should therefore be compared within each panel rather than across panels. (A) Event -level hidden -
+
+state field readouts on RSSM test sequences. Free motion is strongly kinematic -dominant; collision 
+
+combines a substantial kinematic component  with increased contact emphasis; occlusion combines a residual 
+
+kinematic component with much stronger object -permanence emphasis. (B -C) Phase -level proxy profiles 
+
+computed from annotated data -level structure rather than hidden activations. In collision, t he proxy pattern 
+
+shifts from kinematic -dominant pre -contact motion to contact -sensitive interaction at contact, followed by a 
+
+partial return toward a more kinematic regime post -contact. In occlusion, the proxy pattern shifts from 
+
+visible -motion structure b efore hiding to object -permanence -dominant structure during the hidden interval; 
+
+when reappearance is included, visible -state structure partially returns while object -permanence remains 
+
+elevated. (D -E) Time -aligned RSSM future -rollout latent readouts show  analogous hidden -state reweighting 
+
+around contact onset (D) and hidden -start (E): kinematic scores decrease while contact or object -permanence 
+
+scores increase and become dominant. (F) A lighter sliding -prefix hidden -state analysis for GRU and 
+
+Transformer -lite provides weaker but consistent directional evidence: contact -related scores increase at 
+
+collision phases and object -permanence -related scores increase at hidden phases in all evaluated cases, yielding a joint directional consistency score (DCS) of 1.000. Overall, the figure supports event -conditioned 
+
+field reweighting rather than exclusive event -to -field assignment or explicit field modules. 
+
+6.3  Fixed -horizon Windowed Projection CFE 
+
+Sections  6.1 and  6.2 show that event -regime information is  readable from hidden states and that event 
+
+contexts reweight non -exclusive physical field readouts. These results establish representational organization, 
+
+but readout evidence alone does not show whether the corresponding representational structure matters  for 
+
+prediction. We therefore ask a further question: if a field -aligned component of the hidden representation is 
+
+suppressed, does prediction degrade in the event regime where that field is expected to matter? 
+
+We answer this question with CFE. In the present fixed -horizon setting, CFE is defined as the increase in 
+
+normalized x/y position prediction loss after a field -aligned projection intervention. The intervention is 
+
+evaluated on event -relevant frame windows t hat fall within the configured future prediction horizon. This 
+
+restriction follows from the forecasting setup: the model observes the first eight frames and predicts the next 
+
+eight frames, so CFE can only be computed on frames for which both the base model  and the perturbed 
+
+model produce predictions. Appendix C gives the mathematical definitions, field -direction construction, 
+
+normalization procedure, intervention operator, controls, and aggregation rules. 
+
+Figure  2A summarizes the fixed -horizon event -window coverage for the collision -contact and hard -
+
+occlusion hidden -window analyses.  The reinforced CFE analysis uses trained checkpoints and does not 
+
+retrain the world models. The intervention suppresses a probe -derived field direction in the normalized 
+
+hidden -state space and then decodes the perturbed representation to measure the result ing prediction -loss 
+
+increase. For GRU and Transformer -lite, the perturbed representation is decoded through the corresponding 
+
+prediction head. For RSSM -lite, the reported result is a head -decoding CFE from the perturbed latent state, 
+
+not a full RSSM trans ition re -rollout. We therefore interpret the results as fixed -horizon functional sensitivity 
+
+at the representational -subspace level, not as evidence of explicit physical modules or complete rollout -level 
+
+causal mechanisms. 
+
+Figure  2B shows  that the collision -contact result has the clearest functional -sensitivity evidence. Suppressing 
+
+the contact -aligned projection increases collision -window prediction loss in all evaluated architecture -seed 
+
+cases at full suppression strength. The mean targe t CFE for collision -contact is 0.00319 in normalized x/y 
+
+prediction -loss units, with 6/6 positive cases. The effect also remains positive relative to all reported controls 
+
+at the mean level: the target -minus -random margin is 0.00113, the target -minus -rando m-subspace margin is 
+
+0.00098, the target -minus -field -shuffle margin is 0.00190 , as shown in  Figure  2C. In addition,  Figure  2D
+
+shows  that  all six evaluated cases show a positive dose trend across suppression strengths. Together, these 
+
+results indicate that contact -aligned  representational structure is functionally relevant to collision -window 
+
+prediction in the fixed -horizon forecasting task. 
+
+The hard -occlusion  hidden -window  result is positive but less specific. Suppressing the object -permanence -
+
+aligned projection increases hidden -window prediction loss in all evaluated architecture -seed cases at full 
+
+suppression strength. The mean target CFE for hard occlusion is 0.00619, wi th 6/6 positive cases and positive 
+
+dose trends in all evaluated cases, as  shown  in  Figure  2B and  Figure  2D. However, the control margins are 
+
+mixed. As  shown  in  Figure  2C, the target -minus -random margin is positive (0.00086), the target -minus -field -
+
+shuffle margin is positive (0.00510), but the target -minus -random -subspace margin is negative ( -0.00153). 
+
+We therefore interpret the hard -occlusion result as evidence of hidden -window functional sensitivity, with 
+
+weaker subspace -specificity than the collision result. It supports the relevance of object -permanence -aligned structure during hidden intervals, but it should not be read as isolating a unique object -permanence 
+
+mechanism. 
+
+These CFE results strengthen the interpretation of the readout results in Section  6.2. The hidden states do 
+
+not merely contain event -regime information that can be decoded by a probe. When field -aligned 
+
+components are suppressed, predictions in the corresponding event -relevant windows become worse, 
+
+especially for collision -contact. This  provides functional -sensitivity evidence beyond ordinary probing. 
+
+However, the projection -suppression tests do not establish  that the model contains explicit physical module s, 
+
+isolated causal circuits, or a complete mechanistic decomposition. 
+
+Taken together, the results support a fixed -horizon functional -relevance claim: in passive object -state world 
+
+models, event -conditioned field -aligned representational structure has predictive consequences in the event 
+
+regimes where it is expected to matter . The evidence is strongest for contact -aligned structure in  collision -
+
+contact  windows and positive but more qualified for object -permanence -aligned structure in hard -occlusion 
+
+hidden windows. Figure  2 Windowed projection CFE supports fixed -horizon functional sensitivity. (A) Event -window 
+
+coverage used for CFE. Collision -contact windows include pre -contact, contact, and post -contact entries 
+
+within the configured future horizon; hard -occlusion windows in clude hidden entries only, with no 
+
+reappearance entries in the fixed -horizon CFE analysis. (B) Mean target CFE at full suppression strength 
+
+(α = 1) for collision -contact and hard -occlusion hidden windows. Points indicate architecture -seed cases 
+
+where availab le. (C) Target -control margins at  α = 1. Collision -contact has positive mean margins against 
+
+all reported controls, whereas hard occlusion has positive margins against random  and  field -shuffle  controls 
+
+but a negative margin against the random -subspace control. (D) Suppression -strength sweep showing dose 
+
+trends for target CFE and controls. The figure supports fixed -horizon functional sensitivity rather than 
+
+explicit physical modules or full rollo ut -level  causal mechanisms. 
+
+6.4 Summary of experiment  results 
+
+The results above support a hierarchical interpretation of event -conditioned latent physical structure in 
+
+passive object -state world models. Section  6.1 establishes that the trained transition models learn useful 
+
+fixed -horizon predictive dynamics and that event -regime information is readable from their hidden states. 
+
+Section  6.2 shows that this event information is not only separable, but  also  organized as a reweighting of 
+
+non -exclusive physical field readouts. Section  6.3 further  illustrate s that suppressi ng field -aligned 
+
+representational components can affect event -relevant prediction, providing fixed -horizon functional -
+
+sensitivity evidence beyond ordinary probing. 
+
+In our experiments, c ollision sequences retain ed  kinematic structure while increasing contact emphasis, and 
+
+occlusion sequences retain ed  motion -related structure while increasing object -permanence emphasis. The se 
+
+results  imply  event -conditioned reweighting of multiple overlapping physical fields. Th is finding  is 
+
+consistent with the non -exclusive field view introduced in Section  3.3: physical fields are diagnostic patterns 
+
+in hidden -state organization, not isolated symbolic modules. 
+
+The functional evidence is strongest for contact -aligned structure in collision -contact windows. Contact -
+
+aligned projection suppression increases prediction loss in the corresponding fixed -horizon event window 
+
+and shows positive margins against the main sa me -window controls. For hard occlusion, object -permanence -
+
+aligned suppression produces positive hidden -window CFE, but the result is more qualified. It supports 
+
+functional sensitivity during hidden intervals, but it  is not  reappearance -window evidence or a s isolation of 
+
+a unique object -permanence mechanism.  In other words , the evidence supports fixed -horizon functional 
+
+sensitivity at the representational -subspace level.  But i t does not establish explicit physical modules, isolated 
+
+causal circuits, full RSSM transition re -rollout effects, or complete mechanistic decomposition. 
+
+Taken together, Sections  6.1 –6.3 support the following bounded conclusion: in a controlled fixed -horizon passive forecasting setting, event contexts systematically shape latent physical -field emphasis, and field -
+
+aligned representational components have predictive consequences in the event regimes where they are 
+
+expected to matter.  The main contribution is a controlled diagnostic protocol for testing event -conditioned 
+
+latent physical structure in passive object -state prediction. The protocol does not claim to identify complete 
+
+mechanisms, but it offers a reusable diagnostic template  for probing, comparing, and  stress -testing latent 
+
+physical representations in other predictive models. 
+
+7. Discussion and Limitations 
+
+7.1  Contribution of our  diagnostic protocol 
+
+The central contribution of this  work is not a new transition architecture or a new physical prediction 
+
+benchmark, but a diagnostic protocol for asking how latent physical structure is organized and used under 
+
+different event contexts. Standard prediction metrics tell us whether a model p redicts well. Standard probes 
+
+tell us whether a variable or event label is decodable. Our protocol adds a different layer of analysis: it asks 
+
+whether event contexts reweight non -exclusive physical field readouts, and whether field -aligned 
+
+representational  structure has measurable consequences for prediction. 
+
+This distinction  is important  because physical information can be present in a hidden state without being 
+
+organized or used in an event -sensitive way. A model may encode position or velocity but still fail to use 
+
+contact -sensitive structure during collision, or maintain visible trajec tory information without using object -
+
+permanence -related structure during occlusion. By combining event probes, field readouts, phase -level 
+
+proxies, time -aligned readouts, and fixed -horizon projection CFE, the protocol provides a controlled way to 
+
+separate  readability, event -conditioned organization, and functional sensitivity. 
+
+The protocol is intentionally diagnostic rather than architectural. It can be applied to recurrent, attention -
+
+based, or state -space transition models without requiring those models to expose explicit physical variables 
+
+or modules. This makes it useful as a  comparative tool: different models can be evaluated not only by their 
+
+prediction loss, but also by how their hidden states organize and use physical field structure under matched 
+
+event conditions. 
+
+7.2  Scope and limitations 
+
+The main limitation is the controlled fixed -horizon setting. In the reported experiments, models observe the 
+
+first eight frames and predict the next eight frames. This design makes cross -architecture comparisons more 
+
+interpretable, because all models recei ve the same observed prefix and are evaluated over the same future 
+
+horizon. However, it does not establish arbitrary sliding -context generalization. A model that exhibits event -
+
+conditioned structure under this fixed forecasting interface may behave differe ntly under event -aligned 
+
+sliding windows, longer horizons, or online rollout. 
+
+A second limitation is the use of object -state inputs rather than raw video. This choice removes the confound 
+
+of object discovery and visual perception, allowing the analysis to focus on transition dynamics. It also 
+
+means that the results should not be int erpreted as evidence that raw -video world models automatically 
+
+discover the same fields. Extending the protocol to raw pixels would require stable object extraction, 
+
+segmentation, or learned object -centric representations. 
+
+A third limitation concerns the CFE intervention. Projection suppression targets a readout -aligned 
+
+representational direction, not an explicit module. A positive CFE indicates functional sensitivity of a 
+
+representational subspace under the configured predi ction setting. It does not prove that the model contains a discrete contact module, object -permanence module, or isolated causal circuit. For RSSM -lite, the reported 
+
+CFE is a head -decoding sensitivity test from a perturbed latent state, not a full transition re -rollout 
+
+intervention. The hard -occlusion CFE result  is also limited to hidden -window prediction; the current fixed -
+
+horizon analysis does not support a reappearance -window CFE claim. These boundaries are important for 
+
+interpreting the functional evidence conservatively. 
+
+The event taxonomy is also limited. Free motion, collision, and occlusion isolate three important physical 
+
+demands: kinematic continuation, contact -sensitive interaction, and object permanence. They do not cover 
+
+support, containment, gravity, rolling, stac king, fluid dynamics, deformable objects, multi -body interactions, 
+
+or action -conditioned physical change. The field vocabulary should therefore be viewed as a minimal 
+
+diagnostic basis, not a complete taxonomy of physical understanding. 
+
+7.3 Future extensions 
+
+Several extensions follow naturally. First, the fixed -horizon protocol can be extended to sliding -context or 
+
+longer -horizon forecasting, but this requires models trained or adapted to that evaluation regime. Second, 
+
+future work can implement full rollout i nterventions for recurrent state -space models, so that perturbations 
+
+propagate through the transition dynamics rather than only through a prediction head. Third, the diagnostic 
+
+field set can be expanded beyond kinematics, contact, and object permanence to  include support, 
+
+containment, gravity, stability, friction, and action -conditioned affordances. 
+
+A broader direction is to apply the protocol to raw -video world models and action -conditioned agents. In 
+
+such settings, the diagnostic question becomes whether visual perception, object discovery, control, and 
+
+latent physical structure interact in event -co nditioned ways. The controlled object -state setting studied here 
+
+should be viewed as a first step: it isolates the transition -dynamics question before adding the additional 
+
+complexity of perception and action. 
+
+8. Conclusion 
+
+We introduced a controlled diagnostic protocol for testing  event -conditioned latent physical structure in 
+
+passive object -state world models. Rather than asking only whether a model predicts future states or whether 
+
+physical variables are decodable, the protocol asks whether event contexts organize, reweight, and 
+
+functionally recruit non -exclusive physical field structure. 
+
+In a balanced controlled -generator dataset with free -motion, collision, and occlusion events, we showed that 
+
+trained transition models learn useful fixed -horizon predictive dynamics, encode event -regime information 
+
+in their hidden states, and exhibit event -conditioned reweighting of kinematic, contact, and object -
+
+permanence field readouts. Fixed -horizon projection CFE further shows that suppressing field -aligned 
+
+representational components can affect event -relevant prediction, with the strongest evidence fo r contact -
+
+aligned structure in collision -contact windows and more qualified evidence for object -permanence -aligned 
+
+structure in hard -occlusion hidden windows.  Th is work provides  a reusable diagnostic template for probing, 
+
+comparing, and stress -testing latent physical representations in other predictive models and controlled world -
+
+model settings. References 
+
+Alam, N. (2026). Causal Physics Steering in Video World Models via Concept Activation Vectors. 
+
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 
+
+Bakhtin, A., van der Maaten, L., Johnson, J., Gustafson, L., & Girshick, R. (2019). Phyre: A new benchmark 
+
+for physical reasoning.  Advances in Neural Information Processing Systems , 32 .
+
+Bear, D. M., Wang, E., Mrowca, D., Binder, F. J., Tung, H. -Y. F., Pramod, R., Holdaway, C., Tao, S., Smith, 
+
+K., & Sun, F. -Y. (2021). Physion: Evaluating physical prediction from vision in humans and 
+
+machines.  arXiv preprint arXiv:2106.08261 .
+
+Bordes, F., Garrido, Q., Kao, J. T., Williams, A., Rabbat, M., & Dupoux, E. (2025). Intphys 2: Benchmarking 
+
+intuitive physics understanding in complex synthetic environments.  arXiv preprint 
+
+arXiv:2506.09849 .
+
+Ding, Z., Lai, X., Chen, W., Zhang, X. -P., & Chen, J. (2026). CausalVAE as a Plug -in for World Models: 
+
+Towards Reliable Counterfactual Dynamics.  arXiv preprint arXiv:2604.07712 .
+
+Girdhar, R., & Ramanan, D. (2019). Cater: A diagnostic dataset for compositional actions and temporal 
+
+reasoning.  arXiv preprint arXiv:1910.04744 .
+
+Greff, K., Belletti, F., Beyer, L., Doersch, C., Du, Y., Duckworth, D., Fleet, D. J., Gnanapragasam, D., 
+
+Golemo, F., & Herrmann, C. (2022). Kubric: A scalable dataset generator. Proceedings of the 
+
+IEEE/CVF conference on computer vision and pattern recognit ion, 
+
+Ha, D., & Schmidhuber, J. (2018). World models.  arXiv preprint arXiv:1803.10122 , 2(3), 440. 
+
+Hafner, D., Lillicrap, T., Fischer, I., Villegas, R., Ha, D., Lee, H., & Davidson, J. (2019). Learning latent 
+
+dynamics for planning from pixels. International conference on machine learning, 
+
+Hafner, D., Pasukonis, J., Ba, J., & Lillicrap, T. (2023). Mastering diverse domains through world models. 
+
+arXiv preprint arXiv:2301.04104 .
+
+Joseph, S., Garrido, Q., Balestriero, R., Kowal, M., Fel, T., Bakhtiari, S., Richards, B., & Rabbat, M. (2026). 
+
+Interpreting physics in video world models.  arXiv preprint arXiv:2602.07050 .
+
+Lei, A., Schölkopf, B., & Posner, I. (2022). Variational causal dynamics: Discovering modular world models 
+
+from interventions.  arXiv preprint arXiv:2206.11131 .
+
+Micheli, V., Alonso, E., & Fleuret, F. (2022). Transformers are sample -efficient world models.  arXiv preprint 
+
+arXiv:2209.00588 .
+
+Röder, F., Benad, J., Eppe, M., & Banerjee, P. (2026). Dynamics -aligned latent imagination in contextual 
+
+world models for zero -shot generalization.  Advances in Neural Information Processing Systems , 38 ,
+
+72736 –72771. 
+
+Shamsian, A., Kleinfeld, O., Globerson, A., & Chechik, G. (2020). Learning object permanence from video. 
+
+European Conference on Computer Vision, 
+
+Song, Y. -J., Kim, J., Choi, S., Kim, J. -H., & Zhang, B. -T. (2025). OCK: Unsupervised Dynamic Video 
+
+Prediction with Object -Centric Kinematics. Proceedings of the IEEE/CVF International Conference 
+
+on Computer Vision, 
+
+Traub, M., Becker, F., Otte, S., & Butz, M. V. (2024). Learning object permanence from videos via latent 
+
+imaginations. International Conference on Artificial Neural Networks, Villar -Corrales, A., Wahdan, I., & Behnke, S. (2023). Object -centric video prediction via decoupling of 
+
+object dynamics and interactions. 2023 IEEE International Conference on Image Processing (ICIP), 
+
+Wu, Z., Dvornik, N., Greff, K., Kipf, T., & Garg, A. (2022). Slotformer: Unsupervised visual dynamics 
+
+simulation with object -centric models.  arXiv preprint arXiv:2210.05861 .
+
+Yi, K., Gan, C., Li, Y., Kohli, P., Wu, J., Torralba, A., & Tenenbaum, J. B. (2019). Clevrer: Collision events 
+
+for video representation and reasoning.  arXiv preprint arXiv:1910.01442 .
+
+Zhang, X. (2026). What Do World Models Learn in RL? Probing Latent Representations in Learned 
+
+Environment Simulators.  arXiv preprint arXiv:2603.21546 .Appendix A. Experimental and Diagnostic Details 
+
+This appendix documents the fixed -horizon scale/OOD evaluation used as the methodological baseline for 
+
+the manuscript. The goal is to make the controlled public -generator experiment, model training, hidden -state 
+
+extraction, event probing and Causal Field E ffect (CFE) audit history reproducible. The original baseline 
+
+CFE sweep documented here is retained as baseline and audit information; the primary fixed -horizon 
+
+windowed projection CFE results reported in Section  6.3 and Figure 2 are defined separately in  Appendix C. 
+
+A.1 Dataset generation 
+
+The fixed -horizon scale/OOD evaluation generated the controlled robustness dataset 
+
+physem_publicgen_balanced_v2_scale_ood . The dataset contains three event families: free 
+
+motion, collision, and occlusion. Each event family contains 300 sequences, for a total of 900 sequences. 
+
+Each sequence has 30 frames, two object slots, 64  × 64 rendered frames, object masks, centroid heatmaps, 
+
+pairwise relation tensors, event -family labels, event -phase labels, sequence identifiers, and metadata. 
+
+Item  Value 
+
+experiment_id  fixed_horizon_scale_ood_evaluation_v0 
+
+dataset  physem_publicgen_balanced_v2_scale_ood 
+
+n_sequences  900 
+
+n_per_event  300 
+
+events  free_motion, collision, occlusion 
+
+sequence_length_T  30 
+
+resolution  64  × 64 
+
+objects_K  2
+
+context_length  8
+
+future_horizon  8
+
+dataset_seed  7707 
+
+The object -state fields  are: x, y, v x, v y, visible, occluded, object_id, radius, mass, shape_id. The pairwise -
+
+relation fields are: distance, near_contact, contact, relative_v x, relative_v y, collision_phase. The stored tensor 
+
+set is: frames, object_states, object_masks, centroid_heatmaps, pairwise_relations, event_family, 
+
+event_phase, metadata_json. 
+
+Collision sequences were generated with true -contact dynamics rather than near -contact -only templates. The 
+
+dataset audit reports a collision true -contact rate of 1.000 and a mean contact -frame count of 1.513. 
+
+Occlusion sequences are balanced into 150 easy -occlusion and 150 hard -occlusion sequences. The fixed -horizon scale/OOD evaluation split structure is: 
+
+Split  Count 
+
+train  590 
+
+val  126 
+
+test  127 
+
+test_id  127 
+
+test_ood_collision  45 
+
+test_ood_occlusion  12 
+
+The OOD split is a controlled -generator parameter split, not a real -video transfer split. Collision OOD uses 
+
+held -out high -angle/high -speed regimes; occlusion OOD uses longer hard -occlusion windows. 
+
+OOD  item  Value 
+
+split_id  scale_ood_v0 
+
+collision rule  top 15 percent by collision_angle_abs plus 
+
+high approach speed 
+
+occlusion rule  hidden_duration >= 11 and hard occlusion 
+
+collision angle train mean  2.4423 
+
+collision angle OOD mean  12.8934 
+
+collision approach speed train mean  2.4176 
+
+collision approach speed OOD mean  2.4625 
+
+hidden duration train mean  8.0644 
+
+hidden duration OOD mean  12.0000 
+
+split overlap found  False 
+
+A.2 Model training 
+
+The fixed -horizon scale/OOD evaluation trains three passive object -state transition architecture families: 
+
+GRU -R2h -loss -long, Transformer -lite full -pass configuration, and RSSM -large -position -heavy -long. These 
+
+are architecture -family controls rather than n ew model contributions. Each architecture is trained with two 
+
+random seeds, 3407 and 3408, under two input variants:  kinematic_only  and  observation_like .
+
+The  kinematic_only  variant uses normalized x/y/v x/v y fields from the context window. The 
+
+observation_like  variant uses visible x/y, last observed x/y, and a visibility flag; hidden true object 
+
+state is not provided as an input. Event labels, event phases, contact labels, pairwise relations, and future 
+
+targets are not used as model context inputs. Training item  Fixed -horizon value 
+
+architectures 
+
+GRU -R2h -loss -long; Transformer -lite full -
+
+pass configuration; RSSM -large -position -
+
+heavy -long 
+
+input variants  kinematic_only, observation_like 
+
+seeds  3407, 3408 
+
+optimizer  AdamW 
+
+learning rate  0.001 
+
+weight decay  0.0001 
+
+batch size  96 
+
+max epochs  120 
+
+early stopping patience  24 
+
+LR scheduler  ReduceLROnPlateau(mode='min', 
+
+patience=12, factor=0.55) 
+
+gradient clipping  global norm clipped to 1.0 
+
+loss weights  position=1.0, velocity=0.2,  visibility=0.05, 
+
+occlusion=0.05 
+
+evaluation batch size  128 
+
+device  cuda if available else cpu 
+
+The training objective is a weighted MSE over predicted future object state fields. The implemented loss is: 
+
+loss  = 1.0 × position _mse  + 0.2 × velocity _mse  + 0.05  × visibility _mse 
+
++ 0.05  × occlusion _mse .
+
+For every run, the training loop shuffles the training split with a seed -specific NumPy RNG, optimizes with 
+
+AdamW, validates on the validation split each epoch, saves the best validation checkpoint, and reloads that 
+
+checkpoint for downstream evaluation and  diagnostics. The scheduler monitors validation position MSE. 
+
+Training was configured for at most 120 epochs with early -stopping patience 24. In the completed fixed -
+
+horizon scale/OOD evaluation, all recorded training curves reached epoch 120: 
+
+Variant  Architecture  Seed  Final epoch  Final val 
+
+position MSE 
+
+kinematic_only  GRU -R2h -loss -
+
+long  3407  120  0.000294534 
+
+kinematic_only  GRU -R2h -loss -
+
+long  3408  120  0.000236122 
+
+kinematic_only 
+
+RSSM -large -
+
+position -heavy -
+
+long 
+
+3407  120  0.00012529 kinematic_only 
+
+RSSM -large -
+
+position -heavy -
+
+long 
+
+3408  120  0.000135432 
+
+kinematic_only 
+
+Transformer -lite 
+
+full -pass 
+
+configuration 
+
+3407  120  0.000117449 
+
+kinematic_only 
+
+Transformer -lite 
+
+full -pass 
+
+configuration 
+
+3408  120  0.000129377 
+
+observation_like  GRU -R2h -loss -
+
+long  3407  120  0.000297152 
+
+observation_like  GRU -R2h -loss -
+
+long  3408  120  0.000204312 
+
+observation_like 
+
+RSSM -large -
+
+position -heavy -
+
+long 
+
+3407  120  0.000162925 
+
+observation_like 
+
+RSSM -large -
+
+position -heavy -
+
+long 
+
+3408  120  0.000178298 
+
+observation_like 
+
+Transformer -lite 
+
+full -pass 
+
+configuration 
+
+3407  120  9.46372e -05 
+
+observation_like 
+
+Transformer -lite 
+
+full -pass 
+
+configuration 
+
+3408  120  0.000160981 
+
+A.3 Hidden -state extraction 
+
+Hidden states are extracted during evaluation through the shared fixed -horizon evaluation function. For each 
+
+batch, the model  returns  (prediction,  embedding) . The evaluation function accumulates 
+
+predictions and embeddings without gradient tracking and computes position MSE against the future target 
+
+positions. 
+
+The hidden -state definition is architecture -specific but standardized as the returned embedding: 
+
+ GRU -R2h -loss -long : the final recurrent hidden state of the top GRU layer. 
+
+ Transformer -lite full -pass configuration : the final -token encoder representation 
+
+after the transformer encoder. 
+
+ RSSM -large -position -heavy -long : the latent state produced by the posterior/transition 
+
+stack. The extracted train embeddings are used for event -probe fitting. The extracted test/ID/OOD embeddings are 
+
+used for event -probe evaluation, and diagnostic comparisons. Evaluation uses batch size 128 and runs on 
+
+CUDA if available, otherwise CPU. 
+
+A.4 Event probe 
+
+The event probe is a lightweight linear  classifier trained on model hidden states to classify event family: free 
+
+motion, collision, or occlusion. It is used only as an event -regime readout diagnostic. It does not prove that 
+
+the model causally uses the event representation. 
+
+The implemented probe standardizes train and test embeddings using the training embedding mean and 
+
+standard deviation. Probe weights are initialized from a normal distribution with standard deviation 0.01, 
+
+and the bias is initialized to zero. The classifie r is optimized with full -batch gradient descent for 500 
+
+iterations with learning rate 0.08 and L2 weight penalty 1 0-4. Reported metrics include accuracy, macro -F1, 
+
+balanced accuracy, majority baseline, and per -class precision/recall/F1. 
+
+The baseline evaluation reports event -probe macro -F1 on the ID test split. The main sanity table reports 
+
+event -probe macro -F1 = 1.000 for all kinematic -only architecture/seed rows: 
+
+Variant  Architecture  Seed  ID_MSE  CV_MSE  Probe F1  CFE 
+
+collision 
+
+kinematic_only  GRU -R2h -
+
+loss -long  3407  2.46E -04  3.35E -04  1 9.42E -05 
+
+kinematic_only 
+
+Transformer -
+
+lite full -pass 
+
+configuration 
+
+3407  9.98E -05  3.35E -04  1 1.60E -04 
+
+kinematic_only 
+
+RSSM -large -
+
+position -
+
+heavy -long 
+
+3407  1.49E -04  3.35E -04  1 7.21E -04 
+
+kinematic_only  GRU -R2h -
+
+loss -long  3408  2.23E -04  3.35E -04  1 7.12E -05 
+
+kinematic_only 
+
+Transformer -
+
+lite full -pass 
+
+configuration 
+
+3408  1.21E -04  3.35E -04  1 1.36E -04 
+
+kinematic_only 
+
+RSSM -large -
+
+position -
+
+heavy -long 
+
+3408  1.40E -04  3.35E -04  1 7.70E -04 
+
+A.5 Original fixed -horizon CFE audit baseline and  suppression sweep 
+
+The Causal Field Effect (CFE) measures causal sensitivity by modifying hidden representations and 
+
+decoding predictions from the modified hidden state. In the original fixed -horizon baseline CFE score, event -
+
+specific examples are selected by mask, the model  predicts the future target, and the baseline position MSE is measured. The hidden embedding is centered, partially suppressed, decoded through the model head, and 
+
+evaluated again. In that original baseline implementation, CFE is defined as: 
+
+CFE  = perturbed _position _mse  − baseline _position _mse .
+
+Positive CFE means the perturbation increased event -relevant prediction error. This is causal sensitivity 
+
+evidence, not complete mechanism identification. 
+
+The baseline implementation additionally performs a suppression -strength sweep. The strengths are 0.25, 
+
+0.5, 0.75, 1.0. The implemented sweep compares four intervention/control modes: 
+
+ target_field_suppression : suppresses the centered target embedding by the requested 
+
+strength. 
+
+ matched_norm_random_direction : subtracts a random direction scaled to match the centered 
+
+embedding standard deviation. 
+
+ field_label_shuffle : suppresses shuffled centered embeddings. 
+
+ random_subspace_control : suppresses a random binary subspace of the centered  embedding. 
+
+The sweep is run for two diagnostic fields.  CFE_collision  uses the kinematic -only variant on the 
+
+collision OOD split.  CFE_hard_occlusion  uses the observation -like variant on the hard -occlusion 
+
+OOD split. The generated baseline suppression -sweep table contains 192 rows: 
+
+Field  Control  Rows 
+
+CFE_collision  field_label_shuffle  24 
+
+CFE_collision  matched_norm_random_direction  24 
+
+CFE_collision  random_subspace_control  24 
+
+CFE_collision  target_field_suppression  24 
+
+CFE_hard_occlusion  field_label_shuffle  24 
+
+CFE_hard_occlusion  matched_norm_random_direction  24 
+
+CFE_hard_occlusion  random_subspace_control  24 
+
+CFE_hard_occlusion  target_field_suppression  24 
+
+The original baseline CFE sweep should be interpreted  conservatively. It is useful as an audit baseline and 
+
+as implementation history, but it is not the source definition for the Figure 2 results in the main text. Dose 
+
+sensitivity in this baseline sweep supports causal diagnostic evidence, but controls such a s field -label shuffle 
+
+can be non -negligible because hidden -state factors are correlated. Therefore, the original baseline CFE sweep 
+
+does not prove a complete causal mechanism. 
+
+A. 6 Relationship to the reported fixed -horizon projection CFE 
+
+The main CFE evidence reported in Section  6.3 and Figure 2 uses the reinforced fixed -horizon windowed 
+
+projection CFE described mathematically in Appendix C. That analysis differs from the original baseline CFE sweep in three important ways: it evaluates explicit event windows after intersecting them with the 
+
+configured future prediction horizon; it derives field directions from a trained linear readout using a probe -
+
+logit -contrast direction; and it performs  one -dimensional projection suppression in the same normalized 
+
+hidden -state space used by the readout before decoding perturbed predictions. 
+
+Code and data availability. The public release contains the training code, model definitions, diagnostic scripts, 
+
+figure -generation scripts, dataset manifest, result tables, and non -primary audit materials used to support the 
+
+manuscript. The detailed file -level mapping between manuscript results and repository artifacts is provided 
+
+in the GitHub repository. Appendix B. Mathematical Details for Figure 1 
+
+This  appendix defines the quantities plotted in Figure 1. Panels A, D, and E use hidden -state field readout 
+
+scores; Panels B and C use data -level proxy z -scores; and Panel F uses positive shift fractions from a lighter 
+
+sliding -prefix analysis. These quantities  should be compared within each panel, not across panels. 
+
+B.1 Hidden -state field readout scores for Panels A, D, and E 
+
+Let  𝑥  ∈ ℝ𝑑  denote a hidden state from the model representation being analyzed. We use three field labels: 
+
+𝐾  for kinematic,  𝐶  for contact, and  𝑂  for object -permanence. Let  ℱ = {𝐾 , 𝐶 , 𝑂 } denote this label set. 
+
+Before applying the field readout, the hidden state is standardized using the training -set mean and standard 
+
+deviation used for probe training: 
+
+ℎnorm  = ℎ − 𝜇 train 
+
+𝜎 train 
+
+.
+
+The standardization is applied elementwise. The field readout is a trained 3 -class linear probe. It computes 
+
+field logits as 
+
+ℓ = 𝑊 ℎnorm  + 𝑏 , 𝑊  ∈ ℝ3×𝑑 , 𝑏  ∈ ℝ3.
+
+Here  𝑊  and  𝑏  are the learned weight matrix and bias vector of the linear probe, not parameters of the 
+
+transition model. The three output dimensions of  ℓ correspond to  𝐾 , 𝐶 , and  𝑂 . Equivalently, for field label 
+
+𝑓 ,
+
+ℓ𝑓  = 𝑤 𝑓 
+
+> ⊤
+
+ℎnorm  + 𝑏 𝑓 ,
+
+where  𝑤 𝑓  is the row of  𝑊  associated with field label  𝑓 . The probe is trained on the training split with a 
+
+cross -entropy objective and then frozen for the Figure 1 analyses. 
+
+The plotted hidden -state field readout score is the softmax probability assigned to field label  𝑓 :
+
+𝑠 𝑓 (𝑥 ) = exp (ℓ𝑓  − 𝑚 )
+
+∑ exp 𝑔 ∈ℱ (ℓ𝑔  − 𝑚 ) , 𝑚  = max  
+
+> 𝑔 ∈ℱ
+
+ℓ𝑔 .
+
+The subtraction of  𝑚  is a numerically stable implementation of the standard softmax and does not change 
+
+the probability. The scores over the three fields sum to one for each hidden state. Thus,  𝑠 𝑓 (ℎ) measures the 
+
+relative probability mass assigned by the trained probe to field label  𝑓  for that hidden state. It should be 
+
+interpreted as a readout -assigned field emphasis, not as an absolute physical intensity. 
+
+Panel A aggregation 
+
+Panel A summarizes event -level field emphasis. Let  ℐ𝑒  be the set of held -out sequences belonging to event 
+
+family  𝑒 , and let  𝒯 𝑖  denote the set of hidden states from sequence  𝑖  included in the event -level aggregation. The event -level score for field label  𝑓  is 
+
+𝑆 𝑒 ,𝑓  = 1
+
+|ℐ𝑒 | ∑ ( 1
+
+|𝒯 𝑖 | ∑ 𝑠 𝑓 
+
+> 𝑡 ∈𝒯 𝑖
+
+(ℎ𝑖 ,𝑡 ))
+
+> 𝑖 ∈ℐ𝑒
+
+.
+
+If a sequence -level or final hidden representation is used,  𝒯 𝑖  contains that representation. If multiple time 
+
+entries are used, the probability is first averaged within sequence/time entries and then averaged across 
+
+sequences in the same event family. 
+
+Panels D and E aligned -time aggregation 
+
+Panels D and E summarize time -aligned hidden -state dynamics. For a sequence  𝑖 , let  𝑏 𝑖  denote the event 
+
+boundary used for alignment: the contact onset for collision and hidden -start for occlusion. For relative time 
+
+𝜏 , the aligned field score is 
+
+𝑆 𝑓 (𝜏 ) = 1
+
+|ℐ(𝜏 )| ∑ 𝑠 𝑓 
+
+> 𝑖 ∈ℐ(𝜏 )
+
+(ℎ𝑖 ,𝑏 𝑖 +𝜏 ),
+
+where  ℐ(𝜏 ) is the set of sequences for which the aligned time  𝑏 𝑖  + 𝜏  is available. When multiple seeds are 
+
+plotted, the curve is computed per seed and then summarized by the mean across seeds; error bars, when 
+
+shown, represent the corresponding standard error of the mean. 
+
+B.2 Data -level proxy z -scores for Panels B and C 
+
+Panels B and C are not hidden -state readouts. They describe the physical demands of annotated event phases 
+
+using data -level proxies derived from object states, pairwise relations, event -phase labels, and 
+
+visibility/contact annotations. Kinematic proxies su mmarize motion -related quantities such as displacement, 
+
+velocity, or visible trajectory structure. Contact proxies summarize pairwise interaction or contact -related 
+
+structure. Object -permanence proxies summarize occlusion, hidden -state, or reappearance -rel ated demands. 
+
+Let  𝑟 𝑓 ,𝜙  denote the raw data -level proxy value for field label  𝑓  in phase  𝜙 . For the collision panel, phases 
+
+include pre -contact, contact, and post -contact. For the occlusion panel, phases include pre -occlusion, hidden, 
+
+and reappearance when that phase is available in the selected analysis table. The raw field -by -phase proxy 
+
+matr ix is standardized within each panel: 
+
+𝜇 panel  = 1
+
+|ℱ||𝛷 | ∑ ∑ 𝑟 𝑓 ,𝜙 
+
+> 𝜙 ∈𝛷 𝑓 ∈ℱ
+
+,
+
+𝜎 panel  = √
+
+1
+
+|ℱ||𝛷 | ∑ ∑ (𝑟 𝑓 ,𝜙  − 𝜇 panel )2
+
+> 𝜙 ∈𝛷 𝑓 ∈ℱ
+
+,𝑧 𝑓 ,𝜙  = 𝑟 𝑓 ,𝜙  − 𝜇 panel 
+
+𝜎 panel 
+
+.
+
+Thus,  𝑧 𝑓 ,𝜙  indicates whether a proxy -defined field demand is relatively high or low within that panel. These 
+
+proxy z -scores are used to interpret the physical structure of the trajectory itself. They do not imply that the 
+
+model hidden state activates the correspondi ng field. 
+
+B.3 Positive shift fractions and directional consistency for Panel F 
+
+Panel F summarizes the lighter sliding -prefix hidden -state analysis for GRU and Transformer -lite. Unlike 
+
+the RSSM rollout -latent analysis in Panels D and E, this analysis does not reconstruct full phase -resolved 
+
+hidden dynamics. It only asks whether the ex pected field score changes in the expected direction for each 
+
+evaluated case. 
+
+Let  𝒞  be the set of evaluated cases, such as architecture -seed -variant combinations. For each case  𝑐 , hidden 
+
+states are extracted from sliding prefixes, and the same field -score logic is used to obtain  𝑠 𝑓 (ℎ) for the 
+
+relevant prefix -conditioned hidden states. 
+
+For collision, the expected effect is a positive shift in the contact score around the contact/collision phase 
+
+relative to an earlier baseline phase. Define 
+
+𝑠 ‾𝐶 ,target  
+
+> 𝑐
+
+= mean (𝑖 ,𝑡 )∈𝑊 contact  
+
+> 𝑐
+
+𝑠 𝐶  (ℎ𝑖 ,𝑡  
+
+> 𝑐
+
+),
+
+𝑠 ‾𝐶 ,base  
+
+> 𝑐
+
+= mean (𝑖 ,𝑡 )∈𝑊 pre -contact  
+
+> 𝑐
+
+𝑠 𝐶  (ℎ𝑖 ,𝑡  
+
+> 𝑐
+
+),
+
+and 
+
+𝛥 𝐶  
+
+> 𝑐
+
+= 𝑠 ‾𝐶 ,target  
+
+> 𝑐
+
+− 𝑠 ‾𝐶 ,base  
+
+> 𝑐
+
+.
+
+For occlusion, the expected effect is a positive shift in the object -permanence score during the 
+
+hidden/occlusion phase relative to a pre -occlusion baseline. Define 
+
+𝑠 ‾𝑂 ,target  
+
+> 𝑐
+
+= mean (𝑖 ,𝑡 )∈𝑊 hidden  
+
+> 𝑐
+
+𝑠 𝑂 (ℎ𝑖 ,𝑡  
+
+> 𝑐
+
+),
+
+𝑠 ‾𝑂 ,base  
+
+> 𝑐
+
+= mean (𝑖 ,𝑡 )∈𝑊 pre -occlusion  
+
+> 𝑐
+
+𝑠 𝑂 (ℎ𝑖 ,𝑡  
+
+> 𝑐
+
+),
+
+and 
+
+𝛥 𝑂  
+
+> 𝑐
+
+= 𝑠 ‾𝑂 ,target  
+
+> 𝑐
+
+− 𝑠 ‾𝑂 ,base  
+
+> 𝑐
+
+.
+
+Here  𝐶  denotes the contact field label and  𝑂  denotes the object -permanence field label. The windows 
+
+𝑊 contact  
+
+> 𝑐
+
+, 𝑊 hidden  
+
+> 𝑐
+
+, 𝑊 pre -contact  
+
+> 𝑐
+
+, and  𝑊 pre -occlusion  
+
+> 𝑐
+
+follow the phase labels available in the sliding -prefix 
+
+analysis tables. For each evaluated case, we convert the two shifts into directional indicators: 
+
+𝐼 𝐶  
+
+> 𝑐
+
+= 𝟏 [𝛥 𝐶  
+
+> 𝑐
+
+> 0], 𝐼 𝑂  
+
+> 𝑐
+
+= 𝟏 [𝛥 𝑂  
+
+> 𝑐
+
+> 0].
+
+For an architecture group  𝐴  ⊆ 𝒞 , the positive shift fractions are 
+
+PSF 𝐴  
+
+> 𝐶
+
+= 1
+
+|𝐴 | ∑ 𝐼 𝐶 
+
+> 𝑐
+> 𝑐 ∈𝐴
+
+, PSF 𝐴  
+
+> 𝑂
+
+= 1
+
+|𝐴 | ∑ 𝐼 𝑂 
+
+> 𝑐
+> 𝑐 ∈𝐴
+
+.
+
+The joint directional consistency score aggregates the two expected shifts across all evaluated cases: 
+
+DCS  = 1
+
+2|𝒞 | ∑ (𝐼 𝐶  
+
+> 𝑐
+
++ 𝐼 𝑂  
+
+> 𝑐
+
+)
+
+> 𝑐 ∈𝒞
+
+.
+
+Panel F reports these positive shift fractions and the joint DCS. A  value of 1.000 means that every evaluated 
+
+case showed the expected positive direction. This supports directional consistency in prefix -conditioned 
+
+hidden states, but it should not be interpreted as full time -resolved rollout dynamics or as evidence of expl icit 
+
+field modules. 
+
+B.4 Interpretation boundary 
+
+The Figure 1 quantities have different scales and should not be compared across panels. Panels A, D, and E 
+
+report softmax probabilities from hidden -state readouts; Panels B and C report standardized data -level proxy 
+
+values; Panel F reports fractions of pos itive directional shifts. The intended interpretation is event -
+
+conditioned reweighting of non -exclusive diagnostic fields. The results do not establish one -to -one event -
+
+to -field assignment, explicit field modules, or a complete mechanistic decomposition. Appendix C. Mathematical and Implementation Details for Causal Field Effects 
+
+This appendix defines the causal field effect (CFE) quantities used in Section  6.3. The reported 
+
+implementation uses  fixed -horizon, windowed projection CFE . Event windows are evaluated only where 
+
+they overlap the configured future prediction horizon. This means that CFE is computed only on frames for 
+
+which the base model and the perturbed model both produce predictions. 
+
+C.1 Notation and fixed -horizon event windows 
+
+Let  𝑐  index an evaluated case, such as an architecture -seed -variant combination. Let  𝑖  index a sequence,  𝑡 
+
+index a predicted frame,  𝑜  index an object, and  𝑑  ∈ {𝑥 , 𝑦 } index the position coordinate used in the CFE 
+
+loss. The transition model produces a hidden representation  ℎ𝑖  
+
+> 𝑐
+
+or  ℎ𝑖 ,𝑡  
+
+> 𝑐
+
+, depending on the architecture -
+
+specific interface, and a prediction  𝑦 ̂𝑖 ,𝑡 ,𝑜 ,𝑑  
+
+> 𝑐
+
+for the target state  𝑦 𝑖 ,𝑡 ,𝑜 ,𝑑 .
+
+For compact notation, let 
+
+ℱ = {𝐾 , 𝐶 , 𝑃 }
+
+where  𝐾  denotes the kinematic field,  𝐶  denotes the contact field, and  𝑃  denotes the object -permanence 
+
+field. 
+
+Let  𝑇 future  denote the fixed set of frames predicted by the model. In the reported experiments, the model 
+
+observes the first eight frames and predicts the next eight frames, so the prediction horizon corresponds to 
+
+the configured future target frames. Let  𝑊 ̃𝑒 (𝑖 ) denote the event -defined  raw  window for event family  𝑒  in 
+
+sequence  𝑖 . The implemented CFE window is the intersection of the event -defined window and the predicted 
+
+future horizon: 
+
+𝑊 𝑒 (𝑖 ) = 𝑊 ̃𝑒 (𝑖 ) ∩ 𝑇 future 
+
+Equivalently, the implemented window contains exactly those frames that are both event -relevant and 
+
+predicted by the model: 
+
+𝑡  ∈ 𝑊 𝑒 (𝑖 ) ⇔ 𝑡  ∈ 𝑊 ̃𝑒 (𝑖 ) and  𝑡  ∈ 𝑇 future 
+
+For collision,  𝑊 𝑒 (𝑖 ) is centered on the contact regime after this intersection. For hard occlusion, the primary 
+
+CFE window covers hidden frames within the predicted horizon. The current primary analysis does not 
+
+report a reappearance -window CFE, because no reappearance frames  remain in the configured fixed -horizon 
+
+CFE window. 
+
+C.2 Base event -window prediction loss 
+
+The base prediction loss is computed without intervention. The reported CFE loss is normalized  𝑥 /𝑦 
+
+position MSE over the selected sequence -frame -object -coordinate entries. For an event family  𝑒  and case 
+
+𝑐 , define the set of evaluated sequences as  𝐼 𝑒 
+
+> 𝑐
+
+. Let 𝑁 𝑒  
+
+> 𝑐
+
+= ∑ ∑ ∑ ∑ 1
+
+> 𝑑 ∈{𝑥 ,𝑦 }𝑜 𝑡 ∈𝑊 𝑒 (𝑖 )𝑖 ∈𝐼 𝑒
+> 𝑐
+
+be the number of evaluated sequence -frame -object -coordinate entries. The base event -window loss is 
+
+𝐿 base  
+
+> 𝑐
+
+(𝑒 ) = 1
+
+𝑁 𝑒  
+
+> 𝑐
+
+∑ ∑ ∑ ∑ (𝑦 ̂𝑖 ,𝑡 ,𝑜 ,𝑑  
+
+> 𝑐
+
+− 𝑦 𝑖 ,𝑡 ,𝑜 ,𝑑 )2
+
+> 𝑑 ∈{𝑥 ,𝑦 }𝑜 𝑡 ∈𝑊 𝑒 (𝑖 )𝑖 ∈𝐼 𝑒
+> 𝑐
+
+Thus, the base loss is not a full -state loss over all target channels. It is the normalized position -prediction 
+
+loss in the fixed -horizon event window. 
+
+C.3 Field -direction construction from the linear readout 
+
+The field directions used for projection suppression are derived from the trained 3 -class linear field readout. 
+
+Given a hidden representation  ℎ, we first apply the same training -set normalization used by the readout: 
+
+𝑧  = ℎ − 𝜇 train 
+
+𝜎 train 
+
+The readout produces logits 
+
+ℓ = 𝑊𝑧  + 𝑏 
+
+where  𝑊  ∈ ℝ3×𝑑  is the learned weight matrix,  𝑏  ∈ ℝ3 is the learned bias vector, and the three output 
+
+dimensions correspond to  𝐾  , 𝐶  , and  𝑃  . Let  𝑤 𝑓  denote the row of  𝑊  associated with field  𝑓  . For the 
+
+reported probe_logit_contrast direction, we compute 
+
+𝑣 𝑓  = 𝑤 𝑓  − 1
+
+|ℱ| − 1 ∑ 𝑤 𝑔  
+
+> 𝑔 ∈ℱ,𝑔 ≠𝑓
+
+The unit field direction is 
+
+𝑢 𝑓  = 𝑣 𝑓 
+
+∥ 𝑣 𝑓  ∥2
+
+This direction should be interpreted as a readout -aligned representational direction, not as a unique physical 
+
+module. In a multi -class readout, field evidence is relative, and readout directions can overlap with other 
+
+predictive structure. 
+
+C.4 Projection suppression intervention 
+
+Let  𝐴 𝑓 ,𝛼  denote the intervention that suppresses the component of the normalized hidden representation 
+
+associated with field  𝑓  at suppression strength  𝛼 . The reported sweep evaluates 𝛼  ∈ {0.25 ,0.50 ,0.75 ,1.00 }
+
+For one -dimensional projection  suppression, the perturbed normalized representation is 
+
+𝑧 (−𝑓 ,𝛼 ) = 𝐴 𝑓 ,𝛼 (𝑧 ) = 𝑧  − 𝛼  (𝑧 ⊤𝑢 𝑓 )𝑢 𝑓 
+
+The operator  𝐴 𝑓 ,𝛼  should be interpreted as a representational -subspace intervention. It suppresses a readout -
+
+aligned direction; it does not prove that the model contains an explicit field module or isolated causal circuit. 
+
+The perturbed representation is then mapped back to the model’s hidden -state scale using the inverse of the 
+
+readout normalization: 
+
+ℎ(−𝑓 ,𝛼 ) = 𝜇 train  + 𝜎 train  ⊙ 𝑧 (−𝑓 ,𝛼 )
+
+C.5 Perturbed prediction loss and CFE 
+
+After intervention, the perturbed hidden representation is decoded to obtain perturbed predictions  𝑦 ̂𝑖 ,𝑡 ,𝑜 ,𝑑 
+
+> 𝑐 ,(−𝑓 ,𝛼 )
+
+.
+
+For GRU and Transformer -lite, the perturbed representation is decoded through the corresponding prediction 
+
+head. For  RSSM -lite in the reported analysis, CFE is computed by head decoding from the perturbed latent 
+
+state; it is not a full RSSM transition re -rollout intervention. 
+
+The perturbed event -window loss is 
+
+𝐿 pert  
+
+> 𝑐
+
+(𝑒 , 𝑓 , 𝛼 ) = 1
+
+𝑁 𝑒  
+
+> 𝑐
+
+∑ ∑ ∑ ∑ (𝑦 ̂𝑖 ,𝑡 ,𝑜 ,𝑑  
+
+> 𝑐 ,(−𝑓 ,𝛼 )
+
+− 𝑦 𝑖 ,𝑡 ,𝑜 ,𝑑 )2
+
+> 𝑑 ∈{𝑥 ,𝑦 }𝑜 𝑡 ∈𝑊 𝑒 (𝑖 )𝑖 ∈𝐼 𝑒
+> 𝑐
+
+The causal field effect is the event -window loss increase caused by the field -aligned intervention: 
+
+CFE 𝑐 (𝑒 , 𝑓 , 𝛼 ) = 𝐿 pert  
+
+> 𝑐
+
+(𝑒 , 𝑓 , 𝛼 ) − 𝐿 base  
+
+> 𝑐
+
+(𝑒 )
+
+A positive CFE means that suppressing the field -aligned component worsens prediction in the evaluated 
+
+event window. Let  𝑒 col  denote the collision -contact window and  𝑒 hid  denote the hard -occlusion hidden 
+
+window. The two primary CFE quantities used in Section  6.3 are 
+
+CFE col  
+
+> 𝑐
+
+(𝛼 ) = CFE 𝑐 (𝑒 col , 𝐶 , 𝛼 )
+
+CFE hid  
+
+> 𝑐
+
+(𝛼 ) = CFE 𝑐 (𝑒 hid , 𝑃 , 𝛼 )
+
+The current primary analysis should not be described as reappearance -window CFE. When CFE is reported 
+
+without specifying a suppression -strength sweep, it refers to the configured suppression strength for that 
+
+summary, typically  𝛼  = 1.
+
+C.6 Aggregation across cases 
+
+For a set of evaluated cases  𝒞 , such as all architecture -seed combinations, the mean CFE at event  𝑒 , target field  𝑓 , and strength  𝛼  is 
+
+CFE (𝑒 , 𝑓 , 𝛼 ) = 1
+
+|𝒞 | ∑ CFE 𝑐 
+
+> 𝑐 ∈𝒞
+
+(𝑒 , 𝑓 , 𝛼 )
+
+When plotted, error bars or standard errors can be computed over the same set of cases. In the main text, the 
+
+sign of the effect, target -control comparison, and dose trend are more important than the absolute magnitude 
+
+of any single loss delta. 
+
+C.7 Matched controls and target -control margins 
+
+CFE is interpreted relative to matched controls. Let  𝑞  denote a control intervention type. The controlled 
+
+CFE is 
+
+CFE 𝑞  
+
+> 𝑐
+
+(𝑒 , 𝑓 , 𝛼 ) = 𝐿 pert ,𝑞  
+
+> 𝑐
+
+(𝑒 , 𝑓 , 𝛼 ) − 𝐿 base  
+
+> 𝑐
+
+(𝑒 )
+
+The main controls are matched -norm random direction, random subspace control, field -label shuffle. A 
+
+useful  target -control margin is 
+
+𝑀 𝑞 (𝑒 , 𝑓 , 𝛼 ) = CFE target (𝑒 , 𝑓 , 𝛼 ) − CFE 𝑞 (𝑒 , 𝑓 , 𝛼 )
+
+Positive margins indicate that target -field suppression degrades prediction more than the corresponding 
+
+control. The interpretation is comparative: a positive target CFE without positive margins may indicate 
+
+general perturbation sensitivity rather than fie ld -specific functional relevance. Conversely, negative or weak 
+
+margins should be interpreted as reduced specificity, not as evidence for an explicit module. 
+
+C.8  Suppression -strength sweep 
+
+The suppression sweep evaluates whether CFE increases as the intervention becomes stronger. For strengths 
+
+𝛼 1 < 𝛼 2, a dose -sensitive pattern satisfies 
+
+CFE (𝑒 , 𝑓 , 𝛼 2) ≥ CFE (𝑒 , 𝑓 , 𝛼 1)
+
+for most adjacent strength pairs and evaluated cases. Perfect monotonicity is not required, because finite 
+
+samples, different architectures, and overlapping field directions can introduce deviations. The relevant 
+
+pattern is a broadly dose -sensitive increas e in event -window prediction loss under stronger target -field 
+
+suppression, interpreted together with matched controls. 
+
+C.9 Interpretation boundary 
+
+CFE is a functional relevance measure within the configured prediction setting, not a full causal -mechanistic 
+
+explanation. It supports the claim that  field -aligned representational structure has predictive consequences in the relevant fixed -horizon event window. It does not establish that the model contains an explicit physical 
+
+module, that the intervention isolates a unique circuit, that the RSSM transition has been fully re -rolled under 
+
+intervention, or that the result  generalizes to arbitrary sliding -context forecasts. 
+
+The strongest supported interpretation is therefore: field -aligned components are functionally relevant when 
+
+suppressing them selectively increases prediction loss in the fixed -horizon event window where that field is 
+
+expected to matter, relative to matche d controls. 
+
+C.10 Summary of the empirical pattern 
+
+The core expected pattern is positive collision -contact CFE and positive hard -occlusion hidden -window CFE, 
+
+together with appropriate controls: 
+
+CFE col (𝛼 ) > 0
+
+CFE hid (𝛼 ) > 0
+
+Reappearance -window CFE is not part of the current primary result. Together with positive target -control 
+
+margins and broadly dose -sensitive suppression trends, these results support fixed -horizon functional 
+
+sensitivity of contact and object -permanence fiel d-aligned components in the event regimes where they are 
+
+expected to matter. The evidence should not be phrased as explicit physical modules, isolated causal circuits, 
+
+full RSSM rollout interventions, or arbitrary sliding -context generalization.

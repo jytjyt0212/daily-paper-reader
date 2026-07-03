@@ -1,0 +1,853 @@
+Title: Effective Covariance Dynamics in Solvable High-Dimensional GANs
+
+URL Source: https://arxiv.org/pdf/2606.27246v1
+
+Published Time: Fri, 26 Jun 2026 01:16:38 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Effective Covariance Dynamics in Solvable High-Dimensional GANs 
+
+## Andrew Bond 1 and Zafer Do˘ gan 1,2* 
+
+1MLIP Group, KUIS AI Center, Ko¸ c University, ˙Istanbul, Turkey. 
+
+2Dept. of EE Engineering, Ko¸ c University, ˙Istanbul, Turkey. *Corresponding author(s). E-mail(s): zdogan@ku.edu.tr; Contributing authors: abond19@ku.edu.tr; 
+
+Abstract 
+
+We study a solvable high-dimensional model of generative adversarial network (GAN) training in which a linear generator learns a low-dimensional subspace from data with structured latent covariance. Prior solvable GAN analyses assume unconditional signals with diagonal latent covariance; we extend the multi-feature discriminator setting to class-dependent, correlated, and non-zero-mean latent structure. For the quadratic energy discriminator, all such heterogeneity enters the dynamics through a probability-weighted effective second moment. We prove that the stochastic microscopic training process converges, in the high-dimensional limit, to deterministic ordinary differential equations governed by this effective covariance. In the matched-covariance specialization, the stability analysis yields a mode-wise solvable interval determined by the learning rates and noise level: learning begins when the leading effective eigenvalue crosses the lower threshold, while full recovery requires all relevant effective modes to remain within the interval. This reveals a signal-boosting mechanism: low-rank corre-lations can lift weak directions above the learnability threshold, whereas overly strong correlations destabilize recovery. Numerical simulations validate the ODE, phase boundary, and boosting mechanism. Experiments on MNIST, FashionM-NIST, and CIFAR-10 further show that informed generator covariance improves alignment with the data-driven reference subspace. 
+
+Keywords: online learning algorithms, generative adversarial networks, subspace learning, high-dimensional dynamics, feature correlation 
+
+1
+
+> arXiv:2606.27246v1 [cs.LG] 25 Jun 2026
+
+# 1 Introduction 
+
+Generative adversarial networks (GANs) (Goodfellow et al. 2014) are trained through a coupled minimax game in which the generator and discriminator evolve simulta-neously. This interaction makes their dynamics substantially harder to analyze than those of standard empirical-risk minimization: even simple games may exhibit oscilla-tions, instability, or collapse. A large body of work has therefore studied stabilization mechanisms and convergence properties of GAN training, including Wasserstein objec-tives (Arjovsky et al. 2017), gradient penalties (Gulrajani et al. 2017; Mescheder et al. 2018), unrolled or optimistic updates (Metz et al. 2017; Daskalakis et al. 2018), local stability analyses (Nagarajan and Kolter 2017; Mescheder et al. 2018), and two-timescale update rules (Heusel et al. 2017). These approaches provide impor-tant algorithmic and game-theoretic insights, but exact descriptions of the stochastic training trajectory remain rare. A complementary route is to study solvable high-dimensional models, where the microscopic weights remain stochastic but low-dimensional macroscopic observables converge to deterministic dynamics. In this direction, Wang et al. (2018b) introduced a single-layer solvable GAN model whose training dynamics can be characterized exactly in the high-dimensional limit. Their analysis showed that learning rates and noise levels determine sharply separated regimes of successful recovery, oscillation, failure, and mode collapse. More recently, Bond and Do˘ gan (2024) extended this framework to multi-feature discriminators, showing that simultaneous discriminator features induce coupled subspace-learning dynamics rather than purely sequential feature recovery. Despite these advances, existing solvable GAN analyses retain a restrictive struc-tural assumption: the latent signal covariance is fixed, unconditional, and diagonal. This assumption is analytically convenient because the latent coordinates behave as independent modes. It is also limiting. Real datasets often contain class-dependent feature strengths, shared factors expressed with different amplitudes across classes, cross-feature correlations, and non-zero class means. Such structure is central in con-ditional generative modeling (Mirza and Osindero 2014; Odena et al. 2017), latent representation learning (Chen et al. 2016; Higgins et al. 2017; Locatello et al. 2019), and modern image generators whose latent spaces encode correlated semantic fac-tors (Karras et al. 2019). Yet the effect of this structured covariance on exact GAN training dynamics is not understood. This motivates the central question of this work: 
+
+> How do conditional and correlated latent covariance structures modify the exact high-dimensional training dynamics of solvable multi-feature GANs?
+
+We answer this question by exploiting a structural property of the multi-feature energy discriminator. Since the discriminator depends on samples through quadratic projection energies, the macroscopic dynamics depend on the data distribution only through second moments. Consequently, class-dependent covariance, cross-feature correlations, and class means collapse into a single probability-weighted effective covariance. This turns a heterogeneous multi-class latent model into an analytically tractable solvable GAN model: the limiting ODE has the same form as in the uncondi-tional case, but with the diagonal latent covariance replaced by an effective covariance matrix. 2The resulting dynamics reveal a mechanism that is absent from diagonal analyses. Off-diagonal covariance couples latent directions, allowing weak coordinates to com-bine into a stronger effective direction. In the stability analysis, the onset of learning is governed by the largest eigenvalue of the effective covariance rather than by individual diagonal entries. Thus, a low-rank correlation spike can lift a collection of individually weak coordinates above the noise threshold and initiate learning. The same mecha-nism has a stability limit: if the leading effective eigenvalue becomes too large, the perfect-recovery fixed point loses stability. This yields an explicit solvable region in learning-rate, noise, and covariance space. Our contributions are as follows. 
+
+• Exact effective-covariance dynamics. We derive the high-dimensional macroscopic ODE for multi-feature GAN training with class-dependent, correlated, and non-zero-mean latent structure. Despite this heterogeneity, the conditional model collapses to the same ODE form as the unconditional model after replacing the latent covariance by a probability-weighted effective second moment. 
+
+• Spectral solvable region and signal boosting. In the matched true/generated covari-ance and equal-noise specialization, we characterize the stability of the failure and recovery fixed points. The onset of learning is governed by the leading effective eigenvalue, while full recovery requires all effective modes to lie within a solvable interval determined by the learning rates and noise level. This spectral view reveals a signal-boosting mechanism: low-rank off-diagonal structure can lift weak coordi-nates above the learnability threshold, whereas overly strong correlations destabilize recovery. 
+
+• Generator covariance as a predictive modeling lever. We show theoretically and empirically that the generator covariance affects not only convergence speed but also the limiting subspace selected by the dynamics. Numerical simulations match the ODE trajectories and predicted phase boundary, while experiments on MNIST, FashionMNIST, and CIFAR-10 show that informed conditional covariance recovers the data-driven reference subspace more accurately and produces coherent class-conditional samples within this solvable linear-generator model. 
+
+Notation. Bold capitals denote matrices and bold lowercase denote vectors. We write A⊤ for transpose, diag( ·) for diagonalization, and I for the identity. The true, generator, and discriminator subspaces are U, V, and W. All limiting dynamics are studied in the high-dimensional regime n → ∞ with fixed intrinsic dimension d and continuous time t = k/n .
+
+# 2 Related Work 
+
+GAN optimization and training dynamics The instability of GAN train-ing has motivated a broad literature on alternative objectives, regularization, and game-dynamical algorithms. Wasserstein GANs (Arjovsky et al. 2017) and gradient-penalized variants (Gulrajani et al. 2017) improve the discriminator signal and stabilize training. Other approaches study local convergence and regularization (Nagarajan and Kolter 2017; Mescheder et al. 2018), two-timescale updates (Heusel et al. 2017), unrolled optimization (Metz et al. 2017), and optimistic methods for reducing cycling 3in adversarial games (Daskalakis et al. 2018). These works typically analyze conver-gence near equilibria or propose stabilization mechanisms for broad classes of GANs. Our goal is different: we derive an exact high-dimensional description of the stochastic training trajectory for a solvable multi-feature GAN and use it to expose how latent covariance structure changes learning. 
+
+Solvable high-dimensional GAN models The closest line of work develops solv-able high-dimensional models of GAN training. Wang et al. (2018b) analyzed a single-layer GAN in which macroscopic overlaps converge to deterministic ODEs, while the microscopic weights remain stochastic. This made it possible to character-ize successful recovery, oscillation, failure, and mode collapse as distinct dynamical regimes. Bond and Do˘ gan (2024) extended the model to multi-feature discriminators, showing that simultaneous discriminator features yield coupled dynamics and faster subspace recovery than sequential single-feature learning. We build directly on this multi-feature framework, but replace the diagonal unconditional latent covariance by conditional, correlated, and non-zero-mean latent structure. The main new result is that this broader model remains solvable because all such structure enters through an effective second moment. 
+
+Structured latent variables and conditional generative models Conditional and structured latent representations are central in generative modeling. Condi-tional GANs (Mirza and Osindero 2014) and auxiliary-classifier GANs (Odena et al. 2017) incorporate label information into the generator and discriminator, while representation-learning methods such as InfoGAN (Chen et al. 2016), and later dis-entanglement analyses (Locatello et al. 2019) study how latent factors can encode interpretable variation. Style-based generators further demonstrate that learned latent spaces often organize semantic factors in correlated ways (Karras et al. 2019), and allow for interpretable controls (H¨ ark¨ onen et al. 2020). These works motivate the importance of latent structure, but they do not give exact high-dimensional training dynamics. Our contribution is to show, in a solvable GAN model, how class-dependent covariance, low-rank correlations, and class means alter the dynamics through a single effective covariance. 
+
+Spiked covariance and high-dimensional subspace structure Our data model is based on the spiked covariance model (Johnstone and Lu 2009), a classical frame-work for studying low-rank signal recovery in high dimensions. Related spectral analyses characterize when signal eigenvectors separate from noise and become recover-able (Baik et al. 2005; Benaych-Georges and Nadakuditi 2011). In our setting, however, the subspace is not estimated directly from a sample covariance matrix. It is learned indirectly through adversarial interaction between the generator and discriminator. The effective-covariance reduction therefore connects spiked high-dimensional signal models with exact adversarial training dynamics: the covariance spectrum governs the solvable region, while the GAN dynamics determine whether the generator converges to the corresponding subspace. 43 Problem Setup 
+
+We study a high-dimensional single-layer GAN as a solvable model of generative sub-space learning. The data model, generator, discriminator, and macroscopic variables follow Wang et al. (2018b); Bond and Do˘ gan (2024), but the latent signal model is gen-eralized to allow conditional covariance, cross-feature correlation, and non-zero class means. 
+
+## 3.1 Structured Spiked Data Model 
+
+At iteration k, the observed sample yk ∈ Rn is generated by 
+
+yk = Uc k + √ηT ak, (1) where U ∈ Rn×d has orthonormal columns, ck ∈ Rd is the latent coefficient vector, 
+
+ak ∼ N (0 , In) is isotropic noise, and ηT > 0 controls the true-data noise level. The ambient dimension n is large, while d ≪ n is fixed. The columns of U define the target low-dimensional subspace. The classical solvable setting assumes an unconditional Gaussian latent vector 
+
+ck ∼ N (0 , Λ) with diagonal Λ (Wang et al. 2018b; Bond and Do˘ gan 2024). This corresponds to a single feature-strength profile shared by all samples and independent latent coordinates. We instead allow heterogeneous latent structure. 
+
+3.1.1 Conditional and Structured Latent Covariance 
+
+Let lk ∈ { 1, . . . , L } be a discrete label with P(lk = ℓ) = πℓ. Conditioned on lk = ℓ, the latent vector follows 
+
+ck | lk = ℓ ∼ N 
+
+
+
+mℓ, Λℓ + θℓcγℓc(γℓc)⊤
+
+, (2) where Λℓ is positive semidefinite, γℓc(γℓc)⊤ is a rank-one correlation component, and 
+
+θℓc ≥ 0 controls its strength. The zero-mean setting is recovered by taking mℓ = 0, and a shared-correlation setting by taking θℓc = θc and γℓc = γc for all ℓ.The signal component is governed by the effective second moment ¯Λ := E[ckc⊤ 
+
+> k
+
+] = 
+
+> L
+
+X
+
+> ℓ=1
+
+πℓ
+
+
+
+Λℓ + θℓcγℓc(γℓc)⊤ + mℓm⊤
+
+> ℓ
+
+
+
+. (3) Thus, class means and low-rank correlations enter the theory through the same object: a low-rank contribution to the effective covariance. This is the structural reduction used throughout the paper. 
+
+## 3.2 Linear GAN Model 
+
+The generator produces fake samples according to ˜yk = Vk ˜ck + √ηG ˜ak, (4) 5where Vk ∈ Rn×d is the learned generator subspace, ˜ ak ∼ N (0 , In) is generator noise, and ηG > 0 is the generator noise level. We denote the generator effective latent second moment by ¯˜Λ := E[˜ ck ˜c⊤ 
+
+> k
+
+]. (5) In general, ¯˜Λ need not equal ¯Λ; this mismatch is central to the informed-versus-uninformed experiments in Section 7. 
+
+3.2.1 Discriminator: Multi-Feature EBGAN 
+
+We adopt the energy-based GAN formulation (Zhao et al. 2017). The discriminator measures projection energy onto a learned d-dimensional discriminator subspace: 
+
+D(y; W) = ∥y⊤W∥2, (6) where W ∈ Rn×d has orthonormal columns. Unlike the single-feature discrimina-tor of Wang et al. (2018b), the multi-feature discriminator evaluates all coordinates simultaneously. This simultaneous interaction is essential for the correlation effects. 
+
+3.2.2 Training Procedure 
+
+Training follows a two-timescale stochastic gradient descent/ascent scheme: 
+
+Vk+1 = Vk − ˜τn ∇Vk L(yk, ˜yk; Wk),
+
+Wk+1 = Wk + τn ∇Wk L(yk, ˜yk; Wk),
+
+(7) where τ and ˜ τ are the discriminator and generator learning rates. The loss is 
+
+L(y, ˜y; W) = F ( ˆD(y⊤W)) − ˆF ( ˆD(˜ y⊤W)) − λ
+
+2 tr  H(W⊤W)+ λ
+
+2 tr  H(V⊤V). (8) In the solvable specialization analyzed below, ˆD(x) = ∥x∥ and F (x) = ˆF (x) = 
+
+x2/2, giving the quadratic energy in (6). The regularizer drives V and W toward orthonormality as λ → ∞ , equivalently implemented by orthonormalizing after each update. 
+
+## 3.3 Effective Covariance Reduction 
+
+The key reduction follows from the quadratic discriminator. Since 
+
+D(y; W) = ∥W⊤y∥2 = tr  W⊤yy ⊤W , (9) the expected energy and population gradients depend on the data distribution through 
+
+E[yy ⊤]. For true and generated samples, 
+
+E[yky⊤ 
+
+> k
+
+] = U ¯ΛU ⊤ + ηT In, E[˜ yk ˜y⊤ 
+
+> k
+
+] = Vk ¯˜ΛV ⊤ 
+
+> k
+
++ ηGIn. (10) 6Consequently, the conditional labels, class means, and latent correlations are not tracked separately by the macroscopic dynamics. They are absorbed into ¯Λ and ¯˜Λ.The rank-one terms mℓm⊤ 
+
+> ℓ
+
+and θℓcγℓc(γℓc)⊤ later provide the signal-boosting directions analyzed in Section 6. 
+
+## 3.4 Informed and Uninformed Generator Covariance 
+
+A central modeling choice is the generator effective covariance ¯˜Λ. We call the generator 
+
+informed when ¯˜Λ is chosen to approximate the data effective covariance ¯Λ, for example using squared singular values from PCA estimated per class in the conditional setting. We call it uninformed when feature strengths are flat or chosen heuristically. This choice is not merely a tuning detail. The limiting dynamics in Section 4 contain ¯˜Λ explicitly, through terms such as ¯˜ΛR t and through the stability matrices Ht and 
+
+Lt defined in (15). Thus, the generator covariance affects both convergence rate and limiting subspace. In synthetic settings, where U is known, this determines whether the generator recovers the true subspace. On real datasets, where a ground-truth low-dimensional subspace is unavailable, we evaluate alignment with a data-driven PCA reference subspace. 
+
+# 4 High-Dimensional Training Dynamics 
+
+We now characterize the macroscopic training dynamics. Following Wang et al. (2018b); Bond and Do˘ gan (2024), we track low-dimensional overlaps among the true, generator, and discriminator subspaces and prove that these overlaps converge to a deterministic ODE as n → ∞ .
+
+## 4.1 Microscopic and Macroscopic States 
+
+Definition 1 (Microscopic state) The concatenated matrix 
+
+Xk :=  U, Vk, Wk
+
+ ∈ Rn×3d
+
+is called the microscopic state of the training process at iteration k.
+
+Definition 2 (Macroscopic state) The tuple {Pk, Qk, Rk, Sk, Zk} is called the macroscopic state at time k, where 
+
+Pk := U⊤Vk, Qk := U⊤Wk, Rk := V⊤ 
+
+> k
+
+Wk,
+
+Sk := V⊤ 
+
+> k
+
+Vk, Zk := W⊤ 
+
+> k
+
+Wk.
+
+Equivalently, 
+
+Mk = X⊤ 
+
+> k
+
+Xk =
+
+
+
+I Pk Qk
+
+P⊤ 
+
+> k
+
+Sk Rk
+
+Q⊤ 
+
+> k
+
+R⊤ 
+
+> k
+
+Zk
+
+ ∈ R3d×3d. (11) 
+
+The matrices Pk and Qk measure alignment of the generator and discriminator with the true subspace, while Rk measures generator–discriminator alignment and 
+
+Sk, Zk encode self-correlations. 74.2 Assumptions and Effective Covariances 
+
+We use the following assumptions, matching Bond and Do˘ gan (2024) except for the generalized latent distribution. (A.1) The latent sequences {ck} and {˜ck} are i.i.d. with bounded moments of all orders, and {ck} is independent of {˜ck}. In the conditional case, ck follows (2); the generator has finite effective second moment ¯˜Λ = E[˜ ck ˜c⊤ 
+
+> k
+
+]. (A.2) The noise sequences {ak} and {˜ak} are i.i.d. Gaussian with zero mean and covariance In, and are independent of all latent variables. (A.3) The loss uses H(A) = log cosh( A − I), ˆD(x) = ∥x∥, and F (x) = ˆF (x) = x2/2, with the first four derivatives of F ( ˆD(·)) and ˆF ( ˆD(·)) existing and uniformly bounded, as in Wang et al. (2018b). (A.4) The initial state has bounded fourth moments: E[Pdℓ=1 ([ U]4 
+
+> i,ℓ
+
++[ V0]4 
+
+> i,ℓ
+
++[ W0]4
+
+> i,ℓ
+
+)] ≤
+
+C/n 2 for all i, with C independent of n.(A.5) The initial macroscopic state concentrates: E∥M0 − M∗
+
+> 0
+
+∥ ≤ C/ √n for some deterministic M∗
+
+> 0
+
+.(A.6) The discriminator columns are orthonormal, W⊤ 
+
+> k
+
+Wk = Id, so Zk ≡ Id.For consistency with the theorem notation, we write ¯Λ = E[ckc⊤ 
+
+> k
+
+], ¯˜Λ = E[˜ ck ˜c⊤ 
+
+> k
+
+]. (12) The unconditional diagonal model is recovered by taking ¯Λ = Λ and ¯˜Λ = ˜Λ.
+
+## 4.3 Macroscopic ODE: Main Theorem 
+
+Theorem 3 (Macroscopic ODE limit) Fix T > 0. Under Assumptions (A.1)–(A.6), and letting λ → ∞ , we have 
+
+max  
+
+> 0≤k≤nT
+
+E Mk − M(k/n ) ≤ C(T )
+
+√n , (13) 
+
+where C(T ) depends on T but not on n, and M(t) ∈ R3d×3d is deterministic. Moreover, M(t)
+
+is the unique solution of 
+
+ddt Pt = ˜ τ  QtR⊤ 
+
+> t
+
+¯˜Λ + PtLt
+
+, ddt Qt = τ   ¯ΛQ t − Pt ¯˜ΛR t + HtQt
+
+,ddt Rt = τ  P⊤ 
+
+> t
+
+¯ΛQ t − St ¯˜ΛR t + HtRt
+
+ + ˜ τ  ¯˜Λ + Lt
+
+Rt,ddt St = ˜ τ  RtR⊤ 
+
+> t
+
+¯˜Λ + ¯˜ΛR tR⊤ 
+
+> t
+
++ StLt + LtSt
+
+, ddt Zt = 0 ,
+
+(14) 
+
+with initial condition M(0) = M∗
+
+> 0
+
+, where 
+
+Lt = − diag 
+
+
+
+RtR⊤ 
+
+> t
+
+¯˜Λ
+
+
+
+,Ht =
+
+
+
+1 − τ η G
+
+2
+
+
+
+R⊤ 
+
+> t
+
+¯˜ΛR t −
+
+
+
+1 + τ η T
+
+2
+
+
+
+Q⊤ 
+
+> t
+
+¯ΛQ t −τ η2 
+
+> G
+
++ η2
+
+> T
+
+2 I. (15) 
+
+Proof A sketch of the proof of this theorem is included in Appendix B. □
+
+8Theorem 3 is the central reduction of the paper. Conditional labels, heterogeneous class covariances, correlations, and class means do not introduce new macroscopic state variables; they only change the coefficients ¯Λ and ¯˜Λ.
+
+## 4.4 Interpretation 
+
+The ODE describes how the generator and discriminator subspaces evolve. The terms ¯ΛQ t and ¯˜ΛR t drive alignment along high-variance effective directions, while the matrices Ht and Lt regulate stability through quadratic forms involving Q⊤ 
+
+> t
+
+¯ΛQ t and 
+
+R⊤
+
+> t
+
+¯˜ΛR t. When ¯Λ is diagonal, modes are largely separable. When ¯Λ has off-diagonal or low-rank structure, the dynamics couple coordinates, so weak features can be amplified through correlated directions. Sections 5 and 6 make this mechanism explicit through fixed-point and eigenvalue analyses. The proof is given in Appendix B. 
+
+# 5 Fixed Points and the Solvable Region 
+
+We next analyze the fixed points of the ODE and characterize when training suc-ceeds. The full ODE allows ¯Λ̸ = ¯˜Λ and ηT̸ = ηG. To obtain transparent closed-form conditions, this section studies the informative feature case ¯Λ = ¯˜Λ = Λ, η T = ηG = η. 
+
+Here Λ may be either an unconditional covariance or the effective covariance of the conditional model. Appendix A verifies the fixed points for the general effective-covariance model and gives the stability calculation for the matched specialization. 
+
+## 5.1 Fixed Points and Their Interpretation 
+
+Two fixed points are central: 
+
+• Perfect recovery: P = I and Q = R = 0. The generator aligns with the true subspace, while the discriminator has no residual direction separating real and generated samples. 
+
+• Total failure: P = Q = R = 0. Neither generator nor discriminator has aligned with the signal subspace.               
+
+> Remark 4In the matched diagonal sector used for the closed-form stability analysis, Appendix A shows that no admissible scalar fixed points with R̸= 0 occur in the two-timescale regime considered here. This rules out additional scalar “stalemate” equilibria in the operating regime of our experiments, but the general non-diagonal effective-covariance ODE may have more complex stationary structure.
+
+Linearizing around the two fixed points decouples the dynamics in the eigenbasis of 
+
+Λ. Stability is therefore controlled mode-by-mode by the eigenvalues {λi}di=1 of Λ,and in particular by λmin := min i λi, λ max := max i λi.
+
+The lower stability boundary determines whether a mode can escape the failure fixed point, while the upper boundary determines whether recovery remains stable. 95.2 Stability and the Solvable Region 
+
+In the practical two-timescale regime ˜ τ < τ , the failure point is stable only when all effective eigenvalues remain below the noise threshold: 
+
+λmax < τ η 2. (16) Thus, learning can start once at least one effective direction crosses the lower threshold, equivalently when λmax > τ η 2. Conversely, perfect recovery is stable, in the regime ˜τ < 4τ , provided 
+
+λmax < 2τ 2η2
+
+˜τ . (17) Combining the lower escape condition with the upper recovery-stability condition gives the mode-wise solvable interval 
+
+τ η 2 < λ i < 2τ 2η2
+
+˜τ . (18) A direction whose effective eigenvalue lies inside this interval can be learned stably: it is strong enough to escape failure but not so strong that it destabilizes recovery. Full recovery of all d effective modes from a small initialization requires the aggregate condition 
+
+λmin > τ η 2, λmax < 2τ 2η2
+
+˜τ . (19) By contrast, the onset of learning is controlled by λmax : if a correlation spike raises even one effective direction above the lower threshold, learning begins in that boosted direction even if the remaining modes stay sub-threshold. This distinction is important for the signal-boosting experiments, where the goal is to show that correlation can create a learnable direction from individually weak coordinates. Writing ρ = ˜ τ /τ , the upper boundary is (2 /ρ )τ η 2. Hence the interval is nonempty for ρ < 2 and widens as the generator becomes slower relative to the discriminator, consistent with two-timescale training intuition (Heusel et al. 2017). For diagonal Λ, the condition (18) applies independently to each mode. Correlation changes this picture by rotating the eigenbasis and changing the effective eigenvalues. In particular, off-diagonal or low-rank structure can increase λmax even when every marginal strength di lies below the noise threshold. The next section formalizes this effect and shows when correlation helps or harms learning. 
+
+# 6 Feature Correlation Mechanism for Signal Boosting 
+
+The previous section shows that the onset of learning is controlled by the largest eigen-value of the effective covariance, whereas full recovery requires all relevant eigenvalues to lie inside the solvable interval. We now show how feature correlation can raise λmax 
+
+even when every marginal coordinate is individually below the noise threshold. This provides a precise mechanism by which weak features can combine into a learnable 10 effective direction. Let 
+
+Λ = D + θγγ ⊤, D = diag( d1, . . . , d d), θ ≥ 0, γ̸ = 0 . (20) For a unit vector v, the effective signal strength in direction v is 
+
+σeff (v; θ, γ, D) := v⊤Λv =
+
+> d
+
+X
+
+> i=1
+
+div2 
+
+> i
+
++ θ⟨v, γ⟩2. (21) Maximizing over ∥v∥ = 1 gives λmax (Λ). 
+
+Proposition 5 (Correlation-induced boosting of weak features) Let D = diag( d1, . . . , d d)
+
+with di < τ η 2 for all i, so no coordinate direction is learnable in isolation under (18) . Let 
+
+Λ = D + θγγ ⊤, define ˆγ = γ/∥γ∥, and let ¯dγ = ˆ γ⊤Dˆγ. If 
+
+θ > τ η 2 − ¯dγ
+
+∥γ|2 , (22) 
+
+then λmax (Λ) > τ η 2. Hence the total-failure fixed point is unstable, and learning can start along a boosted effective direction. Proof By the Rayleigh quotient, 
+
+λmax (Λ) ≥ ˆγ⊤Λˆγ = ˆ γ⊤Dˆγ + θ(γ⊤ ˆγ)2 = ¯dγ + θ∥γ∥2.
+
+The condition (22) implies λmax (Λ) > τ η 2, which violates the failure stability condition (16). 
+
+□
+
+Thus, even if every diagonal feature strength lies below the noise floor, a sufficiently aligned correlation component can create a dominant learnable direction. 
+
+Proposition 6 (Correlation-induced instability) Let Λ = D + θγγ ⊤, with ˆγ = γ/∥γ∥ and 
+
+¯dγ = ˆ γ⊤Dˆγ. If 
+
+¯dγ + θ∥γ∥2 ≥ 2τ 2η2
+
+˜τ , (23) 
+
+then λmax (Λ) ≥ 2τ 2η2/˜τ , so the perfect-recovery fixed point is unstable. Proof The same Rayleigh-quotient lower bound gives λmax (Λ) ≥ ¯dγ + θ∥γ∥2. Condition (23) violates the upper stability boundary (17). □
+
+Together, Propositions 5 and 6 show that correlation is beneficial only in a bounded range: a moderate spike lifts λmax above the failure threshold, while an excessive spike pushes it beyond the recovery threshold. In the conditional model, the same conclusions hold with Λ replaced by the effective covariance ¯Λ.11 7 Experimental Results 
+
+We validate the theory in two stages. First, controlled simulations compare the ODE with high-dimensional SGD and test the predicted stability boundary. Second, image experiments examine how informed and uninformed generator covariances affect the learned generative subspace on MNIST, FashionMNIST, and CIFAR-10. The goal is not to benchmark a practical image generator, but to test the qualitative predictions of the solvable model. 
+
+## 7.1 Theory vs. Simulations 
+
+We solve the macroscopic ODE and compare it to high-dimensional SGD with n =1500. We track the generator overlap overlap( U, V) = tr( PS −1P⊤)/d, (24) which is the mean squared cosine of the principal angles. Unless otherwise stated, we use τ = 0 .1, ˜ τ = 0 .01, and d = 2. 
+
+Fig. 1 : Validation of the theory. Left and middle panels report averages over 10 random seeds with 3 σ error bars. Left: Signal boosting (Proposition 5): steady-state overlap as a function of λmax (Λ) for Λ = 0 .2I + θγγ ⊤. Below the threshold τ η 2
+
+(dashed), recovery fails; once correlation lifts λmax above this threshold, the boosted direction becomes learnable. Middle: Informed generator covariance ( ¯˜Λ = Λ) versus uninformed covariance (isotropic with equal total energy) for Λ = diag(2 , 4). Informed covariance yields a higher steady-state overlap. In both panels, the ODE prediction (solid) closely tracks high-dimensional SGD (dots). Right: Conditional model with effective eigenvalues (1 , 10 .8) and varying generator learning rate ˜ τ . The transition from convergence to divergence occurs near the predicted boundary ˜ τmax ≈ 0.046. 
+
+7.1.1 ODE vs. SGD Dynamics: Signal Boosting and Informed Covariance 
+
+Figure 1(a) demonstrates signal boosting. The effective covariance is Λ = 0 .2I+θγγ ⊤,and varying θ changes λmax (Λ). Below the threshold τ η 2, the steady-state overlap 12 remains near zero. Once the low-rank correlation lifts λmax above the threshold, the boosted direction becomes recoverable. The SGD points match the ODE curves. Figure 1(b) compares informed and uninformed generator covariance for Λ =diag(2 , 4). The informed generator uses ¯˜Λ = Λ, while the uninformed generator uses an isotropic covariance with the same total energy. The informed spectrum reaches a higher steady-state overlap, illustrating that the generator covariance affects the limiting subspace rather than only the convergence rate. 
+
+7.1.2 Conditional Model and Stability Boundary 
+
+Figure 1(c) validates the conditional model and stability boundary on a two-class setup with L = 2 and d = 2. Class 1 has probability 0 .3 and strengths (1 , 1); class 2 has probability 0 .7 and strengths (1 , 15), yielding effective covariance ¯Λ = diag(1 , 10 .8). With τ = 0 .5, η = 1, and varying ˜ τ ∈ [0 .01 , 0.1], the solvable-region condition predicts a maximal admissible generator learning rate above which the strong mode destabi-lizes recovery. We track the Grassmann distance d(U, V) = ( P 
+
+> i
+
+θ2 
+
+> i
+
+)1/2, where θi are principal angles. The empirical transition near ˜ τmax ≈ 0.046 matches the prediction. 
+
+## 7.2 Image Experiments: Informed and Uninformed Feature Strengths 
+
+Fig. 2: Informed vs. uninformed feature strengths across three datasets. Grass-mann distance between the learned generator subspace and the top-d PCA reference subspace during training ( d = 64), for MNIST, FashionMNIST, and CIFAR-10 (grayscale). Informed strengths set the generator covariance to the per-class PCA spectrum; uninformed strengths use values sampled uniformly from [0 .5, 5]. Informed models converge more slowly but reach a lower steady-state distance, while uninformed models converge quickly to a biased plateau. We next test whether the generator covariance predicted by the theory matters on real image datasets. Since the true low-dimensional subspace is unknown, we use the top-d PCA subspace of the dataset as a reference and measure the Grassmann distance between this reference and the learned generator subspace. This is not a claim of access to a ground-truth U; rather, it provides a consistent data-driven comparison across runs. 13 For MNIST (Deng 2012), FashionMNIST (Xiao et al. 2017), and CIFAR-10 (Krizhevsky et al. 2009), we compare two generator choices. The informed model sets the generator covariance to the per-class PCA spectrum. The uninformed model uses strengths sampled uniformly from [0 .5, 5]. Figure 2 shows a consistent pattern: informed strengths converge more slowly but reach a lower steady-state Grassmann distance, whereas uninformed strengths converge faster but saturate at a biased plateau. This supports the ODE prediction that ¯˜Λ influences the limiting subspace. Figure 3 shows samples from the informed conditional model. For each dataset, samples are drawn from the per-class latent distribution and mapped through the shared learned basis V. Despite the linear generator, the samples are recognizable and class structured, indicating that matching the conditional covariance is important for perceptually coherent generation in this solvable model. In CIFAR-10 case, we do not get sharp images due to the data complexity and limitations of a linear model. 
+
+Fig. 3 : Class-conditional samples from the informed conditional model (MNIST, Fash-ionMNIST, CIFAR-10). For each dataset, the generator covariance is set per class to the data’s PCA spectrum, and samples are drawn from the per-class latent distribu-tion N ( ˜ mℓ, ˜Λℓ) through the shared learned basis V. Rows correspond to classes and columns to samples. 
+
+# 8 Discussion and Conclusion 
+
+We developed a high-dimensional theory for multi-feature solvable GANs trained on data with conditional, correlated, and non-zero-mean latent structure. The main result is an effective-covariance reduction: for the quadratic energy discriminator, hetero-geneous latent structure enters the macroscopic dynamics only through the second moments ¯Λ = E[cc ⊤] and ¯˜Λ = E[˜ c˜c⊤]. This yields a deterministic ODE description of the high-dimensional training process and extends solvable GAN dynamics beyond the diagonal unconditional setting. The stability analysis shows that learnability is governed by the spectrum of the effective covariance. A mode must be strong enough to escape the failure fixed point but not so strong that it destabilizes recovery. Consequently, low-rank correlations 14 can either help or hurt: moderate correlations lift weak directions above the learn-ability threshold, whereas excessive correlations push the leading eigenvalue beyond the stable-recovery boundary. Numerical simulations validate the ODE, the predicted phase boundary, and this signal-boosting mechanism. Our experiments further show that the generator covariance is a decisive model-ing choice. On MNIST, FashionMNIST, and CIFAR-10, informed conditional feature strengths align the learned generator subspace more closely with the PCA reference subspace and produce coherent class-conditional samples, while uninformed strengths converge faster but saturate at a biased plateau. The model is intentionally linear and single-layer, which is precisely what makes the training trajectory exactly solvable. Within this tractable setting, the analysis isolates how structured covariance reshapes adversarial subspace learning. Extending the effective-covariance reduction and signal-boosting mechanism to deeper nonlinear generators is a natural direction for future work. 
+
+Acknowledgements. This work was supported by T ¨UB ˙ITAK 2232 Program (No. 118C337) and project 124E063, and by the KUIS AI Research Center. 
+
+# Statements and Declarations 
+
+Funding: see Acknowledgements. Competing interests: none. Data availability: 
+
+all datasets used (MNIST, FashionMNIST, CIFAR-10) are publicly available. 
+
+# Appendix A Details of the Stability Analysis 
+
+## A.1 Fixed Points for the General Case 
+
+We verify that both P = I, Q = R = 0 and P = Q = R = 0 remain fixed points under the generalized effective-covariance model. Setting all derivatives in the macroscopic ODE to zero gives 0 = ˜ τ  QtR⊤
+
+> t
+
+¯˜Λ + PtLt
+
+, 0 = τ   ¯ΛQ t − Pt ¯˜ΛR t + HtQt
+
+,
+
+0 = τ  P⊤ 
+
+> t
+
+¯ΛQ t − St ¯˜ΛR t + HtRt
+
+ + ˜ τ  ¯˜Λ + Lt
+
+Rt,
+
+0 = ˜ τ  RtR⊤
+
+> t
+
+¯˜Λ + ¯˜ΛR tR⊤ 
+
+> t
+
++ StLt + LtSt
+
+.
+
+(A1) Both configurations have Q = R = 0, which gives L = 0 and makes every right-hand side vanish; hence both are fixed points. 
+
+## A.2 Linearization and Stability 
+
+For the closed-form stability analysis in Section 5, take the matched specialization ¯Λ = ¯˜Λ = Λ and ηT = ηG = η. At both fixed points, Q = R = 0, so L = 0 and 
+
+H∗ = −τ η 2I. Perturbing P = P∗ + δP, Q = δQ, R = δR, and S = S∗ + δS, the δP
+
+15 and δS directions are marginal at first order, and stability is governed by 
+
+ddt δQ = τ (Λ−τ η 2I)δQ−τ P∗ΛδR, ddt δR = τ (P∗)⊤ΛδQ+ (˜ τ −τ )Λ−τ 2η2IδR.
+
+(A2) 
+
+Total failure: For P∗ = 0, the system decouples with eigenvalues μQ,i = τ (λi − τ η 2)and μR,i = (˜ τ −τ )λi −τ 2η2. Thus, for ˜ τ < τ and Λ ⪰ 0, the R-block is stable automat-ically, and failure is stable iff λmax < τ η 2; learning begins once λmax > τ η 2. Perfect recovery: For P∗ = I, each eigendirection gives Ji =
+
+ τ (λi−τ η 2) −τ λ i    
+
+> τ λ i(˜ τ−τ)λi−τ2η2
+
+
+
+. The trace condition gives ˜ τ λ i − 2τ 2η2 < 0, i.e., λi < 2τ 2η2/˜τ , and the determinant condi-tion holds automatically for ˜ τ < 4τ . Hence recovery is stable when λmax < 2τ 2η2/˜τ ,yielding (18). 
+
+## A.3 Absence of R ̸ = 0 equilibria in the two-timescale regime 
+
+The fixed points of Section 5 all lie on the manifold Q = R = 0 (perfect recovery and total failure). For completeness we show that, in the two-timescale regime ˜ τ ≪ τ in which the solvable region is robust, there are no additional equilibria with R̸ = 0—i.e. no “stalemate” states in which the discriminator remains locked onto a direction the generator also occupies. Thus, we are free in our analysis to assume that R = 0. 
+
+Reduction to a single mode. 
+
+Take ¯Λ = ¯˜Λ = Λ diagonal, ηG = ηT = η, and Z = I as in Section 5. The macroscopic initialization is diagonal ( P0 = p0I, Q0 = q0I, R0 = p0q0I, S0 = I), and one checks directly from (14) that the diagonal subspace is invariant: every right-hand side maps diagonal states to diagonal states (in particular L = − diag( RR ⊤Λ) is diagonal, and all products of diagonal matrices are diagonal). Hence the d-dimensional system decouples into d independent copies of the scalar system obtained by restricting (14) to one eigendirection. It therefore suffices to analyze a single mode with strength λ > 0and macroscopic scalars ( p, q, r, s ), where L = −r2λ and H =  1 − τ η 
+
+> 2
+
+r2λ −  1 + 
+
+> τ η
+> 2
+
+q2λ − τ η 2. The scalar fixed-point equations are 0 = ˜ τ rλ (q − pr ), (A3) 0 = τ  λq − pλr + Hq , (A4) 0 = τ  pλq − sλr + Hr  + ˜ τ (λ + L)r, (A5) 0 = 2˜ τ r 2λ (1 − s). (A6) 
+
+Structure of an r̸ = 0 equilibrium. 
+
+Suppose r̸ = 0 (and λ > 0). Equation (A6) forces s = 1, and (A3) forces q = pr .Substituting q = pr into (A4) gives λpr − pλr + Hpr = Hpr = 0, so either 
+
+(a) p = 0 (hence q = 0) , or (b) H = 0 (p̸ = 0) .
+
+We treat the two branches in turn and reduce each to an explicit value of r2; a genuine equilibrium additionally requires r2 ∈ (0 , 1] and (in branch (b)) p2 ∈ [0 , 1], since 16 r = V⊤W/n and p = U⊤V/n are cosines of principal angles between unit-norm columns. 
+
+Branch (a) (pure stalemate, p = q = 0 ). Here H =  1 − τ η 
+
+> 2
+
+r2λ − τ η 2. With 
+
+p = q = 0, s = 1, equation (A5) reads τ (Hr − λr ) + ˜ τ (λ − r2λ)r = 0; dividing by r
+
+and solving the resulting linear equation in r2 gives 
+
+r2 = τ 2η2 + ( τ − ˜τ )λλ τ (1 − τ η  
+
+> 2
+
+) − ˜τ  . (A7) 
+
+Branch (b) (partial alignment, H = 0 ). Using q = pr , the condition H = 0 is 
+
+r2λ
+
+h 1 − τ η 
+
+> 2
+
+ −  1 + τ η 
+
+> 2
+
+p2i
+
+= τ η 2, (A8) while (A5) with q = pr , s = 1, H = 0 becomes τ λr (p2 − 1) + ˜ τ λr (1 − r2) = 0, i.e. 
+
+r2 = 1 − τ
+
+˜τ (1 − p2). (A9) 
+
+Infeasibility under TTUR. 
+
+Assume the two-timescale regime ˜ τ ≪ τ together with the mild condition τ η < 2 (so that 1 − τ η  
+
+> 2
+
+> 0); both hold throughout the operating points of Section 7. 
+
+Branch (a). The denominator of (A7) is λ τ (1 − τ η  
+
+> 2
+
+) − ˜τ  > 0 and the numerator 
+
+τ 2η2 + ( τ − ˜τ )λ > 0, so r2 > 0. Admissibility r2 ≤ 1 would require τ 2η2 + ( τ − ˜τ )λ ≤
+
+λ τ (1 − τ η  
+
+> 2
+
+) − ˜τ , i.e. 
+
+τ 2η2 ≤ λ
+
+h
+
+τ  1 − τ η 
+
+> 2
+
+ − ˜τ − (τ − ˜τ )
+
+i
+
+= − τ 2η 
+
+> 2
+
+λ < 0,
+
+which is impossible for λ > 0. Hence r2 > 1: branch (a) admits no equilibrium. 
+
+Branch (b). Non-negativity of (A9) forces τ 
+
+> ˜τ
+
+(1 − p2) ≤ 1, i.e. p2 ≥ 1 − ˜τ /τ . On the other hand the left-hand side of (A8) equals the positive number τ η 2 and r2λ > 
+
+0, so the bracket must be positive, giving p2 < 1 − τ η 
+
+> 2
+
+1 + τ η 
+
+> 2
+
+= 2 − τ η 
+
+2 + τ η < 1. These two requirements are incompatible whenever 1 − ˜ττ > 2 − τ η 
+
+2 + τ η , equivalently ˜ττ < 2 τ η 
+
+2 + τ η ,
+
+which is satisfied in the two-timescale regime ˜ τ ≪ τ (the right-hand side is a fixed positive number, e.g. 2τ η  
+
+> 2+ τ η
+
+= 25 at τ η = 12 ). Hence branch (b) also admits no equilibrium. 
+
+Proposition 7 (No R̸ = 0 fixed points under TTUR) For τ η < 2 and ˜τ /τ < 2τ η/ (2 + τ η ),the scalar system (A3) –(A6) has no solution with r̸ = 0 and r2 ∈ (0 , 1] . By the diagonal-sector reduction, the macroscopic ODE (14) therefore has no equilibrium with R̸ = 0 in this regime. 
+
+17 Appendix B Proof of Main Theorem 
+
+This appendix follows the proof of the scaling-limit theorem in Wang et al. (2018b); Bond and Do˘ gan (2024); we restate the key ingredients and indicate the modification required by the generalized latent model, deferring the unchanged moment-bound alge-bra to those references. The proof applies to the conditional/structured data model because the labels lk are sampled i.i.d. and averaged inside the conditional expecta-tions. Consequently, the covariance appearing in the drift is the population effective covariance ¯Λ = E[ckc⊤ 
+
+> k
+
+], and likewise ¯˜Λ for the generator. The argument relies on the following stochastic-approximation result from Wang et al. (2018a). 
+
+Lemma 8 Consider a sequence of stochastic processes {x(n) 
+
+> k
+
+, k = 0 , 1, . . . , ⌊nT ⌋} n≥1 for fixed 
+
+T > 0. Suppose 
+
+x(n) 
+
+> k+1
+
+− x(n) 
+
+> k
+
+= 1
+
+n ϕ(x(n) 
+
+> k
+
+) + ρ(n) 
+
+> k
+
++ δ(n) 
+
+> k
+
+, (B10) 
+
+where 
+
+(C.1) Pkk′=0 ρ(n) 
+
+> k′
+
+is a martingale and E∥ρ(n) 
+
+> k
+
+∥2 ≤ C(T )/n 1+ ϵ1 for some ϵ1 > 0;(C.2) E∥δ(n) 
+
+> k
+
+∥ ≤ C(T )/n 1+ ϵ2 for some ϵ2 > 0;(C.3) ϕ is Lipschitz; (C.4) E∥x(n) 
+
+> k
+
+∥2 ≤ C for all k ≤ ⌊ nT ⌋;(C.5) E∥x(n)0 − x∗
+
+> 0
+
+∥ ≤ C/n ϵ3 for some ϵ3 > 0 and deterministic x∗
+
+> 0
+
+.
+
+Then ∥x(n) 
+
+> k
+
+−x(k/n )∥ ≤ C(T )n− min( ϵ1/2,ϵ 2,ϵ 3), where x(t) is the unique solution of ddt x(t) = 
+
+ϕ(x(t)) with x(0) = x∗
+
+> 0
+
+.
+
+Application to the macroscopic state. 
+
+We apply Lemma 8 to Mk, with 
+
+Mk+1 − Mk = 1
+
+n ϕ(Mk) +  Mk+1 − EkMk+1 
+
+| {z }
+
+> ρ(n)
+> k
+
++ EkMk+1 − Mk − 1 
+
+> n
+
+ϕ(Mk)| {z }
+
+> δ(n)
+> k
+
+, (B11) where ϕ is the right-hand side of (14). Conditions (C.3) and (C.5) follow from assump-tions (A.3) and (A.5). The martingale and moment estimates required for (C.1), (C.2), and (C.4) are the same as in Wang et al. (2018b); Bond and Do˘ gan (2024), using (A.6) to control the discriminator block. 
+
+Where the effective covariance enters. 
+
+The latent distribution appears in the drift through expectations of quadratic latent terms. Averaging the generator and discriminator updates over latent variables, noise, and conditional labels gives 
+
+EkPk+1 − Pk = ˜τn
+
+QkR⊤
+
+> k
+
+¯˜Λ + PkLk
+
+, EkQk+1 − Qk = τn
+
+ ¯ΛQ k − Pk ¯˜ΛR k + HkQk
+
+.
+
+(B12) 18 The remaining Rk and Sk drift terms are obtained analogously. Thus, the only change from the unconditional proof is the replacement of ( Λ, ˜Λ) by ( ¯Λ, ¯˜Λ). 
+
+Conclusion. With (C.1)–(C.5) verified, Lemma 8 applies to the macroscopic process 
+
+Mk, proving Theorem 3. 
+
+# References 
+
+Arjovsky M, Chintala S, Bottou L (2017) Wasserstein generative adversarial net-works. In: Proceedings of the 34th International Conference on Machine Learning, Proceedings of Machine Learning Research, vol 70. PMLR, pp 214–223 Baik J, Ben Arous G, P´ ech´ e S (2005) Phase transition of the largest eigenvalue for nonnull complex sample covariance matrices. The Annals of Probability 33(5):1643– 1697. https://doi.org/10.1214/009117905000000233 Benaych-Georges F, Nadakuditi RR (2011) The eigenvalues and eigenvectors of finite, low rank perturbations of large random matrices. Advances in Mathematics 227(1):494–521 Bond A, Do˘ gan Z (2024) Exploring the precise dynamics of single-layer gan mod-els: Leveraging multi-feature discriminators for high-dimensional subspace learning. Advances in Neural Information Processing Systems 37:69865–69887 Chen X, Duan Y, Houthooft R, et al (2016) Infogan: Interpretable representation learning by information maximizing generative adversarial nets. In: Advances in Neural Information Processing Systems Daskalakis C, Ilyas A, Syrgkanis V, et al (2018) Training gans with optimism. In: International Conference on Learning Representations Deng L (2012) The mnist database of handwritten digit images for machine learning research. IEEE Signal Processing Magazine 29(6):141–142 Goodfellow IJ, Pouget-Abadie J, Mirza M, et al (2014) Generative adversarial net-works. Communications of the ACM 63:139 – 144. https://doi.org/10.1145/3422622 Gulrajani I, Ahmed F, Arjovsky M, et al (2017) Improved training of wasserstein gans. In: Advances in Neural Information Processing Systems Heusel M, Ramsauer H, Unterthiner T, et al (2017) Gans trained by a two time-scale update rule converge to a local nash equilibrium. Advances in Neural Information Processing Systems 30 Higgins I, Matthey L, Pal A, et al (2017) β-vae: Learning basic visual concepts with a constrained variational framework. In: International Conference on Learning Representations Workshop 19 H¨ ark¨ onen E, Hertzmann A, Lehtinen J, et al (2020) Ganspace: Discovering inter-pretable gan controls. In: Advances in Neural Information Processing Systems Johnstone IM, Lu AY (2009) On consistency and sparsity for principal components analysis in high dimensions. Journal of the American Statistical Association 104:682 – 693 Karras T, Laine S, Aila T (2019) A style-based generator architecture for generative adversarial networks. 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) pp 4401–4410 Krizhevsky A, Nair V, Hinton G (2009) Cifar-10 (canadian institute for advanced research) Locatello F, Bauer S, Lucic M, et al (2019) Challenging common assumptions in the unsupervised learning of disentangled representations. In: international conference on machine learning, PMLR, pp 4114–4124 Mescheder L, Geiger A, Nowozin S (2018) Which training methods for gans do actually converge? In: International conference on machine learning, PMLR, pp 3481–3490 Metz L, Poole B, Pfau D, et al (2017) Unrolled generative adversarial networks. In: International Conference on Learning Representations Mirza M, Osindero S (2014) Conditional generative adversarial nets. arXiv preprint arXiv:14111784 Nagarajan V, Kolter JZ (2017) Gradient descent gan optimization is locally stable. In: Advances in Neural Information Processing Systems Odena A, Olah C, Shlens J (2017) Conditional image synthesis with auxiliary classifier gans. In: international conference on machine learning, vol 70. PMLR, pp 2642–2651 Wang C, Eldar YC, Lu YM (2018a) Subspace estimation from incomplete observations: A high-dimensional analysis. IEEE Journal of Selected Topics in Signal Processing 12:1240–1252. https://doi.org/10.1109/jstsp.2018.2877405 Wang C, Hu H, Lu YM (2018b) A solvable high-dimensional model of gan. In: Advances in Neural Information Processing Systems Xiao H, Rasul K, Vollgraf R (2017) Fashion-mnist: a novel image dataset for benchmarking machine learning algorithms. arXiv preprint arXiv:170807747 Zhao J, Mathieu M, LeCun Y (2017) Energy-based generative adversarial networks. In: International Conference on Learning Representations 20
