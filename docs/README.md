@@ -7,82 +7,90 @@
 
 ## 每次日报
 - 最新运行日期：2026-06-04 ~ 2026-07-03
-- 运行时间：2026-07-03 08:24:19 UTC
+- 运行时间：2026-07-03 10:40:20 UTC
 - 运行状态：成功
-- 本次总论文数：21
-- 精读区：8
-- 速读区：13
+- 本次总论文数：23
+- 精读区：9
+- 速读区：14
 
 ### 今日简报（AI）
-今日精读2篇高分论文，速读3篇8分工作，涵盖控制理论与因果生成模型两大方向。最值得关注的是倒立摆稳定控制的新思路，以及用于混淆图像干预的因果变分深度嵌入。下一步建议深入探索残差空间编辑在多目标图像处理中的潜力。
+本月聚焦因果建模与图像生成，23篇论文中2篇精读9.0分、3篇速读8.0分。  
+最值得关注的是《Relational Structural Causal Models》和《Causal Variational Deep Embedding》两篇满级精读。  
+建议优先精读上述两文，再速读《Structured Representation Learning》等三篇8分论文，把握因果与解耦技术新动向。
 - 详情：[/20260604-20260703/README](/20260604-20260703/README)
 
 ### 精读区论文标签
-1. [Can we stabilize an inverted pendulum with feedback from a time-of-flight camera?](/20260604-20260703/2606.09237v1-can-we-stabilize-an-inverted-pendulum-with-feedback-from-a-time-of-flight-camera)  
-   标签：评分：9.0/10、query:pendulum
-   evidence：使用ToF相机稳定倒立摆
+1. [Relational Structural Causal Models](/20260604-20260703/2606.14892v1-relational-structural-causal-models)  
+   标签：评分：9.0/10、query:causal-rep
+   evidence：使用关系结构因果模型进行因果表示学习
 2. [Causal Variational Deep Embedding: A Family of Interventional Generators for Confounded Images](/20260604-20260703/2606.21806v1-causal-variational-deep-embedding-a-family-of-interventional-generators-for-confounded-images)  
-   标签：评分：9.0/10、query:celeba-cf
-   evidence：因果生成模型用于反事实图像生成
+   标签：评分：9.0/10、query:causal-rep
+   evidence：因果变分嵌入方法用于干预图像生成，结合因果表示与解缠
 3. [Zero-shot Transfer of Reinforcement Learning Control Policies for the Swing-Up and Stabilization of a Cart-Pole System](/20260604-20260703/2606.22145v1-zero-shot-transfer-of-reinforcement-learning-control-policies-for-the-swing-up-and-stabilization-of-a-cart-pole-system)  
    标签：评分：9.0/10、query:pendulum
-   evidence：通过cart-pole摆动控制任务的钟摆数据集
-4. [Are Text-to-Image Models Inductivist Turkeys? A Counterfactual Benchmark for Causal Reasoning](/20260604-20260703/2606.24548v1-are-text-to-image-models-inductivist-turkeys-a-counterfactual-benchmark-for-causal-reasoning)  
+   evidence：用于摆钟控制任务的强化学习策略，具体为小车摆杆系统
+4. [Are Text-to-Image Models Inductivist Turkeys? A Counterfactual Benchmark for Causal Reasoning](/20260604-20260703/2606.24548v2-are-text-to-image-models-inductivist-turkeys-a-counterfactual-benchmark-for-causal-reasoning)  
    标签：评分：9.0/10、query:cf-image-gen
-   evidence：提出反事实世界基准，用于评估文本到图像模型的反事实生成能力，直接相关技术
-5. [Are Text-to-Image Models Inductivist Turkeys? A Counterfactual Benchmark for Causal Reasoning](/20260604-20260703/2606.24548v2-are-text-to-image-models-inductivist-turkeys-a-counterfactual-benchmark-for-causal-reasoning)  
-   标签：评分：9.0/10、query:cf-image-gen
-   evidence：用于评估文本到图像模型因果推理的反事实基准
-6. [Are Text-to-Image Models Inductivist Turkeys? A Counterfactual Benchmark for Causal Reasoning](/20260604-20260703/2606.24548v3-are-text-to-image-models-inductivist-turkeys-a-counterfactual-benchmark-for-causal-reasoning)  
-   标签：评分：9.0/10、query:cf-image-gen
-   evidence：提出反事实世界基准，用于评估文本到图像模型的反事实生成能力，直接相关技术
-7. [CoFi-UCGen: Coarse-to-Fine Unsupervised Conditional Generation without Label Priors](/20260604-20260703/2606.05652v1-cofi-ucgen-coarse-to-fine-unsupervised-conditional-generation-without-label-priors)  
+   evidence：提出CF-World基准用于评估文生图模型的反事实图像生成和因果推理能力
+5. [OmniGen-AR: AutoRegressive Any-to-Image Generation](/20260604-20260703/2606.09156v1-omnigen-ar-autoregressive-any-to-image-generation)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：统一的任意条件到图像的自回归生成框架，与生成模型主题相关
+6. [Causal invariance in graphical models with latent variables](/20260604-20260703/2606.13281v1-causal-invariance-in-graphical-models-with-latent-variables)  
    标签：评分：8.0/10、query:causal-rep
-   evidence：无监督条件生成中全局与细粒度语义的解耦
-8. [Diff-CA: Separating Common and Salient Factors with Diffusion Models](/20260604-20260703/2606.06120v1-diff-ca-separating-common-and-salient-factors-with-diffusion-models)  
+   evidence：形式化潜变量图模型中的因果不变性条件，与因果表征学习相关
+7. [Learning task-specific subspaces via interventional post-training of speech foundation models](/20260604-20260703/2606.17967v1-learning-task-specific-subspaces-via-interventional-post-training-of-speech-foundation-models)  
    标签：评分：8.0/10、query:causal-rep
-   evidence：基于扩散的因子分离，用于因果表征学习
+   evidence：使用干预对比学习解耦说话者和内容子空间
+8. [Are Text-to-Image Models Inductivist Turkeys? A Counterfactual Benchmark for Causal Reasoning](/20260604-20260703/2606.24548v1-are-text-to-image-models-inductivist-turkeys-a-counterfactual-benchmark-for-causal-reasoning)  
+   标签：评分：8.0/10、query:cf-image-gen
+   evidence：为文本到图像模型提供反事实因果推理基准
+9. [BrainFIBRE: A Foundation Model via Information Decomposition for Brain Microstructure](/20260604-20260703/2607.00573v1-brainfibre-a-foundation-model-via-information-decomposition-for-brain-microstructure)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：将脑微结构图分解为独特、共享和协同成分以学习解耦表示
 
 ### 速读区论文标签
-1. [ResEdit: Residual embeddings for precise generative image editing](/20260604-20260703/2606.16457v1-resedit-residual-embeddings-for-precise-generative-image-editing)  
-   标签：评分：8.0/10、query:cf-image-gen
-   evidence：残差嵌入实现精确生成式图像编辑
-2. [BindEdit: Taming Attention Leakage for Precise Multi-Object Image Editing](/20260604-20260703/2606.18906v1-bindedit-taming-attention-leakage-for-precise-multi-object-image-editing)  
-   标签：评分：8.0/10、query:cf-image-gen
-   evidence：通过抑制注意力泄漏实现精确多目标图像编辑
-3. [Residual-Space Evolutionary Optimization via Flow-based Generative Models](/20260604-20260703/2606.20084v1-residual-space-evolutionary-optimization-via-flow-based-generative-models)  
-   标签：评分：8.0/10、query:cf-image-gen
-   evidence：基于流模型和进化的数据编辑
-4. [NullFlow: One-Step Generative Reconstruction](/20260604-20260703/2606.22696v1-nullflow-one-step-generative-reconstruction)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：提出NullFlow，一种使用流匹配的单步生成重建方法，与流匹配生成模型直接相关
-5. [OrthoMotion:Disentangling Camera and Subject Motion via Geometry Semantics Orthogonal Attention](/20260604-20260703/2606.22835v1-orthomotiondisentangling-camera-and-subject-motion-via-geometry-semantics-orthogonal-attention)  
+1. [Structured Representation Learning with Locally Linear Embeddings and Adaptive Feature Fusion](/20260604-20260703/2606.18469v1-structured-representation-learning-with-locally-linear-embeddings-and-adaptive-feature-fusion)  
    标签：评分：8.0/10、query:causal-rep
-   evidence：分离相机与主体运动以实现可控视频生成
-6. [Breaking the Lock-in: Diversifying Text-to-Image Generation via Representation Modulation](/20260604-20260703/2606.06813v1-breaking-the-lock-in-diversifying-text-to-image-generation-via-representation-modulation)  
-   标签：评分：7.0/10、query:gen-models
-   evidence：通过表示调制增强文本到图像生成多样性
-7. [Instrumented data for causal scientific machine learning](/20260604-20260703/2606.07865v1-instrumented-data-for-causal-scientific-machine-learning)  
+   evidence：在结构化表示学习中鼓励解耦动力学特定和奖励特定特征
+2. [OrthoMotion:Disentangling Camera and Subject Motion via Geometry Semantics Orthogonal Attention](/20260604-20260703/2606.22835v1-orthomotiondisentangling-camera-and-subject-motion-via-geometry-semantics-orthogonal-attention)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：通过正交注意力解耦相机与主体运动
+3. [DivRL: Disentangled Self-Similarity Rewards for Diverse Subject-Driven Generation](/20260604-20260703/2606.23950v1-divrl-disentangled-self-similarity-rewards-for-diverse-subject-driven-generation)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：利用解耦视觉特征实现多样化生成
+4. [RoBoSR: Structured Scene Representations for Embodied Robotic Reasoning](/20260604-20260703/2606.24338v1-robosr-structured-scene-representations-for-embodied-robotic-reasoning)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：将高层任务推理与原始输入解耦，并赋予因果推理能力
+5. [CoFi-UCGen: Coarse-to-Fine Unsupervised Conditional Generation without Label Priors](/20260604-20260703/2606.05652v1-cofi-ucgen-coarse-to-fine-unsupervised-conditional-generation-without-label-priors)  
    标签：评分：7.0/10、query:causal-rep
-   evidence：提出携带反事实和因果模型的仪表化数据，与因果表征学习相关
-8. [OmniGen-AR: AutoRegressive Any-to-Image Generation](/20260604-20260703/2606.09156v1-omnigen-ar-autoregressive-any-to-image-generation)  
-   标签：评分：7.0/10、query:gen-models
-   evidence：自回归任意到图像生成框架
-9. [HiMem-WAM: Hierarchical Memory-Gated World Action Models for Robotic Manipulation](/20260604-20260703/2606.10363v1-himem-wam-hierarchical-memory-gated-world-action-models-for-robotic-manipulation)  
+   evidence：显式解耦全局语义与细粒度变化以实现条件生成
+6. [Instrumented data for causal scientific machine learning](/20260604-20260703/2606.07865v1-instrumented-data-for-causal-scientific-machine-learning)  
+   标签：评分：7.0/10、query:causal-rep
+   evidence：提出携带机制模型和反事实的仪器化数据，与因果表征学习相关
+7. [Extracting Governing Equations from Latent Dynamics via Multi-View Contrastive Learning](/20260604-20260703/2606.13260v1-extracting-governing-equations-from-latent-dynamics-via-multi-view-contrastive-learning)  
+   标签：评分：7.0/10、query:causal-rep
+   evidence：多视图对比学习实现潜动力学解耦
+8. [CausalMotion: Structured Physical Reasoning as Keyframe and Trajectory Guidance for Training-Free Video Generation](/20260604-20260703/2606.14317v1-causalmotion-structured-physical-reasoning-as-keyframe-and-trajectory-guidance-for-training-free-video-generation)  
    标签：评分：7.0/10、query:world-models
-   evidence：层次化世界动作模型用于操作
-10. [Balancing Image Compression and Generation with Bootstrapped Tokenization](/20260604-20260703/2606.05552v1-balancing-image-compression-and-generation-with-bootstrapped-tokenization)  
+   evidence：CausalMotion将物理推理注入视频生成，与世界模型突破相关
+9. [PermaVid: Consistent Video Generation Across Edits via Disentangled Context Memory](/20260604-20260703/2606.16449v2-permavid-consistent-video-generation-across-edits-via-disentangled-context-memory)  
+   标签：评分：7.0/10、query:causal-rep
+   evidence：采用解缠上下文记忆实现视频生成编辑一致性
+10. [Balanced Twins: Causal Inference on Time Series with Hidden Confounding](/20260604-20260703/2606.18969v2-balanced-twins-causal-inference-on-time-series-with-hidden-confounding)  
+   标签：评分：7.0/10、query:causal-rep
+   evidence：因果推断，反事实估计，处理效应学习
+11. [AsyncPatch Diffusion: spatially-flexible image generation](/20260604-20260703/2606.07079v1-asyncpatch-diffusion-spatially-flexible-image-generation)  
    标签：评分：6.0/10、query:gen-models
-   evidence：用于高效图像生成的自引导分词
-11. [Parallel Jacobi Decoding for Fast Autoregressive Image Generation](/20260604-20260703/2606.05703v1-parallel-jacobi-decoding-for-fast-autoregressive-image-generation)  
+   evidence：新颖的扩散框架，支持空间异质去噪
+12. [Evaluating the Representation Space of Diffusion Models via Self-Supervised Principles](/20260604-20260703/2606.09718v1-evaluating-the-representation-space-of-diffusion-models-via-self-supervised-principles)  
    标签：评分：6.0/10、query:gen-models
-   evidence：快速自回归图像生成解码
-12. [Contrast encodes inductive bias: separating slow noise from dynamics in predictive representation learning](/20260604-20260703/2606.07770v1-contrast-encodes-inductive-bias-separating-slow-noise-from-dynamics-in-predictive-representation-learning)  
+   evidence：利用自监督学习原则评估扩散模型的表示空间
+13. [Structure-Semantic Co-optimized Latent Diffusion Model for Fast Visual Anagram Synthesis](/20260604-20260703/2606.16241v1-structure-semantic-co-optimized-latent-diffusion-model-for-fast-visual-anagram-synthesis)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：用于快速视觉错觉图像合成的潜在扩散模型，贡献于生成模型
+14. [PermaVid: Consistent Video Generation Across Edits via Disentangled Context Memory](/20260604-20260703/2606.16449v1-permavid-consistent-video-generation-across-edits-via-disentangled-context-memory)  
    标签：评分：6.0/10、query:causal-rep
-   evidence：研究表征学习中的归纳偏置与动力学分离，与解耦相关
-13. [Flow Matching with In-Context Priors for Out-of-Distribution Brain Dynamics](/20260604-20260703/2606.11833v1-flow-matching-with-in-context-priors-for-out-of-distribution-brain-dynamics)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：流匹配方法用于生成建模和大脑动力学的反事实生成
+   evidence：解耦上下文记忆用于视频生成一致性
 
 
 <div class="dpr-home-promo-card">
