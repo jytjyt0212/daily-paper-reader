@@ -1,0 +1,283 @@
+Title: Can we stabilize an inverted pendulum with feedback from a time-of-flight camera?
+
+URL Source: https://arxiv.org/pdf/2606.09237v1
+
+Published Time: Tue, 09 Jun 2026 01:58:36 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Can we stabilize an inverted pendulum with feedback from a time-of-flight camera? 
+
+Anthony Czubarow ∗, Antonio Terpin ∗ and Raffaello D’Andrea 
+
+Abstract — Time-of-flight cameras are popular in robotics for providing direct depth information while being compact, inexpensive, and robust to lighting conditions, but their low spatial resolution and depth noise are widely believed to preclude precise feedback control. In this paper, we show that an inexpensive, low-resolution time-of-flight camera provides sufficient feedback to reliably and precisely balance an inverted pendulum on a cart–a canonical benchmark for fast, unstable dynamics. 
+
+I. INTRODUCTION Time-of-flight (ToF) cameras have become a practical sensing choice across robotics [1]–[3] because they deliver direct depth at video rates from a compact, low-power, and inexpensive package. Unlike passive RGB cameras, ToF actively illuminates the scene, making it robust to low-texture, low-light, or repetitive-pattern environments [4]. Several works have demonstrated the use of ToF in feedback loops, including grasping and manipulation with calibrated depth correction [5], visual servoing for manufacturing and teleoperation [6], [7], and direct 3D tracking for position and image-based control [8], [9]. However, whether these cam-eras can support precise, high-bandwidth feedback control 
+
+for fast stabilization remains unresolved. Most reported uses target low-to-moderate control demands—mapping, obstacle avoidance, and coarse servoing—whereas tasks with tight latency budgets and low jitter (e.g., stabilizing fast, lightly damped systems) are rarely demonstrated. This gap stems from well-documented limitations of ToF sensing, including systematic errors (e.g., depth distortion, integration-time and amplitude-related effects) and non-systematic effects (e.g., multipath/scattering, motion blur, and limited signal-to-noise ratio) [10], [11]. 
+
+Can a low-cost, low-resolution ToF sensor provide measurements good enough for precise control? 
+
+In this work, we address this question with a proof-of-existence study: we attempt to stabilize an inverted pendulum on a cart using angle feedback derived solely from a low-end ToF camera placed below the pendulum. We use a standard Linear Quadratic Gaussian (LQG) baseline controller, so the achieved performance should be interpreted as a lower bound on what ToF-based feedback can enable under more sophisticated sensing and control designs. This problem has long served as a canonical benchmark in control theory [12]– [18].  
+
+> ∗: Equal contribution. All authors are with the Institute for Dynamic Systems and Control, ETH Zürich.
+> Fig. 1. Our inverted pendulum (the gold pen standing upright) on a cart (upper part of the box) balances using vision feedback from a ToF camera.
+
+Why the cart–pole? This problem is challenging and has typically been solved using high-end, accurate encoders or external cameras to provide state feedback [19]–[30]. The cart-pole also served as a platform to validate novel interfaces, such as tactile sensors [31], and magnetic ac-tuators [32]. The system is unstable and lightly damped, so even millisecond-level sensing latency and jitter hurt stability. Small angle errors or depth bias from ToF turn into large control actions. Moreover, the cart-pole is anon-minimum phase system, which makes it notoriously difficult to control robustly [33], and challenging even for learning-based controllers [34]. We deliberately mount the ToF camera below the pendulum, looking upward because this viewpoint is more adverse than a frontal placement, as it induces large incidence angles that exacerbate depth bias, multipath propagation, and motion blur. By choosing this harder geometry, we intentionally stress the sensing pipeline so that the resulting stabilization performance can be interpreted as a conservative lower bound for ToF-based  
+
+> arXiv:2606.09237v1 [cs.RO] 8 Jun 2026 1
+> 2
+> 3
+> 4
+> 56
+> 7
+> 8
+> 9
+> 10
+> Fig. 2. System assembly architecture with labelled components: (1) Pendulum, (2) Box cover with cutout for visualizing internal components, (3) Box base, (4) ToF camera, (5) Raspberry Pi, (6) Maxon BLDC motor, (7) Rack-and-pinion mechanism, (8) Linear guideway, (9) Carriage, and (10) Pen-holder and encoder for calibration and performance assessment.
+
+feedback under more favorable placements. This compact, on-board placement also mirrors eye-in-hand sensing in ma-nipulation—where depth sensors are integrated near the end-effector or even within grippers to reduce reliance on external cameras or motion-capture infrastructure [8], [9]. The scene configuration amplifies well-documented ToF sensing issues such as multipath interference, motion blur, and low signal-to-noise ratio. The task also has clear metrics (e.g., angle error and cart oscillations), allowing us to test whether a low-cost ToF view from below is enough for precise control. 
+
+Contributions. In this paper, we demonstrate that feed-back from a low-end and readily available ToF camera can enable reliable and precise control with the very well-established LQG controller. For this, we resort to the canonical cart-pole control problem and realize a compact, inexpensive, and easily reproducible design in which the ToF camera is placed below the pendulum; see Figs. 1 and 2. We show that this configuration provides measurements stable enough for closed-loop regulation without high-end encoders or motion-capture systems. To facilitate adoption of our setup for bench-marking ToF cameras and for control research, we will open source the complete platform and source code upon acceptance. II. EXPERIMENTAL SETUP In this section, we describe our experimental setup.  
+
+> Fig. 3. Top: 3D-printed carriage with red highlights indicating the cylin-drical bearing seats that minimize play and provide low-friction, repeatable linear motion along the guideway. Bottom left: guideway with integrated motor mount and alignment features. The red highlights show the bearing contact surfaces. Bottom right: The red highlights show the rack-and-pinion transmission driven by a BLDC motor, in blue. The pinion gear maps torque to lateral force on the cart, yielding a stiff, purely translational actuation.
+
+A. Hardware and software 
+
+To start, we briefly describe all the custom and third-party components, illustrated by the exploded 3D rendering in Fig. 2. 
+
+Cart. The cart consists of a 3D-printed carriage mounted on a linear guideway; see Fig. 3. This design is lightweight and compact, and results in repeatable, low-friction motion (cf. Table I). The design includes press-fit bearing seats for smooth travel, clearance pockets for screws and nuts, and through-holes to simplify the assembly. A 50 W brushless DC (BLDC) motor, EC-45-flat, from Maxon Motor AG drives via a rack-and-pinion mechanism the cart and provides feedback on the position and velocity of the cart; see Fig. 3. We provide the motor controller (EPOS 2) current setpoints which are tracked by an inner loop running at 10kHz . For this, the control input force u determined by our controller (see Section III) is mapped to motor current via I = rKt u +
+
+Istatic , where Kt is the torque constant of the BLDC motor, 
+
+r is the pinion radius, and Istatic is the current required to overcome static friction; see Table I for the values of these parameters. 
+
+Pendulum. The pendulum is 3D printed with two holes that enable the connection via a bearing to the carriage. As such, the pendulum is free to rotate only around a single axis; see Fig. 6. 
+
+ToF camera. We employ the ArduCam ToF camera module, a compact ToF camera designed for Raspberry Pi and Jetson platforms shown in Fig. 4. The module operates with a 940 nm infrared illuminator and provides depth frames at a resolution of 240 × 180 pixels. It supports four-phase modulation, yielding depth map output at 30fps . The module Fig. 4. ToF camera (left) and its positioning (right). 10 −6 10 −5 10 −4 10 −3 10 −2 10 −1 10 0 10 1
+
+0
+
+0.25 
+
+0.5
+
+0.75 
+
+1
+
+Jitter [ ms ]
+
+> ECDF
+
+Cart Controller Encoder ToF    
+
+> Fig. 5. Empirical cumulative distribution functions (ECDFs) of the absolute inter-callback jitter for each ROS 2 node over 10 ′000 samples. We define the jitter as the absolute deviation of the node inter-callback period from its median value.
+
+has a diagonal field of view of 70 ◦ and provides depth accuracy on the order of 1 − 2cm within the nominal range. Connection is realized via MIPI-CSI2, and the camera is exposed as a V4L2 device. Importantly, the ToF camera is largely unaffected by ambient lighting conditions. We use a custom, 3D-printed camera holder to provide a stable and precisely leveled mount for the ToF module, aligning it directly beneath the pendulum; see Fig. 4. The design guarantees that all cabling is routed away from the carriage path, preventing interference with the back-and-forth motion of the system. 
+
+Miscellaneous. The power, computation, and control com-ponents are not mounted directly on the prototype to focus on the validation of the sensing strategy. In this setup, all the components (sensors, actuators, controller, and state estimator) communicate using ROS2 [35], and all the soft-ware (written in Python) runs on a Raspberry Pi 5. This ROS2/RPi5 stack introduces a nontrivial processing jitter; see Fig. 5. Yet, as we shall see in Section III-D, we still achieve precise and reliable control performances. Thus, future work can exploit the substantial remaining head-room in performances; e.g., by moving computation onto microcontrollers. Finally, we employ a 600 PPR quadrature encoder to calibrate the vision algorithm and evaluate the performance of the controller. 
+
+g
+
+xc
+
+uM
+
+C
+
+b
+
+l
+
+m, I r
+
+φ 
+
+> Fig. 6. Schematic of our inverted pendulum on a cart.
+
+B. System dynamics 
+
+We illustrate the schematic of our setup in Fig. 6. Let 
+
+φ denote the angle of the pendulum relative to the bottom vertical, and xc represent the linear displacement of the platform. The equations of motion for our setup, illustrated in Fig. 6, are given by 
+
+Itot ¨φ = −ml cos φu − m2l2 ˙φ2 sin φ cos φ
+
++ −(M + m)mgl sin φ
+
++ C ˙xcml cos φ − (M + m)b ˙φ
+
+(1) 
+
+Itot ¨xc = ml cos φb ˙φ + m2l2g sin φ cos φ
+
++ ( ml 2 + Ir )  u − C ˙xc + ml ˙φ2 sin φ , (2) where Itot = m2l2 sin 2 φ + mM l 2 + Ir (M + m), M denotes the cart mass, m the pendulum mass, and l the distance from the pivot to the pendulum’s center of mass. Ir is the pendulum’s moment of inertia about its center of mass, C
+
+the friction coefficient of the cart, and b the damping at the pendulum hinge; see Table I for a summary of the system parameters. The gravitational acceleration is denoted by g
+
+and the control input force by u.
+
+C. Parameter identification 
+
+Accurate parameter estimates are essential for controller design [36]. We employ a batch least-squares approach, where collected trajectories are compared to predictions of the nonlinear model with one-step forward integration. Given the estimated states (xc, ˙xc, φ, ˙φ) and applied forces 
+
+u we compute the model’s one-step predictions using a Runge–Kutta 4 (RK4) integrator [37]. The parameters are selected to minimize the squared one-step prediction errors Parameter Symbol Value                                          
+
+> Mass of the cart M0.076kg
+> Mass of the pendulum m0.014kg
+> Length l0.256m
+> Moment of inertia of the pendulum Ir0.000292kg ·m2
+> Friction coefficient of the cart C4.9kg ·kg ·s−1
+> Friction coefficient of the pendulum hinge b2.0×10 −4kg ·m2·s−1
+> Gravitational acceleration g9.81kg ·m·s−2
+> Motor torque constant Kt0.0251N ·m·A−1
+> Pinion radius r0.0019m
+> Current compensating the static friction Istatic 0.105A
+> TABLE I SYSTEM PARAMETERS ,MEASURED AND IDENTIFIED .
+
+over all the collected data points. We solve the optimization problem with the trust-region reflective algorithm [38]. In practice, parameters that are straightforward to obtain from geometry or datasheets are measured once (e.g., M ,
+
+m, l, Ir ). Dissipative terms that are difficult to measure directly, such as the cart viscous coefficient C and the hinge damping b, are identified with the batch least-squares method described above. III. ESTIMATION AND CONTROL In this section, we present our estimation and control pipeline, implementing the standard LQG regulator [39]. To estimate the state (Section III-C) we use the angular position and velocity measurements from the BLDC motor (Section III-A) and the camera images (Section III-B). We put everything together in Section III-D. 
+
+A. Raw cart position and velocity measurements 
+
+The BLDC motor is equipped with a Hall-effect sensor, which we use to extract a measurement of the position and velocity of the cart. Specifically, with r the pinion radius, 
+
+Nticks the Hall-effect sensor resolution, nticks the accumulated tick count, and ˙n the rotational speed in revolutions per second, the raw measurement of the linear position xc and velocity ˙xc of the carriage are 
+
+xc, raw = 2πr Nticks 
+
+nticks , ˙xc, raw = 2 πr ˙n. 
+
+B. Raw angle measurements 
+
+To ensure observability of the system, we complement the raw cart position xc, raw and velocity ˙xc, raw measurements with angle measurements φraw . These are obtained via stan-dard computer vision algorithms [40] from the ToF camera images, as described in the following steps; see also Fig. 7. 
+
+1) Image preprocessing: We filter the raw depth image by ignoring pixels reporting distances too close or too far from the ToF camera, so that the remaining pixels are related to the pendulum. We then perform smoothing of the depth values and crop the region of interest by performing binary thresholding and identifying the largest contour. ϕ    
+
+> Fig. 7. Raw angle estimation with the ToF camera. We show the depth image after the depth filtering step on the left. The depth colormap encodes distance from near (light blue) to far (red); beyond the initial depth-based filtering step, the specific depth values are not used by our vision pipeline and, thus, omitted here. The blue line indicates the fitted pendulum axis, and the angle ϕis measured between this line and the orange reference, to then be mapped to the pendulum angle φ.
+
+2) Locate pendulum bottom and top: We fit two circles within the contour. The first circle, identifying the bottom of the pendulum, is the largest inscribed circle. The second circle, corresponding to the top (or to a point sufficiently close to the top) of the pendulum, is the one further apart with radius r2 = rlr1, where r1 is the radius of the first circle and rl is a coefficient that we calibrate for performance based on the length of the pendulum. To efficiently and accurately fit these circles, we employ the Euclidean distance transform [41], use sub-pixel refinement, and a temporal median outlier detection for the pendulum bottom. 
+
+3) Compute angle: By connecting the centers of the two circles, we obtain a segment with orientation ϕ related to the pendulum angle via φraw = αϕ + β, where α and β are two coefficients that we estimate. We tune the parameters 
+
+rl, α, β with the measurements from the encoder ϕgt . For this, we collect 10 trajectories letting the pendulum fall from an approximately upright position and store the angle measurements obtained from the encoder as well as the raw depth images from the ToF camera, and we fit α, β and rl
+
+to minimize the root-mean-squared error (RMSE) between 
+
+φgt and φraw ; in particular, we obtain RMSE (φraw , φ gt ) = 3.4 × 10 −3rad .
+
+C. Sensor fusion 
+
+Linearizing the system dynamics (1)-(2) around the up-right equilibrium results in the time-invariant linear system 
+
+˙z(t) = Az (t) + Bu (t), with z(t) = xc ˙xc φ ˙φ⊤.Introducing ∆ = mM l 2 + Ir (M + m), the system matrices read 
+
+A =
+
+
+
+0 1 0 00 − (ml 2 + Ir )C
+
+∆
+
+m2l2g
+
+∆ − mlb 
+
+∆0 0 0 10 − mlC 
+
+∆(M + m)mgl 
+
+∆ − (M + m)b
+
+∆
+
+
+
+,B =
+
+
+
+0 ml 2 + Ir
+
+∆ 0 ml 
+
+∆
+
+⊤
+
+.We discretize the continuous model with a sampling period 
+
+Ts (5 ms). Writing z[k] = z(kT s) and u[k] = u(kT s), the discrete–time dynamics read 
+
+z[k] = Adz[k − 1] + Bdu[k − 1] + v[k − 1] ,
+
+with Ad = eAT s , Bd = R Ts 
+
+> 0
+
+eAτ Bdτ , and v[k] being the process noise with covariance V ∈ Rn×n.We further assume that the raw measurements are affected by additive noise, y[k] = Hz [k] + w[k], where w[k] is the measurement noise with covariance W ∈ Rp×p and H is a matrix selecting the first three rows of z[k]. To obtain an estimate of the full state, we use a Kalman filter. The filter propagates the estimate as 
+
+ˆz[k] = Ad ˆz[k − 1] + Bdu[k − 1] ,
+
+and corrects it upon arrival of new measurements according to 
+
+ˆz[k] = ˆ z[k] + L[k] y[k] − H ˆz[k],
+
+with Kalman gain L[k].
+
+Noise tuning. The noise covariances (V, W ) are tuned via Bayesian optimization [42]: we parameterize the diagonal entries in log-scale and minimize the RMSE between the filtered signals and ground-truth angles from the encoder over recorded balancing experiments using only the encoder while collecting data from the ToF camera. The optimized noise covariances are the ones for best performance and do not necessarily relate to the real ones. Thus, to characterize the measurement noise, we fix the pendulum at φ = π and record stationary angle estimates. The deviations are approximately zero-mean Gaussian, with a standard deviation σθ = 1 .7 × 10 −3 rad . Future work may use [43] to robustify the system regarding these estimated quantities. 
+
+D. Balancing control 
+
+Using the Ad and Bd from Section III-C and the separa-tion principle [44], we design the standard linear-quadratic regulator u[k] = −K ˆz[k] to regulate the estimated state ˆz to zero by minimizing the cost 
+
+> ∞
+
+X
+
+> k=0
+
+ ˆz[k]⊤Qˆz[k] + u[k]⊤Ru [k] ,
+
+where Q = diag(1000 , 100 , 1000 , 0) and R = 0.1 are weighting matrices, which we tune to minimize the oscil-lations of the cart and pendulum. Fig. 8 shows the recorded trajectories of the pendulum angle as measured by the encoder across 30 runs T = 10 seconds long, demonstrating consistently successful stabilization, with a time-averaged RMSE of RMSE (ϕgt ,π ) 
+
+> T
+
+= 1 .0 × 10 −3rad · s−1. For each run, we initialize the pendulum close to the upright position, and we run the controller using only the cart motor and the ToF camera feedback. We also compute the RMSE between the raw 1 ϕraw with the encoder measurements ϕgt , obtaining 
+
+> 1Note that this value differs conceptually from the one during calibration, as it is computed along controlled trajectories.
+
+0 2 4 6 8 10 
+
+3.1
+
+3.15 
+
+3.2
+
+Time [s]    
+
+> Pendulum angle [rad]
+> Fig. 8. States trajectories over 30 trials. We report the pendulum angle as quantified via the encoder.
+
+values of RMSE (ϕraw , ϕ gt ) = 3 .0 × 10 −3rad . Overall, we believe these results show the potential of ToF cameras for precise feedback control. IV. C ONCLUSIONS 
+
+In this paper, we revisit a canonical control benchmark with a practical question in mind: can an inexpensive, low-resolution ToF camera deliver measurements that are sufficient for precise feedback control? We provide a proof of existence that it can. With the camera mounted beneath the inverted pendulum, raw depth measurements are processed into angle estimates that enable reliable, high-performance stabilization using a standard LQG baseline–without special-ized motion-capture systems or high-end encoders. Beyond this empirical demonstration, we contribute a compact, fully enclosed, and easily reproducible open-source platform that integrates sensing and actuation, lowering the barrier for others to replicate, benchmark, and extend these results. Importantly, the reported performance should be viewed as a 
+
+lower bound on what is achievable with ToF-based feedback: future work can explore alternative ToF sensors, placements, and multi-view configurations, and pair them with more advanced control design—such as model-predictive control [45] or hard-constrained neural network controllers [46] to explicitly enforce constraints and target metrics such as re-duced settling time, or robust [47] and distributionally robust controllers [43], [48] to possibly reduce parameter tuning requirements. We hope this combination of evidence and tooling helps shift attention from “which premium sensor?” to “how far can thoughtful sensing and system design take us?” REFERENCES [1] M. Grzegorzek, C. Theobalt, R. Koch, and A. Kolb, Eds., Time-of-Flight and Depth Imaging: Sensors, Algorithms, and Applications , ser. Lecture Notes in Computer Science. Springer, 2013. [2] M. Hansard, S. Lee, O. Choi, and R. Horaud, Time-of-Flight Cam-eras: Principles, Methods and Applications , ser. Springer Briefs in Computer Science. Springer, 2013. [3] S. May, D. Droeschel, S. Fuchs, D. Holz, and A. Nüchter, “Robust 3d-mapping with time-of-flight cameras,” in 2009 IEEE/RSJ International Conference on Intelligent Robots and Systems , 2009, pp. 1673–1678. [4] G. Alenyà, S. Foix, and C. Torras, “Tof cameras for active vision in robotics,” Sensors and Actuators A: Physical , vol. 218, pp. 10–22, 2014. [5] Z. Xue, S. W. Ruehl, A. Hermann, T. Kerscher, and R. Dillmann, “Autonomous grasp and manipulation planning using a tof camera,” 
+
+Robotics and Autonomous Systems , vol. 60, no. 3, pp. 387–395, 2012, autonomous Grasping. [6] C. Schroder, M. Schumann, R. Loser, P. Klimant, and M. Dix, “Robotic visual servoing for tracking structureless moving parts,” in 
+
+2024 7th Iberian Robotics Conference (ROBOT) , 2024, pp. 1–6. [7] M. Marshall, M. Matthews, A.-P. Hu, G. McMurray, and H. Lipkin, “Uncalibrated visual servoing for intuitive human guidance of robots,” in 2012 IEEE International Conference on Robotics and Automation ,2012, pp. 4463–4468. [8] U. Reiser and J. Kubacki, “Using a 3d time-of-flight range camera for visual tracking,” IFAC Proceedings Volumes , vol. 40, no. 15, pp. 355– 360, 2007, 6th IFAC Symposium on Intelligent Autonomous Vehicles. [9] J. Pomares, P. Gil, and F. Torres, “Visual control of robots using range images,” Sensors , vol. 10, no. 8, pp. 7303–7322, 2010. [10] S. Foix, G. Alenya, and C. Torras, “Lock-in time-of-flight (tof) cameras: A survey,” IEEE Sensors Journal , vol. 11, no. 9, pp. 1917– 1926, 2011. [11] S. A. Gudmundsson, H. Aanaes, and R. Larsen, “Environmental effects on measurement uncertainties of time-of-flight cameras,” in 2007 International Symposium on Signals, Circuits and Systems , vol. 1, 2007, pp. 1–4. [12] K. Åström and K. Furuta, “Swinging up a pendulum by energy control,” Automatica , vol. 36, no. 2, pp. 287–295, 2000. [13] G. Franklin, J. D. Powell, and A. Emami-Naeini, “Feedback control of dynamic systems,” in ASME International Mechanical Engineering Congress and Exposition , vol. 14148. American Society of Mechan-ical Engineers, 1994, pp. 1053–1054. [14] R. Tedrake, “Underactuated robotics: Learning, planning, and control for efficient and agile machines: Course notes for mit 6.832,” Working draft edition , vol. 3, no. 4, p. 2, 2009. [15] Q. Wei, W. Dayawansa, and W. Levine, “Nonlinear controller for an inverted pendulum having restricted travel,” Automatica , vol. 31, no. 6, pp. 841–850, 1995. [16] T. Zielinska, G. Coba, and W. Ge, “Variable inverted pendulum applied to humanoid motion design,” Robotica , vol. 39, pp. 1–22, 02 2021. [17] C. C. Chung and J. Hauser, “Nonlinear control of a swinging pendu-lum,” Automatica , vol. 31, no. 6, pp. 851–862, 1995. [18] P. Maci ˛ ag, P. Malczyk, and J. Fr ˛ aczek, “Optimal control of a spatial inverted pendulum using the adjoint method,” in 2nd International Conference on Machine Design (MD2023) , 2023. [19] D. Du, C. Zhang, Y. Song, H. Zhou, X. Li, and M. Fei, “Real-time 
+
+h∞ control of networked inverted pendulum visual servo systems,” 
+
+IEEE Transactions on Cybernetics , vol. 50, no. 12, pp. 5113–5126, 2020. [20] D. Wu and Q. Lu, “Secure control of networked inverted pendulum visual servo systems based on active disturbance rejection control,” 
+
+Actuators , vol. 11, no. 12, p. 355, 2022. [21] H. Wang, A. Chamroo, C. Vasseur, and V. Koncar, “Stabilization of a 2-dof inverted pendulum by a low cost visual feedback,” in 2008 American Control Conference , 2008, pp. 3851–3856. [22] A. Brill, J. A. Frank, and V. Kapila, “Visual servoing of an inverted pendulum on cart using a mounted smartphone,” in 2016 American Control Conference (ACC) . IEEE, 2016, pp. 1323–1328. [23] K.-i. Fukuda, S. Ushida, and K. Deguchi, “Just-in-time control of image-based inverted pendulum systems with a time-delay,” in 2006 SICE-ICASE International Joint Conference , 2006, pp. 4016–4021. [24] Y.-W. Tu and M.-T. Ho, “Design and implementation of robust visual servoing control of an inverted pendulum with an fpga-based image co-processor,” Mechatronics , vol. 21, no. 7, pp. 1170–1182, 2011. [25] J. H. Lee, S. Schoedel, A. Bhardwaj, and Z. Manchester, “From pixels to torques with linear feedback,” arXiv preprint arXiv:2406.18699 ,2024. [26] M. Sato, K. Hatada, and S. Otomo, “Position control of cart-driven inverted pendulum by visual feedback controller using non-calibrated images taken through fisheye lens,” 2024 18th International Confer-ence on Control, Automation, Robotics and Vision (ICARCV) , pp. 626– 631, 2024. [27] K. Hatada, M. Sato, K. Hirata, and Y. Masui, “Synthesis of acalibration-free visual feedback controller for an inverted pendulum using a fisheye lens,” IEEE Transactions on Industrial Electronics ,vol. 69, no. 12, pp. 13 348–13 358, 2022. [28] S. Krafes, Z. Chalh, and A. Saka, “Vision-based control of a flying spherical inverted pendulum,” in 2018 4th International Conference on Optimization and Applications (ICOA) , 2018, pp. 1–6. [29] M. Hehn and R. D’Andrea, “A flying inverted pendulum,” in 2011 IEEE International Conference on Robotics and Automation , 2011, pp. 763–770. [30] S. Bleher, S. Heim, and S. Trimpe, “Learning fast and precise pixel-to-torque control: A platform for reproducible research of learning on hardware,” IEEE Robotics & Automation Magazine , vol. 29, no. 2, pp. 75–84, 2022. [31] T. Bi, C. Sferrazza, and R. D’Andrea, “Zero-shot sim-to-real transfer of tactile control policies for aggressive swing-up manipulation,” IEEE Robotics and Automation Letters , vol. 6, pp. 5761–5768, 2021. [32] J. Zughaibi, B. Nelson, and M. Muehlebach, “Balancing a 3d in-verted pendulum using remote magnetic manipulation,” arXiv preprint arXiv:2402.06012 , 2024. [33] Y. P. Leong and J. C. Doyle, “Understanding robust control theory via stick balancing,” in 2016 IEEE 55th Conference on Decision and Control (CDC) . IEEE, 2016, pp. 1508–1514. [34] A. Terpin and R. D’Andrea, “Using reinforcement learning to probe the role of feedback in skill acquisition,” arXiv preprint arXiv:2512.08463 , 2025. [35] S. Macenski, T. Foote, B. Gerkey, C. Lalancette, and W. Woodall, “Robot operating system 2: Design, architecture, and uses in the wild,” 
+
+Science robotics , vol. 7, no. 66, p. eabm6074, 2022. [36] J. Doyle, “Guaranteed margins for lqg regulators,” IEEE Transactions on Automatic Control , vol. 23, no. 4, pp. 756–757, 1978. [37] J. C. Butcher, Numerical methods for ordinary differential equations .John Wiley & Sons, 2016. [38] T. F. Coleman and Y. Li, “An interior trust region approach for nonlin-ear minimization subject to bounds,” SIAM Journal on optimization ,vol. 6, no. 2, pp. 418–445, 1996. [39] B. D. Anderson and J. B. Moore, Optimal control: linear quadratic methods . Courier Corporation, 2007. [40] R. Szeliski, Computer vision: algorithms and applications . Springer Nature, 2022. [41] G. Borgefors, “Distance transformations in digital images,” Computer Vision, Graphics, and Image Processing , vol. 34, no. 3, pp. 344–371, 1986. [42] J. Bergstra, R. Bardenet, Y. Bengio, and B. Kégl, “Algorithms for hyper-parameter optimization,” Advances in neural information pro-cessing systems , vol. 24, 2011. [43] N. Lanzetti, A. Terpin, and F. Dörfler, “Optimality of linear policies for distributionally robust linear quadratic gaussian regulator with stationary distributions,” arXiv preprint arXiv:2410.22826 , 2025. [44] K. J. Åström, Introduction to stochastic control theory . Courier Corporation, 2012. [45] J. Richalet, A. Rault, J. Testud, and J. Papon, “Model predictive heuristic control: Applications to industrial processes,” Automatica ,vol. 14, no. 5, pp. 413–428, 1978. [46] P. D. Grontas, A. Terpin, E. C. Balta, R. D’Andrea, and J. Lygeros, “Pinet: Optimizing hard-constrained neural networks with orthogonal projection layers,” arXiv preprint arXiv:2508.10480 , 2026. [47] K. Zhou, J. C. Doyle, and K. Glover, Robust and Optimal Control .Prentice Hall, 1996. [48] N. Lanzetti, A. Terpin, and F. Dörfler, “Variational analysis in the wasserstein space,” arXiv preprint arXiv:2406.10676 , 2024.

@@ -1,0 +1,282 @@
+Title: Instrumented data for causal scientific machine learning
+
+URL Source: https://arxiv.org/pdf/2606.07865v1
+
+Published Time: Tue, 09 Jun 2026 00:25:09 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Instrumented data for causal scientific machine learning 
+
+Daniel N. Wilke ∗11School of Mechanical, Industrial and Aeronautical Engineering, University of the Witwatersrand, Johannesburg, South Africa 
+
+Abstract 
+
+Scientific machine learning is limited less by model size than by the data it is trained on. Observational data records what happened but not why; template synthetic data has a known generating process but only for the simulator’s template, not the case a user faces. We argue a third option is now operationally feasible: instrumented data , in which every datum carries the mechanistic model that produced it, an explicit uncertainty over that model, and an executable family of counterfactuals. Verification-and-validation (V&V) in-strumented image-to-simulation pipelines are one realisation: a sensor observation becomes a fully specified, solver-backed simulation with explicit, editable parameters and a propagated aleatoric/epistemic uncertainty. The substrate is case-specific, mechanistically supervised, and supports causal interventions through Pearl’s do -operator. Near-term consequences for validation, auditing, and surrogate training span computational biology, climate, materi-als, fluid mechanics, and medical imaging; a longer-term, falsifiable implication concerns foundation models for scientific reasoning. 
+
+1 A data problem cutting across computational science 
+
+Most machine learning today is trained on one of two kinds of data. Observational data , scraped from the web or collected from sensors, records what happened but not why; the rules that generated it are unknown, and the same picture or measurement can be consistent with many underlying mechanisms. Synthetic data , produced by a simulator under a fixed sweep of scene parameters, has a known generating process but only for the simulator’s own template; the bracket, storm, alloy microstructure, vessel, or patient a downstream user actually faces was never the scene being swept. The result is a gap that recurs in every quantitative discipline: a learner that predicts an outcome cannot say whether the outcome would change if a physically meaningful parameter were perturbed for this case. This gap is felt acutely in computational science. Learned weather emulators such as GraphCast [1] and Pangu-Weather [2] match operational numerical forecasts on in-distribution skill metrics but inherit the structural assumptions of the reanalysis they were trained on, and their behaviour under unseen forcings remains an active concern; large-scale materials discovery from graph-network predictors trained on density-functional-theory (DFT) corpora has produced enormous candidate sets but a long tail of false positives once cross-checked against synthesis or higher-fidelity simulation [ 3 , 4 ]; structure prediction at the scale of AlphaFold [ 5] delivers static structures with calibrated confidence but does not, on its own, supply the dynamic, mechanistic, counterfactual data needed for downstream biophysical reasoning; learned fluid surrogates trained on fixed Reynolds-number ranges break out of regime [ 6]; patient-specific  
+
+> ∗Corresponding author: daniel.wilke@wits.ac.za
+
+1
+
+> arXiv:2606.07865v1 [cs.LG] 5 Jun 2026
+
+cardiac and cardiovascular models, although mature as forward solvers, remain bottlenecked by per-case parameter identification and validation [ 7 ]; and medical-image classifiers are repeatedly shown to exploit scanner artefacts rather than anatomy [ 8 ]. At the foundation-model layer, the same pattern recurs: additional web tokens deliver diminishing returns [ 9, 10 , 11 ], and persistent reasoning failures read as symptoms of data that is correlation-rich but causation-poor [ 12 ]. Across these fields the missing ingredient is the same: data that is anchored on a specific observation, carries the mechanistic model behind its label, and can be edited to ask physically meaningful counterfactual questions. Computational science already maintains the right object for this: a fully specified forward model with a documented verification-and-validation record [ 13 , 14 ]. Our proposal is to treat that object not as the end of an analysis but as the data source for downstream learning. We call data produced this way instrumented data : every datum is a tuple that ships with the machinery used to produce it. The world-models programme [ 15 , 16 , 17 ] pursues a related generative stance with learned, implicit, correlation-induced simulators; instrumented data is the explicit, mechanistic, V&V-recorded complement, useful as a substrate for training such models, validating them, and grounding their counterfactuals. A recent multi-agent demonstration shows the manufacturing step is operationally feasible: from a single photograph, agents extract geometry and material under uncertainty, mesh, solve, verify against analytical bounds, and produce a code-compliant report autonomously in min-utes [ 18 ]. The substrate, not the pipeline, is the object of this Perspective. The same datum type can be produced by a cryogenic-electron-microscopy-to-molecular-dynamics (CryoEM →MD) workflow in structural biology, a satellite-image-to-regional-climate-model (satellite →RCM) work-flow in geosciences, a microstructure-to-crystal-plasticity-finite-element (microstructure →CPFE) / DFT workflow in materials, a particle-image-velocimetry-to-large-eddy-simulation (PIV →LES) workflow in fluid mechanics, or a radiology-to-patient-specific finite-element (FE) workflow in medical imaging. 
+
+A robustness spectrum, not a binary. Any instrumentation pipeline is more robust on a problem class when cases sit inside its validation envelope (interpolative regime), less robust 
+
+when they sit outside (extrapolative regime). Robustness is a property of the pipeline-on-class pair, and it conditions every downstream use (Section 4) and cross-pipeline review protocol (Section 2). 
+
+Glossary for the broad reader. We use a small set of terms from different communities. 
+
+Verification and validation (V&V) are the standard checks from computational mechanics that ask, respectively, whether the equations are solved correctly and whether they are the right equations for the case [ 13 , 14 ]. The do -operator is Pearl’s notation for an intervention, “what happens if I set parameter θ to value θ⋆” [ 19 ]; here, doing so means re-running the solver. Aleatoric 
+
+uncertainty is irreducible (sensor noise, material variability); epistemic uncertainty is reducible by more information (viewpoint ambiguity, model-form uncertainty). Image-to-simulation (img2sim )refers to a pipeline that converts a sensor observation into a runnable mechanistic simulation; it is the running example, not the only realisation. The solver S may be a partial-differential-equation (PDE) discretiser or, for many time-series problems, a far cheaper ordinary-differential-equation (ODE) integrator or reduced-order surrogate; the substrate definition does not privilege either. A surrogate is a cheap neural approximation to an expensive solver; amortised surrogate training pays the simulation cost once so inference is fast. Interpolative and extrapolative refer to a case’s position relative to a pipeline’s validation envelope, not to numerical interpolation between samples. Large language model (LLM) denotes the transformer-based agent driving perception, orchestration, and review. 22 What an instrumented datum is 
+
+The instrumented datum is defined independently of any specific pipeline. Let I denote a sensor observation and P : I 7 → M a V&V instrumentation pipeline mapping I to a simulation model M = (Ω , σ, ∂ Ω, u 0, f, S): geometry Ω, governing law σ, boundary conditions ∂Ω, initial conditions u0, forcing f , and solver S (PDE, ODE, multiphysics, or reduced-order). The solver returns a response u = S(M). The img2sim pipeline of [ 18 ] is one realisation; CryoEM →MD, satellite →RCM, microstructure →CPFE, PIV →LES, and radiology →patient-specific FE work-flows are others. A datum is the tuple 
+
+Di = ( Ii, Mi, η i, u i, q i, v i
+
+> )
+
+, (1) with qi the quantity of interest (stress, drag, temperature, modal frequency, biomarker concentra-tion, etc.); vi the combined V&V record; and ηi the confounders carried explicitly outside Mi:acquisition (viewpoint, illumination, calibration), environmental (temperature, humidity, drift), and protocol (operator, equipment) factors that influence Ii but lie outside the mechanistic model. Naming ηi explicitly lets downstream learning condition, marginalise, or intervene on it rather than absorb it as label noise. vi carries verification artefacts (mesh convergence, residuals against analytical bounds, gate outcomes, domain-standard flags) and validation artefacts (domain-expert sign-off, residuals against physical measurement, perception-layer calibration history). Unlike a labelled image, Di exposes the causal graph, the confounders, and the record by which both V&V questions were answered. Because Di is a typed object carrying its vi, cross-pipeline review (introduced below) operates on a structured datum with audit trail, not on free-form agent output. Figure 1 maps the full data-generating loop. 
+
+Validation: HITL today, automated tomorrow. Today, validation is supplied by a human-in-the-loop (HITL): a qualified domain expert (scientist, clinician, engineer, etc.) signs each report after inspecting vi [18 ]. The pipeline of [ 18 ] already specifies an agent-update operator F that consumes expert residuals δr and writes them back as rules into agent memory, prompts, and gates. Repeated application of F on a fixed problem class is anticipated , though not demonstrated, to converge toward automated validation : the bands [θ− 
+
+> j
+
+, θ + 
+
+> j
+
+] track empirical residuals from physical measurement, and the marginal supervisory burden per sample shrinks. Professional sign-off does not disappear; the time to discharge it does. A pipeline PA that has accumulated such a record on class A can then act as an external reviewer for a sibling PB via a cross-pipeline gate GA→B on the typed datum, generalising the single-pipeline gates of [ 18 ]. We treat this HITL → automated → peer trajectory as a working hypothesis; only the first round of F (pure HITL sign-off, no automated update yet) is demonstrated in [ 18 ], and the risks of automating validation are surfaced in Section 6. The utility of GA→B is not binary but varies with how far PB ’s case sits inside PA’s validation envelope. Interpolative cross-review (shared constitutive class, gate schema, review history) is 
+
+more robust and yields independent mechanistic signal. Extrapolative cross-review (different physics or expert community) is less robust : PA’s gates no longer apply mechanistically and apparent endorsement risks being a shared-LLM artefact. Figure 2 contrasts the two ends. Three properties follow. 
+
+Causality for the specified case. Mi 7 → ui is a known structural causal model in the sense of Pearl [ 19 ], and Mi is inferred from the actual observation Ii rather than chosen from a corpus-time template. Interventions do (θj = θ⋆j ) on any parameter θj ∈ M i ∪ ηi are well defined and executable: re-run the solver under the new mechanistic or confounder setting. Distinguishing correlation from causation, the central difficulty in observational ML, is trivial 
+
+within Mi because the structural equations are the solver. The case-causality claim between 
+
+Ii and Mi is bounded by the calibration of the extraction operator I (Eq. 2); the substrate therefore provides conditional causality, exact given Mi and only as good as extraction otherwise. 
+
+Counterfactuals. For each Di the pipeline can emit a family {D (k) 
+
+> i
+
+}Ki
+
+> k=1
+
+, where k indexes 3The instrumented-data loop: one observation → mechanism + uncertainty + counterfactuals Sensor observation                               
+
+> I∈pixels / frames /
+> audio / point cloud
+> V&V instrumentation pipeline P
+> perception · analysis · assessment
+> verification gates G ⱼ ∈ {0, ½, 1}
+> orchestrator + agent-update operator F
+> validation: HITL →automated P : I →M
+> Verified & validated response
+> uᵢ= S( M ᵢ)Mᵢ= ( Ω,σ,∂Ω , u ₀, f, S); V&V record v ᵢ
+> Uncertainty
+> π(θ| I) → π (q | I) aleatoric (irreducible) + epistemic (reducible)
+> Counterfactual operator
+> do( θⱼ =θ*ⱼ) on M ᵢ
+> geometry · material · load · BC feasibility-filtered re-run
+> Datum
+> Dᵢ= ( I, M, u, q, v ) + family { D ᵢ⁽ᵏ⁾ }ₖof
+> counterfactual data points
+> u, M, v
+> { D ᵢ⁽ᵏ⁾ }
+> Mᵢ(baseline)
+> q (QoI posterior)
+> A. Train new models
+> supervision by construction labels carry causal derivations shortcut features detected by do-intervention on candidate θ
+> B. Validate trained models
+> fᵩcompared against u = S( M )
+> over a programmable counterfactual suite mechanistic ground truth
+> C. Validated surrogates
+> neural operators / PINNs /
+> GNN simulators on D ᵢ
+> V&V envelope inherited from v ᵢ
+> amortise expensive V&V data
+> HITL validation residuals δr→agent-update operator F
+> trains pipeline P toward automated validation on a fixed problem class
+> Legend Inputs & interventions (blue): real-world signals, uncertainty sources, and counterfactual do-operators that feed the loop. V&V'd data products (orange): verified responses, datums, and validation outcomes; origin of the feedback residual δr. Pipeline & ML stages (white): the V&V instrumentation pipeline P and the models it trains, validates, and amortises (realisations listed in the caption).
+> HITL-residual feedback path (dashed orange): retrains P toward automated validation on a fixed problem class.
+
+Figure 1: The instrumented-data loop. A sensor observation is converted by a V&V instrumen-tation pipeline P into a verified and validated response S(Mi), with the confounder bundle ηi
+
+carried alongside Mi. Realisations of P include image-to-simulation pipelines in mechanical engineering [ 18 ], CryoEM-to-molecular-dynamics workflows seeded by AlphaFold structures [ 5], learned-weather emulator pipelines on reanalysis-plus-simulation corpora [ 1, 2 ], microstructure-to-crystal-plasticity / DFT workflows [ 3], PIV-to-LES graph-network surrogates [ 6], and radiology-to-patient-specific finite-element workflows [ 7 ]. Validation is initially supplied by a human-in-the-loop (HITL) domain expert and, through the agent-update operator F trained on HITL residuals, is anticipated (not yet demonstrated) to migrate toward automated validation on a fixed problem class. Extraction uncertainty yields a push-forward π(q | I) resolved into aleatoric (irreducible) and epistemic (reducible) components, together with counterfactual interventions do (θj = θ⋆j ) on either mechanistic or confounder parameters. The datum Di feeds five consumers (Section 4). Three are shown here as direct downstream consumers of the loop: training of new models (Use 1), validation of existing models against mechanistic ground truth (Use 2), and training of validated surrogate networks that amortise cost (Use 3). Two further uses sit upstream and beside the loop: fewer-but-richer pretraining for scientific-reasoning foundation models (Use 4) and on-demand reasoning tools that an LLM agent invokes at inference time (Use 5). counterfactual variants and Ki is the number of admissible interventions enumerated for case i,generated by intervening on Mi or on ηi: what if this bracket were stainless? , what if the load doubled? , what if the imaging illuminant shifted by 200 K? Each counterfactual is itself a verified simulation, not a perturbed pixel. 
+
+Supervision by construction. The label qi is computed from Mi and ui by deterministic post-processing; it needs no human annotator and inherits the V&V record vi. The supervision signal is auditable. 
+
+3 One image becomes a distribution of simulations 
+
+A single image rarely determines M uniquely. The extraction operator returns set-valued, probabilistic, or possibilistic estimates of each parameter [18]: 
+
+I : ( I, context ) −→ {(ˆθj , [θ−
+
+j , θ +
+
+j ], p j (θj | I), κ j )}nθ
+
+j=1 , (2) 4Peer review across the robustness spectrum of an instrumentation pipeline  
+
+> More-robust (interpolative) reviews remain mechanistic. Less-robust (extrapolative) reviews degrade gracefully into reasoning-tool use (Use 5).
+> interpolative — inside validation envelope extrapolative — outside validation envelope robustness spectrum of P
+> (position of the case relative to the reviewer pipeline's accumulated V&V envelope)
+
+More robust — interpolative regime Mature pipeline P_A 
+
+> e.g. solid mechanics (img2sim) calibrated extraction bands accumulated V&V ledger v_A
+
+New case P_B' 
+
+> same domain & constitutive class same gate schema inside P_A's envelope
+> reviews
+
+Review machinery transfers mechanistically 
+
+> • mesh-convergence gates G_j calibrated on the same class • analytical bounds and code-compliance checks shared • extraction-band residuals comparable case-to-case
+
+Cross-review produces independent mechanistic signal 
+
+> consume as ground truth: Uses 1, 2, 3 (and 4 in aggregate)
+> demonstrated only at k=1 in [Wilke 2026]; k>1 is a working hypothesis
+
+Still required 
+
+> • minimum-diversity on base LLMs to avoid shared-mode error • held-out physical measurements to detect collusive calibration • professional sign-off retained (autonomy in production, not in liability)
+
+Less robust — extrapolative regime Mature pipeline P_A 
+
+> e.g. solid mechanics (img2sim) calibrated extraction bands accumulated V&V ledger v_A
+
+Pipeline P_C 
+
+> different domain: climate or biology (CryoEM →MD, sat →RCM) outside P_A's envelope
+> reviews (extrapolatively)
+
+Review machinery does not transfer mechanistically 
+
+> • gates G_j of P_A calibrated on stress fields, not climate state • analytical bounds, code standards, expert envelopes do not apply • V&V ledger v_A is uninformative for the new physics
+
+Consume as reasoning tool, not as oracle — Use 5 
+
+> LLM agent treats output (with uncertainty bands) as one signal among several
+> apparent endorsement without this caveat would be shared-LLM bias, not mechanistic signal
+
+For mechanistic review of P_C, instead: 
+
+> • build a separately matured pipeline in the target domain with its own HITL trajectory • restrict P_A's cross-pipeline checks to provenance, schema, data-card compliance • mechanistic review remains within the qualified expert community of the target domain
+
+Figure 2: When can a mature instrumentation pipeline act as a peer reviewer? Left (in-terpolative regime, more robust): a mature pipeline PA (e.g. a solid-mechanics img2sim 
+
+pipeline) reviewing a new case P′
+
+B that shares constitutive class, gates Gj , analytical bounds, and code-compliance checks operates inside PA’s accumulated validation envelope; the review produces independent mechanistic signal, subject to a minimum-diversity requirement on the underlying LLMs, held-out physical measurements, and retained professional sign-off. Right (extrapolative regime, less robust): the same PA attempting to review a pipeline PC in a different physical domain (e.g. climate or biology) sits outside PA’s validation envelope; its gates, bounds, and ledger do not transfer mechanistically, and apparent endorsement risks being a shared-LLM artefact. Cross-domain mechanistic review remains the responsibility of a separately matured pipeline in the target domain and its qualified expert community. Useful work is still possible in the right-hand regime if the pipeline output is consumed as a reasoning tool rather than as ground truth (Section 4, Use 5). Only the interpolative scenario in the first round of F
+
+is demonstrated in [ 18 ]; both regimes beyond the first round are working hypotheses, with risks itemised in Section 6. where θj is the j-th parameter of the joint set {θj }nθ
+
+j=1 = Mi ∪ ηi, ˆθj its point estimate, [θ−
+
+j , θ +
+
+j ]
+
+an interval where no calibration exists, pj (θj | I) a density where a best estimate does, κj acategorical confidence label (e.g. a fuzzy class membership) for qualitative parameters such as material class [ 20 ], and nθ the total number of parameters. Propagating through S yields a push-forward π(q | I) over the quantity of interest: not a confidence bound on a single label but a cloud of admissible, verified data points. Caveat: in the single-image regime these bands are agent self-reports, not empirically calibrated intervals [ 18 ]; calibration requires domain-expert ground truth feeding the update operator (Section 6). Separating aleatoric from epistemic components of π(q | I) requires repeated extractions and a calibrated perception layer; this protocol is itself an open methodological question (Section 7, item 1). 
+
+4 Five uses, in order of increasing leverage 
+
+4.1 Use 1: training data that is causal by construction 
+
+Instrumented data can train downstream models (defect detectors, materials-property regres-sors [ 3 ], diagnostic classifiers, fluid-mechanics drag predictors [ 6 ], biomarker estimators built on 5molecular-dynamics (MD) simulations seeded by AlphaFold-predicted structures [ 5 ]) where every label has a documented mechanistic derivation. This addresses the most embarrassing failure mode of synthetic data: a learner exploiting shortcut features absent in deployment [ 8]. When a shortcut is suspected, the do -operator on the candidate feature settles it. 
+
+4.2 Use 2: automated validation of already-trained models 
+
+A model fϕ (with ϕ its trained parameters, distinct from the forcing f of M) trained on observational data can be probed against an instrumented counterfactual suite: intervene on each physically meaningful parameter, compare fϕ against solver-computed truth. This is validation 
+
+of the learned surrogate against mechanistic reality, not verification of its numerics, with explicit coverage of the input manifold. The same audit applies to learned world models [ 15 , 17 ], supplying the calibration target that the world-models literature currently lacks. The contribution here is not better models, but credible validation of existing ones. 
+
+4.3 Use 3: cheap surrogates trained on verified-and-validated data 
+
+Instrumented data can be expensive per sample, but cost is regime-dependent: closed-form benchmarks and low-degree-of-freedom linear problems are essentially free, while nonlinear contact, large-eddy turbulence, coupled atmosphere–ocean models, and density-functional materials simulations dominate the corpus budget. Where the cost is material, the standard response applies: train validated neural surrogates, whether neural operators [ 21 , 22 ], physics-informed networks [ 23 ], or graph network simulators [ 24 , 6 ], on the corpus, and deploy at inference. The same recipe is now standard practice across fields: learned weather emulators trained on reanalysis-plus-simulation data [ 1, 2], materials-property surrogates trained on DFT corpora [ 3 ], structure-conditioned biomolecular models building on AlphaFold predictions [ 5], and patient-specific cardiac surrogates trained on finite-element ensembles [ 7 ]. Because each instrumented training datum carries the V&V record vi, the surrogate inherits known coverage, noise structure, causal interventions, and a validation envelope; none of these holds for surrogates trained on heterogeneous observational data. Pay once for V&V-instrumented data, amortise across many cheap predictions. In modern terminology, a surrogate trained this way is a grounded world model for its domain: a learned predictor whose training distribution carries explicit mechanism, uncertainty, and counterfactual coverage. 
+
+4.4 Use 4 (long-term, speculative, robustness-sensitive): fewer-but-richer pretraining 
+
+The most leveraged use lies upstream of any one task. Every Di carries five objects rarely present in pretraining corpora: Mi, ui, ηi, the aleatoric/epistemic decomposition of π(q | I), and the counterfactual family {D (k) 
+
+> i
+
+}. We state the postulate in falsifiable form. There exists a task family 
+
+T of causal, counterfactual, and calibration-aware benchmarks (e.g. CLadder-style causal reason-ing [ 25 ], counterfactual visual-question-answering / natural-language-inference (VQA/NLI) [ 26 ]) and a measurement protocol Π at matched compute under which N instrumented samples match 
+
+ρN correlation-only web samples on test loss, with ρ > 1 growing in instrumentation depth. 
+
+Here ρ > 0 is the informational-density ratio of instrumented over web samples on the chosen benchmark. The null ρ ≤ 1 rejects the postulate. Two mechanisms plausibly drive the gain: 
+
+counterfactual contrast (minimal contrastive sets isolating one mechanism at a time, known to improve sample efficiency [ 26 , 12 ]) and auditable reasoning (chain-of-thought scored against struc-tural equations, supplying a process-level reward web text lacks). The argument transfers cleanly to scientific-reasoning foundation models (weather, materials, biomolecular, mechanics), where the structural equations are precisely what Mi encodes; it does not transfer to commonsense or long-horizon planning. Robustness condition. The postulate is most defensible when the corpus is dominated by more-robust, interpolative samples; as the corpus shifts toward less-robust, 6extrapolative samples, ingesting mechanistic “ground truth” as pretraining supervision risks baking extrapolation errors in at scale. Use 5 is the safer consumption mode there. Measuring ρ
+
+on T is the open question of Section 7. 
+
+4.5 Use 5 (near-term, robustness-tolerant): on-demand reasoning tools for LLM agents 
+
+Uses 1–3 consume instrumented data as ground truth; Use 4 as pretraining supervision; Use 5 as a callable reasoning tool an LLM agent invokes at inference time. The pipeline P with its push-forward π(q | I) and operator do (θj = θ⋆j ) becomes a tool the agent queries to test hypotheses, run order-of-magnitude “what if” questions, or check chain-of-thought against the physics. The agent treats the response as one signal among several, with explicit uncertainty bands; residual extraction, solver, and extrapolation errors are absorbed by the agent’s downstream uncertainty handling rather than propagated as deployment failures. This is the use case in which the robustness spectrum matters least in the following precise sense. Uses 1–4 demand quantitative accuracy : the pipeline must return numbers the downstream consumer can trust as ground truth (labels, validation oracle, surrogate target, pretraining supervision). Use 5 demands only qualitative accuracy : the pipeline must return the correct direction of an effect (does q increase or decrease when θj is perturbed?), the right order of magnitude, and a sensible monotonicity or scaling, rather than a tightly calibrated absolute value. In the more-robust regime, the tool delivers both; in the less-robust regime, it can still deliver the qualitative signal, and that is enough for an LLM agent doing comparative reasoning. The pipeline only has to be accurate enough to be sensible about trends ; absolute precision becomes optional. This is why Use 5 remains operationally useful in the extrapolative regime where Uses 2 and 4 are not: trend-accurate but magnitude-uncertain output is a useful tool signal, whereas the same output consumed as ground truth or pretraining oracle would be a source of confident but wrong numbers. 
+
+5 A third data substrate 
+
+Table 1 states the trichotomy. Each column is the answer to one question a downstream learner cares about: does each datum carry its mechanism; is the mechanism specific to the case the user faces; can a physically meaningful intervention be executed; is there an auditable V&V record? Table 1: Three data substrates for scientific machine learning, distinguished by case-specific mechanism, executable counterfactual, and V&V record per datum.                 
+
+> Substrate Mechanism? Case-specific? Counterfactual? V&V record?
+> Observational No Yes No No Template synthetic Yes No Template only Sometimes
+> Instrumented Yes Yes Yes Yes
+
+The instrumented row collects properties the other two never simultaneously satisfy. Standard objections to synthetic data are addressed item by item. Domain gap: the simulation is conditioned on a real observation, not a procedural scene; confounders are named in ηi rather than absorbed as noise. Coverage: the push-forward π(q | I) and do (·) make coverage a property of the intervention policy, not of the dataset. Circularity: the V&V record bounds solver bias per sample, so circularity becomes auditable rather than aggregate [18, 13]. Instrumented data is not a replacement for observational data but a third category, shipped with the machinery used to produce it. The same trichotomy applies whether the datum was pro-duced by an img2sim pipeline [ 18 ], a CryoEM →MD workflow seeded by AlphaFold structures [ 5], a learned-weather emulator on reanalysis-plus-simulation [ 1 ], a microstructure →CPFE workflow 7on DFT constitutive laws [ 3], a PIV →LES graph-network surrogate [ 6], or a radiology →patient-specific FE workflow [7]. 
+
+6 Risks, limits, and what must still be earned 
+
+Instrumented data is not automatically trustworthy. Six risks must be confronted before scale. 
+
+(i) Perception calibration: extraction bands are agent self-reports until empirical coverage is verified against physical measurement. (ii) Solver fidelity bounds the substrate: plasticity, fracture, turbulence, and multi-physics coupling have regimes where solver error dominates extraction error, and vi must surface this. (iii) Professional oversight is not optional: 
+
+a qualified domain expert signs off, as in conventional V&V. (iv) Counterfactual realism: 
+
+not every do (θj ) on Mi or ηi yields a physically realisable configuration; a feasibility filter is mandatory. (v) Distribution shift: instrumented data narrows the deployment gap by anchoring on real observations; it does not eliminate it. (vi) Robustness mismatch: consuming an extrapolative pipeline as if it were interpolative (using it as a Use 2 or Use 4 oracle rather than a Use 5 reasoning tool) is the most likely way to convert honest mechanistic uncertainty into a confident deployment error. 
+
+7 Methodological questions for the community 
+
+Nine open questions will determine whether instrumented data matures into a recognised substrate for scientific machine learning. 1. Calibration protocols. How much physical ground truth is needed before agent-reported bands can be promoted to calibrated intervals on a class? Conformal prediction [ 27 , 28 ] over extraction–measurement residuals is a natural candidate. 2. Counterfactual coverage metrics. What is the analogue of dataset coverage in θ-space, weighted by causal relevance to the downstream quantity of interest? 3. Verification of the verifier. Quality gates are LLM-driven; auditing their calibration requires adversarial probing, inter-agent disagreement, and held-out physical measurements. 4. Provenance and licensing. A standardised data card extending Datasheets for Datasets [ 29 ]is needed to carry the inheritance from image, solver, gates, and reviewer. 5. Cost–accuracy frontiers. Open benchmarks pairing instrumented corpora with surrogates are needed to quantify when surrogate training amortises the substrate’s cost. 6. Robustness-conditional peer-review protocols. The community needs an empirical map of how cross-pipeline review degrades from interpolative to extrapolative regimes, a minimum-diversity requirement on participating LLMs, and a demarcation rule restricting extrapolative checks to provenance, schema, and data-card compliance. 7. Quantifying the fewer-but-richer postulate. Paired benchmarks at equal compute that pin down the informational-density ratio ρ in Section 4.4 as a function of task type and instrumentation depth. Without this measurement, Use 4 remains plausible but unfalsified. 8. HITL → automated validation as a risk surface. Three failure modes need protocols: 
+
+shared-mode error (diversity across base LLMs), collusive calibration (held-out physical measurements), and autonomy in production is not autonomy in liability (sign-off retained at federation level). 9. Reasoning-tool evaluation for less-robust regimes. Tool-use benchmarks paired with V&V-instrumented tools, with robustness labels per call, are needed to score Use 5 agents that weight uncertainty bands and downweight extrapolative calls. 88 Conclusion 
+
+The hard problem in scientific machine learning is no longer fitting parameters but producing data whose causal structure is known. V&V-instrumented pipelines, of which image-to-simulation is one realisation, deliver exactly that: each datum is an observation, a mechanistic model, a confounder bundle, a computed response, an aleatoric/epistemic uncertainty, and an executable counterfactual family. More expensive per sample than scraped data; more causal, verifiable, and validatable than the alternatives. Its value is conditional on where the pipeline sits on the robustness spectrum: the more interpolative, the stronger as quantitative ground truth (Uses 1–3) and pretraining oracle (Use 4); the more extrapolative, the more its consumer must be an LLM agent treating it as a trend-level reasoning tool (Use 5), where qualitative accuracy on direction, sign, and order of magnitude is sufficient and absolute precision is not required. The work to be done is calibration, coverage, governance, a clean measurement of ρ, and tool-use benchmarks that respect robustness. 
+
+Code and data availability 
+
+The base multi-agent img2sim system is described in [ 18 ]; its orchestrator prompt and demon-stration assets are released with that work’s supplementary material. No new datasets or models are introduced in this position paper. 
+
+Competing interests 
+
+The author declares no competing interests. 
+
+References 
+
+[1] R. Lam, A. Sanchez-Gonzalez, M. Willson, P. Wirnsberger, M. Fortunato, F. Alet, S. Ravuri, T. Ewalds, Z. Eaton-Rosen, W. Hu, A. Merose, S. Hoyer, G. Holland, O. Vinyals, J. Stott, A. Pritzel, S. Mohamed, and P. Battaglia. Learning skillful medium-range global weather forecasting. Science , 382(6677):1416–1421, 2023. 
+
+doi.org/10.1126/science.adi2336 .[2] K. Bi, L. Xie, H. Zhang, X. Chen, X. Gu, and Q. Tian. Accurate medium-range global weather forecasting with 3D neural networks. Nature , 619(7970):533–538, 2023. doi.org/10.1038/s41586-023-06185-3 .[3] A. Merchant, S. Batzner, S.S. Schoenholz, M. Aykol, G. Cheon, and E.D. Cubuk. Scaling deep learning for materials discovery. Nature , 624:80–85, 2023. doi.org/10.1038/s41586-023-06735-9 .[4] A.K. Cheetham and R. Seshadri. Artificial intelligence driving materials discovery? Perspective on the article: scaling deep learning for materials discovery. Chemistry of Materials , 36(8):3490–3495, 2024. doi.org/10. 1021/acs.chemmater.4c00643 .[5] J. Jumper, R. Evans, A. Pritzel, T. Green, M. Figurnov, O. Ronneberger, K. Tunyasuvunakool, R. Bates, A. Žídek, A. Potapenko, et al. Highly accurate protein structure prediction with AlphaFold. Nature ,596(7873):583–589, 2021. doi.org/10.1038/s41586-021-03819-2 .[6] T. Pfaff, M. Fortunato, A. Sanchez-Gonzalez, and P.W. Battaglia. Learning mesh-based simulation with graph networks (MeshGraphNets). In International Conference on Learning Representations (ICLR) , 2021. 
+
+doi.org/10.48550/arXiv.2010.03409 .[7] S.A. Niederer, J. Lumens, and N.A. Trayanova. Computational models in cardiology. Nature Reviews Cardiology , 16:100–111, 2019. doi.org/10.1038/s41569-018-0104-y .[8] R. Geirhos, J.-H. Jacobsen, C. Michaelis, R. Zemel, W. Brendel, M. Bethge, and F.A. Wichmann. Short-cut learning in deep neural networks. Nature Machine Intelligence , 2:665–673, 2020. doi.org/10.1038/ s42256-020-00257-z .[9] J. Hoffmann, S. Borgeaud, A. Mensch, E. Buchatskaya, T. Cai, E. Rutherford, D. de Las Casas, L.A. Hendricks, J. Welbl, A. Clark, T. Hennigan, E. Noland, K. Millican, G. van den Driessche, B. Damoc, A. Guy, S. Osindero, K. Simonyan, E. Elsen, J.W. Rae, O. Vinyals, and L. Sifre. Training compute-optimal large language models. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) , 2022. doi.org/10.48550/arXiv.2203.15556 .[10] N. Sambasivan, S. Kapania, H. Highfill, D. Akrong, P. Paritosh, and L.M. Aroyo. “Everyone wants to do the model work, not the data work”: Data cascades in high-stakes AI. In Proc. ACM CHI Conference on Human Factors in Computing Systems , article no. 39, p. 1–15, 2021. doi.org/10.1145/3411764.3445518 .
+
+9[11] S.Y. Gadre, G. Ilharco, A. Fang, J. Hayase, G. Smyrnis, T. Nguyen, R. Marten, M. Wortsman, D. Ghosh, J. Zhang, E. Orgad, R. Entezari, G. Daras, S. Pratt, V. Ramanujan, Y. Bitton, K. Marathe, S. Mussmann, R. Vencu, M. Cherti, R. Krishna, P.W. Koh, O. Saukh, A. Ratner, S. Song, H. Hajishirzi, A. Farhadi, R. Beaumont, S. Oh, A. Dimakis, J. Jitsev, Y. Carmon, V. Shankar, and L. Schmidt. DataComp: In search of the next generation of multimodal datasets. In Advances in Neural Information Processing Systems (NeurIPS) ,2023. doi.org/10.48550/arXiv.2304.14108 .[12] B. Schölkopf, F. Locatello, S. Bauer, N.R. Ke, N. Kalchbrenner, A. Goyal, and Y. Bengio. Toward causal representation learning. Proceedings of the IEEE , 109(5):612–634, 2021. doi.org/10.1109/JPROC.2021. 3058954 .[13] W.L. Oberkampf and C.J. Roy. Verification and Validation in Scientific Computing . Cambridge University Press, Cambridge, 2010. ISBN 978-0-521-11360-1. doi.org/10.1017/CBO9780511760396 .[14] American Society of Mechanical Engineers. ASME V&V 10-2019 (R2025): Guide for Verification and Validation in Computational Solid Mechanics . ASME, New York, 2020 (reaffirmed 2025). asme.org/ codes-standards/v-v-10 .[15] D. Ha and J. Schmidhuber. World models. In Advances in Neural Information Processing Systems (NeurIPS) ,2018. doi.org/10.48550/arXiv.1803.10122 .[16] Y. LeCun. A path towards autonomous machine intelligence. Open Review preprint, version 0.9, 2022. 
+
+openreview.net/forum?id=BZ5a1r-kVsf .[17] D. Hafner, J. Pasukonis, J. Ba, and T. Lillicrap. Mastering diverse domains through world models. arXiv preprint arXiv:2301.04104, 2023. doi.org/10.48550/arXiv.2301.04104 .[18] D.N. Wilke. From Perception to Autonomous Computational Modeling: A Multi-Agent Approach. arXiv preprint arXiv:2604.06788, 2026. arxiv.org/abs/2604.06788 .[19] J. Pearl. Causality: Models, Reasoning, and Inference . Cambridge University Press, Cambridge, 2nd edition, 2009. ISBN 978-0-521-89560-6. doi.org/10.1017/CBO9780511803161 .[20] L.A. Zadeh. Fuzzy sets. Information and Control , 8(3):338–353, 1965. doi.org/10.1016/S0019-9958(65) 90241-X .[21] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. Stuart, and A. Anandkumar. Fourier neural operator for parametric partial differential equations. In International Conference on Learning Representations (ICLR) , 2021. doi.org/10.48550/arXiv.2010.08895 .[22] N. Kovachki, Z. Li, B. Liu, K. Azizzadenesheli, K. Bhattacharya, A.M. Stuart, and A. Anandkumar. Neural operator: Learning maps between function spaces with applications to PDEs. Journal of Machine Learning Research , 24(89):1–97, 2023. jmlr.org/papers/v24/21-1524.html .[23] M. Raissi, P. Perdikaris, and G.E. Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics , 378:686–707, 2019. doi.org/10.1016/j.jcp.2018.10.045 .[24] A. Sanchez-Gonzalez, J. Godwin, T. Pfaff, R. Ying, J. Leskovec, and P.W. Battaglia. Learning to simulate complex physics with graph networks. In Proceedings of the 37th International Conference on Machine Learning (ICML) , volume 119 of PMLR , pages 8459–8468, 2020. proceedings.mlr.press/v119/sanchez-gonzalez20a. html .[25] Z. Jin, Y. Chen, F. Leeb, L. Gresele, O. Kamal, Z. Lyu, K. Blin, F. Gonzalez Adauto, M. Kleiman-Weiner, M. Sachan, and B. Schölkopf. CLadder: Assessing causal reasoning in language models. In Advances in Neural Information Processing Systems (NeurIPS) , 2023. doi.org/10.48550/arXiv.2312.04350 .[26] D. Kaushik, E. Hovy, and Z.C. Lipton. Learning the difference that makes a difference with counterfactually-augmented data. In International Conference on Learning Representations (ICLR) , 2020. doi.org/10.48550/ arXiv.1909.12434 .[27] V. Vovk, A. Gammerman, and G. Shafer. Algorithmic Learning in a Random World . Springer, New York, 2005. ISBN 978-0-387-00152-4. doi.org/10.1007/b106715 .[28] A.N. Angelopoulos and S. Bates. Conformal prediction: A gentle introduction. Foundations and Trends in Machine Learning , 16(4):494–591, 2023. doi.org/10.1561/2200000101 .[29] T. Gebru, J. Morgenstern, B. Vecchione, J.W. Vaughan, H. Wallach, H. Daumé III, and K. Crawford. Datasheets for datasets. Communications of the ACM , 64(12):86–92, 2021. doi.org/10.1145/3458723 .
+
+10
