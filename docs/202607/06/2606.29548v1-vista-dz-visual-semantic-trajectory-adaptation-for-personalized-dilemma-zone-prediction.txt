@@ -1,0 +1,631 @@
+Title: VISTA-DZ: Visual Semantic Trajectory Adaptation for Personalized Dilemma Zone Prediction
+
+URL Source: https://arxiv.org/pdf/2606.29548v1
+
+Published Time: Tue, 30 Jun 2026 01:24:05 GMT
+
+Number of Pages: 26
+
+Markdown Content:
+# VISTA-DZ: Visual Semantic Trajectory Adaptation for Personalized Dilemma Zone Prediction 
+
+## Chuheng Wei a,b ,∗, Ziye Qin b, Ziran Wang a and Guoyuan Wu b
+
+> a
+
+Purdue University, 550 Stadium Mall Drive, West Lafayette, 47907, Indiana, USA 
+
+> b
+
+University of California, Riverside, 1084 Columbia Ave, Riverside, 92507, California, USA 
+
+A R T I C L E I N F O 
+
+Keywords :Dilemma zone Personalized prediction Driver behavior modeling Visual language models (VLM) Cross-domain generalization Multimodal learning Intelligent transportation systems 
+
+A B S T R A C T 
+
+Driver decision making in the dilemma zone at signalized intersections is safety critical, as vehicles approaching a yellow signal must decide whether to stop or proceed within limited time and distance margins. Accurate prediction of both stop-go decisions and decision timing is important for adaptive signal control, advanced driver assistance systems, and human-centered intelligent transportation applications. However, dilemma zone behavior is strongly driver dependent. Similar approach trajectories may lead to different decisions across drivers because of differences in risk preference, braking habit, and decision threshold. Existing personalized models often rely on handcrafted scalar descriptors, which provide useful but limited summaries of individual behavior. This paper proposes VISTA-DZ (Vi sual and Semantic Trajectory Adaptation for person-alized Dilemma Zone prediction), a semantic-profile-conditioned framework for personalized stop-go and decision-time prediction. Historical driver trajectories are first converted into structured visual representations and interpreted by a vision-language model to produce natural-language behavioral profiles. These profiles are encoded into dense semantic embeddings and used to condition a dual-output trajectory prediction network. The final VISTA-DZ model combines a bidirectional GRU trajectory encoder with driver-conditioned multi-head cross-attention and Feature-wise Linear Modulation (FiLM), allowing the semantic profile to guide both temporal evidence selection and feature-level trajectory adaptation. We evaluate VISTA-DZ on the Simulator Dilemma Zone (SDZ) dataset and a newly collected Field Dilemma Zone (FDZ) dataset using random split, leave-one-driver-out (LODO), zero-shot sim-to-real, and combined-domain evaluation protocols. Results show that semantic driver profiling improves over trajectory-only and handcrafted personalization baselines, while the final VISTA-DZ architecture achieves the best in-domain simulation accuracy of 93.26%. In the LODO evaluation, VISTA-DZ obtains 90.22% mean accuracy across 20 held-out simulation drivers, indicating that profile-conditioned prediction can generalize to drivers whose trajectories are not used for training. Cross-domain experiments further show that zero-shot simulation-to-real transfer is feasible, and that combining simulation data with limited real-world data provides the most reliable real-world generalization. These findings demonstrate the value of semantic driver profiling for personalized dilemma zone prediction and highlight the importance of target-domain calibration for field deployment. To support reproducibility and future research, the code and the FDZ dataset will be made publicly available upon acceptance. 
+
+## 1. Introduction 
+
+At signalized intersections, the onset of a yellow signal creates a short but safety-critical decision period for approaching drivers. Within the so-called dilemma zone (DZ), a vehicle may be too close to the stop line to stop comfortably, yet too far away to clear the intersection safely, making the stop-go decision uncertain and time-constrained (Gazis et al., 1960; Wei et al., 2024a). This phenomenon has long been associated with red-light running, abrupt braking, rear-end conflicts, and intersection crashes, and has therefore attracted sustained attention in traffic engineering and intelligent transportation systems (Zegeer, 1977; Papaioannou, 2007; Urbanik and Koonce, 2007). Reliable prediction in this setting requires more than identifying the eventual stop-go outcome. It is also important 
+
+This manuscript is currently under review. 
+
+> ∗
+
+Corresponding author 
+
+chuheng.wei@email.ucr.edu (C. Wei); qinziye@hotmail (Z. Qin); ziran@ieee.org (Z. Wang); guoyuan.wu@ucr.edu (G. Wu) 
+
+> ORCID
+
+(s): 0000-0002-0747-9398 (C. Wei); 0000-0001-5785-5331 (Z. Qin); 0000-0003-2702-7150 (Z. Wang); 
+
+0000-0001-6707-6366 (G. Wu) 
+
+: Preprint submitted to Elsevier Page 1 of 26 
+
+> arXiv:2606.29548v1 [cs.LG] 28 Jun 2026
+
+to estimate when the driver commits to that decision after yellow onset, since decision timing affects the available response window for adaptive signal control, advanced driver assistance systems (ADAS), and human-centered vehicle automation. Recent trajectory-based learning methods have made it possible to model driver decisions directly from motion signals such as distance to the stop line, speed, and longitudinal acceleration. Recurrent neural networks and other deep sequence models can capture temporal patterns in vehicle motion and have shown promise for behavior prediction from driving trajectories (Xu et al., 2022). Nevertheless, dilemma zone behavior remains difficult to model with a single population-level predictor. Drivers differ in risk tolerance, braking strategy, preferred safety margin, and reaction timing when facing the same yellow-light scenario (Papaioannou, 2007; Wei et al., 2024a). A deceleration pattern that indicates a committed stop for one driver may still correspond to a delayed or aggressive go decision for another. Such heterogeneity motivates personalized dilemma zone modeling, especially for safety-critical applications that must anticipate individual intent rather than average population behavior (Chauhan et al., 2022). Most existing personalization strategies represent driver characteristics through a small number of handcrafted scalar descriptors, such as historical stop rate, mean approach speed, average decision distance, or average decision time. These descriptors are intuitive and easy to compute, but they compress within-driver behavior into low-dimensional summaries. As a result, they may discard important structure in how a driver approaches the stop line, adjusts speed, delays commitment, or changes braking intensity across different dilemma zone encounters (Qin et al., 2025a). Two drivers may have similar go probabilities, for example, while exhibiting very different behavioral mechanisms. One may behave consistently near the decision boundary, while another may alternate between early stopping and aggressive clearing. A more expressive driver representation is therefore needed, one that can capture behavioral style at a semantic level while remaining usable by downstream prediction models. Vision-language models (VLMs) offer a promising way to build such representations. Instead of reducing historical trajectories to a few manually selected statistics, historical driving behavior can be transformed into structured trajectory visualizations and summarized in natural language. Language provides a compact but expressive medium for describing behavioral tendencies such as aggressiveness, braking style, speed consistency, and decision preference. Once encoded as dense embeddings, these semantic profiles can serve as driver-specific conditioning variables for trajectory prediction. This provides a bridge between low-level kinematic observations and higher-level descriptions of individual driving style. In this paper, we propose VISTA-DZ (Vi sual and Semantic Trajectory Adaptation for personalized Dilemma Zone prediction), a semantic-profile-conditioned framework for personalized dilemma zone prediction. For each driver, historical dilemma zone trajectories are converted into structured visual representations and interpreted by a VLM to generate a natural-language behavioral profile. The profile is then encoded into a dense semantic embedding and used to condition a dual-output prediction model. Given a three-second pre-yellow trajectory window, the model jointly predicts the stop-go decision and the decision time. The final VISTA-DZ architecture uses a bidirectional GRU to encode the current approach trajectory and incorporates the semantic driver profile through two complementary mechanisms. First, the profile acts as a query in a driver-conditioned multi-head cross-attention module, allowing the model to attend to different temporal portions of the approach depending on the driver’s behavioral tendency. Second, the attended trajectory representation is adapted through Feature-wise Linear Modulation (FiLM) (Perez et al., 2018), which rescales and shifts trajectory features according to the semantic profile. In this way, VISTA-DZ does not simply append driver information to the trajectory feature. Instead, it uses the driver profile to guide both temporal evidence selection and feature-level interpretation. To evaluate the proposed framework, we use both simulation and real-world dilemma zone data. The simulation dataset contains 961 trajectories from 20 drivers, while the controlled real-world dataset contains 172 trajectories from six drivers. The two datasets share the same trajectory representation and prediction targets, enabling evaluation across both within-domain and cross-domain settings. We consider random split evaluation on the simulation dataset, leave-one-driver-out (LODO) evaluation for unseen-driver generalization, zero-shot simulation-to-real transfer, and combined-domain training with both simulation and real-world data. This design allows us to examine not only whether semantic personalization improves prediction, but also when it generalizes across drivers and domains. The main contributions of this paper are summarized as follows: 
+
+• We propose VISTA-DZ, a semantic-profile-conditioned framework for personalized dilemma zone prediction that uses VLM-generated behavioral descriptions to represent individual driving style from historical trajectory evidence.        
+
+> :Preprint submitted to Elsevier Page 2 of 26 Type I
+> Dilemma zone
+> 𝑿𝑿 𝒄𝒄
+> 𝑿𝑿 𝒔𝒔 Figure 1: Type I dilemma zone: a kinematic construct that arises when the maximum clearing distance 𝑋 𝑠 is smaller than the minimum comfortable stopping distance 𝑋 𝑐 .
+
+• We design a driver-conditioned trajectory adaptation architecture that combines bidirectional recurrent trajectory encoding, multi-head cross-attention, LayerNorm, and FiLM-based feature modulation for joint stop-go and decision-time prediction. 
+
+• We evaluate semantic driver profiling against trajectory-only prediction and handcrafted scalar personalization, showing that language-based profiles provide a stronger personalization signal and that modulation-based conditioning is more effective than direct feature concatenation. 
+
+• We collect a controlled real-world Field Dilemma Zone (FDZ) dataset of real-vehicle yellow-onset approaches, aligned with the simulator dataset for joint cross-domain evaluation, and will release the dataset and code upon acceptance. 
+
+• We conduct a comprehensive evaluation on both simulation and controlled real-world driving data, including random split, LODO, zero-shot sim-to-real, and combined-domain protocols, to assess in-domain performance, unseen-driver generalization, and cross-domain transfer. 
+
+## 2. Related Work 
+
+2.1. Dilemma Zone Modeling and Stop-Go Prediction 
+
+The dilemma zone has been studied for more than six decades, and two definitional traditions remain in use today. The kinematic definition introduced by Gazis et al. (1960), commonly referred to as the Type I dilemma zone, identifies the region in which a vehicle can neither stop comfortably before the stop line nor clear the intersection within the remaining yellow interval. Its boundaries are derived from approach speed, comfortable deceleration, perception-reaction time, and intersection geometry, and depend on the relative ordering of two critical distances: the minimum distance 𝑋 𝑐 needed to stop using a comfortable deceleration and the maximum distance 𝑋 𝑠 from which the intersection can still be cleared during the yellow phase. When 𝑋 𝑠 < 𝑋 𝑐 , the interval between them forms the Type I dilemma zone illustrated in Fig. 1, within which the driver can neither stop nor proceed safely under standard kinematic assumptions. The probabilistic, behavior-based definition, proposed by Zegeer and Deen (1978), departs from this purely kinematic view and delineates the Type II (or indecision) zone as the distance interval over which the observed stopping probability falls between 10% and 90%, as shown in Fig. 2. Subsequent work has shifted the underlying boundary variable from spatial distance to time-to-stop-line: Chang et al. (1985) formalized the travel-time view, Bonneson et al. (2002) estimated the zone to span approximately 5.5-2.5 s of travel time, and Rakha et al. (2008) broadened this range to 5.5-1.5 s across age and gender groups. Urbanik and Koonce (2007) further argued that practical detection-based protection must treat the dilemma zone as a behavioral construct rather than a purely kinematic one, since the kinematic envelope alone does not capture the variability of observed driver decisions. Beyond defining the zone itself, a substantial body of work has focused on predicting the binary stop-go outcome at yellow onset. Early models relied on parametric statistical formulations. Papaioannou (2007) applied binary logistic    
+
+> :Preprint submitted to Elsevier Page 3 of 26 Likely
+> “GO”
+> Likely
+> “STOP”
+> Type II
+> Dilemma zone Figure 2: Type II (indecision) dilemma zone: a behavior-based construct defined as the interval over which the empirical probability of stopping falls between 10% and 90% (Qin et al., 2025a).
+
+regression to relate stop-go decisions to approach speed, distance, and driver demographics at urban signalized intersections in Greece, while Hurwitz et al. (2012) introduced a fuzzy-logic representation that captured the gradual rather than abrupt transition between stopping and proceeding at high-speed approaches. As intersection sensor data became more accessible, machine learning methods were adopted to relax the linearity and distributional assumptions embedded in these earlier models. Elhenawy et al. (2015) benchmarked logistic regression against support vector machines, random forests, and adaptive boosting for yellow-light stop-run classification, reporting that tree-based ensembles offered the most stable performance, particularly under wet roadway conditions. Jahangiri et al. (2016) extended this direction by combining naturalistic driving and simulator data to predict red-light running violations several seconds in advance. More recently, research has moved toward trajectory-level representations that exploit the temporal structure of the approach rather than scalar snapshots at yellow onset. More recently, research has moved toward trajectory-level representations that exploit the temporal structure of the approach rather than scalar snapshots at yellow onset. Within this direction, our prior work has developed deep generative trajectory models that jointly encode signal state and multi-vehicle interaction for forecasting at signalized intersections (Wei et al., 2024b, 2025b), surveyed the influential factors governing dilemma zone behavior (Wei et al., 2024a), and empirically examined trajectory-driven stop-go dynamics under a controlled simulator study (Qin et al., 2025a), all of which suggest that snapshot-based descriptors are insufficient for characterizing the unfolding decision process. Despite this progression from kinematic boundary models to data-driven trajectory predictors, the field has retained a largely homogeneous view of the driver. Most prediction models are trained and evaluated at the population level, and driver-related factors, when included at all, typically enter as coarse demographic groupings such as age or gender (Rakha et al., 2008; Lavrenz et al., 2014). Empirical evidence, however, has repeatedly shown that stop-go thresholds, braking aggressiveness, and decision timing vary substantially across individuals in ways that cannot be explained by such grouping variables alone (Papaioannou, 2007; Chauhan et al., 2022). This mismatch between the heterogeneity observed in real drivers and the homogeneous assumptions embedded in existing models motivates an explicitly personalized formulation of dilemma zone prediction, in which individual behavioral style is treated as a first-class conditioning variable rather than a residual source of unmodeled noise. 
+
+2.2. Personalized Driver Behavior Modeling 
+
+Efforts to model individual driving behavior fall along a spectrum of representational granularity. The coarsest approaches group drivers into a small number of stylistic categories, typically aggressive, moderate, and conservative, using clustering or supervised classification on summary statistics of speed, acceleration, jerk, and headway (Liao et al., 2024). Constantinescu et al. (2010) derived such categories from logged driving data using data mining techniques, and Wang et al. (2017) later cast style classification as a semi-supervised SVM problem to reduce the labeling burden. Johnson and Trivedi (2011) showed that smartphone inertial signals alone are sufficient to recognize aggressive maneuvers, while Murphey et al. (2009) treated jerk profiles as a compact indicator of style. In addition, Wang et al. (2020b) classified drivers into behavioral types with a 𝑘 -nearest-neighbors scheme and fitted type-specific neural models to predict their speed-tracking errors, demonstrating the pipeline on both a game-engine simulator and a real   
+
+> :Preprint submitted to Elsevier Page 4 of 26
+
+vehicle. Broader surveys by Sagberg et al. (2015) and Martinez et al. (2017) cover the definitions and recognition pipelines used across this literature. Categorical descriptors of this kind are interpretable but inherently coarse: two drivers in the same cluster can produce very different stop-go behavior depending on context. A finer but still scalar alternative is to retain the underlying summary statistics themselves, such as average approach speed, acceleration variance, time headway, and historical stop rate, and to attach them as driver descriptors for downstream prediction. This is the handcrafted personalization strategy that our experiments use as a baseline (HCF-Pers), and it inherits the same limitation: a small set of scalar moments captures what a driver does on average rather than how they behave trajectory by trajectory. Learning-based representations aim to overcome this by extracting driver-specific vectors directly from raw behavioral data. Hallac et al. (2016) showed that a single turn carries enough information to identify a driver from CAN-bus signals, and the subsequent Driver2Vec model (Yang et al., 2021) cast driver identification as a representation-learning problem and produced dense embeddings transferable to downstream behavioral tasks. Autoencoder and self-supervised variants extend this idea by learning latent style representations without explicit driver labels, while a parallel line of work has applied few-shot adaptation, building on the model-agnostic meta-learning framework of Finn et al. (2017), to let trajectory predictors specialize to new drivers with limited data. These representations are richer than scalar statistics, but they share two practical drawbacks. First, they are typically optimized for an auxiliary objective such as driver identification or reconstruction, so the resulting vectors are not directly interpretable in terms of behavioral semantics. Second, training them well requires substantially more per-driver data than is usually available at signalized intersections, where a single driver may contribute only a handful of yellow onset events. Once a driver representation is available, a separate design question concerns how it should interact with the per-trajectory features used for prediction. The simplest option is to concatenate the driver vector with the trajectory embedding, which treats personalization as an additional input. Feature-wise conditioning mechanisms such as the conditional instance normalization introduced by Dumoulin et al. (2017) and the Feature-wise Linear Modulation (FiLM) mechanism of Perez et al. (2018) take a different route, using the conditioning vector to rescale and shift each feature channel so that the driver representation actively reshapes how trajectory evidence is interpreted. Cross-attention in the style of Vaswani et al. (2017) addresses a complementary aspect of the same problem by letting the conditioning vector act as a query that selects which trajectory positions are most relevant for a given driver. The two families of mechanisms are not mutually exclusive: cross-attention controls which temporal evidence enters the prediction, while modulation controls how that evidence is interpreted once selected, and recent multimodal studies suggest that combining the two can be more expressive than either alone. In personalized driver behavior modeling, however, these mechanisms have rarely been studied side by side, and to our knowledge, their combined use has not been examined in the dilemma zone setting. Two gaps, therefore, remain directly relevant to dilemma zone prediction: existing driver representations sit between handcrafted statistics that are interpretable but semantically thin and learned embeddings that are richer but opaque and data hungry, while the joint use of temporal selection and feature-level modulation that has proven effective in other multimodal tasks has not been examined here. Closing both motivates a representation that captures driving style at a semantic level, paired with a conditioning design that guides both which parts of the trajectory matter and how their features are interpreted for stop-go and decision-time prediction. 
+
+2.3. Vision-Language Models for Driver Behavior Understanding 
+
+Vision-language models (VLMs) and large language models (LLMs) have rapidly entered the autonomous driving literature Wei et al. (2026), supported by general-purpose backbones such as CLIP (Radford et al., 2021), BLIP-2 (Li et al., 2023), LLaVA (Liu et al., 2023), and the Qwen-VL family (Bai et al., 2023). Most application work has concentrated on scene-level understanding and end-to-end driving control. DriveGPT4 (Xu et al., 2024) grounded language in vehicle control to produce interpretable end-to-end driving outputs, and DriveLM (Sima et al., 2024) formulated driving reasoning as graph visual question answering across perception, prediction, and planning. LMDrive (Shao et al., 2024) demonstrated closed-loop driving conditioned on natural-language instructions in CARLA, while DriveVLM (Tian et al., 2024) integrated chain-of-thought reasoning into the driving stack for complex urban scenes. From a planning perspective, GPT-Driver (Mao et al., 2024) casts motion planning as a language modeling task, and VLP (Pan et al., 2024) used vision-language priors to inject contextual knowledge into the planner. These works show that natural-language representations can capture aspects of driving that are difficult to articulate through purely numerical states, but their target is the scene and the policy rather than the individual driver.   
+
+> :Preprint submitted to Elsevier Page 5 of 26
+
+A smaller line of work has begun to use language for driver-level rather than scene-level characterization. Cui et al. (2024) fine-tuned an LLM-based driving assistant on conversational personalization data and showed in field experiments that natural-language instructions can shape adaptive driving behavior. For longitudinal control, Qin et al. (2025b) fine-tuned LLaMA-3 and Mistral on a synthetic dataset of driver preferences and contextual conditions, demonstrating that an LLM can identify and balance competing objectives such as efficiency, comfort, and safety when generating personalized cruise commands. These efforts indicate that language is a workable medium for expressing the qualitative attributes of how an individual driver behaves. The resulting representations, however, are consumed by the language model itself to produce control commands rather than being packaged as a portable representation for a separate predictor. Independently, sentence-level text encoders such as Sentence-BERT (Reimers and Gurevych, 2019) and MiniLM (Wang et al., 2020a) have made it practical to convert natural-language descriptions into dense embeddings that integrate cleanly with downstream neural models, which makes language-derived driver descriptions usable as conditioning vectors rather than only as control outputs. Despite this momentum, the use of VLMs for individual driver profiling from historical trajectory evidence remains rare. The dominant VLM-driving literature is occupied with scene or policy questions, and the language-personalized control work treats the language model as the controller rather than as a profile generator for a separate predictor. To our knowledge, no prior work has used a VLM to read a driver’s historical trajectory evidence, summarize it as a semantic profile, and use that profile to condition downstream stop-go and decision time prediction in the dilemma zone. VISTA-DZ targets this gap. 
+
+2.4. Generalization across Drivers and Driving Domains 
+
+Evaluating whether a personalized model generalizes to an unseen driver is a long-standing concern in driver behavior research. LODO and subject-independent splits are commonly used for this purpose, and they typically reveal a gap between within-driver and across-driver performance that is most pronounced for personalization mechanisms tied to driver-specific signals (Martinez et al., 2017). Several adaptation strategies have been proposed to narrow this gap. Meta-learning approaches based on the model-agnostic framework of Finn et al. (2017) aim to produce models that can specialize to new drivers from only a few observed examples, and learned driver representations such as Driver2Vec (Yang et al., 2021) use auxiliary identification objectives to embed each driver into a vector space that transfers to downstream tasks. These methods reduce but do not eliminate the cold-start problem: a driver whose behavioral distribution lies outside the training population, or whose historical record is short or noisy, can still produce a representation that the predictor has little prior experience with. Cross-domain transfer between simulated and real driving environments introduces a different set of challenges. Driving simulators such as CARLA (Dosovitskiy et al., 2017) offer scale, controlled scenario design, and access to safety-critical situations that would be difficult or unsafe to collect on the road, and they have been used extensively to train end-to-end driving policies and behavior models. The trajectories these systems produce, however, differ from real vehicle data in sensor characteristics, vehicle dynamics, and driver behavior. Several strategies have been developed to close this gap. Domain randomization, introduced by Tobin et al. (2017) for robotic perception and later extended to driving, exposes the model to enough simulator variation during training that the real environment lies within the training distribution. Adversarial domain adaptation methods such as DANN (Ganin and Lempitsky, 2015) instead learn feature representations that are invariant to the source-target distinction. Bewley et al. (2019) demonstrated that a driving policy trained entirely in simulation can be transferred to a real vehicle with appropriate adaptation, and Mueller et al. (2018) showed that policy transfer is more robust when intermediate representations are made explicitly invariant to surface appearance. Beyond these adaptation methods, a simpler and frequently effective approach is to train jointly on simulated and real data, using real samples to calibrate features that the model would otherwise overfit to simulator-specific patterns. Joint evaluation of unseen-driver generalization and sim-to-real transfer in personalized dilemma zone prediction remains largely absent. Existing LODO studies tend to focus on within-domain prediction, and sim-to-real work in driving has concentrated on perception or full driving policy rather than on stop-go and decision time prediction at signalized intersections. Whether a personalized model that performs well within a single simulation domain still works when the driver is unseen, when the data domain shifts to real vehicles, or when both shifts occur simultaneously has not been examined for dilemma zone behavior. The 3 × 3 cross-domain protocol, together with the LODO evaluation in this paper, is designed to fill this gap.   
+
+> :Preprint submitted to Elsevier Page 6 of 26
+
+## 3. Problem Formulation 
+
+This study considers personalized driver decision prediction in the dilemma zone at signalized intersections. For each driving instance, the goal is to predict both the driver’s stop-go decision after yellow onset and the time at which the decision is made. In addition to defining the prediction target itself, the problem must also account for two practical challenges: inter-driver heterogeneity and distribution shift across different evaluation settings. The former motivates personalized modeling, while the latter requires explicit analysis of generalization to unseen drivers and transfer between virtual and real driving environments. 
+
+3.1. Input and Output Definitions 
+
+Let 𝐗 𝑖 denote the trajectory sample associated with the 𝑖 -th driving instance. Each sample consists of a fixed-length observation window collected after the yellow onset as the vehicle approaches the intersection: 
+
+𝐗 𝑖 = [ 𝐱 𝑖, 1, 𝐱 𝑖, 2, … , 𝐱 𝑖,𝑇 ] ∈ ℝ𝑇 ×𝐶 , (1) where 𝑇 is the number of time steps and 𝐶 is the number of input channels. In this work, 𝑇 = 93 and 𝐶 = 3 . Each time step is represented by 
+
+𝐱 𝑖,𝑡 = [ 𝑑 𝑖,𝑡 , 𝑣 𝑖,𝑡 , 𝑎 𝑖,𝑡 ], (2) where 𝑑 𝑖,𝑡 denotes the distance to the stop line, 𝑣 𝑖,𝑡 denotes the vehicle speed, and 𝑎 𝑖,𝑡 denotes the longitudinal acceleration at time step 𝑡 .For each trajectory sample, two prediction targets are defined. The first is a binary stop-go decision label, 
+
+𝑦 𝑐𝑙𝑠 𝑖 ∈ {0 , 1} , (3) where 𝑦 𝑐𝑙𝑠 𝑖 = 0 indicates that the driver stops and 𝑦 𝑐𝑙𝑠 𝑖 = 1 indicates that the driver proceeds through the intersection. The second is a continuous decision-time label, 
+
+𝑦 𝑟𝑒𝑔 𝑖 ∈ ℝ, (4) which represents the elapsed time between the yellow onset and the driver’s commitment to the stop-go decision. The learning task is therefore formulated as a joint prediction problem that maps the observed trajectory window to both a classification output and a regression output: 
+
+𝑓 (𝐗 𝑖 ) → (̂𝑦 𝑐𝑙𝑠 𝑖 ,̂𝑦 𝑟𝑒𝑔 𝑖 ), (5) where ̂𝑦 𝑐𝑙𝑠 𝑖 and ̂𝑦 𝑟𝑒𝑔 𝑖 denote the predicted stop-go decision and predicted decision time, respectively. This formulation captures both the discrete behavioral outcome and the temporal dynamics of the decision process. 
+
+3.2. Personalized Prediction Setting 
+
+Dilemma zone behavior varies substantially across drivers. Even under similar approach conditions, drivers may differ in braking style, response timing, and willingness to proceed through the intersection. To account for this heterogeneity, each sample is associated with a driver identity 𝑢 𝑖 ∈  , where  denotes the set of all drivers in the dataset. In the personalized setting, each driver 𝑢 𝑖 is further associated with a driver-specific profile vector 
+
+𝐩 𝑢 𝑖 ∈ ℝ𝑚 , (6) where 𝑚 denotes the profile dimension. This vector represents behavioral information derived from the driver’s historical data and is used to condition the prediction model. The personalized prediction task can then be written as 
+
+𝑓 (𝐗 𝑖 , 𝐩 𝑢 𝑖 ) → (̂𝑦 𝑐𝑙𝑠 𝑖 ,̂𝑦 𝑟𝑒𝑔 𝑖 ). (7) Under this formulation, the trajectory 𝐗 𝑖 captures the instantaneous motion pattern of the current approach, while 
+
+𝐩 𝑢 𝑖 provides driver-level context that reflects persistent behavioral tendencies. In other words, the model is expected to   
+
+> :Preprint submitted to Elsevier Page 7 of 26
+
+interpret the same trajectory pattern differently when it is associated with different driver profiles. This setting is more appropriate for dilemma zone prediction than a purely global formulation, because the boundary between stopping and proceeding is not determined by kinematics alone, but also by individual driving style. In this paper, the driver profile is treated as a general personalization variable at the formulation level. Its specific construction is introduced in the methodology section, where both conventional handcrafted driver descriptors and VLM-generated semantic driver profiles are considered. 
+
+3.3. Generalization and Cross-Domain Settings 
+
+Beyond prediction accuracy under standard data splits, this work also examines how personalized models generalize under more challenging conditions. Two types of generalization are considered: cross-driver generalization and cross-domain generalization. Cross-driver generalization addresses whether a model trained on one set of drivers can maintain performance when applied to a driver whose behavior has not been observed during training. In the standard random-split setting, the training and test sets may contain different trajectory samples from the same driver. This setting evaluates how effectively the model can exploit driver-specific information when the driver is represented in the training data. In contrast, the LODO setting enforces driver-level separation between training and testing. Let 𝑡𝑟𝑎𝑖𝑛 and 𝑡𝑒𝑠𝑡 denote the driver sets used for training and evaluation, respectively. Under LODO, 
+
+𝑡𝑟𝑎𝑖𝑛 ∩ 𝑡𝑒𝑠𝑡 = ∅ . (8) This setting is used to evaluate generalization to unseen drivers and to assess the robustness of personalization under a cold-start scenario. Cross-domain generalization addresses transfer across different data sources. In this work, the data come from two domains: a simulation domain and a controlled real-world driving domain. Let 𝑠𝑖𝑚 denote the set of samples collected in the simulator and 𝑟𝑒𝑎𝑙 denote the set of samples collected in real vehicle experiments under controlled field conditions. In addition, a combined domain is defined by 
+
+𝑐𝑜𝑚𝑏 = 𝑠𝑖𝑚 ∪ 𝑟𝑒𝑎𝑙 . (9) The cross-domain setting considers training on one of these domains and evaluating on the same or another domain, thereby forming a 3 × 3 train-test evaluation matrix. This design makes it possible to examine in-domain performance, simulator-to-real transfer, real-to-simulator transfer, and the effect of joint training on both domains. Taken together, the random split, LODO, and cross-domain settings provide a more complete view of personalized dilemma zone prediction than a single evaluation protocol. They make it possible to distinguish between three related but different questions: whether personalization improves prediction for observed drivers, whether it generalizes to unseen drivers, and whether it remains reliable across virtual and real driving environments. 
+
+## 4. Methodology 
+
+This section presents the proposed Visual Semantic Trajectory Adaptation for personalized Dilemma Zone prediction (VISTA-DZ) framework. The goal is to predict both the stop-go decision and the decision time of a driver approaching a signalized intersection under yellow-signal onset. VISTA-DZ combines two sources of information: the short-term kinematic evidence from the current pre-yellow trajectory and the long-term behavioral tendency of the corresponding driver. The latter is represented by a semantic driver profile generated from historical dilemma zone trajectories and then used to personalize the trajectory encoder through driver-conditioned multi-head cross-attention and Feature-wise Linear Modulation (FiLM). 
+
+4.1. Problem Formulation 
+
+For the 𝑖 -th driving instance, let 𝑢 𝑖 denote the driver identity. The model input is a fixed-length trajectory window observed before the yellow signal appears: 
+
+𝐗 𝑖 = [𝐱 𝑖, 1, 𝐱 𝑖, 2, … , 𝐱 𝑖,𝑇 
+
+] ∈ ℝ𝑇 ×3 , (10) where 𝑇 = 93 corresponds to approximately three seconds of pre-yellow motion sampled at around 31 Hz. Each timestep contains three kinematic channels: 
+
+𝐱 𝑖,𝑡 = [𝑑 𝑖,𝑡 , 𝑣 𝑖,𝑡 , 𝑎 𝑖,𝑡 
+
+] , (11)   
+
+> :Preprint submitted to Elsevier Page 8 of 26
+
+Figure 3: Overall framework of the proposed VISTA-DZ model. Historical dilemma zone trajectories are transformed into a semantic driver profile 𝐩 𝑢 through trajectory overlay visualization, VLM-based behavioral description, and sentence-transformer embedding. For the current trajectory sample 𝐗 𝑖 , a BiGRU encoder extracts temporal hidden states, which are personalized by the driver profile through driver-conditioned multi-head cross-attention and FiLM-based feature modulation. The resulting adapted representation is passed to shared prediction layers to jointly predict the stop-go decision and decision time. 
+
+where 𝑑 𝑖,𝑡 is the distance to the stop line, 𝑣 𝑖,𝑡 is the longitudinal speed, and 𝑎 𝑖,𝑡 is the longitudinal acceleration. The prediction target contains two outputs. The first is a binary stop-go decision: 
+
+𝑦 𝑠𝑔 𝑖 ∈ {0 , 1} , (12) where 0 denotes stop and 1 denotes go. The second is the decision time: 
+
+𝑦 𝑑𝑡 𝑖 ∈ ℝ, (13) which measures the time elapsed from the yellow onset to the driver’s decision commitment. In addition to the current trajectory, VISTA-DZ uses a driver-specific semantic profile vector: 
+
+𝐩 𝑢 𝑖 ∈ ℝ384 , (14) which summarizes the historical behavioral tendency of driver 𝑢 𝑖 . The overall prediction function is therefore written as 
+
+𝑓 
+
+(
+
+𝐗 𝑖 , 𝐩 𝑢 𝑖 
+
+)
+
+→ (̂𝑜 𝑠𝑔 𝑖 ,̂𝑦 𝑑𝑡 𝑖 
+
+) , (15) where ̂𝑜 𝑠𝑔 𝑖 is the predicted stop-go logit and ̂𝑦 𝑑𝑡 𝑖 is the predicted decision time. At inference time, the stop-go class is obtained using a zero-logit threshold: ̂𝑦 𝑠𝑔 𝑖 = 𝕀 (̂𝑜 𝑠𝑔 𝑖 > 0) , (16) which is equivalent to thresholding the sigmoid probability at 0.5. 
+
+: Preprint submitted to Elsevier Page 9 of 26 4.2. Semantic Driver Profile Generation 
+
+The central assumption of VISTA-DZ is that dilemma zone behavior is driver-dependent. For the same speed, distance, and acceleration pattern, different drivers may make different stop-go decisions due to differences in risk tolerance, braking style, and decision consistency. To represent these driver-level tendencies, VISTA-DZ constructs a semantic driver profile from historical dilemma zone trajectories. For a driver 𝑢 ∈  , let 
+
+𝑢 =
+
+{
+
+𝐗 (1)  
+
+> 𝑢
+
+, 𝐗 (2)  
+
+> 𝑢
+
+, … , 𝐗 (𝑁 𝑢 )
+
+> 𝑢
+
+}
+
+(17) denote the set of historical trajectory samples associated with that driver. In addition to raw trajectories, a set of driver-level behavioral statistics is computed: 
+
+𝐫 𝑢 = [𝑔 𝑢 ,̄𝑣 𝑢 ,̄ 𝑑 𝑢 ,̄𝜏 𝑢 , 𝜎 𝑢 𝑣 , 𝛿 𝑑𝑒𝑐 𝑢 
+
+] , (18) where 𝑔 𝑢 is the driver’s go probability, ̄𝑣 𝑢 is the average speed at the decision point, ̄ 𝑑 𝑢 is the average distance to the stop line at the decision point, ̄𝜏 𝑢 is the average decision time, 𝜎 𝑢 𝑣 measures speed consistency, and 𝛿 𝑑𝑒𝑐 𝑢 denotes the maximum deceleration-related statistic extracted from the driver’s historical trajectories. 
+
+4.2.1. Trajectory Visualization and VLM Description 
+
+The historical trajectory set 𝑢 is converted into a structured trajectory visualization: 
+
+𝐕 𝑢 =  (𝑢 
+
+) , (19) where (⋅) denotes the visualization operator. The visualization overlays repeated dilemma zone approaches from the same driver. Distance to the stop line and speed define the two primary axes, acceleration is represented through color, and the final stop/go outcome is distinguished using line style. This representation provides a compact visual summary of how a driver approaches the stop line, whether they maintain speed, decelerate early, or apply stronger braking closer to the intersection. The trajectory visualization 𝐕 𝑢 and the structured statistics 𝐫 𝑢 are then provided to a vision-language model to produce a natural-language behavioral description: 
+
+𝐬 𝑢 = Φ vlm 
+
+(𝐕 𝑢 , 𝐫 𝑢 
+
+) , (20) where Φvlm (⋅) denotes the VLM inference process and 𝐬 𝑢 is a textual description of driver 𝑢 . In implementation, Qwen2.5-VL:7B is used to generate the driver description from the trajectory visualization and the structured prompt. The generated description summarizes behavioral dimensions such as decision tendency, aggressiveness, braking style, and speed consistency. 
+
+4.2.2. Text Embedding 
+
+The natural-language driver description is encoded into a dense vector using a sentence transformer: 
+
+𝐩 𝑢 = Φ text 
+
+(𝐬 𝑢 
+
+) , 𝐩 𝑢 ∈ ℝ384 , (21) where Φtext (⋅) denotes the text encoder. In this work, all-MiniLM-L6-v2 is used as the text embedding model, yielding a 384-dimensional semantic profile for each driver. The resulting profile is treated as a fixed driver-level conditioning variable and is shared by all prediction samples associated with the same driver. This profile generation process does not simply append manually selected statistics to the prediction model. Instead, it restructures historical trajectory patterns and driver-level statistics into an interpretable semantic representation. This design allows the subsequent prediction network to use driver-level behavioral context while still operating on the current trajectory window for sample-level decision prediction. 
+
+4.2.3. Proxy Profiles for Real-World Drivers 
+
+For real-world drivers, the same semantic profile format is required so that simulation and real-world data can be used within a unified model. However, real-world driver histories are typically smaller and noisier, and pre-existing personalized statistics may not be available in the same format as the simulation data. Therefore, for real-world drivers, VISTA-DZ constructs template-based proxy descriptions from trajectory-derived statistics.     
+
+> :Preprint submitted to Elsevier Page 10 of 26 Figure 4: Generation of semantic driver profiles. Historical trajectory patterns and driver-level statistics are converted into a VLM-based behavioral description and then encoded into a 384-dimensional profile embedding 𝐩 𝑢 . Real-world proxy profiles are generated through template-based descriptions and encoded using the same sentence transformer.
+
+For a real-world driver 𝑢 , statistics such as go probability, mean speed at yellow onset, maximum deceleration, and speed consistency are computed directly from the available real-world trajectories and decisions. These statistics are inserted into a fixed natural-language template that follows the same linguistic structure as the VLM-generated simulation profiles. The resulting text is encoded using the same sentence transformer: 
+
+𝐩 𝑟𝑤 𝑢 = Φ text 
+
+( (𝐫 𝑟𝑤 𝑢 )) , (22) where  (⋅) denotes the template-based description generator and 𝐫 𝑟𝑤 𝑢 denotes the real-world driver statistics. Using the same text encoder ensures that simulation profiles and real-world proxy profiles lie in the same semantic embedding space. In all experiments, the driver profile is treated as prior driver-level information. It is not updated by the prediction network during training or inference. The current trajectory sample 𝐗 𝑖 provides the short-term evidence for the specific decision event, while 𝐩 𝑢 𝑖 provides the long-term behavioral context of the corresponding driver. 
+
+4.3. VISTA-DZ Prediction Network 
+
+Given the current trajectory 𝐗 𝑖 and the semantic driver profile 𝐩 𝑢 𝑖 , the VISTA-DZ prediction network first encodes the trajectory using a Bidirectional GRU (BiGRU), and then uses the driver profile to personalize the encoded temporal representation. Specifically, the driver profile is integrated into the prediction network through two consecutive conditioning mechanisms. First, it serves as the query in a driver-conditioned multi-head cross-attention module to select driver-relevant temporal evidence from the BiGRU hidden states. Second, it generates FiLM parameters to modulate the attended trajectory context in a feature-wise manner. The resulting personalized representation is then passed to shared prediction layers for joint stop-go classification and decision-time regression. 
+
+4.3.1. BiGRU Trajectory Encoder 
+
+The current trajectory sequence is encoded using a multi-layer Bidirectional GRU. Let 𝐷 ℎ denote the output dimension of the bidirectional hidden state. With hidden size ℎ = 128 , the forward and backward hidden states are   
+
+> :Preprint submitted to Elsevier Page 11 of 26
+
+Figure 5: Architecture of the proposed VISTA-DZ prediction network. The current trajectory is encoded by a BiGRU, personalized through driver-conditioned multi-head cross-attention and FiLM modulation using the semantic driver profile, and finally passed to dual heads for stop-go classification and decision-time regression. 
+
+concatenated, giving 𝐷 ℎ = 2 ℎ = 256 . The encoded trajectory representation is 
+
+𝐇 𝑖 = BiGRU (𝐗 𝑖 
+
+) , 𝐇 𝑖 ∈ ℝ𝑇 ×𝐷 ℎ . (23) In the proposed model, the BiGRU uses three recurrent layers with dropout set to 0.2 between layers. Since 𝑇 = 93 
+
+and 𝐷 ℎ = 256 , the encoder output is 𝐇 𝑖 ∈ ℝ93×256 . Each hidden state 𝐡 𝑖,𝑡 ∈ ℝ256 contains temporal information from both past and future directions within the pre-yellow observation window. The use of a recurrent trajectory encoder is motivated by the sequential nature of dilemma zone decision making. A driver’s decision is not determined only by the instantaneous speed or distance at a single timestep, but also by how 
+
+: Preprint submitted to Elsevier Page 12 of 26 these signals evolve before the yellow onset. For example, gradual early deceleration and late strong braking may lead to different decision interpretations even when the vehicle has a similar speed near the end of the observation window. 
+
+4.3.2. Driver-Conditioned Multi-Head Cross-Attention 
+
+After trajectory encoding, VISTA-DZ uses the semantic driver profile to select driver-relevant temporal evidence from the BiGRU hidden states. The driver profile serves as the query, while the trajectory hidden states provide the keys and values. This design allows the model to attend to different temporal portions of the same trajectory depending on the driver’s historical behavioral tendency. Let 𝑀 = 4 denote the number of attention heads and let 𝐷 𝑎 = 32 denote the attention dimension of each head. The trajectory keys and driver query are computed as 
+
+𝐊 𝑖 = reshape (𝐇 𝑖 𝐖 𝐾 + 𝐛 𝐾 
+
+) ∈ ℝ𝑀 ×𝑇 ×𝐷 𝑎 , (24) 
+
+𝐐 𝑖 = reshape 
+
+(
+
+𝐩 𝑢 𝑖 𝐖 𝑄 + 𝐛 𝑄 
+
+)
+
+∈ ℝ𝑀 ×1× 𝐷 𝑎 , (25) where 𝐖 𝐾 ∈ ℝ𝐷 ℎ×( 𝑀𝐷 𝑎 ) and 𝐖 𝑄 ∈ ℝ384×( 𝑀𝐷 𝑎 ) are learnable projection matrices. The value representation is taken as the original BiGRU hidden states: 
+
+𝐕 𝑖 = 𝐇 𝑖 . (26) For the 𝑚 -th attention head, the attention weights over the 𝑇 trajectory timesteps are computed as 
+
+𝜶 (𝑚 ) 
+
+> 𝑖
+
+= sof tmax 
+
+⎛⎜⎜⎜⎝
+
+𝐐 (𝑚 )
+
+> 𝑖
+
+(
+
+𝐊 (𝑚 )
+
+> 𝑖
+
+)⊤
+
+√𝐷 𝑎 
+
+⎞⎟⎟⎟⎠
+
+, 𝜶 (𝑚 ) 
+
+> 𝑖
+
+∈ ℝ1× 𝑇 . (27) The context vector for this head is obtained by applying the attention weights to the full BiGRU hidden states: 
+
+𝐜 (𝑚 ) 
+
+> 𝑖
+
+= 𝜶 (𝑚 ) 
+
+> 𝑖
+
+𝐇 𝑖 , 𝐜 (𝑚 ) 
+
+> 𝑖
+
+∈ ℝ𝐷 ℎ . (28) Although each head computes its attention score in a lower-dimensional attention subspace, the weighted aggregation is applied to the full 256-dimensional trajectory hidden states. This allows each head to identify a different temporal pattern while preserving the complete encoded trajectory representation. The final driver-conditioned trajectory context is obtained by averaging the head-specific context vectors: 
+
+𝐜 𝑖 = 1
+
+𝑀 
+
+> 𝑀
+
+∑
+
+> 𝑚 =1
+
+𝐜 (𝑚 ) 
+
+> 𝑖
+
+, 𝐜 𝑖 ∈ ℝ𝐷 ℎ . (29) Fig. 6 illustrates the detailed structure of the driver-conditioned multi-head cross-attention module. The semantic profile 𝐩 𝑢 𝑖 is projected as the query, while the BiGRU hidden states 𝐇 𝑖 are projected as keys and also used as values. The four attention heads compute distinct attention distributions over the 93 timesteps, and their context vectors are averaged to obtain 𝐜 𝑖 . Compared with global average pooling, this design does not assume that all timesteps contribute equally. Instead, the driver profile determines which parts of the pre-yellow trajectory are most informative for the decision of that specific driver. 
+
+4.3.3. Layer Normalization and FiLM Adaptation 
+
+The attention context is first normalized before profile-based feature modulation: ̃
+
+𝐜 𝑖 = LayerNorm (𝐜 𝑖 
+
+) . (30) Layer normalization stabilizes the context representation produced by multi-head attention and reduces sensitivity to large variations in the attended trajectory features.   
+
+> :Preprint submitted to Elsevier Page 13 of 26
+
+Figure 6: Detailed structure of the driver-conditioned multi-head cross-attention module. The semantic driver profile 𝐩 𝑢 𝑖 
+
+is used as the query, while the BiGRU hidden states 𝐇 𝑖 provide keys and values. Four attention heads compute driver-conditioned temporal attention over 93 timesteps, and the resulting head-specific context vectors are averaged to produce the trajectory context feature 𝐜 𝑖 .
+
+The semantic driver profile is then mapped to a feature-wise scale vector and a feature-wise shift vector: 
+
+𝜸 𝑢 𝑖 = 𝜙 𝛾 
+
+(
+
+𝐩 𝑢 𝑖 
+
+)
+
+, 𝜷 𝑢 𝑖 = 𝜙 𝛽 
+
+(
+
+𝐩 𝑢 𝑖 
+
+)
+
+, (31) where 𝜙 𝛾 (⋅) and 𝜙 𝛽 (⋅) are two independent multilayer perceptrons. Each MLP has the structure 
+
+Linear(384 , 128) → GELU → Linear(128 , 256) , (32) so that 
+
+𝜸 𝑢 𝑖 , 𝜷 𝑢 𝑖 ∈ ℝ256 . (33) The personalized feature representation is obtained by FiLM modulation: 
+
+𝐳 𝑖 =
+
+(
+
+𝟏 + 𝜸 𝑢 𝑖 
+
+)
+
+⊙̃ 𝐜 𝑖 + 𝜷 𝑢 𝑖 , (34) where ⊙ denotes element-wise multiplication. The scale term 𝟏 + 𝜸 𝑢 𝑖 allows the modulation to preserve the identity mapping when the learned scale is near zero, while 𝜷 𝑢 𝑖 shifts the feature representation according to the driver’s semantic profile. Fig. 7 shows the detailed FiLM-based feature adaptation process. The context feature 𝐜 𝑖 from the attention module is first normalized. Meanwhile, the semantic driver profile 𝐩 𝑢 𝑖 is passed through the FiLM generator to produce the feature-wise scale and shift parameters (𝜸 𝑢 𝑖 , 𝜷 𝑢 𝑖 ). These parameters modulate the normalized context feature and produce the adapted personalized feature 𝐳 𝑖 . This design is well-suited for personalized dilemma zone prediction because the same observed trajectory can imply different intentions for different drivers. Rather than merely concatenating driver information to the trajectory feature, FiLM changes the interpretation of each feature dimension based on the driver’s historical behavioral tendency. 
+
+: Preprint submitted to Elsevier Page 14 of 26 Figure 7: Detailed structure of the FiLM-based feature adaptation module. The attention context feature 𝐜 𝑖 is first normalized by LayerNorm. The semantic driver profile 𝐩 𝑢 𝑖 is then mapped to feature-wise scale and shift parameters 
+
+(𝜸 𝑢 𝑖 , 𝜷 𝑢 𝑖 ), which modulate the normalized context feature to produce the adapted personalized representation 𝐳 𝑖 .
+
+4.3.4. Dual-Task Prediction Heads 
+
+The personalized feature 𝐳 𝑖 is passed through a shared multilayer prediction trunk: 
+
+𝐪 𝑖 = 𝜙 pred 
+
+(𝐳 𝑖 
+
+) , 𝐪 𝑖 ∈ ℝ32 . (35) The shared trunk is implemented as 
+
+Linear(256 , 128) → GELU → Dropout(0 .2) (36) 
+
+→ Linear(128 , 64) → GELU → Dropout(0 .1) (37) 
+
+→ Linear(64 , 32) → GELU . (38) Two task-specific linear heads are then used for classification and regression: ̂𝑜 𝑠𝑔 𝑖 = 𝜙 𝑠𝑔 
+
+(𝐪 𝑖 
+
+) ,̂ 𝑦 𝑑𝑡 𝑖 = 𝜙 𝑑𝑡 
+
+(𝐪 𝑖 
+
+) , (39) where ̂𝑜 𝑠𝑔 𝑖 is the raw stop-go logit and ̂𝑦 𝑑𝑡 𝑖 is the predicted decision time. The stop-go class is obtained by thresholding the raw logit: ̂𝑦 𝑠𝑔 𝑖 = 𝕀 (̂𝑜 𝑠𝑔 𝑖 > 0) . (40) The stop-go head and decision-time head share the personalized representation but optimize different prediction objectives. This dual-task design encourages the model to learn a representation that captures both the final decision outcome and the temporal dynamics of decision commitment. 
+
+: Preprint submitted to Elsevier Page 15 of 26 4.4. Training Objective 
+
+VISTA-DZ is trained with a joint objective that combines stop-go classification and decision-time regression: 
+
+ = 𝑠𝑔 + 𝜆 𝑑𝑡 𝑑𝑡 , (41) where 𝜆 𝑑𝑡 = 0 .2 controls the contribution of the decision-time regression term. 
+
+4.4.1. Stop-Go Classification Loss 
+
+The stop-go branch is optimized using focal loss on the raw logits. Let ̂𝑝 𝑖 = 𝜎 (̂𝑜 𝑠𝑔 𝑖 
+
+) (42) denote the predicted probability of the go class. For the ground-truth label 𝑦 𝑠𝑔 𝑖 , define 
+
+𝑝 𝑡,𝑖 =̂𝑝 𝑖 𝑦 𝑠𝑔 𝑖 + (1 − ̂𝑝 𝑖 
+
+) ( 1 − 𝑦 𝑠𝑔 𝑖 
+
+) . (43) The binary cross-entropy term is 
+
+BCE 𝑖 = − 𝑦 𝑠𝑔 𝑖 log (̂𝑝 𝑖 
+
+) − (1 − 𝑦 𝑠𝑔 𝑖 
+
+) log (1 − ̂𝑝 𝑖 
+
+) . (44) The focal classification loss is then 
+
+𝑠𝑔 = 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑖 =1
+
+𝛼 𝑡,𝑖 
+
+(1 − 𝑝 𝑡,𝑖 
+
+)𝛾 BCE 𝑖 , (45) where 𝛾 = 2 .0 is the focusing parameter and 𝛼 = 0 .5 is used for class balancing. This loss down-weights easily classified samples and encourages the model to focus on more ambiguous cases near the stop-go boundary. 
+
+4.4.2. Decision-Time Regression Loss 
+
+The decision-time branch is optimized using mean squared error: 
+
+𝑑𝑡 = 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑖 =1
+
+(̂𝑦 𝑑𝑡 𝑖 − 𝑦 𝑑𝑡 𝑖 
+
+)2 . (46) The regression loss is weighted by 𝜆 𝑑𝑡 = 0 .2 because decision-time estimation is treated as a complementary task to stop-go prediction. This prevents the regression term from dominating the optimization while still encouraging the shared representation to encode temporal decision information. 
+
+4.4.3. Optimization and Regularization 
+
+The model is trained using AdamW with learning rate 5 × 10 −5 and weight decay 1 × 10 −4 . A linear warmup schedule is applied for the first 30 epochs, increasing the learning rate from 1 × 10 −6 to 5 × 10 −5 . After warmup, cosine decay is used to gradually reduce the learning rate toward 1 × 10 −6 . Gradient clipping with maximum norm 1.0 is applied to stabilize recurrent and attention-based training. The batch size is set to 32. During training, online Gaussian perturbation with standard deviation 𝜎 = 0 .01 is added to the trajectory input as data augmentation: ̃
+
+𝐗 𝑖 = 𝐗 𝑖 + 𝝐 , 𝝐 ∼  (𝟎 , 0.01 2𝐈 ) . (47) This augmentation is applied only during training and is disabled during evaluation. Dropout is used in both the BiGRU and the shared prediction trunk to reduce overfitting. Overall, VISTA-DZ learns a personalized decision model by combining trajectory-level temporal encoding, semantic driver-conditioned attention, and feature-wise adaptation. The BiGRU captures the temporal evolution of the pre-yellow trajectory, the VLM-derived profile guides the model toward driver-relevant temporal evidence, and FiLM adapts the attended trajectory representation to the driver’s long-term behavioral tendency before jointly predicting the stop-go decision and decision time.   
+
+> :Preprint submitted to Elsevier Page 16 of 26
+
+Table 1 
+
+Summary of the datasets used in this study. Dataset Domain Drivers Trajectories SDZ (Qin et al., 2025a) Simulation 20 961 FDZ (ours) Controlled field driving 6 172 Decision Collection Buttons 
+
+> Driving Simulator
+> Dilemma Zone Scenario
+
+(a) SDZ Dataset Decision Collection Buttons  
+
+> Instrumented Vehicle
+> Data Collection Site
+> CAN bus
+> GNSS
+> In-cabin Traffic Light
+> Stop Line
+> Start point 1
+> Start point 2
+
+(b) FDZ Dataset 
+
+Figure 8: Dataset Collection Setup 
+
+## 5. Datasets 
+
+This study uses two complementary datasets for evaluation. The first is the Simulator Dilemma Zone (SDZ) dataset introduced in Qin et al. (2025a), which provides repeated dilemma zone approach trajectories under controlled virtual traffic conditions. The second is our newly collected Field Dilemma Zone dataset (FDZ) , which records real-vehicle approaches under controlled field experiments designed to reproduce dilemma zone decision scenarios in a safer and more manageable setting. As described in Table 1, the SDZ dataset comprises 961 trajectories collected from 20 drivers, while the FDZ dataset comprises 172 trajectories from 6 drivers. As shown in Figure 8a, the SDZ dataset was collected using the CARLA simulator with a Logitech steering wheel kit as the input device to capture driver operations; two buttons on the steering wheel were assigned to record stop–go decisions. The SDZ dataset encompasses three categories of information: complete time-series trajectory data, trajectory-level stop-go decision labels, and driver-level personalized behavior statistics. Specifically, the trajectory data record dynamic features including vehicle position, speed, acceleration, throttle input, brake input, signal state, and distance to the stop line; the decision data provide the stop-go label and the corresponding decision-state information for each trajectory; and the personalized behavior statistics summarize each driver’s average decision time, speed at decision point, distance to the stop line at decision, and probability of selecting a go decision. The FDZ dataset was collected via an instrumented vehicle, as shown in Figure 8b, which is equipped with a GNSS receiver and an IMU for trajectory retrieval. An in-cabin traffic light was additionally installed and could be toggled manually to ensure that drivers encountered yellow-light dilemma zone scenarios in the majority of trials. Vehicle states and driver operations were recorded via the CAN bus; further details of the vehicle setup are provided in Wei et al. (2025a). The data collection site was selected at a dead-end road in Riverside, California, USA, to ensure the safety of volunteers with respect to surrounding traffic and to avoid disrupting normal traffic operations. 
+
+: Preprint submitted to Elsevier Page 17 of 26 The two datasets serve different roles in the evaluation. SDZ provides sufficient scale for controlled comparison under random split and LODO protocols, while FDZ is used to examine whether the learned personalization mechanisms remain effective when the model is exposed to real-vehicle trajectories collected outside the simulator. This combination allows the experiments to cover both within-domain behavior modeling and cross-domain transfer. 
+
+## 6. Experiments and Results 
+
+This section evaluates the proposed VISTA-DZ framework from four complementary perspectives. First, we examine whether semantic driver profiles provide a useful personalization signal compared with trajectory-only prediction and handcrafted driver descriptors. Second, we evaluate the architectural components of the final VISTA-DZ model, including model capacity, FiLM conditioning, driver-conditioned cross-attention, and multi-head attention. Third, we assess generalization to unseen drivers through the LODO evaluation on the simulation dataset. Finally, we study cross-domain transfer between simulation and real-world driving data. 
+
+6.1. Experimental Setup 
+
+6.1.1. Datasets and prediction task 
+
+The prediction task contains two outputs: a binary stop-go decision and a continuous decision time Δ𝑡 . Each input sample consists of a fixed-length pre-yellow trajectory window with 𝑇 = 93 time steps, corresponding to approximately three seconds before the yellow signal onset. Each time step contains three kinematic channels: distance to the stop line, speed, and longitudinal acceleration. The simulation dataset contains 961 trajectories from 20 drivers. Unless otherwise specified, random-split experiments use an 80%/20% split, resulting in 768 training trajectories and 193 testing trajectories. The real-world dataset contains 172 trajectories from six drivers. Real-world driver IDs are offset from the simulation driver IDs to avoid namespace overlap when the two domains are combined. For simulation drivers, semantic driver profiles are generated from historical trajectory statistics and trajectory visualizations. For real-world drivers, proxy semantic profiles are generated from the same type of behavioral statistics and encoded using the same text encoder, so that simulation and real-world driver profiles are represented in a shared semantic embedding space. 
+
+6.1.2. Evaluation protocols 
+
+We use four evaluation protocols. First, a random 80/20 split on the simulation dataset is used to measure in-domain prediction performance. This setting evaluates whether personalization improves stop-go and decision-time prediction when all drivers are represented in both training and testing sets. Second, the LODO evaluation is conducted on the simulation dataset. In each fold, all trajectories from one driver are held out for testing, while the model is trained on the remaining 19 drivers. The held-out driver’s semantic profile is available at test time, but none of that driver’s trajectories are used for model training. This protocol evaluates whether the personalization mechanism can generalize to an unseen driver. Third, we evaluate sim-to-real transfer using three real-world testing conditions. In the zero-shot setting, the model is trained on simulation data and tested on all real-world trajectories without real-world fine-tuning. In the Sim+Real LODO setting, the model is trained on all simulation drivers and five real-world drivers, and tested on the held-out real-world driver. In the Real-only LODO setting, the model is trained only on five real-world drivers and tested on the remaining real-world driver. Fourth, we report a full 3 × 3 cross-domain matrix for the final architectural variants. The three training domains are simulation-only, real-world-only, and combined simulation plus real-world data. The three testing domains are the simulation test set, the held-out real-world test set, and the combined test set. 
+
+6.1.3. Implementation details 
+
+All final VISTA-DZ experiments use a fixed seed of 100. The proposed model is trained with AdamW using a learning rate of 5 × 10 −5 and weight decay of 1 × 10 −4 . A linear warmup schedule is applied for the first 30 epochs, followed by cosine decay. The batch size is 32, and gradient clipping is applied with a maximum norm of 1.0. Additive Gaussian noise with standard deviation 0.01 is used as training-time trajectory augmentation. The total loss is 
+
+ = focal + 0 .2MSE , (48)                     
+
+> :Preprint submitted to Elsevier Page 18 of 26 Table 2
+> Effect of driver profile representation and conditioning on the simulation random split. Accuracy is reported in percentage. Method Accuracy DT MSE DT MAE Traj-Only 84.14 0.2224 0.3632 HCF-Pers 85.46 0.2042 0.3471 VLM-Cat 87.22 0.1957 0.3376 VLM+HCF 85.02 0.2066 0.3403 VLM-FiLM 89.48 0.1902 0.3327
+
+where focal is applied to the stop-go classification logit with 𝛾 = 2 and 𝛼 = 0 .5, and MSE is applied to decision-time regression. The early semantic-profile validation experiments and the final VISTA-DZ architectural ablation serve different purposes. The former isolates the effect of driver profile representation and fusion mechanism under a lighter personalization backbone, while the latter evaluates the components of the final proposed architecture. Therefore, numerical comparisons should be made within each table rather than directly across these two groups of experiments. 
+
+6.2. Effect of Semantic Driver Profiling and Conditioning 
+
+We first evaluate whether semantic driver profiles provide a useful personalization signal. Table 2 compares five personalization designs. Traj-Only uses only the current trajectory. HCF-Pers augments the trajectory representation with handcrafted driver statistics. VLM-Cat uses the semantic driver profile through direct feature concatenation. VLM+HCF combines the semantic profile with handcrafted statistics. VLM-FiLM uses the semantic profile to modulate trajectory features through FiLM conditioning. The results show a consistent benefit from driver-level personalization. HCF-Pers improves stop-go accuracy from 84.14% to 85.46%, indicating that historical driver behavior contains information that is not fully captured by the current pre-yellow trajectory. Replacing handcrafted statistics with semantic VLM profiles further increases accuracy to 87.22% and reduces decision-time error, suggesting that language-based driver profiles provide a richer representation of driver tendency than a small set of scalar descriptors. The hybrid VLM+HCF variant does not improve over VLM-Cat. Its accuracy decreases to 85.02%, and its decision-time errors are also slightly higher than those of VLM-Cat. This result suggests that simply concatenating handcrafted statistics with semantic embeddings may introduce redundant or weakly aligned information. In contrast, VLM-FiLM achieves the best performance across all three metrics, reaching 89.48% accuracy with the lowest MSE and MAE. The improvement from VLM-Cat to VLM-FiLM shows that the way a driver profile is injected into the prediction network is important. FiLM conditioning allows the semantic profile to rescale and shift trajectory features, which is more expressive than direct concatenation. These findings motivate the design of the final VISTA-DZ model. Rather than treating the semantic driver profile as an additional feature vector appended to the trajectory representation, VISTA-DZ uses the profile as an active conditioning signal. The profile first guides temporal evidence selection through driver-conditioned cross-attention and then modulates the resulting trajectory context through FiLM. 
+
+6.3. Ablation Study of the VISTA-DZ Architecture 
+
+We next evaluate the contribution of each architectural component in the final VISTA-DZ model. Table 3 compares five variants under the same simulation 80/20 split. GRU-NP is a small BiGRU without personalization. GRU-NP-L increases the recurrent backbone capacity but still does not use a driver profile. GRU+FiLM adds semantic profile-based FiLM conditioning to the small BiGRU. GRU+XA+FiLM further introduces single-head driver-conditioned cross-attention. VISTA-DZ is the full model with a larger BiGRU backbone, four-head cross-attention, LayerNorm, and FiLM modulation. The comparison between GRU-NP and GRU-NP-L shows that increasing model capacity alone has a limited effect. Although GRU-NP-L has more than six times the number of parameters of GRU-NP, its accuracy improves only from 87.05% to 87.56%. This indicates that the performance gain of the proposed framework cannot be explained simply by a larger recurrent backbone. The largest single improvement comes from adding semantic personalization through FiLM. GRU+FiLM improves accuracy from 87.05% to 91.19%, corresponding to a 4.14 percentage point gain over the no-personalization baseline.                                                                                                               
+
+> :Preprint submitted to Elsevier Page 19 of 26 Table 3
+> Architectural ablation of VISTA-DZ on the simulation random split. Accuracy is reported in percentage. Method Driver profile Backbone Attention Conditioning Params Accuracy GRU-NP None BiGRU-small None None 111,394 87.05 GRU-NP-L None BiGRU-large None None 738,338 87.56 GRU+FiLM Semantic profile BiGRU-small None FiLM 177,314 91.19 GRU+XA+FiLM Semantic profile BiGRU-small Single-head XA FiLM 210,210 92.23 VISTA-DZ Semantic profile BiGRU-large 4-head MHCA FiLM 985,634 93.26 Table 4
+> LODO results of VISTA-DZ on the simulation dataset. Accuracy is reported in percentage. Driver 𝑁 test Accuracy DT MSE 052 92.31 0.1116 149 93.88 0.1480 251 92.16 0.0719 349 93.88 0.1148 446 91.30 0.2049 547 76.60 0.1444 638 92.11 0.4106 744 95.45 0.4078 851 86.27 0.1896 949 91.84 0.1751 10 49 93.88 0.1537 11 50 92.00 0.1752 12 45 95.56 0.1891 13 46 86.96 0.1608 14 47 100.00 0.1853 15 52 90.38 0.5649 16 48 93.75 0.1574 17 50 88.00 0.1361 18 51 92.16 0.0936 19 47 65.96 0.5168 Mean ±Std -90.22 ±7.18 0.2156 ±0.1371
+
+This confirms the importance of driver-level semantic context for dilemma zone prediction. Adding driver-conditioned cross-attention further improves accuracy to 92.23%. This gain indicates that the semantic profile is useful not only for feature-wise modulation but also for selecting driver-relevant temporal evidence from the approach trajectory. The full VISTA-DZ model achieves the best accuracy of 93.26%. Compared with GRU-NP, the full model improves accuracy by 6.21 percentage points. Compared with GRU+XA+FiLM, it adds another 1.03 percentage points, suggesting that the larger backbone and multi-head attention provide additional benefit once semantic personalization and temporal alignment are already present. Overall, the ablation results support the main design of VISTA-DZ: semantic driver profiles should be used as conditioning signals, and their interaction with trajectory features is most effective when implemented through both cross-attention and FiLM. 
+
+6.4. Generalization to Unseen Simulation Drivers 
+
+Table 4 reports the LODO results of VISTA-DZ on the simulation dataset. Each fold holds out one driver for testing and trains the model on the remaining 19 drivers. This evaluation is more stringent than the random split because the test driver’s trajectories are not observed during training. VISTA-DZ achieves a mean LODO accuracy of 90.22% across 20 held-out drivers, with a mean decision-time MSE of 0.2156. This result shows that the personalization mechanism can generalize to drivers whose trajectories are                                                 
+
+> :Preprint submitted to Elsevier Page 20 of 26 Table 5
+> Cross-domain evaluation of VISTA-DZ on real-world drivers. Accuracy is reported in percentage. Condition Training data Test data Accuracy A: Sim →Real zero-shot 20 sim drivers 6 real-world drivers 84.88 B: Sim+Real LODO 20 sim + 5 real-world drivers held-out real-world driver 89.35 ±6.90 C: Real-only LODO 5 real-world drivers held-out real-world driver 86.25 ±7.49
+> Table 6
+> Fold-level real-world LODO results of VISTA-DZ. Accuracy is reported in percentage. Held-out driver 𝑁 test Sim+Real LODO Real-only LODO 100 19 89.47 94.74 101 18 100.00 94.44 102 36 94.44 91.67 103 26 88.46 80.77 104 977.78 77.78 105 64 85.94 78.12 Mean ±Std -89.35 ±6.90 86.25 ±7.49
+
+excluded from training, provided that a driver-level semantic profile is available at inference time. The performance remains high for most drivers, with 16 out of 20 folds achieving accuracy above 88%. The fold-level results also reveal substantial driver-dependent difficulty. Driver 14 reaches 100.00% accuracy, indicating a highly consistent behavioral pattern that is easy to personalize. In contrast, Driver 19 achieves only 65.96% accuracy and has one of the highest decision-time errors. This driver has a near-balanced stop-go tendency, making the decision boundary intrinsically ambiguous. Drivers 6, 7, 15, and 19 also show relatively high decision-time MSE, suggesting that uncertainty in commitment timing is not always aligned with classification accuracy. These results indicate that unseen-driver prediction is feasible but not uniformly easy across the driver population. The remaining errors are concentrated in drivers whose behavior is either inconsistent or close to the stop-go boundary. 
+
+6.5. Cross-Domain Evaluation on Real-World Data 
+
+We further evaluate whether VISTA-DZ transfers from simulation to real-world driving data. Table 5 reports three real-world testing conditions. Condition A evaluates zero-shot sim-to-real transfer. Condition B evaluates real-world LODO after training on both simulation and five real-world drivers. Condition C evaluates real-world LODO using only real-world training data. The zero-shot sim-to-real setting achieves 84.88% accuracy on 172 real-world trajectories. This result is encourag-ing because no real-world trajectories are used for training in this condition. The performance suggests that semantic driver profiles and trajectory-based conditioning can provide a transferable representation across simulation and real-world domains. Adding real-world training data improves performance. Under Sim+Real LODO, VISTA-DZ reaches 89.35% mean accuracy, which is 4.47 percentage points higher than zero-shot transfer. It also outperforms Real-only LODO by 3.10 percentage points. This comparison suggests that simulation data provides useful behavioral diversity when combined with a small amount of real-world data. Real-only LODO remains competitive at 86.25%, but the smaller number of real-world training trajectories limits its ability to cover the range of driver behaviors observed at test time. Table 6 gives the fold-level results for Conditions B and C. Driver 104 is the smallest test fold, with only nine trajectories, and therefore its accuracy is more sensitive to individual sample outcomes. Driver 105 has the largest test set, and the difference between Sim+Real and Real-only training is more visible for this driver. Overall, combined-domain training provides the most stable real-world generalization. 
+
+6.6. Full Cross-Domain Matrix 
+
+Finally, Table 7 reports the full 3 × 3 cross-domain accuracy matrix for all five final architectural variants. This experiment evaluates how each model behaves under simulation-only, real-world-only, and combined-domain training.                                                           
+
+> :Preprint submitted to Elsevier Page 21 of 26 Table 7
+> Full 3 × 3 cross-domain stop-go accuracy for the final architectural variants. Values are reported in percentages. Method Training domain sim_test rw_test combined_test GRU-NP sim_only 84.46 78.49 81.64 rw_only 80.14 79.49 80.11 combined 85.23 79.66 84.23 GRU-NP-L sim_only 84.46 76.74 80.82 rw_only 77.55 78.85 77.80 combined 85.23 82.39 84.65 GRU+FiLM sim_only 86.01 78.49 82.47 rw_only 81.26 78.65 80.98 combined 87.22 79.09 86.03 GRU+XA+FiLM sim_only 88.60 76.74 83.01 rw_only 80.66 78.39 80.42 combined 89.29 81.13 88.18 VISTA-DZ sim_only 90.16 70.93 81.10 rw_only 79.97 79.23 79.83 combined 89.81 80.08 88.57
+
+The full cross-domain matrix provides a more nuanced view of model behavior. On the simulation test set, VISTA-DZ obtains the best performance when trained on simulation-only data and also when trained on combined data. This confirms that the proposed architecture is effective for the source domain and benefits from the richer training set under combined-domain learning. However, VISTA-DZ is not the best model in every cross-domain cell. In particular, when trained on simulation-only data and evaluated directly on real-world trajectories, its accuracy drops to 70.93%. This suggests that the larger personalized model is more sensitive to simulation-specific patterns when no real-world data is available for calibration. Smaller or less expressive models can sometimes transfer more conservatively under severe domain shift. This sensitivity is substantially reduced when real-world data is included during training. Under combined-domain training, VISTA-DZ reaches 88.57% on the combined test set, the highest overall combined-domain accuracy among all variants. GRU+XA+FiLM also performs strongly, reaching 88.18%, which indicates that driver-conditioned cross-attention is consistently useful even with a smaller backbone. These results suggest that the full VISTA-DZ architecture is most appropriate when a limited amount of real-world data is available, while lower-capacity personalized variants may be more conservative under pure zero-shot sim-to-real transfer. 
+
+## 7. Discussion 
+
+7.1. What Semantic Personalization Adds Beyond Model Capacity 
+
+The results indicate that the benefit of VISTA-DZ does not mainly come from increasing the size of the recurrent backbone. In the architectural ablation, enlarging the BiGRU without using driver profiles produces only a marginal gain over the smaller non-personalized model. In contrast, introducing semantic driver profiles through FiLM conditioning yields a much larger improvement. This distinction is important for dilemma zone prediction, where the same kinematic state can correspond to different decisions depending on the driver. A larger global trajectory encoder can learn a more expressive average decision boundary, but it still treats driver heterogeneity as residual variation. Semantic personalization changes the problem formulation: the model no longer predicts from trajectory alone, but from a trajectory interpreted under a driver-specific behavioral context. The auxiliary profile-representation results provide the same evidence from another angle. Handcrafted descriptors improve over trajectory-only prediction, confirming that driver-level information is useful. However, semantic profiles outperform scalar descriptors and are most effective when used for modulation rather than direct concatenation. Scalar descriptors such as average speed, average decision distance, or go probability summarize useful tendencies, but they compress within-driver behavior into a small set of point estimates. Two drivers may have similar go probabilities while following different behavioral patterns, for example, through consistently cautious decisions or through a mixture of   
+
+> :Preprint submitted to Elsevier Page 22 of 26
+
+aggressive clearing and early stopping. A semantic profile can represent this distinction more flexibly, especially when it is derived from historical trajectory patterns and encoded in a continuous language-based embedding space. The weaker performance of the hybrid VLM+HCF setting also deserves attention. Adding more driver-level variables does not automatically improve personalization. If scalar statistics and semantic embeddings encode overlapping or partially inconsistent priors, simple concatenation may increase representational burden rather than improve prediction. This suggests that the quality and integration of driver information matter more than the raw amount of personalized input. 
+
+7.2. Cross-Attention and FiLM Play Different Roles 
+
+The improvement from GRU+FiLM to GRU+XA+FiLM and then to VISTA-DZ suggests that cross-attention and FiLM are complementary rather than redundant. Cross-attention acts as a driver-conditioned temporal selection mechanism. It determines which portions of the pre-yellow approach should receive more weight for a given driver profile. FiLM, in contrast, acts as a feature interpretation mechanism. After the temporal context has been selected, FiLM rescales and shifts the attended representation so that the same trajectory feature can carry different meanings for different drivers. This distinction is particularly relevant near the dilemma zone boundary. A moderate deceleration at a given distance from the stop line may indicate an early commitment to stop for a cautious driver, but it may indicate unresolved behavior for a driver who often delays the decision. Direct concatenation gives the prediction head access to both trajectory and driver profile, but it leaves the network to learn this interaction only in later layers. Cross-attention and FiLM introduce the interaction earlier and more explicitly: the profile first guides the extraction of temporal evidence and then changes the feature-level interpretation of that evidence. This design is consistent with the observed improvement from average pooling to driver-conditioned attention and from direct semantic input to FiLM-based modulation. The multi-head design further extends this mechanism. Dilemma zone behavior is not determined by a single temporal cue. Early approach speed, late deceleration, distance evolution, and acceleration variability may each be informative in different cases. A single attention head is limited to one dominant alignment pattern, whereas multiple heads can attend to different temporal aspects of the same approach. The gain of the full VISTA-DZ model over the single-head variant is modest but consistent with this interpretation. 
+
+7.3. Driver Heterogeneity and the Boundary of Profile-Based Prediction 
+
+The LODO results show that VISTA-DZ can generalize its conditioning mechanism to drivers whose trajectories are not used during training. This is a meaningful form of cross-driver generalization, but it should be interpreted carefully. The setting is not a profile-free cold start: the held-out driver’s semantic profile is available at inference. Therefore, the experiment evaluates whether the model can use a new driver’s profile to condition prediction, not whether it can infer an unseen driver’s behavior without any historical information. The fold-level variation also shows that personalization has a natural boundary. Drivers with stable stop-go tendencies are easier to model because their historical profiles provide a reliable prior. In contrast, drivers whose behavior is close to a balanced stop-go split remain difficult. Driver 19 is the clearest example: its low LODO accuracy and high decision-time error indicate that some errors arise not from insufficient model capacity, but from genuinely ambiguous behavior. When a driver’s historical pattern is inconsistent or when the current state lies close to the behavioral decision boundary, the semantic profile cannot fully resolve the uncertainty. This observation has practical implications. Personalized dilemma zone prediction should not be treated as a deterministic replacement for uncertainty estimation. For drivers with stable tendencies, semantic profiles can substantially sharpen the decision boundary. For drivers with variable or context-sensitive behavior, the model should ideally report calibrated uncertainty or defer to a conservative downstream control policy. Future work should therefore consider uncertainty-aware prediction heads, driver-specific confidence estimation, and profile reliability measures. 
+
+7.4. Simulation-to-Real Transfer and the Role of Target-Domain Calibration 
+
+The cross-domain results support the usefulness of simulation data, but they also show that simulation-to-real transfer is not automatic. In the zero-shot setting trained on all simulation trajectories, VISTA-DZ achieves strong real-world accuracy without real-world fine-tuning. This suggests that the pre-yellow kinematic representation and semantic driver conditioning learned from simulation capture patterns that remain relevant in the field. However, the full 3 × 3 cross-domain matrix gives a more nuanced picture. When the training set is restricted to the simulation split   
+
+> :Preprint submitted to Elsevier Page 23 of 26
+
+used in the matrix experiment, the sim-only VISTA-DZ model performs poorly on the real-world test set compared with its simulation accuracy. This result should not be read as a contradiction. The zero-shot condition and the full matrix use different training pools: the former trains on all simulation trajectories, while the latter preserves a simulation holdout set and trains on only the simulation training split. The broader point is that high-capacity personalization can become sensitive to domain-specific patterns when no target-domain data are available. A model with multi-head attention and FiLM has enough flexibility to learn detailed driver-trajectory associations in simulation. Some of these associations may not transfer directly to real vehicles because real-world trajectories differ in sensing noise, vehicle control, driver adaptation, and intersection context. Lower-capacity models may sometimes transfer more conservatively under severe domain shift, but they also give up in-domain accuracy and combined-domain performance. The most stable setting is combined-domain training. Adding a small amount of real-world data to the simulation improves real-world LODO performance over real-only training and also produces the strongest combined-domain result in the full matrix. This finding supports a practical deployment strategy: simulation can provide behavioral diversity and controlled coverage of dilemma zone scenarios, while limited real-world data can calibrate the model to field conditions. In this sense, VISTA-DZ is best viewed as a simulation-pretrained and real-data-calibrated framework, rather than a purely zero-shot simulator-to-field model. 
+
+7.5. Implications and Limitations 
+
+The proposed framework has several implications for personalized driver behavior modeling. First, driver profiles can be treated as active conditioning signals rather than static covariates. This is especially relevant for transportation problems where individual behavior changes the meaning of the same physical state. Second, language-based behavioral profiles offer a way to summarize historical driving patterns at a higher level than handcrafted statistics. This may be useful when the model must transfer across data sources, sensors, or collection protocols. Third, the results suggest that simulation and real-world data should not be framed as competing alternatives. Simulation offers scale and scenario control, while real-world data provides domain calibration. Several limitations remain. The real-world dataset contains only six drivers and 172 trajectories. Although the results are promising, a larger field dataset is needed to evaluate robustness across broader driver populations, intersections, weather conditions, and traffic contexts. The current real-world profiles are also proxy profiles generated from trajectory statistics, rather than full VLM descriptions generated from rich visual trajectory summaries. This choice improves consistency and avoids relying on heavy VLM inference during deployment, but it may also limit the expressiveness of real-world profiles. Another limitation concerns profile availability. The LODO protocol assumes that a semantic profile exists for the held-out driver. This is reasonable for applications where historical observations are available, such as fleet vehicles, repeated commuting routes, or driver-assistance systems that adapt over time. It is less suitable for a completely new driver with no prior data. A practical system would need an online profile initialization or adaptation mechanism that can update the driver representation after only a few observed approaches. Finally, decision-time prediction remains more challenging than stop-go classification. The semantic profile captures behavioral tendency, but precise commitment timing is also strongly constrained by physical state, signal timing, and local context. A future extension could separate the two tasks more explicitly, using semantic profiles primarily for decision tendency and physical or statistical descriptors for timing estimation. Such a design may better reflect the different sources of variability behind discrete decisions and continuous response time. 
+
+## 8. Conclusion 
+
+This paper presented VISTA-DZ, a semantic-profile-conditioned framework for personalized driver behavior prediction in the dilemma zone. The model predicts both stop-go decisions and decision time from a three-second pre-yellow trajectory window. Its main idea is to use a VLM-derived driver profile not as a simple appended feature, but as a conditioning signal that guides temporal evidence selection through multi-head cross-attention and feature interpretation through FiLM modulation. The experiments show that semantic personalization provides a clear benefit over trajectory-only prediction and handcrafted scalar descriptors. In the final architectural ablation, increasing recurrent backbone capacity alone gives only a small improvement, whereas adding semantic FiLM conditioning provides the dominant gain. Driver-conditioned cross-attention and the full multi-head VISTA-DZ architecture further improve performance, yielding the   
+
+> :Preprint submitted to Elsevier Page 24 of 26
+
+best simulation random-split accuracy. LODO evaluation further shows that the model can generalize its conditioning mechanism to drivers whose trajectories are not included during training, provided that a driver-level profile is available at inference. The cross-domain experiments indicate that the proposed framework can transfer from simulation to real-world driving data, but also that target-domain calibration is important. Zero-shot simulation-to-real transfer is feasible, while combined simulation and real-world training gives the most reliable performance. These findings suggest a practical path for personalized dilemma zone prediction: use simulation to cover diverse behavioral scenarios, use limited real-world data for calibration, and use semantic driver profiles to adapt the interpretation of trajectory evidence to individual drivers. Future work will focus on larger field validation, online driver profile adaptation, uncertainty-aware prediction, and a more explicit separation between decision tendency modeling and decision-time estimation. 
+
+## References 
+
+Bai, J., Bai, S., Yang, S., Wang, S., Tan, S., Wang, P., Lin, J., Zhou, C., Zhou, J., 2023. Qwen-vl: A versatile vision-language model for understanding, localization. Text Reading, and Beyond 2, 1. Bewley, A., Rigley, J., Liu, Y., Hawke, J., Shen, R., Lam, V.D., Kendall, A., 2019. Learning to drive from simulation without real world labels, in: 2019 International conference on robotics and automation (ICRA), IEEE. pp. 4818–4824. Bonneson, J., Middleton, D., Zimmerman, K., Charara, H., Abbas, M., 2002. Intelligent detection-control system for rural signalized intersections. Texas Department of Transportation . Chang, M.S., Messer, C.J., Santiago, A.J., 1985. Timing traffic signal change intervals based on driver behavior. Transportation Research Record 1027, 20–30. Chauhan, R., Dhamaniya, A., Arkatkar, S., 2022. Analysing driver’s decision in dilemma zone at signalized intersections under disordered traffic conditions. Transportation research part F: traffic psychology and behaviour 89, 222–235. Constantinescu, Z., Marinoiu, C., Vladoiu, M., 2010. Driving style analysis using data mining techniques. International Journal of Computers Communications & Control 5, 654–663. Cui, C., Yang, Z., Zhou, Y., Ma, Y., Lu, J., Li, L., Chen, Y., Panchal, J., Wang, Z., 2024. Personalized autonomous driving with large language models: Field experiments, in: 2024 IEEE 27th International Conference on Intelligent Transportation Systems (ITSC), IEEE. pp. 20–27. Dosovitskiy, A., Ros, G., Codevilla, F., Lopez, A., Koltun, V., 2017. Carla: An open urban driving simulator, in: Conference on robot learning, PMLR. pp. 1–16. Dumoulin, V., Shlens, J., Kudlur, M., 2017. A learned representation for artistic style, in: International Conference on Learning Representations. Elhenawy, M., Jahangiri, A., Rakha, H.A., El-Shawarby, I., 2015. Modeling driver stop/run behavior at the onset of a yellow indication considering driver run tendency and roadway surface conditions. Accident Analysis & Prevention 83, 90–100. Finn, C., Abbeel, P., Levine, S., 2017. Model-agnostic meta-learning for fast adaptation of deep networks, in: International conference on machine learning, PMLR. pp. 1126–1135. Ganin, Y., Lempitsky, V., 2015. Unsupervised domain adaptation by backpropagation, in: International conference on machine learning, PMLR. pp. 1180–1189. Gazis, D., Herman, R., Maradudin, A., 1960. The problem of the amber signal light in traffic flow. Operations research 8, 112–132. Hallac, D., Sharang, A., Stahlmann, R., Lamprecht, A., Huber, M., Roehder, M., Leskovec, J., et al., 2016. Driver identification using automobile sensor data from a single turn, in: 2016 IEEE 19th International Conference on Intelligent Transportation Systems (ITSC), IEEE. pp. 953–958. Hurwitz, D.S., Wang, H., Knodler Jr, M.A., Ni, D., Moore, D., 2012. Fuzzy sets to describe driver behavior in the dilemma zone of high-speed signalized intersections. Transportation research part F: traffic psychology and behaviour 15, 132–143. Jahangiri, A., Rakha, H., Dingus, T.A., 2016. Red-light running violation prediction using observational and simulator data. Accident Analysis & Prevention 96, 316–328. Johnson, D.A., Trivedi, M.M., 2011. Driving style recognition using a smartphone as a sensor platform, in: 2011 14th International IEEE conference on intelligent transportation systems (ITSC), Ieee. pp. 1609–1615. Lavrenz, S.M., Pyrialakou, V.D., Gkritza, K., 2014. Modeling driver behavior in dilemma zones: A discrete/continuous formulation with selectivity bias corrections. Analytic Methods in Accident Research 3, 44–55. Li, J., Li, D., Savarese, S., Hoi, S., 2023. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models, in: International conference on machine learning, PMLR. pp. 19730–19742. Liao, X., Zhao, Z., Barth, M.J., Abdelraouf, A., Gupta, R., Han, K., Ma, J., Wu, G., 2024. A review of personalization in driving behavior: Dataset, modeling, and validation. IEEE Transactions on Intelligent Vehicles . Liu, H., Li, C., Wu, Q., Lee, Y.J., 2023. Visual instruction tuning. Advances in neural information processing systems 36, 34892–34916. Mao, J., Qian, Y., Ye, J., Zhao, H., Wang, Y., 2024. Gpt-driver: Learning to drive with gpt, in: NeurIPS 2023 Foundation Models for Decision Making Workshop. Martinez, C.M., Heucke, M., Wang, F.Y., Gao, B., Cao, D., 2017. Driving style recognition for intelligent vehicle control and advanced driver assistance: A survey. IEEE Transactions on Intelligent Transportation Systems 19, 666–676. Mueller, M., Dosovitskiy, A., Ghanem, B., Koltun, V., 2018. Driving policy transfer via modularity and abstraction, in: Conference on Robot Learning, PMLR. pp. 1–15. Murphey, Y.L., Milton, R., Kiliaris, L., 2009. Driver’s style classification using jerk analysis, in: 2009 IEEE workshop on computational intelligence in vehicles and vehicular systems, IEEE. pp. 23–28. 
+
+: Preprint submitted to Elsevier Page 25 of 26 Pan, C., Yaman, B., Nesti, T., Mallik, A., Allievi, A.G., Velipasalar, S., Ren, L., 2024. Vlp: Vision language planning for autonomous driving, in: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 14760–14769. Papaioannou, P., 2007. Driver behaviour, dilemma zone and safety effects at urban signalised intersections in greece. Accident Analysis & Prevention 39, 147–158. Perez, E., Strub, F., De Vries, H., Dumoulin, V., Courville, A., 2018. Film: Visual reasoning with a general conditioning layer, in: Proceedings of the AAAI conference on artificial intelligence. Qin, Z., Li, S., Wei, C., Wu, G., Barth, M.J., Abdelraouf, A., Gupta, R., Han, K., 2025a. Investigating personalized driving behaviors in dilemma zones: Analysis and prediction of stop-or-go decisions. IEEE Robotics and Automation Letters . Qin, Z., Yao, X., Wei, C., Ji, A., Wu, G., Sun, Z., 2025b. Contextual-personalized adaptive cruise control via fine-tuned large language models, in: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp. 1754–1762. Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., et al., 2021. Learning transferable visual models from natural language supervision, in: International conference on machine learning, PmLR. pp. 8748–8763. Rakha, H., Amer, A., El-Shawarby, I., 2008. Modeling driver behavior within a signalized intersection approach decision–dilemma zone. Transportation Research Record 2069, 16–25. Reimers, N., Gurevych, I., 2019. Sentence-bert: Sentence embeddings using siamese bert-networks, in: Proceedings of the 2019 conference on empirical methods in natural language processing and the 9th international joint conference on natural language processing (EMNLP-IJCNLP), pp. 3982–3992. Sagberg, F., Selpi, Bianchi Piccinini, G.F., Engström, J., 2015. A review of research on driving styles and road safety. Human factors 57, 1248–1275. Shao, H., Hu, Y., Wang, L., Song, G., Waslander, S.L., Liu, Y., Li, H., 2024. Lmdrive: Closed-loop end-to-end driving with large language models, in: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp. 15120–15130. Sima, C., Renz, K., Chitta, K., Chen, L., Zhang, H., Xie, C., Beißwenger, J., Luo, P., Geiger, A., Li, H., 2024. Drivelm: Driving with graph visual question answering, in: European conference on computer vision, Springer. pp. 256–274. Tian, X., Gu, J., Li, B., Liu, Y., Wang, Y., Zhao, Z., Zhan, K., Jia, P., Lang, X., Zhao, H., 2024. Drivevlm: The convergence of autonomous driving and large vision-language models, in: 8th Annual Conference on Robot Learning. Tobin, J., Fong, R., Ray, A., Schneider, J., Zaremba, W., Abbeel, P., 2017. Domain randomization for transferring deep neural networks from simulation to the real world, in: 2017 IEEE/RSJ international conference on intelligent robots and systems (IROS), IEEE. pp. 23–30. Urbanik, T., Koonce, P., 2007. The dilemma with dilemma zones. Proceedings of ITE District 6. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser, Ł., Polosukhin, I., 2017. Attention is all you need. Advances in neural information processing systems 30. Wang, W., Wei, F., Dong, L., Bao, H., Yang, N., Zhou, M., 2020a. Minilm: Deep self-attention distillation for task-agnostic compression of pre-trained transformers. Advances in neural information processing systems 33, 5776–5788. Wang, W., Xi, J., Chong, A., Li, L., 2017. Driving style classification using a semisupervised support vector machine. IEEE Transactions on Human-Machine Systems 47, 650–660. Wang, Z., Liao, X., Wang, C., Oswald, D., Wu, G., Boriboonsomsin, K., Barth, M.J., Han, K., Kim, B., Tiwari, P., 2020b. Driver behavior modeling using game engine and real vehicle: A learning-based approach. IEEE Transactions on Intelligent Vehicles 5, 738–749. Wei, C., Cheng, H., Zhang, Z., Wu, G., Wang, Z., Barth, M.J., 2026. Beyond perception: A survey and future directions of vlm-based autonomous driving datasets, in: 2026 IEEE Intelligent Vehicles Symposium (IV). Wei, C., Qin, Z., Li, S., Zhang, Z., Zhao, X., Abdelraouf, A., Gupta, R., Han, K., Barth, M.J., Wu, G., 2025a. Pdb: Not all drivers are the same–a personalized dataset for understanding driving behavior. arXiv preprint arXiv:2503.06477 . Wei, C., Qin, Z., Wu, G., Barth, M.J., Abdelraouf, A., Gupta, R., Han, K., 2024a. Dilemma zone: A comprehensive study of influential factors and behavior analysis, in: 2024 Forum for Innovative Sustainable Transportation Systems (FISTS), IEEE. pp. 1–8. Wei, C., Wu, G., Barth, M., 2025b. Eki-gan: Context-aware vehicle trajectory forecasting with vehicle factors and environmental information at signalized intersections, in: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp. 5315–5324. Wei, C., Wu, G., Barth, M.J., Abdelraouf, A., Gupta, R., Han, K., 2024b. Ki-gan: Knowledge-informed generative adversarial networks for enhanced multi-vehicle trajectory forecasting at signalized intersections, in: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp. 7115–7124. Xu, Y., Shao, W., Li, J., Yang, K., Wang, W., Huang, H., Lv, C., Wang, H., 2022. Sind: A drone dataset at signalized intersection in china, in: 2022 IEEE 25th International Conference on Intelligent Transportation Systems (ITSC), IEEE. pp. 2471–2478. Xu, Z., Zhang, Y., Xie, E., Zhao, Z., Guo, Y., Wong, K.Y.K., Li, Z., Zhao, H., 2024. Drivegpt4: Interpretable end-to-end autonomous driving via large language model. IEEE Robotics and Automation Letters 9, 8186–8193. Yang, J., Zhao, R., Zhu, M., Hallac, D., Sodnik, J., Leskovec, J., 2021. Driver2vec: Driver identification from automotive data. arXiv preprint arXiv:2102.05234 . Zegeer, C.V., 1977. Effectiveness of green-extension systems at high-speed intersections . Zegeer, C.V., Deen, R.C., 1978. Green-extension systems at high-speed intersections. volume 496. Department of Transportation. 
+
+: Preprint submitted to Elsevier Page 26 of 26
