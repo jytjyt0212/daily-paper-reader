@@ -1,0 +1,967 @@
+Title: Additive Causal Construction for Transferable and Reconfigurable Cross-System Learning in Multi-Source Image Fusion
+
+URL Source: https://arxiv.org/pdf/2607.02572v1
+
+Published Time: Tue, 07 Jul 2026 00:05:43 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+> JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 1
+
+# Additive Causal Construction for Transferable and Reconfigurable Cross-System Learning in Multi-Source Image Fusion 
+
+Zhizhong Fu 1,∗, Wei Zhou 1,5,7,∗, Zhaoyang Jiang 2, Yudong Lin 1, Yifu Hou 3, Yuke Cao 4, Xiaorong Ding 1,Qiang Yan 6, and Yifan Chen 1
+
+Abstract —In multi-source image fusion scenarios, heteroge-neous inputs are typically driven by distinct generative mech-anisms and can be viewed as a composition of multiple causal systems. However, cross-system discrepancy (CSD) and cross-system entanglement (CSE) commonly arise during the fusion process, often leading to significant performance degradation under out-of-distribution (OOD) predictions. To address the CSD and CSE issues, we propose the additive causal construction (ACC) framework, which characterizes information fusion at two levels: firstly, it establishes causal “anchors” shared among multiple systems through intervention consistency to enable causal graph transferability (CGT); and secondly, it formalizes the fusion process as causal construction and models the reli-ability of constructed paths through uncertainty quantification to ensure causal graph reconfigurability (CGR). Building upon this, we revisit the traditional causal representation learning (CRL) with ACC and propose ACC-CRL as a learnable in-stantiation of the framework. The method explores joint causal content representations across systems via content–mechanism decoupling, and performs response alignment under shared anchors to mitigate CSD. Furthermore, it incorporates structural uncertainty to adaptively regulate the fusion process, thereby suppressing unstable CSE. We conduct systematic experiments on synthetic data (ColorMNIST) and real-world multi-center medical imaging tasks (microvascular invasion (MVI) prediction). The results demonstrate that the proposed method significantly improves OOD generalization while maintaining in-distribution (ID) performance, validating the effectiveness and robustness of the ACC-CRL strategy based on mechanism alignment and uncertainty modeling in open environments. 
+
+Index Terms —Multi-source fusion, multiple causal systems, additive causal construction (ACC), cross-system discrepancy (CSD), cross-system entanglement (CSE), causal graph trans-ferability (CGT), causal graph reconfigurability (CGR), out-of-distribution (OOD) generalization, microvascular invasion (MVI) 
+
+> ∗
+
+Zhizhong Fu and Wei Zhou contributed equally to this work. Corresponding author: Yifan Chen (yifan.chen@uestc.edu.cn). 
+
+> 1
+
+School of Life Science and Technology, University of Electronic Science and Technology of China, Chengdu 610054, China. 
+
+> 2
+
+School of Health and Wellbeing, University of Glasgow, Glasgow G12 8TB, United Kingdom. 
+
+> 3
+
+Department of Organ Transplantation, Sichuan Provincial People’s Hos-pital, University of Electronic Science and Technology of China, Chengdu, China. 
+
+> 4
+
+School of Information and Software Engineering, University of Electronic Science and Technology of China, Chengdu 611731, China. 
+
+> 5
+
+Department of Radiology, Huzhou Maternity & Child Health Care Hos-pital, Huzhou 313000, China. 
+
+> 6
+
+Hepatological Surgery Department, Huzhou Central Hospital, Fifth School of Clinical Medicine of Zhejiang Chinese Medical University, Huzhou 313000, China. 
+
+> 7
+
+Department of Radiology, Huzhou Maternity & Child Health Care Hos-pital Affiliated to Huzhou Normal University,Huzhou 313000,China. 
+
+prediction 
+
+I. I NTRODUCTION 
+
+Multi-source data are often generated under distinct princi-ples and can be formalized as multiple causal systems with het-erogeneous mechanisms. In this context, the central challenge of image fusion extends beyond simple information aggrega-tion to addressing heterogeneity in mechanisms. Firstly, the absence of a unified reference for causal mechanisms across systems makes semantic alignment difficult, leading to the cross-system discrepancy (CSD) issue. Secondly, the fusion process may introduce unstable dependencies on cross-system interference, leading to spurious causal pathways that are not robust to distribution shifts, a phenomenon referred to as cross-system entanglement (CSE). These two challenges are particularly evident in medical image analysis. Mechanism heterogeneity arises not only from variations in scanning devices, acquisition protocols, and population distributions across centers, but also from differ-ences in biological processes across spatial regions within a single image. For instance, in tumor analysis, intratumoral and peritumoral regions often correspond to distinct pathological mechanisms and generative processes. Therefore, multi-source fusion should be treated as a cross-system causal inference problem rather than a simple multi-input modeling task. How-ever, existing approaches typically assume direct combinability of inputs from different sources, without explicitly modeling differences in generative mechanisms or the resulting changes in causal structures after fusion, leading to significant perfor-mance degradation under distribution shifts. Prior studies have explored anomaly detection, robust rep-resentation learning, and causal intervention to address distri-bution shifts. For example, MultiOOD [1] utilizes prediction discrepancies across multiple branches for out-of-distribution (OOD) detection; IHF [2] improves robustness through sta-tistical feature modeling; and SI-CRL [3] learns invariant representations via frequency-domain interventions. Although these methods alleviate distribution shifts to some extent, they are largely grounded in an observational-level, joint modeling paradigm, in which the causal structure is treated as a pre-specified, static object, and robustness is achieved via static constraints. As a result, they fall short of capturing the more fundamental problems of CSD and CSE.  
+
+> arXiv:2607.02572v1 [cs.CV] 30 Jun 2026 JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 2
+
+To overcome the aforementioned issues, in this work, we do not analyze the causal graph from the a posteriori per-spective, where its structure is fixed. Instead, we view the graph from the a priori perspective, where its topology is changeable, emerging from meticulously designed interactions among heterogeneous mechanisms during multi-source fusion. In this way, we describe the fusion process as a dynamic generation of causal structures across systems using model priors, enabling adaptive regulation of causal relationships based on mechanism compatibility and structural uncertainty. Subsequently, we propose the additive causal construction (ACC) framework, which models each input source as a causal system with distinct generative mechanisms and formulates information fusion as a progressive process of constructing a unified causal structure, where the term “additive” refers to the integration of multiple separated causal systems into a unified structure through progressively “adding” complemen-tary cross-system causal relations. Specifically, the framework is developed from the following two key aspects: (i) causal graph transferability (CGT), where shared causal “anchors” across multiple systems are established through intervention consistency to mitigate CSD; and (ii) causal graph recon-figurability (CGR), where fusion is treated as topological reorganization, with uncertainty modeling used to evaluate and regulate candidate causal pathways, thereby suppressing unstable CSE. Building upon ACC, we further revisit the classical causal representation learning (CRL) and introduce the ACC-CRL implementation. The method learns shared causal content representations across systems through content– mechanism decoupling and performs response alignment un-der shared anchors to mitigate CSD. Meanwhile, structural uncertainty is incorporated to enable adaptive fusion, suppress CSE, and approximate construction of causal diagrams in the representation space. Furthermore, we conduct comprehensive experiments on both synthetic data (ColorMNIST) and real-world multi-center medical imaging tasks (microvascular invasion (MVI) predic-tion). In the MVI task, a single-sequence dual-region input is employed to simulate cross-region fusion under heterogeneous mechanisms. The results show that the proposed method sig-nificantly improves OOD generalization while maintaining in-distribution (ID) performance, demonstrating the effectiveness of the proposed ACC-CRL strategy based on mechanism alignment and uncertainty modeling. The remainder of this paper is organized as follows. Sec-tion II reviews related works on multi-source fusion under distribution shifts and MVI prediction. Section III introduces the proposed ACC framework, providing a unified formulation of cross-system causal construction in terms of CGT and CGR. Section IV presents ACC-CRL as a learnable instan-tiation of the framework, detailing its representation learning, mechanism alignment, and uncertainty-aware fusion strategies. Section V reports extensive experiments on both synthetic and real-world medical imaging datasets to validate the effective-ness and robustness of the proposed method. Finally, Section VI concludes the paper and discusses future directions. II. R ELATED WORKS 
+
+A. Multi-Source Fusion under OOD Settings 
+
+Achieving robust generalization under OOD scenarios is a fundamental challenge in machine learning. Traditional methods based on empirical risk minimization tend to overfit spurious correlations in the training distribution, leading to significant performance degradation under distribution shifts. To address this issue, prior studies have explored data augmen-tation (e.g., Mixup [4]), invariance learning (e.g., IRM [5]), and distributionally robust optimization (DRO [6]) to improve cross-distribution stability. However, these approaches are primarily designed for single-input settings. In multi-source fusion, the OOD prob-lem becomes more challenging: different input sources may provide complementary information, but their joint modeling can also introduce spurious dependencies, resulting in unstable cross-source correlations. Recent studies have begun to address this issue. For example, MultiOOD [1] detects OOD samples by leveraging prediction discrepancies across multiple input branches; CRL methods (e.g., MMNAR [7]) further consider the non-random missingness of modalities; and contrastive learning approaches (e.g., SupContrast [8]) enhance robustness by improving representation discriminability. While the above approaches alleviate distribution shifts to some extent, they largely rely on assumptions of statistical consistency and improve robustness through static constraints at the observational level. As a result, they lack explicit modeling of differences in generative mechanisms and the evolution of causal structures, making them inadequate for handling unstable CSE pathways introduced by cross-source interference. Fundamentally, such methods assume that the causal structure is pre-existing and fixed, imposing constraints upon it rather than modeling its generation and evolution. In contrast, this work adopts a causal construction perspective, framing CSE as a process of dynamic generation of causal structures, and achieves adaptive regulation of CSE through mechanism alignment and structural uncertainty. 
+
+B. MVI Prediction 
+
+MVI is a critical risk factor for postoperative recurrence and poor prognosis in hepatocellular carcinoma (HCC), and its accurate preoperative prediction is of great clinical impor-tance [9], [10]. Early approaches primarily relied on single clinical or imaging features, such as serum biomarkers and radiological characteristics, but suffered from limited predic-tive performance and stability [11]. Subsequently, radiomics-based methods improved performance by extracting high-dimensional handcrafted features combined with machine learning models, yet their generalization ability and repro-ducibility remain limited [12]. With the advancement of deep learning, end-to-end models have become dominant. For instance, three-dimensional con-volutional neural network-based methods can extract spatial and semantic information from multi-sequence MRI, while approaches incorporating Transformers or topological mod-eling further enhance feature representation and offer partial JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 3
+
+interpretability [13], [14]. In addition, studies integrating imag-ing, clinical, and pathological information have demonstrated improved MVI prediction performance [15]. Existing methods still face limited generalization under OOD settings. First, most approaches rely on statistical learn-ing paradigms without explicitly modeling the underlying causal structures and their uncertainties, overlooking CSD. Second, heterogeneous mechanisms across input sources often lead to unstable or spurious dependencies, reflecting CSE. In this work, the MVI task involves intra-tumoral and peri-tumoral regions from the same arterial-phase (ART) MRI sequence, making it a cross-region fusion problem rather than a strictly multi-modal one. Despite this, the regions provide complementary information and may exhibit region-specific mechanisms under multi-center settings, forming a meaningful image fusion challenge. To address this, we approach the problem through ACC, dynamically regulating the fusion process by modeling CGT and CGR, thus improving cross-distribution generalization in MVI prediction. Unlike existing methods, our approach explicitly tackles CSD and CSE from a causal perspective. III. ACC F RAMEWORK 
+
+As shown in Fig. 1(a), ACC treats multi-source data as originating from heterogeneous causal systems and formulates fusion as a dynamic process of causal construction rather than simple feature aggregation. This formulation is motivated by two coupled challenges. First, due to heterogeneous generative mechanisms, different systems lack a unified causal reference, making their in-terventional effects difficult to compare directly. This gives rise to CSD. To mitigate CSD, ACC introduces CGT, which establishes shared causal anchors across systems and enforces interventional consistency, thereby providing a common causal alignment basis. Second, the fusion process may reorganize existing causal pathways and introduce new cross-system links. When such links are induced by mechanism mismatches or unreliable correlations between systems, they may form unstable dependencies, leading to CSE. To monitor CSE, ACC introduces CGR, which treats fusion as the reconstruction of the underlying causal diagram and uses structural uncertainty to evaluate and regulate candidate causal pathways. 
+
+A. Principles of CGT 
+
+Let the mth and nth causal systems be defined as 
+
+G(m) = V(m), E(m), U(m) , G(n) = V(n), E(n), U(n) ,
+
+(1) where V(·) is the node set, E(·) is the directed causal edge set, and U(·) is the mechanism variables of the correspond-ing causal system. Since heterogeneous mechanisms govern different systems, their interventional effects are generally not comparable in the original space. Therefore, establishing CGT is a prerequisite for multi-source fusion. Let v(m) 
+
+> i
+
+∈ V(m) and v(n) 
+
+> j
+
+∈ V(n) denote candidate nodes from two causal systems, respectively. Subsequently, a shared anchor X is defined as an abstract causal content reference induced by cross-system alignment. It does not require the existence of an identical raw variable in different systems. Correspondingly, an anchor-equivalent pair refers to two system-specific nodes that can be associated with the same shared anchor and induce consistent interventional responses. Next, we determine whether v(m) 
+
+> i
+
+and v(n) 
+
+> j
+
+constitute an anchor-equivalent pair with respect to the shared anchor X
+
+from two perspectives: semantic comparability and interven-tional response consistency. 
+
+1) Semantic Comparability: Prior work on cross-model causal consistency has shown that variables from different causal models need not be identical in their original spaces; rather, a causal correspondence can be established as long as suitable transformations yield consistent causal predictions under corresponding interventions [16]. Accordingly, semantic comparability requires that candidate nodes from different systems can be mapped into a common causal content space. Formally, suppose there exist measurable alignment map-pings 
+
+ηm : D(m) 
+
+> i
+
+→ D X , ηn : D(n) 
+
+> j
+
+→ D X , (2) such that 
+
+X(m) = ηm
+
+
+
+v(m)
+
+> i
+
+
+
+, X(n) = ηn
+
+
+
+v(n)
+
+> j
+
+
+
+. (3) Then v(m) 
+
+> i
+
+and v(n) 
+
+> j
+
+are said to be comparable in the shared causal content space DX . Here, D(m) 
+
+> i
+
+and D(n) 
+
+> j
+
+are the value spaces of the candidate nodes in their respective systems, and 
+
+DX is the value space of X. The variables X(m) and X(n)
+
+denote the system-specific anchor representations induced in the shared causal content space via the CGT process shown in Fig. 1(a). Importantly, semantic comparability only establishes a com-mon reference space; it does not imply that X(m) and X(n) al-ready correspond to the same causal node. Their identification as a common abstract anchor further requires the following interventional response consistency. 
+
+2) Interventional Response Consistency: Invariant causal prediction and risk minimization posit that stable causal re-lations should remain invariant across environments or mech-anism shifts [5], [17]. Therefore, once a shared causal content reference is established, the two system-specific anchor rep-resentations need not share identical generative mechanisms, but only consistent causal semantics: 
+
+X(m) ≈ X(n), (4) where the approximate consistency indicates correspondence in shared causal content, rather than duplication of the same node in the original causal graphs. As illustrated by the CGT module in Fig. 1(a), X(m) and X(n) are mapped into a shared causal content space and treated as anchor-equivalent representations when they induce consistent interventional responses. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 4     
+
+> Fig. 1. Overview of the proposed ACC framework and its trainable realization, ACC-CRL. (a) ACC formulates multi-source fusion as a cross-system causal construction process under heterogeneous mechanisms. First, CGT establishes shared causal anchors across systems through semantic comparability and interventional response consistency, enabling comparable causal semantics between heterogeneous systems. Second, CGR dynamically reconstructs cross-system causal relations through credibility-aware structural regulation and structural reconfiguration, where candidate cross-system edges ∆Eare selectively preserved or suppressed according to structural credibility. (b) ACC-CRL provides a learnable realization of ACC in representation space. The CGT module learns latent semantic comparability through content–mechanism disentanglement and further diagnoses cross-system structural consistency via bidirectional response alignment under shared anchors. The CGR module subsequently uses the resulting structural-mismatch signal for uncertainty-aware structural regulation, in which structural and predictive uncertainties jointly determine the reliability of adaptive fusion. Finally, observation-aware structural reconfiguration supplements latent causal representations with observation-level visual features to improve robustness under distribution shifts.
+
+Furthermore, under the corresponding interventions on the shared causal content, the induced downstream responses in the two systems should also remain consistent: 
+
+∆R
+
+
+
+Pm
+
+
+
+R(m) 
+
+> X
+
+| do (X(m) = x)
+
+
+
+, P n
+
+
+
+R(n) 
+
+> X
+
+| do (X(n) = x)
+
+ 
+
+≤ ϵX , ∀x ∈ D X .
+
+(5) where ∆R(·, ·) denotes a response-level distribution discrep-ancy function, which measures the mismatch between the two interventional response distributions induced by the same shared anchor intervention. The causal effect of anchor X
+
+refers to the change in the downstream response induced by an intervention on the anchor representation. In system m,this effect is characterized by the interventional response dis-tribution Pm
+
+
+
+R(m) 
+
+> X
+
+| do (X(m) = x)
+
+
+
+, which describes how the downstream response R(m) 
+
+> X
+
+would behave if the system-specific anchor representation X(m) is externally set to x.The term ϵX is the tolerance threshold for approximate causal equivalence. The special case ϵX = 0 reduces to strict in-terventional consistency. The variables R(m) 
+
+> X
+
+and R(n) 
+
+> X
+
+denote the corresponding descendant responses induced by X(m) and 
+
+X(n) in the two systems, respectively. Finally, if X(m) and X(n) satisfy both semantic compara-bility and interventional response consistency, then v(m) 
+
+> i
+
+and 
+
+v(n) 
+
+> j
+
+are anchor-equivalent with respect to X, denoted by 
+
+v(m)
+
+> i
+> X
+
+∼ v(n) 
+
+> j
+
+, (6) where X should be understood as the representative of the corresponding equivalence class, rather than as a direct merger of the original nodes. Hence, the role of CGT is not to identify perfectly identical variables across systems, but to construct cross-system shared anchors that provide a comparable causal reference for subsequent CGR, thereby enabling ACC to further regulate candidate causal relations under heterogeneous mechanisms. The theoretical connection between interventional response consistency and first-order mechanism alignment is further analyzed in Appendix A. 
+
+B. Principles of CGR 1) Credibility-Aware Structural Regulation: Since candi-date relations constructed across heterogeneous systems may exhibit different levels of structural stability and reliability, CGR introduces a unified structural uncertainty formulation JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 5
+
+to evaluate candidate causal edges before reconstruction. For any candidate edge e = ( vi → vj ), let 
+
+πe ∼ P (πe), (7) where πe represents structural priors, mechanism compatibil-ity, or other sources of uncertainty associated with the edge, and P (πe) denotes the prior distribution over such structural confidence variables. The expected credibility of the edge is then defined as 
+
+˜C(e) = Eπe
+
+h
+
+EC(e) | πe
+
+i
+
+, (8) where C(e) denotes the causal credibility of the edge under a given structural confidence condition. This credibility score determines whether a candidate edge should be preserved, replaced, weakened, or suppressed during CGR. Under this unified credibility measure, CGR handles the two forms of structural variation separately. First, for conflicting existing causal relations, CGR does not directly merge edges from different systems. Instead, it performs competitive selection based on causal credibility. Let 
+
+e(m) 
+
+> ij
+
+∈ E(m), e(n) 
+
+> ij
+
+∈ E(n), (9) where e(m) 
+
+> ij
+
+and e(n) 
+
+> ij
+
+are candidate causal edges from systems 
+
+m and n, respectively. The subscript ij indexes the corre-sponding source–target structural role, while the superscripts 
+
+(m) and (n) indicate the systems from which the edges origi-nate. Since these edges may arise from different mechanisms, their stability and reliability can differ. CGR therefore selects the more reliable relation according to 
+
+e∗ 
+
+> ij
+
+= arg max   
+
+> e∈{ e(m)
+> ij ,e (n)
+> ij }
+
+˜C(e), (10) where e∗ 
+
+> ij
+
+corresponds to the selected causal relation for the structural role indexed by ij after credibility-based competi-tion. This process characterizes the preservation, replacement, or suppression of existing causal relations during fusion. Second, for newly introduced cross-system edges, let 
+
+∆Eij = ecross  
+
+> ij,k
+> Kk=1
+
+⊆ ∆E (11) denote the set of candidate cross-system causal edges proposed for the source–target structural role indexed by ij . Unlike existing intra-system relations, these edges do not originate from any single causal graph, but are constructed under heterogeneous mechanism interactions and constructive priors. They may encode complementary cross-system information, but may also introduce unstable dependencies caused by mechanism mismatch or representational heterogeneity. For each candidate cross-system edge e ∈ ∆Eij , its cross-system credibility is defined as 
+
+˜Ccross (e) = EC(e) | πcross 
+
+> e
+
+, (12) where πcross  
+
+> e
+
+is jointly determined by mechanism compatibil-ity, anchor response consistency, and structural uncertainty. As illustrated by the CGR process in Fig. 1(a), these constructive structural priors are used to evaluate the reliability of can-didate cross-system causal edges before they are preserved, weakened, or suppressed during causal construction. CGR then selects the most reliable cross-system relation according to 
+
+ecross ,∗ 
+
+> ij
+
+= arg max 
+
+> e∈∆Eij
+
+˜Ccross (e), (13) where ecross ,∗ 
+
+> ij
+
+denotes the selected cross-system causal relation for the structural role indexed by ij . This edge is retained only when its credibility exceeds a reliability threshold δ, i.e., 
+
+˜Ccross 
+
+ ecross ,∗
+
+> ij
+
+ ≥ δ. (14) Otherwise, the corresponding relation is weakened or sup-pressed during reconstruction. Large discrepancies in cross-system responses indicate that the candidate edge may corre-spond to an unstable shortcut dependency, whereas consistent responses suggest that the edge is more likely to encode stable causal semantics. 
+
+2) Structural Reconfiguration: With the above credibility-aware regulation principle, CGR further formulates fusion as a structural reconfiguration process. After shared anchors are established across systems, fusion is no longer treated as a simple concatenation or extension of pre-existing causal graphs. Instead, CGR constructs a candidate causal system by reorganizing existing intra-system relations and introducing credibility-regulated cross-system relations under the guidance of model priors. In this view, the causal diagram is not passively recovered as a fixed structure, but progressively constructed and regulated under heterogeneous mechanisms through shared anchors, edge-level credibility, and structural uncertainty. Specifically, joint modeling across multiple causal systems introduces two types of structural variations: (i) the compet-itive selection among existing intra-system causal relations, and (ii) the emergence of novel cross-system candidate causal paths. The former corresponds to the preservation, replace-ment, or suppression of existing relations during fusion, while the latter reflects structural expansion induced by interactions between heterogeneous mechanisms. Since these candidate structures may contain both stable causal relations and unsta-ble shortcut dependencies, structural uncertainty is introduced to quantify and regulate their reliability. Accordingly, the candidate causal system constructed during fusion is defined as 
+
+G′ = ⟨V′, E′, U′⟩, (15) where the node set is given by 
+
+V′ = V(m) ∪ V(n) ∪ VX . (16) Here, VX denotes the set of shared causal content nodes induced by anchor-equivalence relations. Specifically, if X(m)
+
+and X(n) satisfy semantic comparability and interventional response consistency, they are identified as the same abstract anchor X ∈ VX at the level of shared causal content. The fused candidate edge set satisfies 
+
+E′ ⊆ E(m) ∪ E(n) ∪ EX ∪ ∆E, (17) where EX denotes constructive alignment relations induced by anchor equivalence, which provide shared references for cross-system structural regulation, and ∆E denotes the newly intro-duced cross-system candidate causal edges generated during JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 6
+
+the CGR process in Fig. 1(a). Importantly, EX should not be interpreted as direct copies or mergers of original causal edges; rather, it represents auxiliary alignment constraints introduced by shared anchors during reconstruction. Finally, prediction is performed on the constructed candidate causal system G′:
+
+ˆY = fY (X; G′), (18) where fY (·; G′) is the prediction function defined on the constructed candidate causal system G′, and ˆY is the predicted outcome. This process reflects the core principle of CGR: under heterogeneous mechanisms, reliable causal diagrams are constructed through prior-guided regulations rather than naive concatenation, thereby enabling robust cross-system reasoning. IV. ACC-CRL AS TRAINABLE REALIZATION OF ACC ACC formulates multi-source fusion as a cross-system causal construction process regulated by model priors. How-ever, ACC itself remains a conceptual formulation and must be instantiated as a learnable representation-space mechanism. To this end, we propose ACC-CRL as an end-to-end trainable realization of ACC. The core idea of ACC-CRL is threefold. First, observations from each system are decomposed in latent space into shared causal content and system-specific mechanisms, thereby con-structing comparable anchors across systems. Second, bidirec-tional response alignment is performed under shared anchors, transforming cross-system response inconsistency into explicit structural mismatch signals. Third, structural mismatch and predictive uncertainty are jointly used to construct sample-level structural regulation variables that adaptively control cross-system fusion strength. Consequently, ACC-CRL does not perform unconstrained multi-source aggregation, but in-stead approximates the causal construction process in rep-resentation space under the principle of constructing shared anchors, diagnosing structural mismatch, fusing when reliable, and suppressing when unreliable. A. Learnable Realization of CGT 1) Latent Semantic Comparability: Let T (1) and T (2) de-note observations from two causal systems. To realize the shared-anchor mechanism in CGT, ACC-CRL encodes each observation into a shared causal content variable and a system-specific mechanism variable: 
+
+ X(m), U (m) = Cm
+
+
+
+T (m)
+
+, m ∈ { 1, 2}. (19) where T (m) is the observation from system m, and Cm is the corresponding system-specific encoder. The term X(m)
+
+denotes the shared causal content representation induced from system m, corresponding to the system-specific anchor rep-resentation introduced previously, and U (m) captures system-specific mechanism factors that characterize generative het-erogeneity across systems. This decomposition reflects the CGT principle that shared causal content nodes are induced by anchor-equivalent relations rather than direct mergers of original variables. To ensure comparability between content representations across systems, we impose a contrastive consistency constraint on paired samples: 
+
+Lcon = − X
+
+> i
+
+log exp 
+
+
+
+sim 
+
+
+
+X(1)  
+
+> i
+
+, X (2) 
+
+> i
+
+
+
+/τ 
+
+P 
+
+> j
+
+exp 
+
+
+
+sim 
+
+
+
+X(1)  
+
+> i
+
+, X (2) 
+
+> j
+
+
+
+/τ 
+
+ , (20) where sim( ·, ·) is a similarity function and τ is a temperature parameter. This objective encourages semantically correspond-ing samples from different causal systems to align in a shared content space, thereby providing comparable anchor references for subsequent response alignment and structural regulation. The two indices i and j indicate a paired sample across the two systems and candidate samples in the contrastive set, respectively. Furthermore, to prevent system-specific mechanism infor-mation from leaking into the shared content variable, we introduce a content–mechanism disentanglement constraint: 
+
+Ldis = X
+
+> m∈{ 1,2}
+
+H
+
+
+
+X(m), U (m)
+
+, (21) where H(·, ·) is instantiated using the Hilbert-Schmidt Inde-pendence Criterion (HSIC) with Gaussian kernels. This con-straint reduces redundant coupling between X(m) and U (m),encouraging X(m) to encode stable cross-system causal con-tent while preserving mechanism-specific variation in U (m).Accordingly, anchor construction is transformed in ACC-CRL into a latent-space process of shared content learning with mechanism disentanglement, as illustrated in the CGT realization of Fig. 1(b). X(1) and X(2) provide comparable cross-system causal content references, while U (1) and U (2) 
+
+explicitly preserve mechanism heterogeneity. 
+
+2) Learnable Response Consistency under Shared Anchors: 
+
+After establishing shared anchor references through content– mechanism disentanglement, ACC-CRL further diagnoses whether cross-system structures remain consistent under the shared reference. Specifically, for system m ∈ { 1, 2}, define its task response conditioned on content and mechanism as 
+
+R(m) = f (m)
+
+> Y
+
+
+
+X(m), U (m)
+
+, (22) where R(m) denotes the task-head output, e.g., logits, repre-senting the system response under the current anchor content and mechanism condition. To characterize whether the mechanism of one system can explain the response of another under the shared anchor reference, we construct bidirectional cross-system response mappings: 
+
+ˆR(2 ←1) = Ψ 1→2
+
+
+
+X(1) , U (1) , U (2) 
+
+,
+
+ˆR(1 ←2) = Ψ 2→1
+
+
+
+X(2) , U (2) , U (1) 
+
+,
+
+(23) where Ψ1→2 and Ψ2→1 are learnable response mappings. Rather than explicitly defining theoretical mechanism trans-formation operators, they reconstruct one system’s response using the content representation from one side, together with the mechanism representations from both sides. Thus, Ψ serves JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 7
+
+as a learnable approximation of the cross-system mechanism alignment principle in CGT. If two systems share consistent causal semantics under the same anchor, then the mapped response from one system should explain the response of the other. Accordingly, the bidirectional response alignment residuals are defined as 
+
+e12 = ˆR(2 ←1) − R(2) 22
+
+, e21 = ˆR(1 ←2) − R(1) 22
+
+.
+
+(24) The corresponding response alignment objective is 
+
+Lali = X
+
+> i
+
+
+
+ˆR(2 ←1)  
+
+> i
+
+− R(2) 
+
+> i
+> 22
+
++ ˆR(1 ←2)  
+
+> i
+
+− R(1) 
+
+> i
+> 22
+
+
+
+.
+
+(25) As illustrated by the model structure in Fig. 1(b), Lali is not merely a feature-alignment objective. A theoretical discus-sion on how the proposed interventional response alignment suppresses spurious cross-system mechanism correlations is provided in Appendix B. In ACC-CRL, it additionally serves as a structural diagnosis mechanism: if two systems cannot mutually explain responses under the shared anchor reference, then their underlying causal effects are inconsistent, suggesting that the corresponding cross-system relations may be unreli-able. Accordingly, we define the average structural error 
+
+estr = 12 (e12 + e21 ) , (26) as a sample-level structural mismatch signal. This signal acts as a proxy for the reliability of candidate cross-system edges in CGT and is subsequently used for uncertainty modeling and fusion regulation. 
+
+B. Learnable Realization of CGR 1) Uncertainty-Aware Structural Regulation: For CGR, the preservation, weakening, or suppression of candidate cross-system paths is jointly regulated by edge-level credibility and structural uncertainty. In ACC-CRL, this principle is realized through a sample-level uncertainty-aware fusion mechanism. First, structural uncertainty is defined as: 
+
+ustr = σ
+
+ estr 
+
+τ
+
+
+
+, (27) where estr is the bidirectional response-alignment residual defined in (26), measuring the degree of cross-system response inconsistency under the shared anchor; σ(·) is the Sigmoid function; and τ is a temperature parameter. Beyond structural mismatch, the model must also estimate predictive unreliability at the sample level. To this end, we construct a lightweight uncertainty estimator gunc (·) with input 
+
+ξ =
+
+h
+
+U (1) , U (2) , X(1) − X(2) i
+
+, (28) where ξ is the uncertainty-estimation input, and | · | is the element-wise absolute difference. The term gunc (·) maps the mechanism representations and content discrepancy of the two systems to a scalar score, which is normalized to obtain the model uncertainty uunc as 
+
+uunc = σ
+
+ gunc (ξ)
+
+τ
+
+
+
+, (29) which reflects the predictive risk, whereas ustr in (27) captures structural mismatch. Together, they regulate fusion from the perspectives of predictive reliability and structural reliability. Combining both uncertainties yields the total uncertainty from which the cross-system structural regulation variable is defined as 
+
+γ = 1 − 12 (uunc + ustr ) . (30) A larger γ indicates stronger structural consistency and more reliable prediction for the current sample, whereas a smaller 
+
+γ suggests that cross-system fusion may introduce unstable dependencies caused by mechanism mismatch. Let the base fusion representation be 
+
+cbase = 12
+
+
+
+X(1) + X(2) 
+
+, (31) where cbase denotes the naive dual-system content fusion representation. Here, X(1) is used as the conservative refer-ence representation when cross-system fusion is unreliable. Then, the uncertainty-regulated causal fusion representation is defined as 
+
+cfused = γ c base + (1 − γ) X(1) . (32) This formulation implies that when cross-system structures are reliable, the model strengthens dual-system fusion; when structural mismatch or predictive risk becomes large, the model suppresses cross-system information and falls back to a more conservative single-system representation. Accordingly, the abstract notion of cross-system edge cred-ibility in CGR is realized in ACC-CRL as a differentiable sample-level gating mechanism: 
+
+˜Ccross (e) ∝ γ (33) This mechanism enables ACC-CRL to approximately imple-ment the structural regulation principle of CGR in represen-tation space, preserving and exploiting cross-system relations when reliable, while weakening or suppressing unstable short-cut dependencies when unreliable. A probabilistic interpreta-tion of the adaptive gate γ as a sample-wise approximation of cross-system edge credibility is provided in Appendix C. 
+
+2) Observation-Aware Structural Reconfiguration: Al-though ACC-CRL learns cross-system causal representations through content–mechanism disentanglement in latent space, this abstraction process may weaken certain fine-grained visual cues from the original observations. In medical imaging tasks, boundary morphology, texture patterns, and local structural variations often carry important diagnostic information. Con-sequently, relying solely on latent causal representations may lead to insufficient utilization of observation-level information. To address this issue, we introduce an observation-supplementary branch based on raw medical images to pre-serve discriminative information directly derived from the observation space. Specifically, for each input T (m), an image encoder ϕ(·) is constructed to obtain observation feature representations: 
+
+F (m) = ϕ
+
+
+
+T (m)
+
+, m ∈ { 1, 2}. (34) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 8
+
+where T (m) denotes the raw observation from system m, and 
+
+ϕ(·) denotes the image encoder used to extract observation-level visual features. Here, F (m) primarily captures local visual structures and serves as a complement to the shared causal content representations learned in latent space. Let cfused denote the causal fusion representation produced by ACC-CRL, and define the aggregated observation repre-sentation as 
+
+cobs = h
+
+
+
+F (1) , F (2) 
+
+, (35) where cobs is the aggregated observation-level visual represen-tation, and h(·) is an observation-feature aggregation function used to combine visual representations from different systems. The final representation is given by 
+
+˜c = γ c fused + (1 − γ) cobs , (36) where γ denotes the causal fusion confidence weight jointly determined by structural uncertainty and model uncertainty, and ˜c denotes the final representation used for downstream prediction. The overall fusion strategy is illustrated in the ACC-CRL model structure shown in Fig. 1(b). This design introduces an uncertainty-aware observation-supplementation mechanism. When cross-system structural consistency is high and predictive uncertainty is low, γ be-comes large, causing the model to rely primarily on the causal fusion representation for prediction. Conversely, when structural mismatch or predictive risk increases, γ decreases, prompting the model to incorporate more fine-grained visual cues from the observation space. This adaptive supplemen-tation strategy mitigates the risks introduced by unreliable cross-system causal relations while preserving diagnostically relevant observation-level information. Overall, this branch does not replace the CRL process of ACC-CRL, but instead serves as an observation-level complement that enables dynamic balancing between causal abstraction and raw visual information, thereby improving robustness in real-world medical imaging scenarios. 
+
+C. Joint Optimization Objective 
+
+Combining the above components, the overall optimization objective of ACC-CRL is 
+
+L = Lsup + λcon Lcon + λdis Ldis + λali Lali + λuaf Luaf , (37) where Lsup denotes the downstream supervised objective; 
+
+Lcon learns cross-system shared content representations; Ldis 
+
+suppresses mechanism leakage into shared content variables; 
+
+Lali enforces bidirectional response consistency under shared anchors while generating structural mismatch signals; and 
+
+Luaf regularizes sample-level reliability gating in uncertainty-aware fusion (UAF). Specifically, UAF does not require additional uncertainty annotations, but is jointly driven by structural mismatch sig-nals and task supervision. To maintain consistency between reliability gating and structural consistency, we define 
+
+Luaf = E [γ · estr ] . (38) This regularizer penalizes assigning large fusion weights under severe structural mismatch, thereby encouraging the model to exploit complementary cross-system information only when structures are reliable, while suppressing cross-system depen-dencies under structural unreliability or high risk. From an optimization perspective, Lcon and Ldis construct shared anchor references, Lali exposes cross-system structural mismatch, Lsup drives task discriminability, and Luaf further constrains structural regulation variables. Overall, ACC-CRL realizes the core principle of CGR in latent space: actively con-structing and regulating cross-system causal relations through model priors, rather than naively concatenating multi-source information. V. E XPERIMENTS AND RESULTS 
+
+A. Experimental Objectives and Methodologies 
+
+The experiments are designed to validate ACC and ACC-CRL from three complementary perspectives: struc-tural mechanism analysis, real-world OOD generalization, and component-level causal attribution. First, controlled experiments on ColorMNIST are used to analyze the mechanism-level behavior of the proposed framework under explicitly constructed shortcut correlations. Rather than focusing solely on classification accuracy, these experiments aim to verify whether ACC-CRL can suppress unstable cross-system dependencies and alter the underlying causal structure in representation space. Metrics such as direc-tional bias, counterfactual consistency, retrieval performance, and representation visualization are therefore used as structural evidence for evaluating causal pathway regulation. Second, real-world multi-center MVI prediction experi-ments are conducted to evaluate whether the proposed frame-work generalizes under heterogeneous mechanisms and distri-bution shifts. Compared with synthetic shortcut settings, multi-center medical imaging introduces substantially more complex mechanism variations, including acquisition protocols, scanner differences, and population heterogeneity. These experiments primarily validate whether ACC-CRL can maintain transfer-able shared representations and suppress unstable cross-system correlations under realistic OOD conditions. Third, ablation studies are designed to analyze the causal roles of different components in ACC-CRL. Specifically, mechanism alignment is intended to realize CGT through shared-anchor consistency, while UAF realizes CGR by reg-ulating unreliable cross-system relations. The ablations there-fore provide component-level evidence connecting the theo-retical principles of ACC with their practical realization in ACC-CRL. 
+
+B. CSE Analysis Using ColorMNIST 
+
+From the perspective of our framework, shortcut causal pathways can be seen as a manifestation of CSE, arising from unstable dependencies between systems. To systematically evaluate the ability of the proposed method to mitigate such spurious causal pathways, we design a controlled experiment using ColorMNIST. By explicitly introducing modality bias, the model is encouraged to learn these unstable correlations during training, offering a clear and interpretable setup for analyzing the dominance of causal pathways. This setup helps JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 9                                                            
+
+> TABLE I PERFORMANCE COMPARISON ON COLOR MNIST UNDER DIFFERENT BIAS STRENGTHS
+> Bias Method OOD Acc OOD R@1 ID Acc CF Same-Class Dir. ( h-diff) 0.95 Concat. fusion 87.69 ±.47 92.01 ±1.33 98.75 ±.12 96.58 ±2.03 0.0196 ±.0013 Intervention 89.39 ±.45 90.97 ±.62 98.98 ±.09 96.72 ±.23 0.0184 ±.0004 Intervention + UAF 87.99 ±1.18 95.29 ±1.12 98.87 ±.03 95.67 ±1.10 0.0114 ±.0008
+> 0.98 Concat. fusion 78.07 ±1.76 87.20 ±2.32 99.30 ±.04 94.38 ±1.07 0.0291 ±.0026 Intervention 80.36 ±.62 86.61 ±2.10 99.16 ±.14 94.21 ±.98 0.0272 ±.0014 Intervention + UAF 74.10 ±2.04 90.17 ±1.02 99.18 ±.08 92.97 ±.18 0.0178 ±.0006
+> 0.99 Concat. fusion 69.36 ±2.49 84.72 ±1.93 99.34 ±.11 92.38 ±1.61 0.0381 ±.0009 Intervention 67.89 ±3.34 85.31 ±.71 99.26 ±.30 92.36 ±2.04 0.0388 ±.0021 Intervention + UAF 67.28 ±1.81 88.31 ±.66 99.31 ±.07 90.02 ±1.27 0.0214 ±.0009
+> TABLE II PERFORMANCE COMPARISON UNDER DIFFERENT CLASSIFIERS
+
+Method Linear Head k-NN (k=10) Concat. fusion ∼69% 86.38% Intervention ∼67% 85.20% Intervention + UAF ∼67% 89.40%  
+
+> Fig. 2. t-SNE visualization under high bias (Bias=0.99). Baseline shows severe overlap due to shortcut reliance, while Intervention + UAF yields more separable clusters.
+
+assess the effectiveness of CGT in suppressing CSD and the role of CGR in addressing CSE. We construct a dual-modality dataset:  
+
+> •
+
+Modality A: Colored digit images, where color is strongly correlated with labels in training, serving as an explicit shortcut signal;  
+
+> •
+
+Modality B: Grayscale or texture-based representations, preserving structural information and largely independent of color bias. During training, different bias levels (Bias = 0.95, 0.98, 0.99) are used to control color-label correlation. During test-ing, OOD data (Bias = 0.1) are constructed by breaking this correlation. From a causal perspective, the evaluation metrics cap-ture key structural properties. Counterfactual consistency (CF Same-Class) measures whether representations capture stable semantics. Directionality ( h-diff) quantifies directional bias, indicating causal dominance by a single modality. R@1 and k-NN performance reflect local consistency and transferability. Results reveal fundamental differences across methods. Concatenation-based fusion achieves high ID accuracy but suffers significant OOD degradation with large h-diff, indicat-ing reliance on color-induced shortcut pathways. Intervention improves OOD performance but still exhibits directional bias. In contrast, Intervention + UAF significantly reduces h-diff and improves R@1, indicating reduced causal dominance and enhanced structural consistency. Under counterfactual settings, a decrease in CF Same-Class reflects reduced reliance on spurious correlations rather than instability. At high bias levels, OOD accuracy does not significantly improve, highlighting that ACC-CRL prioritizes causal robustness over shortcut-driven discrimination. When replacing the linear classifier with k-NN, Intervention + UAF achieves superior performance, indicating better representation quality. t-SNE visualizations further confirm that the proposed method produces more compact and separable clusters, demonstrating effective suppression of shortcut pathways. Overall, the ColorMNIST experiments demonstrate that bias-induced spurious correlations manifest as directional dominance in the representation space, and ACC-CRL ef-fectively mitigates this through mechanism intervention and uncertainty modeling, thereby improving OOD generalization. From a structural perspective, this suggests that the model not only suppresses spurious correlations but also alters the underlying causal structure in the representation space by dynamically regulating cross-modal causal pathways. The re-duction in directional bias signifies improved CGR, while the stable semantic clustering reflects the effectiveness of CGT in ensuring consistent causal relationships across systems. 
+
+C. MVI Experiments 
+
+Such causal shortcuts induced by mechanism differences are widespread in medical image analysis, and MVI prediction provides a representative example. In this task, the model is expected to leverage complementary information from both intra-tumoral and peri-tumoral regions. However, these two regions are governed by substantially different generative mechanisms, reflecting tumor-internal structural characteristics and changes in the surrounding microenvironment, respec-tively. Without explicit mechanism modeling, cross-region fusion may easily introduce unstable dependencies driven by region-specific biases, thereby forming non-transferable shortcut causal pathways. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 10 
+
+1) Patient Recruitment and Inclusion Criteria: This retro-spective study collected data from 386 patients with HCC confirmed by clinical diagnosis and postoperative pathology from two medical institutions: 186 cases from Huzhou Central Hospital and 200 cases from Sichuan Provincial People’s Hospital. The inclusion criteria were as follows: (1) all cases met the Clinical Diagnostic Criteria for Primary Liver Cancer 
+
+established at the 8th National Academic Conference on Liver Cancer; (2) dynamic contrast-enhanced MRI was performed within 2 weeks before surgery, with all scans acquired on the same MRI system model (GE Discovery HD750 3.0T), and with complete relevant sequences available; and (3) laboratory indicators, including AFP, CEA, and CA199, were collected within 1 week before surgery. The exclusion criteria were as follows: (1) patients who had received preoperative treatment for intrahepatic lesions, such as radiofrequency ablation (RFA), transarterial chemoem-bolization (TACE), or radiotherapy; (2) patients with other types of hepatic tumors; and (3) patients with inconsistent MRI acquisition parameters or poor image quality that did not satisfy the requirements for imaging–pathology analysis. After applying the above criteria, 264 patients were finally included in the analysis, including 160 cases from Sichuan Provincial People’s Hospital and 104 cases from Huzhou Central Hospital. 
+
+Cohort 1: Sichuan Provincial People’s Hospital. This co-hort included 160 patients collected from November 2019 to January 2021, including 117 MVI-negative cases and 43 MVI-positive cases. To address class imbalance, 43 additional augmented samples were generated for the MVI-positive class. Under the slice-level setting, the 4 slices with the largest ROI were selected for each patient as model inputs, resulting in a total of 812 samples. 
+
+Cohort 2: Huzhou Central Hospital. This cohort included 104 patients collected from October 2017 to December 2023, including 78 MVI-negative cases and 26 MVI-positive cases. Similarly, under the slice-level setting, the 4 slices with the largest region-of-interest (ROI) were selected for each patient as model inputs, resulting in a total of 416 samples. To evaluate the model’s generalization ability under distri-bution shift, Cohort 2 was not merged with Cohort 1, but instead served as an independent external test set for cross-center validation. 
+
+2) Experimental Setup: This experimental design enables us to assess whether the proposed method can learn stable pathological representations through causal constraints under substantial cross-center heterogeneity. The MRI data used in this study consist of two inputs from the arterial phase (ART): the intra-tumoral region and the peri-tumoral region, which are used to validate the effectiveness of the proposed method on a real-world medical task of MVI prediction. Unlike the controlled experiments on ColorMNIST, MVI prediction represents a clinically more complex real-world setting: across different centers, variations in scanning devices, acquisition protocols, patient population distributions, and annotation criteria are common. These factors all lead to changes in modality-specific mechanism variables, making the model more likely to rely on spurious correlations in the training domain and thus suffer significant performance degra-dation on external data. From the perspective of the proposed multi-causal-system modeling framework, this phenomenon can be understood as follows: during training, the model learns cross-modal shortcut pathways that are statistically correlated within a specific center but unrelated to the intrinsic pathology of the disease, and these pathways become unstable under cross-center testing. To prevent patient information leakage, all data splits were performed strictly at the patient level. All slices from the same patient were always assigned to the same subset and never appeared simultaneously in the training, validation, and test sets. It should be emphasized that positive-sample augmentation was conducted only after patient-wise splitting and was applied exclusively within the training set; neither the validation set nor the test set contained any augmented samples. During model training and evaluation, we adopted a slice-level setting: for each patient, the 4 slices with the largest ROI were selected as input samples, and both training and testing were performed at the slice level. Therefore, the AUC, ACC, BACC, Specificity, and F1 reported in this paper are all slice-level metrics rather than patient-level aggregated results. In particular, BACC is additionally reported to provide a more reliable evaluation under OOD settings with potentially imbalanced sample distributions across classes. In addition, the internal and external cohorts followed the same ROI selection rules and preprocessing pipeline. Specif-ically, for both cohorts, the 4 slices with the largest ROI were selected for each patient according to the same criterion, and identical cropping, normalization, and size standardiza-tion procedures were applied. The external cohort was used only for out-of-distribution testing and did not participate in model training, validation, hyperparameter selection, or data augmentation. 
+
+3) Experimental Results: The experimental results are sum-marized in Tables III and VI, which report the performance of different methods under ID and OOD settings, respectively. From the results, it is evident that different methods ex-hibit significant discrepancies across distributions. Some ap-proaches (e.g., MultiOOD) achieve strong performance on ID data but suffer severe degradation under OOD conditions (e.g., AUC drops from 0.9503 to 0.5211), indicating that they rely heavily on statistical correlations in the training distribution and consequently learn non-transferable shortcut pathways. In contrast, ACC-CRL maintains competitive performance on ID data while achieving consistently stronger performance under OOD settings compared to most baselines. Although it does not always achieve the best ID scores (e.g., compared to MultiOOD or VREx), it exhibits substantially smaller performance degradation across distributions, demonstrating improved cross-distribution generalization. This suggests that the model tends to capture more invariant and transferable features rather than relying on domain-specific biased patterns. Furthermore, Fig. 3 provides a visual summary of the ID– OOD trade-off. Most baseline methods are located in the “high-ID, low-OOD” region, indicating substantial generaliza-JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 11          
+
+> TABLE III PERFORMANCE COMPARISON ON THE INTERNAL ODD-D ATA COHORT . O URS DENOTES THE FINAL ACC-CRL M ODEL WITH EVIDENTIAL FUSION .
+
+Method AUC ACC BACC Specificity F1 MultiOOD [1] 0.9503 ± 0.0225 0.8056 ± 0.0507 0.8182 ± 0.0504 0.7375 ± 0.1611 0.7966 ± 0.0270 SupContrast [8] 0.8974 ± 0.0239 0.7961 ± 0.0303 0.8093 ± 0.0187 0.7684 ± 0.1048 0.7722 ± 0.0545 IRM [5] 0.6834 ± 0.0995 0.5728 ± 0.1184 0.6073 ± 0.0660 0.4101 ± 0.2129 0.6058 ± 0.1185 Mixup [4] 0.7680 ± 0.0350 0.6788 ± 0.0279 0.6885 ± 0.0242 0.6825 ± 0.0878 0.6391 ± 0.0611 Group DRO [6] 0.7801 ± 0.0253 0.6935 ± 0.0471 0.6967 ± 0.0222 0.6629 ± 0.1065 0.6620 ± 0.0682 VREx [18] 0.9025 ± 0.0340 0.8459 ± 0.0282 0.8355 ± 0.0369 0.8561 ± 0.0760 0.8082 ± 0.0625 CDANN [19] 0.8918 ± 0.0569 0.8109 ± 0.0650 0.8299 ± 0.0478 0.7821 ± 0.1210 0.7933 ± 0.0724 ACC-CRL 0.9137 ± 0.0368 0.7842 ± 0.0775 0.8094 ± 0.0576 0.7374 ± 0.1237 0.7725 ± 0.0807         
+
+> TABLE IV PERFORMANCE COMPARISON ON THE EXTERNAL HZ C OHORT . O URS DENOTES THE FINAL ACC-CRL M ODEL WITH EVIDENTIAL FUSION .
+
+Method AUC ACC BACC Specificity F1 MultiOOD [1] 0.5211 ± 0.0782 0.6294 ± 0.0635 0.5236 ± 0.0446 0.7395 ± 0.1634 0.2631 ± 0.1086 SupContrast [8] 0.5442 ± 0.0370 0.6784 ± 0.0555 0.5533 ± 0.0231 0.8086 ± 0.1173 0.3036 ± 0.0776 IRM [5] 0.7143 ± 0.0048 0.5441 ± 0.1312 0.6251 ± 0.0465 0.4599 ± 0.2250 0.4738 ± 0.0275 Mixup [4] 0.5709 ± 0.0638 0.6402 ± 0.0621 0.5587 ± 0.0356 0.7250 ± 0.1164 0.3508 ± 0.0597 Group DRO [6] 0.5511 ± 0.0736 0.6255 ± 0.0602 0.5463 ± 0.0574 0.7079 ± 0.1161 0.3282 ± 0.0908 VREx [18] 0.5785 ± 0.0363 0.7132 ± 0.0230 0.5248 ± 0.0275 0.9092 ± 0.0514 0.1838 ± 0.1087 CDANN [19] 0.5872 ± 0.0356 0.7078 ± 0.0250 0.5370 ± 0.0406 0.8855 ± 0.0595 0.2247 ± 0.1338 ACC-CRL 0.6840 ± 0.0296 0.7240 ± 0.0321 0.6345 ± 0.0267 0.8171 ± 0.0615 0.4522 ± 0.0437  
+
+> Fig. 3. Robustness trade-off between ID and OOD performance measured by BACC. Each point denotes a method, and the diagonal line indicates equal performance across environments. Methods located closer to the diagonal exhibit smaller generalization gaps. ACC-CRL lies in a more favorable region, maintaining competitive ID performance while achieving stronger OOD generalization, indicating improved robustness under distribution shift.
+
+tion gaps. In comparison, ACC-CRL lies closer to the diag-onal, achieving a better balance by maintaining competitive ID performance while exhibiting reduced degradation under distribution shift. In addition, from the perspective of BACC and F1 metrics, ACC-CRL demonstrates more balanced performance across distributions compared to several baselines. While it may not always achieve the highest F1 score (e.g., IRM under OOD), it avoids extreme bias toward specific classes, indicating more stable and reliable predictions under distribution shift. This property is particularly important in medical applications, where consistent performance across varying data distributions is essential. Overall, the results indicate that ACC-CRL improves OOD generalization while maintaining competitive ID performance, achieving a more favorable trade-off between accuracy and robustness. This result indicates that ACC-CRL does not merely enhance robustness, but dynamically adjusts cross-region causal relationships under cross-center mechanism het-erogeneity, thereby enabling adaptive construction at the level of causal structure. 
+
+4) MVI Ablation Study: The ablation results demonstrate that different components exhibit complementary effects under both ID and OOD settings. Mechanism alignment improves CGT, while UAF enhances CGR by suppressing CSE. On the ID, introducing mechanism alignment alone leads to consistent improvements over the baseline across AUC, ACC, and BACC. This suggests that cross-modal mechanism alignment effectively mitigates disturbances caused by het-erogeneous generative mechanisms, encouraging the model to rely more on shared causal content rather than spurious local correlations. When incorporating UAF, the performance exhibits mod-erate fluctuations. While UAF enhances AUC in certain con-figurations (e.g., structure-only and model-only variants), it does not consistently improve ACC and BACC compared JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 12 
+
+TABLE V PERFORMANCE COMPARISON ON THE INTERNAL ID ( IN -DISTRIBUTION ) COHORT . O URS DENOTES THE FULL ACC-CRL MODEL INTEGRATING MECHANISM ALIGNMENT AND UAF. Method AUC ACC BACC Specificity F1 Baseline (no alignment, no UAF) 0.8810 ± 0.0350 0.7452 ± 0.0552 0.7746 ± 0.0411 0.6151 ± 0.0803 0.7517 ± 0.0633 Alignment only 0.8854 ± 0.0392 0.7626 ± 0.0648 0.7957 ± 0.0396 0.6806 ± 0.1275 0.7601 ± 0.0712 UAF (structure only) 0.8907 ± 0.0476 0.7517 ± 0.1061 0.7776 ± 0.0785 0.6395 ± 0.1702 0.7583 ± 0.0964 UAF (model only) 0.8926 ± 0.0600 0.7438 ± 0.1511 0.7799 ± 0.1055 0.6855 ± 0.2567 0.7492 ± 0.1170 
+
+ACC-CRL (alignment + UAF) 0.9137 ± 0.0368 0.7842 ± 0.0775 0.8094 ± 0.0576 0.7374 ± 0.1237 0.7725 ± 0.0807 
+
+TABLE VI PERFORMANCE COMPARISON ON THE EXTERNAL HZ COHORT (OUT -OF -DISTRIBUTION , OOD), EVALUATING CROSS -CENTER GENERALIZATION . O URS DENOTES THE FULL ACC-CRL MODEL INTEGRATING MECHANISM ALIGNMENT AND UAF. Method AUC ACC BACC Specificity F1 Baseline (no alignment, no UAF) 0.6558 ± 0.0340 0.6637 ± 0.0563 0.6257 ± 0.0298 0.7033 ± 0.0975 0.4541 ± 0.0323 
+
+Alignment only 0.6596 ± 0.0437 0.6912 ± 0.0280 0.6169 ± 0.0364 0.7684 ± 0.0576 0.4296 ± 0.0594 UAF (structure only) 0.6699 ± 0.0299 0.6578 ± 0.0589 0.6243 ± 0.0178 0.6928 ± 0.1207 0.4500 ± 0.0268 UAF (model only) 0.6625 ± 0.0430 0.6887 ± 0.0765 0.6184 ± 0.0268 0.7618 ± 0.1564 0.4298 ± 0.0486 
+
+ACC-CRL (alignment + UAF) 0.6840 ± 0.0296 0.7240 ± 0.0321 0.6345 ± 0.0267 0.8171 ± 0.0615 0.4522 ± 0.0437 
+
+to alignment alone. This indicates that, under in-distribution settings, uncertainty modeling may suppress some predictive but potentially unstable correlations, resulting in a trade-off between peak performance and robustness. On the OOD, the role of each component becomes more evident. Mechanism alignment alone improves AUC and ACC compared to the baseline, but leads to decreased BACC, suggesting limited ability to handle distribution shifts across modalities. In contrast, integrating UAF leads to more bal-anced performance, improving AUC and BACC relative to both the baseline and alignment-only variants, while main-taining competitive F1 scores. This indicates that uncertainty modeling helps identify and down-weight unreliable cross-modal interactions under distribution shift. Overall, mechanism alignment enhances CGT at the rep-resentation level, while uncertainty modeling regulates the reliability of multi-modal fusion. Their combination enables ACC-CRL to achieve the best overall performance, yielding consistent gains on ID data and more robust, balanced gener-alization under OOD settings. 
+
+D. Mechanism Disentanglement Analysis 
+
+To further analyze the effect of contrastive learning on the representation space, we compare the cosine distance distributions between matched and mismatched sample pairs, as shown in Fig. 4. Here, matched pairs refer to semantically consistent samples, while mismatched pairs correspond to semantically inconsistent ones. Without contrastive learning (Fig. 4(a)), the distance dis-tributions of matched and mismatched pairs largely overlap, with a small difference ( ∆ = mismatched −matched = 0 .068 ), indicating that the model fails to learn a discriminative struc-ture and that semantic consistency is not well captured in the representation space. In contrast, after introducing contrastive learning (Fig. 4(b)), although the overall distance distribution expands (i.e., both matched and mismatched distances increase), the relative gap 
+
+Fig. 4. Comparison of cosine distance distributions between matched and mismatched sample pairs before and after contrastive learning. (a) Without contrastive learning, the distance distributions largely overlap, with a small gap ( ∆ = 0 .068 ), indicating weak semantic structure. (b) After applying contrastive learning, although overall distances increase, the gap between mismatched and matched pairs becomes significantly larger ( ∆ = 0 .546 ), suggesting enhanced semantic separation in the representation space. 
+
+between them is significantly enlarged ( ∆ = 0 .546 ). This suggests that contrastive learning does not simply compress the feature space but instead increases the separation between semantically different samples while maintaining relative prox-imity among semantically consistent ones, thereby forming a clearer discriminative structure. Therefore, compared to absolute distances, the gap between matched and mismatched pairs better reflects the learned semantic structure. This result verifies that contrastive learning effectively enhances semantic consistency in representations, providing a more stable foundation for subsequent mechanism alignment and causal structure modeling. To further investigate the impact of mechanism alignment on latent representations, we visualize the shared representation 
+
+X and mechanism-specific representation U using t-SNE, as shown in Fig. 5. During the contrastive learning stage (SSL) (Fig. 5(a), (c)), the shared representation X partially captures class informa-tion but still exhibits noticeable overlap across categories, JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 13         
+
+> Fig. 5. t-SNE visualization of latent representations before and after mech-anism alignment. (a)(c) show representations learned by contrastive learning (SSL), while (b)(d) show results after introducing mechanism alignment (SSL+Align). The top row corresponds to shared representation Z(colored by class), and the bottom row corresponds to mechanism representation U
+> (colored by domain, where ID denotes training distribution and OOD denotes out-of-distribution data). After alignment, Zbecomes more compact and sep-arable across classes, while Uexhibits clearer domain separation, indicating improved disentanglement between shared semantics and mechanism-specific factors.
+
+indicating limited discriminative power. Meanwhile, the mech-anism representation U does not show clear separation across domains (ID vs. OOD), suggesting that the model has not yet effectively captured mechanism variations associated with distribution shifts. After introducing mechanism alignment (SSL+Align) (Fig. 5(b), (d)), the representation structure undergoes sig-nificant changes. First, X forms more compact and well-separated clusters along class dimensions, indicating enhanced shared semantic representation relevant to the task. Second, U
+
+shows clearer separation across domains, suggesting that the model successfully encodes distribution-specific mechanism information into an independent representation space. These observations indicate that mechanism alignment not only improves discriminative capability but also promotes functional disentanglement between shared semantics and mechanism factors, thereby facilitating the learning of more stable representations with improved cross-distribution gener-alization. 
+
+E. Uncertainty Modeling Analysis 
+
+To evaluate the effectiveness of the proposed uncertainty module, we analyze predictive uncertainty from three perspec-tives: error correlation, cross-domain sensitivity, and probabil-ity calibration, as shown in Fig. 6. First, from the perspective of error correlation (Fig. 6(a)), predictive uncertainty u, defined as the complement of the fu-sion confidence weight, i.e., u = 1 −γ, exhibits a clear positive correlation with classification error. As u increases, the binned error rate consistently rises, indicating that samples with lower fusion reliability are associated with greater prediction risk. This demonstrates that the proposed uncertainty measure effectively captures the reliability of model predictions rather than serving as a heuristic score. Second, regarding cross-domain sensitivity (Fig. 6(b)), the uncertainty distribution for the external domain (OOD) is shifted to the right compared to the internal domain (ID), meaning that OOD samples tend to have higher uncertainty. This indicates that the model can detect structural shifts under distribution changes and respond accordingly by increasing uncertainty. This observation is consistent with the design motivation of using structural uncertainty to regulate cross-modal fusion strength. Finally, from the perspective of probability calibration (Fig. 6(c)), after applying temperature scaling, the model demonstrates good calibration performance across both over-all and domain-specific data. Specifically, the overall ECE is 0.042, while the internal and external domains achieve 0.031 and 0.057, respectively. This indicates strong alignment between predicted confidence and empirical accuracy. Good calibration further suggests that both the predicted confidence and derived uncertainty are reliable. Overall, these results demonstrate that the proposed uncer-tainty modeling not only effectively captures prediction risk but also responds to cross-domain distribution shifts while maintaining good probabilistic consistency after calibration. These findings validate the reliability of the uncertainty mod-ule and provide empirical support for subsequent uncertainty-aware adaptive fusion. VI. C ONCLUSION 
+
+In this paper, we investigate the generalization problem in fusion learning under OOD settings from a causal perspec-tive. We highlight that different input sources correspond to heterogeneous generative mechanisms, and cross-center dis-tribution shifts can be fundamentally understood as variations in causal mechanisms. Under such conditions, conventional fusion methods often introduce unstable shortcut pathways driven by statistical correlations, leading to performance degra-dation, particularly due to CSE and CSD. To address these issues, we propose the ACC frame-work, which formulates multi-source fusion as a problem of structural reconfiguration across multiple causal systems. The framework establishes CGT via shared causal anchors to mitigate CSD, models structural changes through CGR, and regulates the fusion process via uncertainty modeling to suppress CSE. Building on this framework, we introduce ACC-CRL as a learnable implementation. The method learns stable causal content representations through content-mechanism disentan-glement and interventional consistency alignment, and inte-grates UAF to adaptively suppress unreliable cross-system pathways, thereby improving robustness against CSE and CSD. Experiments on both synthetic data (ColorMNIST) and real-world multi-center medical imaging tasks (MVI prediction) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 14 
+
+Fig. 6. Uncertainty modeling analysis. (a) Relationship between predictive uncertainty u = 1 − max( p) and classification error, where p denotes predicted class probabilities. Results show a positive correlation between uncertainty and prediction risk. (b) Empirical cumulative distribution functions (ECDF) of uncertainty across domains, where ID denotes in-distribution data and OOD denotes out-of-distribution data. The rightward shift of OOD indicates higher uncertainty under distribution shift. (c) Reliability diagram after temperature scaling, evaluating probability calibration. ECE (expected calibration error) measures the gap between confidence and accuracy, showing good calibration performance. 
+
+demonstrate that the proposed method significantly improves OOD generalization while maintaining ID performance, val-idating the effectiveness of causal modeling based on CGT, CGR, and uncertainty modeling. Future work will explore more complex multi-causal-system modeling under diverse input conditions and incorporate more advanced structure learning techniques to further enhance interpretability and clinical applicability, ultimately refining the adaptation of CGT and CGR to address CSD and CSE in real-world scenarios. REFERENCES [1] H. Dong, Y. Zhao, E. Chatzi, and O. Fink, “Multiood: Scaling out-of-distribution detection for multiple modalities,” Advances in Neural Information Processing Systems , vol. 37, pp. 129 250–129 278, 2024. [2] A. Vasiliuk, D. Frolova, M. Belyaev, and B. Shirokikh, “Limitations of out-of-distribution detection in 3d medical image segmentation,” Journal of Imaging , vol. 9, no. 9, p. 191, 2023. [3] W. Liu, Z. Ni, X. Zhu, Q. Chen, L. Ni, and P. Xia, “Spectrum intervention based invariant causal representation learning for single-domain generalizable medical image segmentation,” Medical Image Analysis , vol. 105, p. 103741, 2025. [Online]. Available: https: //www.sciencedirect.com/science/article/pii/S1361841525002889 [4] H. Zhang, M. Cisse, Y. N. Dauphin, and D. Lopez-Paz, “mixup: Beyond empirical risk minimization,” arXiv preprint arXiv:1710.09412 , 2017. [5] M. Arjovsky, L. Bottou, I. Gulrajani, and D. Lopez-Paz, “Invariant risk minimization,” arXiv preprint arXiv:1907.02893 , 2019. [6] S. Sagawa, P. W. Koh, T. B. Hashimoto, and P. Liang, “Distributionally robust neural networks for group shifts: On the importance of regular-ization for worst-case generalization,” arXiv preprint arXiv:1911.08731 ,2019. [7] Z. Liang, Z. Pan, and R. Xiong, “Causal representation learning from multimodal clinical records under non-random modality missingness,” in Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing , 2025, pp. 28 779–28 796. [8] P. Khosla, P. Teterwak, C. Wang, A. Sarna, Y. Tian, P. Isola, A. Maschinot, C. Liu, and D. Krishnan, “Supervised contrastive learn-ing,” Advances in neural information processing systems , vol. 33, pp. 18 661–18 673, 2020. [9] J. Li, X. Su, X. Xu, C. Zhao, A. Liu, L. Yang, B. Song, H. Song, Z. Li, and X. Hao, “Preoperative prediction and risk assessment of microvascular invasion in hepatocellular carcinoma,” Critical Reviews in Oncology/Hematology , vol. 190, p. 104107, 2023. [10] X. Zhang, X. Yu, W. Liang, Z. Zhang, S. Zhang, L. Xu, H. Zhang, Z. Feng, M. Song, J. Zhang et al. , “Deep learning-based accurate diagnosis and quantitative evaluation of microvascular invasion in hep-atocellular carcinoma on whole-slide histopathology images,” Cancer Medicine , vol. 13, no. 5, p. e7104, 2024. [11] L. Wang, M. Wu, R. Li, X. Xu, C. Zhu, and X. Feng, “Mvi-mind: a novel deep-learning strategy using computed tomography (ct)-based radiomics for end-to-end high efficiency prediction of microvascular invasion in hepatocellular carcinoma,” Cancers , vol. 14, no. 12, p. 2956, 2022. [12] H. Jiang, J. Wei, F. Fu, H. Wei, Y. Qin, T. Duan, W. Chen, K. Xie, J. M. Lee, M. R. Bashir et al. , “Predicting microvascular invasion in hepatocellular carcinoma: a dual-institution study on gadoxetate disodium-enhanced mri,” Liver International , vol. 42, no. 5, pp. 1158– 1172, 2022. [13] T. Zheng, Y. Zhu, H. Jiang, C. Yang, Y. Ye, M. R. Bashir, C. Li, L. Long, S. Luo, B. Song et al. , “Mri-based topology deep learning model for noninvasive prediction of microvascular invasion and assisting prognostic stratification in hcc,” Liver International , vol. 45, no. 3, p. e16205, 2025. [14] Y. Zhang, X. Lv, J. Qiu, B. Zhang, L. Zhang, J. Fang, M. Li, L. Chen, F. Wang, S. Liu et al. , “Deep learning with 3d convolutional neural network for noninvasive prediction of microvascular invasion in hepato-cellular carcinoma,” Journal of Magnetic Resonance Imaging , vol. 54, no. 1, pp. 134–143, 2021. [15] Q. Wang, Y. Zhou, H. Yang, J. Zhang, X. Zeng, and Y. Tan, “Mri-based clinical-radiomics nomogram model for predicting microvascular invasion in hepatocellular carcinoma,” Medical Physics , vol. 51, no. 7, pp. 4673–4686, 2024. [16] P. K. Rubenstein, S. Weichwald, S. Bongers, J. M. Mooij, D. Janzing, M. Grosse-Wentrup, and B. Sch¨ olkopf, “Causal consistency of structural equation models,” in Proceedings of the 33rd Conference on Uncertainty in Artificial Intelligence (UAI) , 2017. [17] J. Peters, P. B¨ uhlmann, and N. Meinshausen, “Causal inference by using invariant prediction: identification and confidence intervals,” Journal of the Royal Statistical Society Series B: Statistical Methodology , vol. 78, no. 5, pp. 947–1012, 2016. [18] D. Krueger, E. Caballero, J.-H. Jacobsen, A. Zhang, J. Binas, D. Zhang, R. Le Priol, and A. Courville, “Out-of-distribution generalization via risk extrapolation (rex),” in International conference on machine learning .PMLR, 2021, pp. 5815–5826. [19] Y. Li, X. Tian, M. Gong, Y. Liu, T. Liu, K. Zhang, and D. Tao, “Deep domain generalization via conditional invariant adversarial networks,” in 
+
+Proceedings of the European conference on computer vision (ECCV) ,2018, pp. 624–639. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 15 
+
+APPENDIX 
+
+A. First-Order Interpretation of Response Alignment 
+
+We provide a first-order interpretation of the response alignment objective used in ACC-CRL. For each system 
+
+m ∈ {1, 2}, let X(m) denote the shared causal content representation and let 
+
+R(m) = f (m) 
+
+> Y
+
+(X(m), U (m))
+
+be the corresponding system response, where U (m) captures system-specific mechanism information. Consider a small intervention on the shared causal content, 
+
+do (X(m) ← X(m) + δ), δ ∼ N (0 , I ), ∥δ∥ → 0.
+
+The induced response variation of system m is defined as 
+
+∆R(m) 
+
+X(m), δ 
+
+
+
+= f (m)
+
+> Y
+
+
+
+X(m) + δ, U (m)
+
+−f (m)
+
+> Y
+
+
+
+X(m), U (m)
+
+.
+
+Under the shared-anchor assumption, response consistency requires that two systems exhibit consistent local response changes under the same content intervention. This motivates the following interventional response alignment objective: 
+
+Lint ali = EX,δ 
+
+
+
+∆R(1) (X(1) , δ ) − ∆R(2) (X(2) , δ ) 22
+
+
+
+.
+
+1) From Response Consistency to Jacobian Consistency: 
+
+Assume that f (1)  
+
+> Y
+
+and f (2)  
+
+> Y
+
+are continuously differentiable with respect to the shared content variable. By first-order Taylor expansion, we have 
+
+∆R(m) 
+
+X(m), δ 
+
+
+
+= Jm
+
+
+
+X(m)
+
+δ + O  ∥δ∥2 ,
+
+where 
+
+Jm
+
+
+
+X(m)
+
+= ∂f (m)
+
+> Y
+
+ X(m), U (m)
+
+∂X (m)
+
+denotes the Jacobian of the system response with respect to the shared content representation. Substituting the first-order approximation into Lint ali gives 
+
+Lint ali ≈ Eδ
+
+ 
+
+J1
+
+
+
+X(1) 
+
+− J2
+
+
+
+X(2)  
+
+δ 22
+
+
+
+.
+
+Let 
+
+A = J1
+
+
+
+X(1) 
+
+− J2
+
+
+
+X(2) 
+
+.
+
+Since δ follows an isotropic distribution with covariance identity matrix, 
+
+Eδ
+
+∥Aδ ∥22
+
+ = ∥A∥2 
+
+> F
+
+.
+
+Therefore, 
+
+Lint ali ∝ J1
+
+
+
+X(1) 
+
+− J2
+
+
+
+X(2)  2
+
+> F
+
+.
+
+This shows that, in the small-intervention limit, enforcing response consistency under shared anchors is asymptotically equivalent to enforcing first-order mechanism consistency be-tween the two systems. 
+
+B. Theoretical Extension: Suppressing Spurious Cross-System Correlations 
+
+We further discuss why the proposed response alignment can help suppress spurious correlations shared across hetero-geneous systems. Existing multi-modal contrastive learning analyses often assume that modality-specific style factors are independent across modalities. However, this assumption may not hold in real-world medical imaging, where scanning protocols, center-specific acquisition patterns, or annotation biases may induce correlated non-causal mechanisms across different input sources. Let the observations from two causal systems be 
+
+T (m) = g(m) 
+
+X, U (m)
+
+, m ∈ { 1, 2}, (39) where X denotes the shared causal content variable and U (m)
+
+denotes the system-specific mechanism factor. When 
+
+U (1) ̸ ⊥ U (2) , (40) the two systems may share spurious mechanism-dependent components. As a result, representation learning based only on observational consistency may align not only the stable content X, but also correlated non-causal factors induced by 
+
+U (1) and U (2) .In ACC-CRL, each encoder decomposes the observation as 
+
+
+
+X(m), U (m)
+
+= Cm
+
+
+
+T (m)
+
+, (41) where X(m) is encouraged to capture shared causal content, while U (m) preserves system-specific mechanism information. However, contrastive consistency alone may still be insuffi-cient when spurious mechanism factors are correlated across systems. 
+
+1) Interventional Suppression of Spurious Mechanism Cor-relations: Assume that the causal content variable X is inde-pendent of the mechanism variables U (m), and that spurious correlations between U (1) and U (2) are not causally involved in the stable downstream response. Then enforcing response alignment under shared anchors encourages the learned con-tent representations X(1) and X(2) to preserve intervention-sensitive causal content while reducing reliance on spurious mechanism-correlated components. 
+
+Proof. Consider the causal structure 
+
+X → T (m), U (m) → T (m), m ∈ { 1, 2}.
+
+If U (1) and U (2) are spuriously correlated, then the joint observations are affected by the non-causal path 
+
+T (1) ← U (1) ↔ U (2) → T (2) .
+
+Therefore, purely observational alignment may capture shared information along this path, leading to content representations contaminated by correlated mechanism-dependent factors. ACC-CRL introduces bidirectional response alignment: 
+
+Lali = X
+
+> i
+
+
+
+ˆR(2 ←1)  
+
+> i
+
+− R(2) 
+
+> i
+> 22
+
++ ˆR(1 ←2)  
+
+> i
+
+− R(1) 
+
+> i
+> 22
+
+
+
+,
+
+(42) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 16 
+
+where ˆR(2 ←1) and ˆR(1 ←2) are cross-system responses recon-structed under shared-anchor representations. Now consider a small intervention on the shared content representation, 
+
+do (X(m) ← X(m) + δ), δ ⊥ U (1) , U (2) .
+
+Since the perturbation acts on the content variable rather than on the mechanism variables, only components that are stably associated with the causal content can induce consistent cross-system response changes. In contrast, components caused by the spurious path U (1) ↔ U (2) are not intervention-sensitive with respect to X(m), and their contribution cannot reliably explain the response variation under content interventions. Thus, minimizing Lali encourages the encoders to pre-serve content components that support stable cross-system response consistency, while reducing dependence on correlated mechanism-specific components. This weakens the influence of the spurious path induced by U (1) ↔ U (2) , yielding shared representations that are more closely related to causal content. When the test-time mechanism distribution P (U (1) , U (2) )
+
+changes, representations relying on spurious mechanism corre-lations are likely to become unstable. By encouraging response consistency under shared anchors, ACC-CRL reduces such reliance and improves robustness under mechanism shifts. This provides a theoretical explanation for the improved OOD behavior observed in the Mechanism-OOD and ColorMNIST experiments. 
+
+C. From Structural Credibility to Adaptive Gating 
+
+In the ACC framework, each candidate cross-system edge 
+
+e ∈ ∆E is associated with a structural confidence variable πe,and its credibility is measured by the expected confidence 
+
+˜Ccross (e) = E[C(e) | πcross  
+
+> e
+
+]. (43) In ACC-CRL, this abstract graph-level credibility is instanti-ated as a differentiable sample-wise gating variable. Specifically, we view the reliability of a cross-system rela-tion as a latent Bernoulli variable 
+
+C(e) ∈ { 0, 1}, (44) where C(e) = 1 indicates that the relation is reliable, and 
+
+C(e) = 0 indicates that it should be weakened or sup-pressed. Since the true edge reliability is unobserved, ACC-CRL estimates it using two uncertainty sources: the structural mismatch estr induced by bidirectional response alignment and the predictive uncertainty uunc .The structural uncertainty is defined as 
+
+ustr = σ
+
+ estr 
+
+τ
+
+
+
+, (45) and the adaptive gate is defined as 
+
+γ = 1 − 12 (ustr + uunc ) . (46) This gate can be interpreted as a differentiable approxima-tion to the posterior reliability of a candidate cross-system relation: 
+
+γ ≈ P (C(e) = 1 | estr , u unc ). (47) Therefore, its expected credibility can be approximated as 
+
+˜Ccross (e) = E[C(e) | estr , u unc ]
+
+≈ 1 · γ + 0 · (1 − γ)= γ. 
+
+(48) The fusion representation is then computed as 
+
+cfused = γc base + (1 − γ)X(1) . (49) Thus, when the estimated cross-system relation is reliable, ACC-CRL strengthens dual-system fusion through cbase ; oth-erwise, it suppresses uncertain cross-system information and falls back to the conservative reference representation X(1) .This provides a probabilistic interpretation of the adaptive gate γ: it serves as a sample-wise neural approximation of cross-system edge credibility, bridging the graph-level struc-tural regulation in ACC and the differentiable fusion mecha-nism in ACC-CRL.

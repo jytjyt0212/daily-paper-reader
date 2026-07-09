@@ -1,0 +1,223 @@
+Title: Generative Modeling of Quantum Distribution with Functional Flow Matching
+
+URL Source: https://arxiv.org/pdf/2607.00301v1
+
+Published Time: Thu, 02 Jul 2026 00:19:08 GMT
+
+Number of Pages: 4
+
+Markdown Content:
+# Generative Modeling of Quantum Distribution with Functional Flow Matching 
+
+Jaehoon Hahm * 1 2 Tak Hur * 1 Joonseok Lee 2 3 Daniel K. Park 1 4 
+
+## Abstract 
+
+The emergence of powerful deep generative mod-els based on diffusion and flow matching has en-abled the learning and modeling of complex distri-butions. Learning quantum distributions, however, remains challenging due to the inherent difficulty of accurately modeling the meaningful physical properties of quantum states. We propose Quan-tum Flow Matching (QFM), a novel generative model designed to learn quantum distribution by utilizing spin Wigner function and flow matching. By converting density matrix into the spin Wigner function and leveraging functional flow match-ing to learn distributions in function space, QFM enables accurate and effective learning of multi-qubit quantum distributions. We demonstrate the effectiveness of our method by evaluating phys-ical quantities such as trace, purity, and entan-glement entropy of the generated quantum states, accurately capturing the underlying physics of the given quantum distributions. 
+
+## 1. Introduction 
+
+Despite the unprecedented success of deep generative mod-els, such as diffusion models (Song et al., 2020; Ho et al., 2020) and flow matching (Lipman et al., 2022), learning the distributions of quantum states remains a challenging task. Leveraging state-of-the-art machine learning methods to model quantum states has been an interesting research direction (Carrasquilla et al., 2019; Carleo et al., 2019). However, applying modern generative models directly to learn quantum distributions has not been successful for sev-eral reasons. First, existing diffusion and flow matching methods are solely focused on learning representations of 
+
+> *
+
+Equal contribution 1Department of Statistics and Data Science, Yonsei University, Seoul, Korea 2Graduate School of Data Sci-ence, Seoul National University, Seoul, Korea 3Google Research, Mountain View, California, United States 4Department of Applied Statistics, Yonsei University, Seoul, Korea. Correspondence to: Daniel K. Park <dkd.park@yonsei.ac.kr >.Accepted as an extended abstract at QTML 2024. {ρi}M 
+
+> i=1
+
+∼ 𝒟 
+
+> Convert to
+> spin Wigner function
+> Quantum Flow Matching (QFM)
+> Reconstruction
+
+ρgen
+
++i      
+
+> WT=ϕT(W0)=∫T
+> 0ut(ϕt(W0))dt
+
+pt(x) = [ϕt]*p0(x) = p0(ϕ−1 
+
+> t
+
+(x))det [ ∂ϕ−1 
+
+> t
+> ∂x
+
+(x)]   
+
+> ρ=dim (ρ)∫Ω
+> Wρ(Ω)U(Ω)ΠU†(Ω)dΩ
+
+W0 W1  
+
+> W(Ω)=Tr [ρU(Ω)ΠU†(Ω)]
+
+Figure 1. Overall procedure of QFM . We bypass the direct learn-ing of quantum states by converting them into spin Wigner function and learn the underlying distribution. This approach allows us to effectively generate physically valid and accurate quantum states, which was not achievable by direct learning from density matrices. 
+
+classical data such as images or classical PDEs. These are inadequate for applications requiring consistency with important physical quantities such as purity, entanglement entropy, and quantum phases of matter. Second, complex-valued density matrices pose a significant challenge due to the sign structure problem, making previous methods un-suitable for handling them (Westerhout et al., 2020; Dugan et al., 2023). To address this challenge, we propose Quantum Flow Match-ing (QFM), a novel generative modeling method that lever-ages flow matching to effectively learn the distributions of quantum states. The procedure of QFM, summarized in Figure 1, can be illustrated in the following steps. First, we convert quantum states into informationally complete functional representations using spin Wigner functions. Sec-ond, we employ Functional Flow Matching (FFM) to learn the distribution of spin Wigner functions in function space. This allows us to generate new spin Wigner functions that accurately reflect the underlying quantum distribution. Fi-nally, the new quantum states are reconstructed from these generated spin Wigner functions. Our contributions are summarized as follows: 1
+
+> arXiv:2607.00301v1 [cs.LG] 1 Jul 2026
+
+Generative Modeling of Quantum Distribution with Functional Flow Matching Spin Wigner Function Density Matrix     
+
+> +i
+> +i
+> +i
+> θ1
+> ϕ1
+> 0π
+> 2π
+> θ1
+> ϕ1
+> 0π
+> 2π
+> θ1
+> ϕ1
+> 0π
+> 2π
+> θ1
+> ϕ1
+> 0π
+> 2π
+> +i
+
+ρ1 :
+
+ρ2 :
+
+σ1 :
+
+σ2 :
+
+Figure 2. An Example of two-qubit product states ρ1, ρ 2 (top) and two-qubit maximally entangled states σ1, σ 2 (bottom), in both density matrix (left) and spin Wigner function (right) .For the spin Winger functions, parameterizations on θ1 and 
+
+ϕ1 are shown, with θ2 and ϕ2 fixed at π and π/ 2, respec-tively. Random arbitrary single-qubit rotation gates U (α, β, γ ) = exp( −iαZ/ 2) exp( −iβY / 2) exp( −iγZ/ 2) were applied to both qubits of |00 ⟩ for the product states and to both qubits of 
+
+(|00 ⟩ + |11 ⟩)/√2 for the maximally entangled states. Unlike in the density matrix form, the product states and maximally entan-gled states are clearly distinguishable in the spin Wigner function representation. 
+
+• We propose QFM, a pioneering generative model for quantum distributions that accurately capture the underly-ing physics of a given quantum system. • We bypass the direct density matrix learning by using spin Wigner function. FFM is utilized to leverage resolution-invariant nature of functional models, enabling accurate reconstruction of quantum states from the learned spin Wigner functions. • We demonstrate that our method effectively learns the underlying physics of given quantum systems by evaluat-ing various physical quantities, such as trace, purity, and entanglement entropy. 
+
+## 2. Learning Quantum Distribution with Flow Matching 
+
+2.1. Quantum State to Spin Wigner Function 
+
+Learning the distributions of quantum states using deep gen-erative models requires effective classical representations of these quantum states. Training the generative model using the state vector or density matrix representation alone is insufficient, as it does not ensure that important physical quantities are accurately captured. The Wigner function effectively addresses these shortcom-ings by mapping a quantum density matrix onto a quasi-probability distribution in classical phase space (Rundle et al., 2017; Wigner, 1932). However, since the Wigner function has been primarily explored in continuous variable and infinite-dimensional Hilbert spaces, such as in quantum optics and chemistry, its application in machine learning is still limited in these settings (Dugan et al., 2023). In this work, we utilize spin Wigner function, which fully describes quantum systems of arbitrary (including finite) dimensions (Tilma et al., 2016; Rundle et al., 2017). This approach enables the application of deep generative models to a range of intriguing tasks involving finite-dimensional Hilbert spaces, such as generating the ground state of a quantum spin chain with specific quantum phases. For an arbitrary quantum state ρ, the spin Wigner func-tion is given by W (Ω) = Tr[ ρU (Ω)Π U †(Ω)] , where 
+
+U (Ω) and Π are analogous to the displacement and par-ity operator in the original Wigner function, respectively. With an appropriate choice of Hermitian observable Π,along with unitary U and parameterization Ω, the orig-inal density matrix can be fully reconstructed as ρ =dim( ρ) R 
+
+> Ω
+
+W (Ω)U (Ω)Π U †(Ω)dΩ, where dim( ρ) is the dimensionality of ρ.Here, dΩ should be chosen such that U (Ω) follows a Haar random, or unitary 2-design, distribution. Specifically, uni-tary 2-design, denoted by U, is a distribution of unitary matrices where the expectation value matches that of the Haar distribution up to the second moment. Then, the inte-gral term of the reconstruction is given by 
+
+Z
+
+> Ω
+
+W (Ω)∆( Ω)dΩ = EU Tr A[( ρ ⊗ IB )U ⊗2Π⊗2U †⊗ 2]= Tr A[( ρ ⊗ IB )( cΠ,I I + cΠ,F F )] = cΠ,I IB + cΠ,F ρ, 
+
+where ∆( Ω) ≡ U (Ω)Π U †(Ω), and expectation over U
+
+is taken with respect to the Haar distribution. I and F
+
+denote identity and swap operator on the composite system, respectively, and the constants are calculated as cΠ,I = 0 
+
+and cΠ,F = 1 /dim( ρ) (Mele, 2024). Therefore, we can fully reconstruct the original density matrix ρ.To generalize this to N qubits, there is flexibility in the choice of U (Ω) and Π. Throughout our work, we adhere to the conventions of Rundle et al. (2017), where ΠN is 
+
+2N × 2N diagonal matrix with 2−N [1 + (2 N − 1) √2N + 1] 
+
+as the first element and 2−N [1 −√2N + 1] as the remaining elements. This choice aligns with the previous calculations of cΠ,I and cΠ,F . The unitary operator and parameterization are generalized to UN (Ω) = NNj=1 eiθ j Zj eiϕ j Yj , where 
+
+Ω ≡ (⃗ θ,⃗ ϕ ) and Zj (Yj ) denotes the Pauli Z(Y ) operator on 
+
+j-th qubit. Specifically, we reconstruct N -qubit density matrix ρ from 2Generative Modeling of Quantum Distribution with Functional Flow Matching 
+
+spin Wigner Function by the following approximation: 
+
+ρ = dim( ρ)EU [W (Ω)∆( Ω)] = dim( ρ)
+
+Z 
+
+> NNS2
+
+W (Ω)∆( Ω)
+
+> N
+
+Y
+
+> i=1
+
+sin ϕidθ 1dϕ 1 · · · dθ N dϕ N
+
+≃ πN · E  
+
+> θi∼U[0 ,2π]
+> ϕi∼U[0 ,π ]
+
+"
+
+W (Ω)∆( Ω)
+
+> N
+
+Y
+
+> i=1
+
+sin ϕi
+
+#
+
+.
+
+Using this approach, we can construct an informationally complete representation of N -qubit density matrices with functions of 2N parameters. Figure 2 demonstrates the two-qubit product states and maximally entangled states in the spin Wigner representation. 
+
+2.2. Functional Flow Matching 
+
+Flow Matching (FM) is a continuous normalizing flow that models the integration of vector field ut, or the flow ϕt, by learning the vector field of the prescribed dynamics. This can be described with the ordinary differential equation  
+
+> ddt
+
+ϕt(Wt) = ut(ϕt(Wt)) , where Wt is the spin Wigner function at time t ∈ [0 , 1] . Lipman et al. (2022) proposed conditional flow matching objective (CFM), that learns the marginal vector field ut(Wt) which corresponds to the target probability density path pt(Wt), known to be more stable and robust compared to diffusion models (Ho et al., 2020; Song et al., 2020). The CFM objective is given by 
+
+LCFM = Et∼U (0 ,1) ,W t∼pt(Wt)∥vt(Wt) − ut(Wt|W1)∥2,
+
+where vt(W ) is a trainable neural network. To learn the distribution of spin Wigner function, we utilize Functional Flow Matching, which is a functional version of FM (Kerrigan et al., 2023), generalized to the function space, implemented with Fourier Neural Operator (Li et al., 2020). It features a resolution-invariant property of functional mod-els, and we leverage it when reconstructing the generated spin Wigner functions back into the quantum states. 
+
+## 3. Experiments 
+
+Single Qubit: Trace, Purity. We first demonstrate the generation of single-qubit density matrices using QFM. Our objective is to generate quantum states with a specified purity α = Tr[ ρ2], where ρ denotes density matrix of the quantum state. Moreover, we also examine the trace of the generated data to ensure it satisfies the unit trace constraint. We conduct experiments with a synthetic dataset consist-ing of 7000 pure states ( α = 1 ) and mixed states ( α ∈{0.625 , 0.905 }). Single-qubit quantum states can be ex-pressed as (I + n · σ)/2, where n and σ are Bloch and Pauli vectors, respectively. Datasets of purity α are prepared by                                           
+
+> Table 1. Quantitative comparisons of QFM and direct learning of FM on a single qubit. α,Tr[ ρ]and Tr[ ρ2]represent the purity of training dataset, average values of the trace, and the purity over the generated quantum states, respectively. Method αTr[ ρ]Tr[ ρ2]
+> FM 10.998 0.714 QFM 10.998 1.004
+> FM 0.625 1.001 0.531 QFM 0.625 0.997 0.625
+> FM 0.905 0.999 0.622 QFM 0.905 0.995 0.895
+> Table 2. Quantitative comparisons of QFM and direct learning of FM on multi qubits. S,Tr[ ρ]and S(ρA)represent the entan-glement entropy of training dataset, the average values of the trace, and the entanglement entropy over the generated quantum states, respectively. Method STr[ ρ]S(ρA)
+> FM 0.7 1.009 0.783 QFM 0.7 0.934 0.694
+
+sampling n from uniform distribution with the constraint 
+
+∥n∥2 = √2α − 1.
+
+Multi qubits: Trace, Entanglement Entropy. We further demonstrate the capability of QFM in a multi-qubit setting. Specifically, we focus on generating 2-qubit quantum states with a desired entanglement entropy S = −Tr[ ρAlog ρA],where ρA is the reduced density matrix. We prepare a syn-thetic dataset consisting of 900 quantums states with fixed entanglement entropy S = 0 .7. This is done by initializing two-qubit quantum states with an entanglement entropy of 0.7 and applying random arbitrary single-qubit rotations. Tables 1 and 2 present a comparative analysis between QFM and direct learning of FM using density matrices. QFM effectively captures the physical quantities of the dataset compared to direct learning of FM. This is demonstrated by its better performance in the target purity values (Table 1) and entanglement entropy (Table 2). 
+
+## 4. Future Work 
+
+One potential future direction is extending the method to larger multi-qubits system such as generating genuinely mul-tipartite entangled states (Goyeneche & ˙Zyczkowski, 2014) and the ground states of generalized cluster Hamiltonian with specific quantum phases (Caro et al., 2022; Gil-Fuster et al., 2024). Another interesting direction is quantum error mitigation by leveraging generative model as denoiser and formulating as solving an inverse problem (Kawar et al., 2022; Chung et al., 2022; Shim & Kim, 2024). Lastly, by simultaneously utilizing Quantum Autoencoders (Romero et al., 2017), our method potentially enables the accurate generation of high-dimensional quantum states, which have been intractable due to heavy computational costs. 3Generative Modeling of Quantum Distribution with Functional Flow Matching 
+
+## References 
+
+Carleo, G., Cirac, I., Cranmer, K., Daudet, L., Schuld, M., Tishby, N., Vogt-Maranto, L., and Zdeborov ´a, L. Machine learning and the physical sciences. Reviews of Modern Physics , 91(4):045002, 2019. Caro, M. C., Huang, H.-Y., Cerezo, M., Sharma, K., Sorn-borger, A., Cincio, L., and Coles, P. J. Generalization in quantum machine learning from few training data. Nature communications , 13(1):4919, 2022. Carrasquilla, J., Torlai, G., Melko, R. G., and Aolita, L. Reconstructing quantum states with generative models. 
+
+Nature Machine Intelligence , 1(3):155–161, 2019. Chung, H., Sim, B., Ryu, D., and Ye, J. C. Improving diffusion models for inverse problems using manifold constraints. Advances in Neural Information Processing Systems , 35:25683–25696, 2022. Dugan, O. M., Lu, P. Y., Dangovski, R., Luo, D., and Sol-jacic, M. Q-flow: generative modeling for differential equations of open quantum dynamics with normalizing flows. In Proc. of the International Conference on Ma-chine Learning (ICML) , 2023. Gil-Fuster, E., Eisert, J., and Bravo-Prieto, C. Understand-ing quantum machine learning also requires rethinking generalization. Nature Communications , 15(1):2277, 2024. Goyeneche, D. and ˙Zyczkowski, K. Genuinely multipartite entangled states and orthogonal arrays. Physical review A, 90(2):022316, 2014. Ho, J., Jain, A., and Abbeel, P. Denoising diffusion proba-bilistic models. In Advances in neural information pro-cessing systems (NeurIPS) , 2020. Kawar, B., Elad, M., Ermon, S., and Song, J. Denoising diffusion restoration models. Advances in Neural Infor-mation Processing Systems , 35:23593–23606, 2022. Kerrigan, G., Migliorini, G., and Smyth, P. Functional flow matching. arXiv:2305.17209 , 2023. Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhat-tacharya, K., Stuart, A., and Anandkumar, A. Fourier neural operator for parametric partial differential equa-tions. arXiv:2010.08895 , 2020. Lipman, Y., Chen, R. T., Ben-Hamu, H., Nickel, M., and Le, M. Flow matching for generative modeling. 
+
+arXiv:2210.02747 , 2022. Mele, A. A. Introduction to haar measure tools in quantum information: A beginner’s tutorial. Quantum , 8:1340, 2024. Romero, J., Olson, J. P., and Aspuru-Guzik, A. Quantum autoencoders for efficient compression of quantum data. 
+
+Quantum Science and Technology , 2(4):045001, 2017. Rundle, R. P., Mills, P., Tilma, T., Samson, J., and Everitt, M. J. Simple procedure for phase-space measurement and entanglement validation. Physical Review A , 96(2): 022117, 2017. Shim, J. Y. and Kim, J. Diffusion-based quantum error mitigation using stochastic differential equation. arXiv preprint arXiv:2405.14283 , 2024. Song, Y., Sohl-Dickstein, J., Kingma, D. P., Kumar, A., Ermon, S., and Poole, B. Score-based genera-tive modeling through stochastic differential equations. 
+
+arXiv:2011.13456 , 2020. Tilma, T., Everitt, M. J., Samson, J. H., Munro, W. J., and Nemoto, K. Wigner functions for arbitrary quantum systems. Physical review letters , 117(18):180401, 2016. Westerhout, T., Astrakhantsev, N., Tikhonov, K. S., Katsnel-son, M. I., and Bagrov, A. A. Generalization properties of neural network approximations to frustrated magnet ground states. Nature communications , 11(1):1593, 2020. Wigner, E. On the quantum correction for thermodynamic equilibrium. Physical review , 40(5):749, 1932. 4

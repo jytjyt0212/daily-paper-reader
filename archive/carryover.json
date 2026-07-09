@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-07-06T22:03:54.652311+00:00",
-  "updated_date": "20260706",
+  "generated_at": "2026-07-09T04:59:10.917554+00:00",
+  "updated_date": "20260630-20260709",
   "carryover_days": 9,
   "tag_states": {
     "world-models": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": [
         {
@@ -54,7 +54,7 @@
           "matched_requirement_id": "req-5",
           "selection_source": "carryover_cache",
           "paper_id": "2606.30367v1",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.29465v1",
@@ -97,226 +97,153 @@
           "matched_requirement_id": "req-5",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29465v1",
+          "carry_days": 4
+        },
+        {
+          "id": "2607.01222v1",
+          "source": "arxiv",
+          "title": "Ink3D: Sculpting 3D Assets with Extremely Complex Textures via Video Generative Models",
+          "abstract": "Recent 3D generative models can synthesize high-quality geometry but often struggle to reproduce intricate textures from reference images, largely due to the scarcity of large-scale 3D training data with rich surface appearance. In contrast, visual generative models are trained on datasets several orders of magnitude larger and excel at modeling complex visual patterns. Motivated by this gap, we introduce Ink3D, a framework that bridges 3D generation with large-scale video generative models to synthesize extremely complex textures. Ink3D first reconstructs a white-mesh geometry using an off-the-shelf 3D generation model. It then employs OrbitPainter, a conditional video generative model, to produce dense orbit-scan videos capturing object appearance across viewpoints. To convert these views into coherent textures, we introduce TextureOptimizer, a neural baking module that integrates dense multi-view observations while mitigating geometry inconsistencies arising from video generation. By decoupling geometry and texture synthesis and leveraging large-scale pretrained video priors, Ink3D enables significantly richer and more faithful texture generation than prior approaches.",
+          "authors": [
+            "Yue Han",
+            "Chong Li",
+            "Zhening Liu",
+            "Cong Huang",
+            "Fang Deng",
+            "Yong Liu",
+            "Fangyun Wei",
+            "Yan Lu"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-01T17:56:39+00:00",
+          "link": "https://arxiv.org/pdf/2607.01222v1",
+          "tags": [
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "3D texture generation using video generative models",
+          "llm_evidence_cn": "使用视频生成模型进行3D纹理生成",
+          "llm_evidence": "使用视频生成模型进行3D纹理生成",
+          "canonical_evidence": "使用视频生成模型进行3D纹理生成",
+          "llm_tldr_en": "Ink3D bridges 3D generation with video generative models to synthesize complex textures by reconstructing white-mesh geometry and using OrbitPainter to produce dense orbit-scan videos.",
+          "llm_tldr_cn": "现有3D生成模型能合成高质量几何但难以生成复杂纹理，原因是3D训练数据匮乏。本文提出Ink3D框架，利用大规模视频生成模型弥补这一差距：先用现成3D模型重建白色网格几何，再使用条件视频生成模型OrbitPainter生成稠密轨道扫描视频，从而获得极具复杂纹理的3D资产。该方法突破了对大规模3D纹理数据的依赖，为3D内容创建提供了新思路。",
+          "llm_tldr": "现有3D生成模型能合成高质量几何但难以生成复杂纹理，原因是3D训练数据匮乏。本文提出Ink3D框架，利用大规模视频生成模型弥补这一差距：先用现成3D模型重建白色网格几何，再使用条件视频生成模型OrbitPainter生成稠密轨道扫描视频，从而获得极具复杂纹理的3D资产。该方法突破了对大规模3D纹理数据的依赖，为3D内容创建提供了新思路。",
+          "llm_tags": [
+            "query:world-models"
+          ],
+          "matched_query_tag": "query:world-models",
+          "matched_query_text": "latest advances in generative model architectures",
+          "matched_requirement_id": "req-10",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.01222v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.03198v1",
+          "source": "arxiv",
+          "title": "Reduced-Order Models: The Mother of World Models",
+          "abstract": "World models -- compressed latent representations of an environment that support action-conditioned prediction and planning -- are typically presented as a product of modern self-supervised learning. This paper argues that the functional anatomy of a world model was independently developed, deployed, and formally analyzed decades earlier in the model-order-reduction (MOR) and control literature, under different names and for a different purpose: the real-time operation of physical systems. We trace the anatomy across three communities. Low-dimensional models of turbulence built on proper orthogonal decomposition (POD) supplied latent dynamics learned from data of a chaotic environment; eigenface methods in early computer vision supplied the encoder-decoder half, including a primitive runtime validity check; and measurement-based POD frameworks for facility thermal control assembled the complete loop -- POD coefficients as latent state, parametric dependence on actuator setpoints as action conditioning, modal reconstruction as decoding, and, critically, a priori analytical error bounds as a verification layer that certified when the model's predictions could be trusted in closed loop. We then examine what each tradition possesses that the other lacks: MOR contributes verification, physical grounding, and extreme data efficiency; learned world models contribute nonlinear representation, transferability, and horizon. We argue that the outstanding obstacle to deploying world models in systems that cannot fail -- power, thermal, process control -- is not predictive fidelity but verifiability, and we outline a research agenda for physics-grounded, verifiable world models that unifies the two lineages.",
+          "authors": [
+            "Rajat Ghosh"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG",
+            "math-ph"
+          ],
+          "published": "2026-07-03T11:05:06+00:00",
+          "link": "https://arxiv.org/pdf/2607.03198v1",
+          "tags": [
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:pendulum",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "positions reduced-order models as precursor to world models",
+          "llm_evidence_cn": "将降阶模型定位为世界模型的前身",
+          "llm_evidence": "将降阶模型定位为世界模型的前身",
+          "canonical_evidence": "将降阶模型定位为世界模型的前身",
+          "llm_tldr_en": "Argues that world models originated from model-order-reduction and control literature decades earlier, tracing anatomical similarities.",
+          "llm_tldr_cn": "现代世界模型通常被认为是自监督学习的产物，但本文论证其核心思想早在数十年前的降阶模型与控制领域就已出现。通过追溯POD、本征脸等方法，揭示世界模型与降阶模型在编码器-动态-解码器结构上的同源性，为理解世界模型本质提供历史视角。",
+          "llm_tldr": "现代世界模型通常被认为是自监督学习的产物，但本文论证其核心思想早在数十年前的降阶模型与控制领域就已出现。通过追溯POD、本征脸等方法，揭示世界模型与降阶模型在编码器-动态-解码器结构上的同源性，为理解世界模型本质提供历史视角。",
+          "llm_tags": [
+            "query:world-models"
+          ],
+          "matched_query_tag": "query:world-models",
+          "matched_query_text": "recent world model paper",
+          "matched_requirement_id": "req-5",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.03198v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.02968v1",
+          "source": "arxiv",
+          "title": "Awakening Diffusion Transformers: Eliciting Stronger Generation and Understanding via Massive Activation Modulation",
+          "abstract": "Massive Activations (MAs) have been widely observed in Transformer-based models, yet their structure and functional roles in Diffusion Transformers (DiTs) remain insufficiently understood. In this work, we systematically analyze MAs in representative DiTs and find that they are spatially distributed across image tokens while concentrated in a small set of fixed feature dimensions. We further show that these dimensions are closely aligned with AdaLN residual scaling factors and are primarily modulated by the denoising timestep rather than text conditions. This structure leads to two task-dependent effects: for generation, MAs are critical for fine-grained detail synthesis while having limited influence on global semantics; for understanding, their shared high-magnitude directions make raw DiT features overly similar across spatial tokens and weaken dense feature discrimination. Based on these findings, we introduce Eliciting Massive Activation (EMA), a training-free framework that leverages Massive Activations (MAs) as a unified modulation signal to improve both generative and representational capabilities of DiTs. For generation, EMA proposes MA-driven Detail G}uidance (DG), which suppresses MA dimensions to construct a detail-deficient counterfactual prediction and guides sampling toward finer visual details. DG further supports efficient partial-forward inference, integration with classifier-free guidance, and token-level Local DG for refining selected image regions. For understanding, EMA introduces MA-modulated REPresentation extraction (MREP), which uses pretrained AdaLN channel-wise modulation to reduce MA directional dominance and concatenates spatially normalized MA maps to preserve useful spatial structure. Extensive experiments demonstrate that EMA consistently improves both the generation quality and representation capability of DiTs.",
+          "authors": [
+            "Chaofan Gan",
+            "Zicheng Zhao",
+            "Yuanpeng Tu",
+            "Xi Chen",
+            "Ziran Qin",
+            "Tieyuan Chen",
+            "Supavadee Aramvith",
+            "Mehrtash Harandi",
+            "Weiyao Lin"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-03T05:21:46+00:00",
+          "link": "https://arxiv.org/pdf/2607.02968v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "latest advances in generative model architectures: analyzing and modulating activations in Diffusion Transformers",
+          "llm_evidence_cn": "分析扩散Transformer中的激活模式并进行调制，属于生成模型架构的最新进展",
+          "llm_evidence": "分析扩散Transformer中的激活模式并进行调制，属于生成模型架构的最新进展",
+          "canonical_evidence": "分析扩散Transformer中的激活模式并进行调制，属于生成模型架构的最新进展",
+          "llm_tldr_en": "Systematically analyzes massive activations in DiTs, revealing their spatial and dimensional structure, and shows modulation improves generation and understanding.",
+          "llm_tldr_cn": "大规模激活在Diffusion Transformers中广泛存在，但其结构和作用尚未被充分理解。本文系统分析了代表性DiT中的大规模激活，发现它们在图像token上空间分布，但在固定特征维度上集中。这些维度与AdaLN残差缩放因子对齐，主要由去噪时间步而非文本条件调制。生成时，大规模激活对细粒度细节合成至关重要；理解任务中则有限。通过调制这些激活，可以激发更优的生成和理解能力。",
+          "llm_tldr": "大规模激活在Diffusion Transformers中广泛存在，但其结构和作用尚未被充分理解。本文系统分析了代表性DiT中的大规模激活，发现它们在图像token上空间分布，但在固定特征维度上集中。这些维度与AdaLN残差缩放因子对齐，主要由去噪时间步而非文本条件调制。生成时，大规模激活对细粒度细节合成至关重要；理解任务中则有限。通过调制这些激活，可以激发更优的生成和理解能力。",
+          "llm_tags": [
+            "query:world-models"
+          ],
+          "matched_query_tag": "query:world-models",
+          "matched_query_text": "latest advances in generative model architectures",
+          "matched_requirement_id": "req-10",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.02968v1",
           "carry_days": 1
         }
       ]
     },
     "self-driving": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": [
-        {
-          "id": "2606.27123v1",
-          "source": "arxiv",
-          "title": "Proposal-Conditioned Latent Diffusion for Closed-Loop Traffic Scenario Generation",
-          "abstract": "Closed-loop traffic simulation remains challenging because it must generate interactive multi-agent behaviors that are scene-consistent and controllable throughout rollout. Prior diffusion-based approaches achieve strong realism, but their computational cost can hinder deployment in time-constrained replanning loops for autonomous vehicle planning and simulation. We present a diffusion-based scenario generation framework conditioned on instance-centric scene context and multimodal proposal priors, with optional test-time guidance for shaping safety-critical behaviors. A compact action-latent representation and proposal-based initialization improve sampling efficiency and reduce per-step runtime without retraining. Experiments on the Waymo Open Motion Dataset demonstrate a favorable balance among realism, safety, and controllability across diverse interactive scenarios, while showing that test-time guidance enables systematic trade-offs among competing objectives.",
-          "authors": [
-            "Shubham Vaijanath Phoolari",
-            "Aleyna Kara",
-            "Christoph Lauer",
-            "Steven Peters"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.CV"
-          ],
-          "published": "2026-06-25T15:01:31+00:00",
-          "link": "https://arxiv.org/pdf/2606.27123v1",
-          "tags": [
-            "keyword:gen-models",
-            "keyword:self-driving",
-            "keyword:world-models",
-            "query:gen-models",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "diffusion-based closed-loop traffic scenario generation for autonomous driving",
-          "llm_evidence_cn": "基于扩散的闭环交通场景生成用于自动驾驶",
-          "llm_evidence": "基于扩散的闭环交通场景生成用于自动驾驶",
-          "canonical_evidence": "基于扩散的闭环交通场景生成用于自动驾驶",
-          "llm_tldr_en": "Proposes a diffusion-based scenario generation framework with proposal-conditioned latent diffusion for efficient closed-loop traffic simulation.",
-          "llm_tldr_cn": "本文提出一个基于扩散的场景生成框架，利用实例中心场景上下文和多模态提议先验进行条件生成，结合紧凑的动作潜在表示和提议初始化提高采样效率。在Waymo开放数据集上实验表明，该方法在保持场景真实感的同时显著降低每步运行时间，适用于自动驾驶规划循环中的实时仿真。",
-          "llm_tldr": "本文提出一个基于扩散的场景生成框架，利用实例中心场景上下文和多模态提议先验进行条件生成，结合紧凑的动作潜在表示和提议初始化提高采样效率。在Waymo开放数据集上实验表明，该方法在保持场景真实感的同时显著降低每步运行时间，适用于自动驾驶规划循环中的实时仿真。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "world model in autonomous driving",
-          "matched_requirement_id": "req-14",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.27123v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2606.26922v1",
-          "source": "arxiv",
-          "title": "Risk-Aware Selective Multimodal Driver Monitoring with Driver-State World Modeling",
-          "abstract": "Continuous driver monitoring in automated vehicles requires low-latency inference while avoiding unsafe decisions under uncertain driver states. Large vision-language models provide broad multimodal priors, but their latency and limited reliability in this setting make them unsuitable as always-on in-cabin monitors. We propose a cost-aware selective inference framework for deployable multimodal driver monitoring. The core system is a lightweight RGB-physiological student that combines in-cabin visual observations with window-level HR/EDA signals, and a learned gate that decides when to accept the fast prediction or abstain for safety intervention. Additional controls show that the learned scores contain sample-level information beyond scenario priors, while exact physiological synchronization remains a limitation. To incorporate predictive evidence, we further study a compact driver-state world modeling module that rolls out latent driver-state features and estimates future fast-model errors and counterfactual system-level action costs. On scenario-induced driver-demand recognition, the RGB-physiological student improves over RGB-only and physiology-only baselines, reaching 0.7440 Macro-F1 and 0.9099 balanced accuracy with 11.39M parameters and 3.08ms inference latency. Cost-aware selective inference reduces unsafe false negatives from 17.37% under always-fast inference to approximately 5% across seeds, while maintaining deployment-level latency. While driver-state world modeling offers valuable predictive signals, worst-group evaluations highlight persistent operating-point calibration drift. Ultimately, reliable edge driver monitoring requires advancing not only perception backbones, but also risk-aware selective control and group-robust calibration.",
-          "authors": [
-            "Daosheng Qiu",
-            "Haozhuang Chi",
-            "Hao Su",
-            "Shu Long",
-            "Xinyue Miao",
-            "Yongle Dong",
-            "Wei Zhang"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.AI"
-          ],
-          "published": "2026-06-25T11:59:21+00:00",
-          "link": "https://arxiv.org/pdf/2606.26922v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "driver-state world modeling for multimodal driver monitoring in automated vehicles",
-          "llm_evidence_cn": "用于自动驾驶中多模态驾驶员监控的驾驶员状态世界建模",
-          "llm_evidence": "用于自动驾驶中多模态驾驶员监控的驾驶员状态世界建模",
-          "canonical_evidence": "用于自动驾驶中多模态驾驶员监控的驾驶员状态世界建模",
-          "llm_tldr_en": "Proposes a cost-aware selective inference framework for driver monitoring with driver-state world model, using lightweight student and learned gate.",
-          "llm_tldr_cn": "本文提出一个成本感知的选择性推理框架用于驾驶员监控，核心是轻量级RGB-生理学生网络和可学习门控，其中利用驾驶员状态世界模型提供先验。门控决定何时接受快速预测或拒绝以保证安全。实验表明该方法在低延迟下实现了安全准确的监控。",
-          "llm_tldr": "本文提出一个成本感知的选择性推理框架用于驾驶员监控，核心是轻量级RGB-生理学生网络和可学习门控，其中利用驾驶员状态世界模型提供先验。门控决定何时接受快速预测或拒绝以保证安全。实验表明该方法在低延迟下实现了安全准确的监控。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "world model in autonomous driving",
-          "matched_requirement_id": "req-14",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.26922v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2606.26424v1",
-          "source": "arxiv",
-          "title": "Rethinking Training & Inference for Forecasting: Linking Winner-Take-All back to GMMs",
-          "abstract": "Trajectory forecasting for autonomous driving has advanced rapidly, yet representative models often produce uninformative posteriors over forecast modes, causing problems for mode pruning. We trace this to a modeling-training mismatch: forecasters are typically modeled as conditional Gaussian mixture models (GMMs) but trained with a winner-take-all (WTA) loss that assigns each sample to its nearest mode. We argue that this K-means-like hard assignment (one-hot), while preventing mode collapse, is the source of uninformative mode probabilities: it over-segments the trajectory space, ignores relatedness among nearby modes, and yields assignment instability under small perturbations. Guided by this lens, we introduce two post-hoc treatments: (1) test-time posterior-weighted merging that aggregates nearby candidate trajectories; and (2) a one-step expectation-maximization (EM) update that replaces hard labels with soft responsibilities, sharing probability mass across neighboring modes. Across several WTA-trained architectures, these lightweight steps produce more informative, faithfully ranked mode posteriors and strengthen final forecasts on popular displacement metrics -- without retraining. Our analysis unifies recent design choices through a GMM-vs-K-means perspective and offers principled, practical corrections that better align training objectives with inference.",
-          "authors": [
-            "Qiyuan Wu",
-            "Katie Z Luo",
-            "Bharath Hariharan",
-            "Wei-Lun Chao",
-            "Mark Campbell"
-          ],
-          "primary_category": "cs.LG",
-          "categories": [
-            "cs.LG",
-            "cs.CV",
-            "cs.RO"
-          ],
-          "published": "2026-06-24T22:26:43+00:00",
-          "link": "https://arxiv.org/pdf/2606.26424v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:self-driving",
-            "query:world-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "trajectory forecasting for autonomous driving with improved training and inference",
-          "llm_evidence_cn": "自动驾驶轨迹预测的训练与推理改进",
-          "llm_evidence": "自动驾驶轨迹预测的训练与推理改进",
-          "canonical_evidence": "自动驾驶轨迹预测的训练与推理改进",
-          "llm_tldr_en": "Rethinks trajectory forecasting for autonomous driving by linking winner-take-all loss to GMMs, proposing post-hoc treatments to improve mode probabilities.",
-          "llm_tldr_cn": "针对自动驾驶轨迹预测中模式概率信息不足的问题，本文从GMM与WTA损失的角度重新审视训练与推理的错配。通过引入两种后处理方法，在不改变模型结构的情况下提升了模式概率的有用性，从而改善了轨迹预测的最终性能。在多个自动驾驶数据集上验证了有效性。",
-          "llm_tldr": "针对自动驾驶轨迹预测中模式概率信息不足的问题，本文从GMM与WTA损失的角度重新审视训练与推理的错配。通过引入两种后处理方法，在不改变模型结构的情况下提升了模式概率的有用性，从而改善了轨迹预测的最终性能。在多个自动驾驶数据集上验证了有效性。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "autonomous driving recent advances",
-          "matched_requirement_id": "req-11",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.26424v1",
-          "carry_days": 8
-        },
-        {
-          "id": "2606.24096v1",
-          "source": "arxiv",
-          "title": "Beyond Bayer: Task-Optimal Sensor Co-Design for Robust Autonomous-Driving Segmentation",
-          "abstract": "Robust perception underpins autonomous driving, and most recent progress comes from scaling the model-larger backbones, foundation models, and cooperative multi-agent fusion. We pursue a complementary, upstream question: what should the camera itself measure? Using a differentiable RAW-to-task pipeline, we decompose which sensor degrees of freedom benefit dense prediction. Learning the spectral colour-filter-array (CFA) weights is the dominant lever, improving mIoU by +0.017 (KITTI-360) and +0.023 (ACDC) over a fixed camera. In contrast, point-spread-function (optics) co-design is net-negative (-0.020 mIoU on KITTI-360) - a consequence of the data-processing inequality, which also bounds the task information that any downstream model, however large or cooperative, can recover. Noise co-optimisation is marginal, and counter to intuition enlarging the CFA tile beyond 2x2 consistently hurts, as the filters are confined to the rank three sRGB input. Because the intervention is at the sensor, the gains are model-agnostic; we validate robustness on ACDC's fog, night, rain, and snow, and conclude with a simple recipe: learn the 2x2 CFA weights and keep an identity PSF.",
-          "authors": [
-            "Reeshad Khan",
-            "John Gauch"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.AI"
-          ],
-          "published": "2026-06-23T03:22:54+00:00",
-          "link": "https://arxiv.org/pdf/2606.24096v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:gen-models",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "sensor co-design for autonomous driving segmentation",
-          "llm_evidence_cn": "自动驾驶分割的传感器协同设计",
-          "llm_evidence": "自动驾驶分割的传感器协同设计",
-          "canonical_evidence": "自动驾驶分割的传感器协同设计",
-          "llm_tldr_en": "Explores task-optimal camera sensor design for autonomous driving segmentation, showing learning CFA weights improves mIoU.",
-          "llm_tldr_cn": "针对自动驾驶分割任务，本文从传感器上游出发，通过可微RAW到任务流水线分析相机传感器自由度的影响。研究发现学习彩色滤波阵列（CFA）权重是提升性能的主导因素，在KITTI-360和ACDC上分别提高mIoU 0.017和0.023，而光学系统协同设计反而带来负面效果。",
-          "llm_tldr": "针对自动驾驶分割任务，本文从传感器上游出发，通过可微RAW到任务流水线分析相机传感器自由度的影响。研究发现学习彩色滤波阵列（CFA）权重是提升性能的主导因素，在KITTI-360和ACDC上分别提高mIoU 0.017和0.023，而光学系统协同设计反而带来负面效果。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "world model in autonomous driving",
-          "matched_requirement_id": "req-14",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.24096v1",
-          "carry_days": 8
-        },
-        {
-          "id": "2606.24759v1",
-          "source": "arxiv",
-          "title": "UniDrive: A Unified Vision-Language and Grounding Framework for Interpretable Risk Understanding in Autonomous Driving",
-          "abstract": "Recent multimodal large language models (MLLMs) have shown strong potential for autonomous driving scene understanding, yet existing methods still face a fundamental trade-off between temporal reasoning and spatial precision. Models that rely on single-frame or low-resolution inputs often miss small, distant, or partially occluded hazards, while language-centric driving models frequently provide limited grounded evidence for their explanations. To address this gap, we propose UniDrive, a unified visual-language and grounding framework for interpretable risk understanding in autonomous driving. UniDrive combines a temporal reasoning branch that models scene dynamics from multi-frame visual input with a high-resolution perception branch that preserves fine-grained spatial details from the latest frame. The two branches are integrated through a gated cross-attention fusion module, enabling dynamic context to be aligned with precise spatial evidence. Based on the fused representation, UniDrive jointly generates natural-language risk descriptions and grounded bounding-box outputs for risk objects. Experiments on the DRAMA-Reasoning benchmark show that UniDrive outperforms representative image-based and video-based baselines in both captioning and risk-object grounding. In particular, UniDrive achieves the best overall performance on the validation split and demonstrates clear advantages in small-object localization, zero-shot generalization to NuScenes and BDD100K, and human-rated interpretability and trustworthiness. These results suggest that explicitly combining temporal semantics and high-resolution perception provides a stronger foundation for interpretable and safety-oriented autonomous driving systems. The code is available at https://github.com/pixeli99/unidrive-dev.",
-          "authors": [
-            "Xiaowei Gao",
-            "Pengxiang Li",
-            "Yitai Cheng",
-            "Ruihan Xu",
-            "James Haworth",
-            "Stephen Law",
-            "Yun Ye"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.AI"
-          ],
-          "published": "2026-06-23T16:17:39+00:00",
-          "link": "https://arxiv.org/pdf/2606.24759v1",
-          "tags": [
-            "keyword:gen-models",
-            "keyword:self-driving",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "interpretable risk understanding for autonomous driving",
-          "llm_evidence_cn": "自动驾驶中的可解释风险理解框架",
-          "llm_evidence": "自动驾驶中的可解释风险理解框架",
-          "canonical_evidence": "自动驾驶中的可解释风险理解框架",
-          "llm_tldr_en": "UniDrive unifies vision-language and grounding for interpretable risk understanding in autonomous driving, using temporal reasoning to detect hazards.",
-          "llm_tldr_cn": "当前自动驾驶场景理解方法在时序推理与空间精度之间存在权衡。UniDrive提出统一视觉语言与定位框架，通过时序推理分支建模多帧视觉动态，结合高分辨率特征实现小目标及被遮挡危险源的检测。实验证明该方法在风险理解任务上优于现有模型，同时提供可解释的定位证据。",
-          "llm_tldr": "当前自动驾驶场景理解方法在时序推理与空间精度之间存在权衡。UniDrive提出统一视觉语言与定位框架，通过时序推理分支建模多帧视觉动态，结合高分辨率特征实现小目标及被遮挡危险源的检测。实验证明该方法在风险理解任务上优于现有模型，同时提供可解释的定位证据。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "autonomous driving recent advances",
-          "matched_requirement_id": "req-11",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.24759v1",
-          "carry_days": 8
-        },
         {
           "id": "2606.28938v1",
           "source": "arxiv",
@@ -356,51 +283,7 @@
           "matched_requirement_id": "req-18",
           "selection_source": "carryover_cache",
           "paper_id": "2606.28938v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2606.25509v1",
-          "source": "arxiv",
-          "title": "ASSCG: Just-Right Gating over Chattering for Fast-Slow LLM Planning in Autonomous Driving",
-          "abstract": "Large language models (LLMs) can improve autonomous driving planning but are costly to query online, and existing fast-slow planners often rely on hand-designed triggering rules that either over-call the slow system or call it at the wrong times. We formulate slow-system invocation as a resource-aware sequential decision problem and propose the Adaptive Slow-System Control Gate (ASSCG), which makes frame-level Query/Cache/Drop decisions to refresh, reuse, or suppress slow guidance. ASSCG uses an RWKV backbone for efficient long-horizon gating and is trained with supervised fine-tuning followed by GRPO-style compute-aware reinforcement fine-tuning. We apply ASSCG to two different fast-slow architectures: (i) AsyncDriver on nuPlan Hard20 closed-loop evaluation, where ASSCG improves score to 67.28 (+2.28) while reducing average end-to-end inference latency by 60%; and (ii) a RecogDrive-based dual system that we build by replacing its original VLM-2B module with a lightweight ViT-based fast planner and adding an LLM slow planner, evaluated on NAVSIM, where ASSCG achieves 91.4 PDMS (+0.6) and increases average speed by 25%. The project page, including video visualizations and additional results, is available at https://williamxuanyu.github.io/asscg/.",
-          "authors": [
-            "Sining Ang",
-            "Yuan Chen",
-            "Liu Haiyan",
-            "Xuanyao Mao",
-            "Jason Bao",
-            "Xuliang",
-            "Bingchuan Sun",
-            "Yan Wang"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.CV"
-          ],
-          "published": "2026-06-24T07:44:51+00:00",
-          "link": "https://arxiv.org/pdf/2606.25509v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "autonomous driving planning with action prediction",
-          "llm_evidence_cn": "自动驾驶规划与动作预测",
-          "llm_evidence": "自动驾驶规划与动作预测",
-          "canonical_evidence": "自动驾驶规划与动作预测",
-          "llm_tldr_en": "ASSCG introduces a gating mechanism for LLM-based fast-slow planning in autonomous driving, using RWKV backbone and reinforcement fine-tuning to optimize slow system invocation.",
-          "llm_tldr_cn": "当前将大语言模型用于自动驾驶规划时，在线查询成本高且快慢规划器的触发规则过于简单。本文提出自适应慢系统控制门（ASSCG），将慢系统调用建模为资源感知的序贯决策问题，通过RWKV骨干网络实现帧级查询/缓存/丢弃决策，并采用监督微调与GRPO风格的强化微调训练。在nuPlan Hard基准上的实验表明，该方法能自适应地控制慢系统调用频率，在保持规划质量的同时显著降低推理成本。",
-          "llm_tldr": "当前将大语言模型用于自动驾驶规划时，在线查询成本高且快慢规划器的触发规则过于简单。本文提出自适应慢系统控制门（ASSCG），将慢系统调用建模为资源感知的序贯决策问题，通过RWKV骨干网络实现帧级查询/缓存/丢弃决策，并采用监督微调与GRPO风格的强化微调训练。在nuPlan Hard基准上的实验表明，该方法能自适应地控制慢系统调用频率，在保持规划质量的同时显著降低推理成本。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "end-to-end autonomous driving with action prediction",
-          "matched_requirement_id": "req-12",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.25509v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2607.00736v1",
@@ -441,51 +324,7 @@
           "matched_requirement_id": "req-16",
           "selection_source": "carryover_cache",
           "paper_id": "2607.00736v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2607.00283v1",
-          "source": "arxiv",
-          "title": "What's Hidden Matters: Identifying Planning-Critical Occluded Agents using Vision-Language Models",
-          "abstract": "Autonomous vehicles must safely navigate complex environments where planning-critical agents may be hidden from view. Current approaches often treat all occlusions with uniform conservatism, yielding needlessly defensive driving, or they infer hidden spaces without estimating the impact on the planner. This work bridges the critical gap between perception and planning by enabling Vision-Language Models (VLMs) to identify and reason about the specific hidden agents that are most critical to the ego-vehicle's trajectory. We introduce a novel framework that uses Planning KL-divergence (PKL), an information-theoretic metric, to systematically identify and rank occluded agents based on their impact on the ego vehicle's plan. Using this planning-aware ranking, we employ an expert VLM (GPT-5) to generate rich, structured annotations that capture the visual evidence and reasoning required for this task. We apply this framework to the nuScenes dataset to create a new benchmark focused on high-impact scenarios. We conduct comprehensive experiments on a wide range of general-purpose and domain-adapted VLMs, demonstrating that fine-tuning on our PKL-guided data yields dramatic performance improvements across all models. Notably, our results show that smaller, fine-tuned models significantly outperform their much larger zero-shot counterparts, and that our PKL-guided data selection strategy improves performance by approximately 30\\% over random sampling. Our work presents the first systematic approach for training VLMs to focus on planning-critical occlusions, enabling more semantically grounded and efficient risk assessment in autonomous driving.",
-          "authors": [
-            "Amirhosein Chahe",
-            "Tyler Naes",
-            "Jovin D'sa",
-            "Faizan M. Tariq",
-            "Sangjae Bae",
-            "Lifeng Zhou",
-            "David Isele"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.AI",
-            "cs.CV"
-          ],
-          "published": "2026-07-01T00:14:13+00:00",
-          "link": "https://arxiv.org/pdf/2607.00283v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "VLMs for autonomous driving occlusion reasoning",
-          "llm_evidence_cn": "利用VLM进行自动驾驶遮挡推理",
-          "llm_evidence": "利用VLM进行自动驾驶遮挡推理",
-          "canonical_evidence": "利用VLM进行自动驾驶遮挡推理",
-          "llm_tldr_en": "Uses VLMs and planning KL-divergence to identify occluded agents critical to ego vehicle's trajectory, improving autonomous driving safety.",
-          "llm_tldr_cn": "自动驾驶中遮挡体处理通常过于保守或忽略其对规划的影响。本文提出利用视觉-语言模型（VLM）结合规划KL散度，识别并排序对自车轨迹最关键的遮挡体。方法在驾驶场景中有效提升了规划的安全性与效率，避开了不必要的减速。",
-          "llm_tldr": "自动驾驶中遮挡体处理通常过于保守或忽略其对规划的影响。本文提出利用视觉-语言模型（VLM）结合规划KL散度，识别并排序对自车轨迹最关键的遮挡体。方法在驾驶场景中有效提升了规划的安全性与效率，避开了不必要的减速。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "autonomous driving recent advances",
-          "matched_requirement_id": "req-11",
-          "selection_source": "carryover_cache",
-          "paper_id": "2607.00283v1",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.27660v1",
@@ -532,7 +371,7 @@
           "matched_requirement_id": "req-13",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27660v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.31106v1",
@@ -560,96 +399,13 @@
             "query:self-driving"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "probing prediction and planning in autonomous driving",
-          "llm_evidence_cn": "探针自动驾驶中的预测与规划",
-          "llm_evidence": "探针自动驾驶中的预测与规划",
-          "canonical_evidence": "探针自动驾驶中的预测与规划",
-          "llm_tldr_en": "Probes driving policies to understand internal prediction errors and their impact on ego planning, revealing flawed reasoning in nominal scenarios.",
-          "llm_tldr_cn": "自动驾驶策略在标称场景中表现良好，但可能隐藏有缺陷的推理。本文通过探针分析，研究策略对周围车辆运动的预测和自我规划，发现内部预测误差与规划质量相关。实验揭示了策略的脆弱启发式，为改进安全驾驶提供了见解。",
-          "llm_tldr": "自动驾驶策略在标称场景中表现良好，但可能隐藏有缺陷的推理。本文通过探针分析，研究策略对周围车辆运动的预测和自我规划，发现内部预测误差与规划质量相关。实验揭示了策略的脆弱启发式，为改进安全驾驶提供了见解。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "autonomous driving recent advances",
-          "matched_requirement_id": "req-11",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.31106v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2607.00545v1",
-          "source": "arxiv",
-          "title": "ECoSim: Data Efficient Fine-Tuning for Controllable Traffic Simulation",
-          "abstract": "Controllable traffic simulation is critical for testing autonomous driving systems, yet existing approaches often require retraining large generative models with extensive annotated data. We introduce a lightweight control adaptation framework that enables multi-modal controllability (sketch, latent behavior codes, and text) for pretrained state-of-the-art diffusion and autoregressive traffic models. By modulating intermediate features through identity-initialized FiLM layers, our method efficiently adds new control modalities while preserving the base model's generative prior. Evaluated on Waymo Open Sim Agents Challenge, our approach demonstrates strong controllability with less than 1% of the paired control data. Through context-aware condition transfer, our framework enables counterfactual scenario generation and long-tail synthesis while maintaining stable closed-loop driving realism and safety. Our framework unlocks new possibilities for controllable traffic simulation, enabling targeted scenario generation through lightweight adaptation of pretrained generative models. Project page: https://ecosim-web.github.io/",
-          "authors": [
-            "Yu-Hsiang Chen",
-            "Wei-Jer Chang",
-            "Yi-Ting Chen",
-            "Masayoshi Tomizuka"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-07-01T07:35:29+00:00",
-          "link": "https://arxiv.org/pdf/2607.00545v1",
-          "tags": [
-            "keyword:gen-models",
-            "keyword:self-driving",
-            "keyword:world-models",
-            "query:gen-models",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "efficient control adaptation for traffic simulation in autonomous driving",
-          "llm_evidence_cn": "用于自动驾驶交通模拟的高效控制适配",
-          "llm_evidence": "用于自动驾驶交通模拟的高效控制适配",
-          "canonical_evidence": "用于自动驾驶交通模拟的高效控制适配",
-          "llm_tldr_en": "Lightweight framework adding multimodal controllability to pretrained traffic models with less than 1% data, tested on Waymo Sim Agents.",
-          "llm_tldr_cn": "可控交通模拟对自动驾驶测试至关重要，但现有方法需大量标注数据重新训练生成模型。本文提出轻量级框架，通过身份初始化FiLM层调节中间特征，为预训练扩散或自回归交通模型添加多种控制方式（草图、潜在行为码、文本）。在Waymo开放模拟智能体挑战中，仅需不到1%配对数据即实现强可控性。该方法高效且不破坏原有生成先验，为自动驾驶仿真提供实用工具。",
-          "llm_tldr": "可控交通模拟对自动驾驶测试至关重要，但现有方法需大量标注数据重新训练生成模型。本文提出轻量级框架，通过身份初始化FiLM层调节中间特征，为预训练扩散或自回归交通模型添加多种控制方式（草图、潜在行为码、文本）。在Waymo开放模拟智能体挑战中，仅需不到1%配对数据即实现强可控性。该方法高效且不破坏原有生成先验，为自动驾驶仿真提供实用工具。",
-          "llm_tags": [
-            "query:self-driving"
-          ],
-          "matched_query_tag": "query:self-driving",
-          "matched_query_text": "autonomous driving recent advances",
-          "matched_requirement_id": "req-11",
-          "selection_source": "carryover_cache",
-          "paper_id": "2607.00545v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2606.26661v1",
-          "source": "arxiv",
-          "title": "LAMP: Lane-Aligned Motion Primitives for Feasible Trajectory Prediction",
-          "abstract": "Motion forecasting is essential for autonomous driving systems to enable safe decision-making and planning in complex driving scenarios. While existing predictors excel at minimizing standard displacement errors, they often overlook the adherence to lane topology of multimodal predictions, particularly for lower-probability modes. Consequently, predicted trajectories may violate physical and logical constraints, making the prediction set unreliable for safety-critical planning. In this paper, we propose LAMP (Lane-Aligned Motion Primitives), a topology-aware forecasting framework that anchors multimodal prediction to structured motion primitives aligned with lane topology. Specifically, we use a VQ-VAE to learn shape-aware motion primitives as discrete intention queries, capturing spatiotemporal patterns beyond endpoint-based intentions. We further introduce a feasibility-aware intention selector trained with a lane-topology prior for filtering unreachable intention queries, guiding the decoder to prioritize topology-consistent intentions while preserving behavioral diversity. Extensive experiments on the Argoverse 2 dataset demonstrate that LAMP achieves prediction accuracy comparable to state-of-the-art baselines while outperforming them in feasibility and diversity metrics.",
-          "authors": [
-            "Sangjin Han",
-            "Hoseong Jung",
-            "Jeongtae Her",
-            "Changhyun Choi",
-            "H. Jin Kim"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.AI"
-          ],
-          "published": "2026-06-25T06:52:17+00:00",
-          "link": "https://arxiv.org/pdf/2606.26661v1",
-          "tags": [
-            "keyword:self-driving",
-            "query:self-driving"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "topology-aware trajectory prediction with lane-aligned motion primitives for autonomous driving",
-          "llm_evidence_cn": "用于自动驾驶的拓扑感知轨迹预测，利用车道对齐运动基元",
-          "llm_evidence": "用于自动驾驶的拓扑感知轨迹预测，利用车道对齐运动基元",
-          "canonical_evidence": "用于自动驾驶的拓扑感知轨迹预测，利用车道对齐运动基元",
-          "llm_tldr_en": "LAMP anchors multimodal trajectory prediction to lane-aligned motion primitives using VQ-VAE, improving feasibility in safety-critical planning.",
-          "llm_tldr_cn": "运动预测是自动驾驶安全决策关键，但现有方法常忽略低概率模式的车道拓扑约束，导致预测轨迹不可行。本文提出LAMP，利用VQ-VAE学习形状感知运动基元，并将多模态预测锚定到这些车道对齐基元上。在nuScenes等数据集上，LAMP保持位移精度的同时，显著降低预测轨迹违反物理逻辑约束的比例，使预测集更可靠。该方法将拓扑先验引入神经网络预测，提升安全关键规划可信度。",
-          "llm_tldr": "运动预测是自动驾驶安全决策关键，但现有方法常忽略低概率模式的车道拓扑约束，导致预测轨迹不可行。本文提出LAMP，利用VQ-VAE学习形状感知运动基元，并将多模态预测锚定到这些车道对齐基元上。在nuScenes等数据集上，LAMP保持位移精度的同时，显著降低预测轨迹违反物理逻辑约束的比例，使预测集更可靠。该方法将拓扑先验引入神经网络预测，提升安全关键规划可信度。",
+          "llm_evidence_en": "Probes internal prediction errors to understand ego planning in autonomous driving",
+          "llm_evidence_cn": "通过探针分析自动驾驶策略中的内部预测误差与自车规划的关系",
+          "llm_evidence": "通过探针分析自动驾驶策略中的内部预测误差与自车规划的关系",
+          "canonical_evidence": "通过探针分析自动驾驶策略中的内部预测误差与自车规划的关系",
+          "llm_tldr_en": "This paper probes driving policies to link internal motion prediction errors with ego vehicle planning, revealing that strong closed-loop performance can mask flawed reasoning and unsafe heuristics.",
+          "llm_tldr_cn": "通过探针分析自动驾驶策略的内部表征，发现名义上稳健的策略可能依赖脆弱的启发式逻辑；论文将预测误差与规划决策直接关联，揭示了策略的真实瓶颈，为评估和改进端到端驾驶模型提供了深入见解。",
+          "llm_tldr": "通过探针分析自动驾驶策略的内部表征，发现名义上稳健的策略可能依赖脆弱的启发式逻辑；论文将预测误差与规划决策直接关联，揭示了策略的真实瓶颈，为评估和改进端到端驾驶模型提供了深入见解。",
           "llm_tags": [
             "query:self-driving"
           ],
@@ -657,8 +413,8 @@
           "matched_query_text": "end-to-end autonomous driving with action prediction",
           "matched_requirement_id": "req-12",
           "selection_source": "carryover_cache",
-          "paper_id": "2606.26661v1",
-          "carry_days": 4
+          "paper_id": "2606.31106v1",
+          "carry_days": 1
         },
         {
           "id": "2606.27317v1",
@@ -700,7 +456,7 @@
           "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27317v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2607.00736v2",
@@ -741,7 +497,7 @@
           "matched_requirement_id": "req-16",
           "selection_source": "carryover_cache",
           "paper_id": "2607.00736v2",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.29684v1",
@@ -783,283 +539,287 @@
           "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29684v1",
-          "carry_days": 1
-        }
-      ]
-    },
-    "gen-models": {
-      "updated_date": "20260706",
-      "carryover_days": 9,
-      "items": [
-        {
-          "id": "2606.25548v1",
-          "source": "arxiv",
-          "title": "Concept Removal for Frontier Image Generative Models",
-          "abstract": "Image generative models are trained on massive, largely uncurated internet-scale datasets that contain undesirable visual concepts. Efficiently removing such concepts from the model generations without degrading the quality of output images remains challenging. We introduce a novel concept removal method for frontier diffusion and image autoregressive models, such as SD3.5, Flux, and Infinity. Our intervention replaces the internal bottleneck layer present in all these modern models with a transcoder that is trained to replicate the original layer while structuring it into distinct activation features. This in-place substitution creates an integrated filter through which concept-specific signals can be selectively disabled while preserving the rest of the model's behavior. Since the intervention modifies the model backbone rather than attaching an external component, it remains persistent under white-box access. Empirically, the approach achieves state-of-the-art concept removal performance across modern diffusion and autoregressive models, maintains visual generation quality, provides robustness against adversarial prompts, and supports sequential removal of diverse concepts. This positions our method as a practical approach for concept removal in frontier image generative models.",
-          "authors": [
-            "Aditya Kumar",
-            "Pierre Joly",
-            "Adam Dziedzic",
-            "Franziska Boenisch"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.LG"
-          ],
-          "published": "2026-06-24T08:25:30+00:00",
-          "link": "https://arxiv.org/pdf/2606.25548v1",
-          "tags": [
-            "keyword:causal-rep",
-            "keyword:gen-models",
-            "keyword:world-models",
-            "query:causal-rep",
-            "query:gen-models",
-            "query:world-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "concept removal in state-of-the-art diffusion and autoregressive image models",
-          "llm_evidence_cn": "在先进扩散和自回归图像模型中进行概念移除",
-          "llm_evidence": "在先进扩散和自回归图像模型中进行概念移除",
-          "canonical_evidence": "在先进扩散和自回归图像模型中进行概念移除",
-          "llm_tldr_en": "Introduces a transcoder-based method to remove undesirable visual concepts from diffusion and autoregressive models like SD3.5 and Flux, while preserving generation quality.",
-          "llm_tldr_cn": "针对前沿图像生成模型（如SD3.5、Flux、Infinity）中含有的不良视觉概念，本文提出一种基于转码器（transcoder）的概念移除方法。通过替换瓶颈层并结构化激活特征，可选择性地禁用特定概念信号而不影响整体生成质量。实验表明该方法有效移除了目标概念，同时保持了图像质量。",
-          "llm_tldr": "针对前沿图像生成模型（如SD3.5、Flux、Infinity）中含有的不良视觉概念，本文提出一种基于转码器（transcoder）的概念移除方法。通过替换瓶颈层并结构化激活特征，可选择性地禁用特定概念信号而不影响整体生成质量。实验表明该方法有效移除了目标概念，同时保持了图像质量。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "state of the art generative model papers for image synthesis",
-          "matched_requirement_id": "req-27",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.25548v1",
           "carry_days": 4
         },
         {
-          "id": "2606.24773v1",
+          "id": "2607.04331v1",
           "source": "arxiv",
-          "title": "Posterior Refinement: Fast Language Generation via Any-Order Flow Maps",
-          "abstract": "Non-autoregressive generation offers a powerful paradigm for iterative refinement, allowing models to recursively critique, erase and regenerate arbitrary subsets of tokens. However, existing non-autoregressive models fail to realize this potential. Masked Diffusion Models (MDMs) suffer from factorization error, causing sample quality to collapse when generating multiple tokens simultaneously. Flow Map Language Models (FMLMs) circumvent this bottleneck via joint sequence transport for excellent few-step generation, but sacrifice the inference-time flexibility of MDMs. We introduce FMLM+, a framework that bridges this gap by equipping FMLM with masking-style noise schedules. While generating the full sequence in a single step, FMLM+ simultaneously scores the global consistency of each token a posteriori. We leverage this to introduce Posterior Refinement, a novel inference-time refinement strategy that enables the model to adaptively self-correct its outputs, matching the performance of discrete baselines with 32x fewer NFEs. Across diverse benchmarks, we demonstrate that FMLM+ with Posterior Refinement improves the speed--quality tradeoff over both MDM and FMLM families, providing a scalable foundation for high-fidelity language modeling.",
+          "title": "Agent-driven Long-tail Simulation for Autonomous Driving",
+          "abstract": "Evaluating autonomous driving systems in closed-loop settings requires realistic and interactive simulation, yet existing simulators largely rely on log replay or rule-based agents, limiting behavioral diversity and long-tail coverage. We propose an agent-driven simulation framework in which surrounding road participants are controlled by instruction-following large language models through a structured action interface, enabling intentional and reactive behaviors while preserving physical plausibility. Furthermore, we introduce SemanticPlan, a benchmark of closed-loop planning in long-tail and semantically rich scenarios that augment real nuPlan scenes with multiple interactive agents following diverse language instructions. Evaluation results show that state-of-the-art planners still struggle to consistently achieve safe and effective task completion, suggesting that these long-tail scenarios remain challenging.",
           "authors": [
-            "Manan Agarwal",
-            "Sheel Shah",
-            "Chanhyuk Lee",
-            "Jaehoon Yoo",
-            "Jerry Huang",
-            "Seunghoon Hong",
-            "Aditi Raghunathan",
-            "Jinwoo Kim",
-            "Nicholas M. Boffi"
+            "Junru Gu",
+            "Lijin Yang",
+            "Jianing Huang",
+            "Shu Liu",
+            "Zhongzhan Huang",
+            "Hang Zhao"
           ],
-          "primary_category": "cs.CL",
+          "primary_category": "cs.RO",
           "categories": [
-            "cs.CL"
+            "cs.RO",
+            "cs.CV"
           ],
-          "published": "2026-06-23T16:33:13+00:00",
-          "link": "https://arxiv.org/pdf/2606.24773v1",
+          "published": "2026-07-05T14:27:47+00:00",
+          "link": "https://arxiv.org/pdf/2607.04331v1",
           "tags": [
-            "keyword:causal-rep",
-            "keyword:gen-models",
-            "keyword:world-models",
-            "query:gen-models",
-            "query:world-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "non-autoregressive language generation with flow maps",
-          "llm_evidence_cn": "基于流映射的非自回归语言生成",
-          "llm_evidence": "基于流映射的非自回归语言生成",
-          "canonical_evidence": "基于流映射的非自回归语言生成",
-          "llm_tldr_en": "FMLM+ combines flow map language models with masking noise schedules to achieve fast, high-quality non-autoregressive text generation without sacrificing inference flexibility.",
-          "llm_tldr_cn": "非自回归生成模型（如掩码扩散模型和流映射语言模型）各有缺陷：掩码扩散模型存在分解误差导致多令牌生成质量差，流映射语言模型则牺牲了推理时的灵活性。本文提出FMLM+，为流映射语言模型配备掩码噪声调度，使其在单步生成完整序列的同时能并行打分所有可能的标记子集。实验表明，FMLM+在语言建模和生成任务上取得了更优的速度和质量权衡。该方法融合了两种范式的优点。",
-          "llm_tldr": "非自回归生成模型（如掩码扩散模型和流映射语言模型）各有缺陷：掩码扩散模型存在分解误差导致多令牌生成质量差，流映射语言模型则牺牲了推理时的灵活性。本文提出FMLM+，为流映射语言模型配备掩码噪声调度，使其在单步生成完整序列的同时能并行打分所有可能的标记子集。实验表明，FMLM+在语言建模和生成任务上取得了更优的速度和质量权衡。该方法融合了两种范式的优点。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "large language models text generation",
-          "matched_requirement_id": "req-23",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.24773v1",
-          "carry_days": 8
-        },
-        {
-          "id": "2606.24745v1",
-          "source": "arxiv",
-          "title": "Beyond U-Net: A Latent-Representation-Aligned Skip-Free Backbone for Flow-Matching Speech Enhancement",
-          "abstract": "Generative models, particularly diffusion and score-based approaches, have recently achieved strong performance in speech enhancement, but their iterative sampling process limits real-time deployment. Flow Matching offers an efficient alternative by transporting noisy speech toward clean speech through an ordinary differential equation with few function evaluations. In this work, we propose a skip-free encoder-decoder backbone for flow-matching speech enhancement, guided by Latent Representation Alignment (LRA). Instead of relying on U-Net skip connections, which may transfer noise-correlated low-level features to the decoder, the proposed model aligns its bottleneck and decoder representations with clean latent features extracted from a frozen Descript Audio Codec encoder-decoder without quantization. This codec-aligned supervision promotes compact clean-speech representations while preserving efficient few-step inference. Experiments on WSJ0-CHiME3 and VoiceBank-DEMAND show improved PESQ and perceptual quality, especially on VoiceBank-DEMAND, using only five function evaluations.",
-          "authors": [
-            "Wangyi Pu",
-            "Michele Scarpiniti"
-          ],
-          "primary_category": "cs.SD",
-          "categories": [
-            "cs.SD",
-            "cs.AI",
-            "eess.AS"
-          ],
-          "published": "2026-06-23T16:09:31+00:00",
-          "link": "https://arxiv.org/pdf/2606.24745v1",
-          "tags": [
-            "keyword:causal-rep",
-            "keyword:gen-models",
-            "keyword:world-models",
-            "query:gen-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "flow matching for speech enhancement with latent representation alignment",
-          "llm_evidence_cn": "基于潜在表示对齐的流匹配语音增强",
-          "llm_evidence": "基于潜在表示对齐的流匹配语音增强",
-          "canonical_evidence": "基于潜在表示对齐的流匹配语音增强",
-          "llm_tldr_en": "Proposes a skip-free backbone for flow-matching speech enhancement using Latent Representation Alignment to avoid noise transfer.",
-          "llm_tldr_cn": "针对流匹配语音增强中U-Net跳跃连接传递噪声的问题，本文提出一种无跳跃连接的编码器-解码器骨干网络。通过引入潜在表示对齐（LRA）机制，使瓶颈和解码器表示与纯净语音的潜在特征对齐，从而在少量采样步数内实现高质量语音增强。实验表明，该方法在计算效率和增强性能上均优于传统U-Net结构。",
-          "llm_tldr": "针对流匹配语音增强中U-Net跳跃连接传递噪声的问题，本文提出一种无跳跃连接的编码器-解码器骨干网络。通过引入潜在表示对齐（LRA）机制，使瓶颈和解码器表示与纯净语音的潜在特征对齐，从而在少量采样步数内实现高质量语音增强。实验表明，该方法在计算效率和增强性能上均优于传统U-Net结构。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "flow matching method for generative modeling",
-          "matched_requirement_id": "req-24",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.24745v1",
-          "carry_days": 8
-        },
-        {
-          "id": "2606.24369v1",
-          "source": "arxiv",
-          "title": "Accelerating Disaggregated RL for Visual Generative LLMs with Diffusion-Based Parallelism and Trainer-Assisted Generation",
-          "abstract": "Reinforcement learning (RL) has become a dominant post-training paradigm, driving the emergence of high-performance RL systems such as veRL for autoregressive large language models (LLMs). In parallel, diffusion-oriented RL algorithms, e.g., DanceGRPO and FlowGRPO, have rapidly expanded the scope of RL from language reasoning to diffusion-based visual and flow-based generation. However, efficient RL systems for diffusion generative LLMs remain underexplored. Existing implementations, e.g., veRL-Omni, still rely on colocated execution, which simplifies synchronization but couples rollout and training resources, limits heterogeneous deployment, and constrains independent scaling.   To this end, we introduce DigenRL, a disaggregated RL framework for diffusion-based generative LLMs that supports flexible resource allocation, accommodates heterogeneous GPUs, and facilitates efficient task scheduling. To maximally reduce the execution bubbles in the disaggregated architecture, we propose: 1) a generation-axis pipeline (GAP) and time-step parallelism (TSP) in the diffusion architecture to enable finer-grained pipelining between rollout and training; 2) an elastic trainer-assisted generation (TAG) approach to enable the trainer GPU resources to dynamically assist in executing rollout generations; and 3) a tightly one-step constrained asynchronous strategy to further utilize the tail bubble in the pipeline. Extensive experiments are conducted on three hardware testbeds with 16-32 GPUs using HunyuanVideo-13B, Wan2.1-14B, FLUX.1-12B, and QwenImage-20B generative models. Experimental results show that DigenRL achieves 1.56-2.10x throughput improvements over state-of-the-art diffusion RL systems, veRL-Omni and GenRL.",
-          "authors": [
-            "Sijie Wang",
-            "Zhengyu Qing",
-            "Zhiqiang Tan",
-            "Yiming Yin",
-            "Yeqing Zhang",
-            "Yaoyuan Wang",
-            "Qiang Wang",
-            "Xiaowen Chu",
-            "Shaohuai Shi"
-          ],
-          "primary_category": "cs.AI",
-          "categories": [
-            "cs.AI",
-            "cs.DC",
-            "cs.NI",
-            "cs.PF"
-          ],
-          "published": "2026-06-23T09:59:35+00:00",
-          "link": "https://arxiv.org/pdf/2606.24369v1",
-          "tags": [
-            "keyword:causal-rep",
             "keyword:gen-models",
             "keyword:self-driving",
-            "keyword:world-models",
-            "query:gen-models",
-            "query:self-driving",
-            "query:world-models"
+            "query:self-driving"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "diffusion-based RL for visual generative LLMs",
-          "llm_evidence_cn": "扩散并行加速视觉生成大模型的强化学习",
-          "llm_evidence": "扩散并行加速视觉生成大模型的强化学习",
-          "canonical_evidence": "扩散并行加速视觉生成大模型的强化学习",
-          "llm_tldr_en": "This paper proposes a disaggregated RL system for diffusion-based visual generative LLMs, separating rollout and training resources to enable efficient scaling.",
-          "llm_tldr_cn": "当前扩散生成大模型的强化学习系统存在部署资源耦合、扩展受限的问题。本文提出了一种分离式RL系统，通过扩散并行和训练器辅助生成，将rollout与训练资源解耦，实现异构部署与独立扩展。实验表明在保持生成质量的同时显著提升训练效率。",
-          "llm_tldr": "当前扩散生成大模型的强化学习系统存在部署资源耦合、扩展受限的问题。本文提出了一种分离式RL系统，通过扩散并行和训练器辅助生成，将rollout与训练资源解耦，实现异构部署与独立扩展。实验表明在保持生成质量的同时显著提升训练效率。",
+          "llm_evidence_en": "autonomous driving long-tail simulation using LLM agents",
+          "llm_evidence_cn": "使用LLM代理的自动驾驶长尾仿真",
+          "llm_evidence": "使用LLM代理的自动驾驶长尾仿真",
+          "canonical_evidence": "使用LLM代理的自动驾驶长尾仿真",
+          "llm_tldr_en": "Proposes an agent-driven simulation framework for autonomous driving using LLMs to control road participants, enabling diverse long-tail scenarios and a new benchmark.",
+          "llm_tldr_cn": "针对自动驾驶闭环评估中仿真行为多样性不足的问题，提出基于大语言模型代理的仿真框架，通过指令跟随控制交通参与者，生成丰富长尾场景，并构建了SemanticPlan基准，评估显示优于现有方法。",
+          "llm_tldr": "针对自动驾驶闭环评估中仿真行为多样性不足的问题，提出基于大语言模型代理的仿真框架，通过指令跟随控制交通参与者，生成丰富长尾场景，并构建了SemanticPlan基准，评估显示优于现有方法。",
           "llm_tags": [
-            "query:gen-models"
+            "query:self-driving"
           ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "diffusion models and flow matching",
-          "matched_requirement_id": "req-21",
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "autonomous driving recent advances",
+          "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
-          "paper_id": "2606.24369v1",
-          "carry_days": 8
+          "paper_id": "2607.04331v1",
+          "carry_days": 1
         },
         {
-          "id": "2606.26016v1",
+          "id": "2607.04689v1",
           "source": "arxiv",
-          "title": "MIMFlow: Integrating Masked Image Modeling with Normalizing Flows for End-to-End Image Generation",
-          "abstract": "Normalizing Flows (NFs) are powerful generative models capable of exact density estimation and sampling. However, their strict invertibility often forces the model to exhaust its capacity on low-level pixel details, hindering the capture of high-level semantic structures. While Masked Image Modeling (MIM) has excelled in representation learning, its integration into generative pipelines has remained largely modular and disjointed. In this paper, we propose MIMFlow, a unified end-to-end framework that jointly optimizes latent semantics, pixel reconstruction, and generative flow. By employing a VAE encoder to infer semantic latent from masked images, MIMFlow achieves a principled decoupling of the generative task: the Normalizing Flow focuses on modeling a simplified, low-frequency semantic manifold, while a specialized decoder handles high-frequency synthesis. This design effectively resolves the inherent capacity bottleneck of NFs, allowing the model to prioritize global structural coherence over redundant noise. Empirical results on ImageNet 256$\\times$256 show that MIMFlow-L reaches 71.3\\% linear probing accuracy and an FID of 2.50. Despite using only 128 tokens (50\\% fewer than standard models), it yields a 32.8\\% performance gain over similar-scale NF baselines. Our code is available at https://github.com/MCG-NJU/MIMFlow.",
+          "title": "A Reliable Context-Aware and Temporal Planning Framework for Autonomous Driving",
+          "abstract": "Safe operation of autonomous vehicles in dense urban traffic depends on perception and planning that remain reliable when onboard sensing is degraded. In real driving conditions, camera observations are frequently corrupted by occlusion, motion blur, illumination change, and sensor noise, and when such degraded observations are aggregated indiscriminately over time, trajectory planning becomes unstable and collision risk rises for both the ego vehicle and surrounding road users. Recent Bird's-Eye-View (BEV) approaches unify perception and planning through a shared spatial representation, but most fuse temporal information across frames without assessing the reliability of the underlying observations. We present a Reliable Context-Aware and Temporal Planning framework for Autonomous Driving (RCT-AD) that explicitly models feature quality and temporal consistency to support safer, more consistent planning. A Reliable Context Awareness module scores per-frame reliability and selectively retains trustworthy features through a quality-gated First-In-Last-Out (FILO) memory mechanism, reconstructing degraded observations from reliable historical context so that corrupted inputs do not destabilize the scene representation. A Temporal Trajectory Planner captures long-term dependencies and multi-agent interactions to produce smoother, safety-aware trajectories, while a joint detection-and-segmentation head injects semantic and motion cues into the shared BEV space to strengthen scene understanding. Experiments on the nuScenes autonomous driving benchmark show that RCT-AD improves perception accuracy, motion prediction, and planning robustness over recent end-to-end baselines, achieving 61.5 nuScenes Detection Score, 52.9 mean Average Precision, and 52.3 mean Intersection over Union, while maintaining competitive computational efficiency suitable for real-time deployment.",
           "authors": [
-            "Yang Chen",
-            "Xiaowei Xu",
-            "Shuai Wang",
-            "Xinwen Zhang",
-            "Qiushi Guo",
-            "Tiezheng Ge",
-            "Limin Wang"
+            "Argho Dey",
+            "Yunfei Yin",
+            "Swachha Ray",
+            "Md Minhazul Islam",
+            "Zheng Yuan",
+            "Sijing Xiong",
+            "Hongyu Liu",
+            "Zhiqiu Huang"
+          ],
+          "primary_category": "cs.RO",
+          "categories": [
+            "cs.RO",
+            "cs.CV"
+          ],
+          "published": "2026-07-06T05:32:48+00:00",
+          "link": "https://arxiv.org/pdf/2607.04689v1",
+          "tags": [
+            "keyword:self-driving",
+            "query:self-driving"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "reliable context-aware temporal planning for autonomous driving",
+          "llm_evidence_cn": "自动驾驶中可靠的上下文感知时间规划",
+          "llm_evidence": "自动驾驶中可靠的上下文感知时间规划",
+          "canonical_evidence": "自动驾驶中可靠的上下文感知时间规划",
+          "llm_tldr_en": "Proposes a Reliable Context-Aware and Temporal Planning framework that assesses observation reliability in BEV perception for stable trajectory planning under degraded conditions.",
+          "llm_tldr_cn": "城市密集交通中，自动驾驶的感知观测量常因遮挡、模糊等退化，若不加甄别地融合会导致规划不稳定。本文提出可靠上下文感知时间规划框架，在BEV表示中评估每帧观测的可靠性，并据此进行时序推理，从而在退化条件下仍能生成稳定的轨迹规划。实验验证了该方法在恶劣感知条件下显著降低碰撞风险。",
+          "llm_tldr": "城市密集交通中，自动驾驶的感知观测量常因遮挡、模糊等退化，若不加甄别地融合会导致规划不稳定。本文提出可靠上下文感知时间规划框架，在BEV表示中评估每帧观测的可靠性，并据此进行时序推理，从而在退化条件下仍能生成稳定的轨迹规划。实验验证了该方法在恶劣感知条件下显著降低碰撞风险。",
+          "llm_tags": [
+            "query:self-driving"
+          ],
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "end-to-end autonomous driving model",
+          "matched_requirement_id": "req-15",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04689v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.01370v1",
+          "source": "arxiv",
+          "title": "MapDreamer: Aerial Imagery Conditioned Latent Diffusion for Lane-Level Map Generation",
+          "abstract": "High definition map generation is essential for autonomous driving, yet remains a labor-intensive process at scale. We present MapDreamer, a generative diffusion model that synthesizes lane-level vector maps with explicit topology directly from a single aerial image. MapDreamer learns a compact latent representation of lane centerlines and their topological relations using a variational autoencoder and predicts graphs with a transformer-based latent diffusion model. To align generated maps with the observed scene, we condition each denoising step on dense aerial features injected through cross-attention. To handle the varying number of lanes across scenes, we propose a lane cardinality module paired with background ghost lane latents, a learned buffer that prevents slot collapse during diffusion. Furthermore, we introduce a sliding-window global graph aggregation strategy that stitches local tiles into city-scale maps while preserving connectivity through encoded lane boundaries. Experiments on UrbanLaneGraph derived from Argoverse 2 show improved geometric and topological fidelity over non-generative baselines.",
+          "authors": [
+            "Julian Brandes",
+            "Philipp Crocoll",
+            "Wolfram Burgard"
           ],
           "primary_category": "cs.CV",
           "categories": [
             "cs.CV"
           ],
-          "published": "2026-06-24T16:37:10+00:00",
-          "link": "https://arxiv.org/pdf/2606.26016v1",
+          "published": "2026-07-01T18:33:38+00:00",
+          "link": "https://arxiv.org/pdf/2607.01370v1",
           "tags": [
-            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
             "keyword:gen-models",
+            "keyword:self-driving",
             "keyword:world-models",
+            "query:cf-image-gen",
             "query:gen-models",
+            "query:self-driving",
             "query:world-models"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "integrates normalizing flows with masked image modeling for end-to-end image generation",
-          "llm_evidence_cn": "将归一化流与掩码图像建模结合，用于端到端图像生成",
-          "llm_evidence": "将归一化流与掩码图像建模结合，用于端到端图像生成",
-          "canonical_evidence": "将归一化流与掩码图像建模结合，用于端到端图像生成",
-          "llm_tldr_en": "MIMFlow unifies masked image modeling and normalizing flows in an end-to-end framework using a VAE encoder to infer semantic latents, enabling exact density estimation and high-level semantic capture.",
-          "llm_tldr_cn": "针对归一化流在生成图像时过度关注像素细节而忽略高层语义的问题，本文提出MIMFlow框架，通过VAE编码器从掩码图像中推断语义潜变量，将生成任务解耦为语义学习和像素重建。实验表明，该方法在保持精确密度估计的同时，有效提升了生成图像的语义质量，为归一化流与掩码图像建模的深度融合提供了新范式。",
-          "llm_tldr": "针对归一化流在生成图像时过度关注像素细节而忽略高层语义的问题，本文提出MIMFlow框架，通过VAE编码器从掩码图像中推断语义潜变量，将生成任务解耦为语义学习和像素重建。实验表明，该方法在保持精确密度估计的同时，有效提升了生成图像的语义质量，为归一化流与掩码图像建模的深度融合提供了新范式。",
+          "llm_evidence_en": "lane-level map generation using diffusion model for autonomous driving",
+          "llm_evidence_cn": "使用扩散模型进行自动驾驶车道级地图生成",
+          "llm_evidence": "使用扩散模型进行自动驾驶车道级地图生成",
+          "canonical_evidence": "使用扩散模型进行自动驾驶车道级地图生成",
+          "llm_tldr_en": "MapDreamer uses a latent diffusion model conditioned on aerial imagery to generate lane-level vector maps with explicit topology, using a VAE and ghost lane latents.",
+          "llm_tldr_cn": "高精地图生成是自动驾驶的关键但劳动密集。本文提出MapDreamer，利用变分自编码器学习车道中心线和拓扑关系的紧凑潜在表示，再通过基于Transformer的潜在扩散模型以航拍图像为条件生成车道级矢量地图。为处理可变车道数，设计了车道基数模块和虚拟车道潜在变量。实验表明该方法能生成拓扑正确的高质量地图，显著减少人工标注成本。",
+          "llm_tldr": "高精地图生成是自动驾驶的关键但劳动密集。本文提出MapDreamer，利用变分自编码器学习车道中心线和拓扑关系的紧凑潜在表示，再通过基于Transformer的潜在扩散模型以航拍图像为条件生成车道级矢量地图。为处理可变车道数，设计了车道基数模块和虚拟车道潜在变量。实验表明该方法能生成拓扑正确的高质量地图，显著减少人工标注成本。",
           "llm_tags": [
-            "query:gen-models"
+            "query:self-driving"
           ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "flow matching method for generative modeling",
-          "matched_requirement_id": "req-24",
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "autonomous driving recent advances",
+          "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
-          "paper_id": "2606.26016v1",
-          "carry_days": 4
+          "paper_id": "2607.01370v1",
+          "carry_days": 1
         },
         {
-          "id": "2606.26408v1",
+          "id": "2607.04812v1",
           "source": "arxiv",
-          "title": "Exploring the Intrinsic Geometry of Diffusion Models with Constrained Inverse Kinematics",
-          "abstract": "Recent studies suggest that diffusion models can recover geometric structure in the data manifolds they are trained on, yet the supporting evidence has so far come mostly from natural-image data, where the underlying geometry itself is unknown. We study this question in a setting where the geometry is analytically tractable: constrained inverse kinematics (IK). Each task-space constraint defines a configuration-space manifold with known intrinsic dimension, giving direct ground truth for evaluating the geometry learned by the model. For each of the 6-DoF UR5 and 7-DoF Franka, we train a single conditional diffusion model across seven constraint families, spanning solution manifolds from discrete IK branches to self-motion manifolds. Our empirical results reveal that the intrinsic dimension recovered from the model's score function matches the analytical degrees of freedom of the corresponding constraint manifold across both robots. Moreover, linear interpolation in the latent space leads to generated solutions that remain close to the appropriate constraint manifold, indicating that the learned representation further captures geometric structure of the constraint family beyond intrinsic dimension alone. Constrained IK therefore offers a controlled setting for studying the intrinsic geometry learned by diffusion models.",
+          "title": "TGRIP: A Text-Guided Approach to Vehicle Instance Prediction in Autonomous Driving",
+          "abstract": "Bird's-Eye View (BEV) end-to-end instance prediction has emerged as a robust paradigm for autonomous driving perception, effectively mitigating the error propagation inherent in traditional modular pipelines. However, current state-of-the-art approaches rely predominantly on geometric supervision, such as occupancy regression and optical flow, effectively treating scene agents as generic moving obstacles. This absence of explicit semantic awareness imposes limitations on the capacity of the model to solve ambiguities in complex scenarios, particularly those where object-specific behavior is essential for accurate forecasting (e.g. overtaking, intersections). In this paper, we introduce Text-Guided Representation for Instance Prediction (TGRIP), a novel framework that bridges this gap by injecting rich semantic priors into the instance prediction loop. The proposed teacher-student pipeline employs Vision-Language Foundation Models to generate dense, semantic-enhanced BEV maps from multi-camera images. These maps serve as auxiliary supervision during training, guiding the network to learn spatio-temporal representations that are not only geometrically consistent but also semantically discriminative. To the best of our knowledge, this represents the first attempt to unify semantic guidance with the temporal task of future instance prediction. The experimental results demonstrate that TGRIP surpasses existing state-of-the-art models in nuScenes, validating the hypothesis that semantic enrichment is a fundamental element for robust, end-to-end motion prediction. Code is available on https://github.com/miguelag99/TGRIP.",
           "authors": [
-            "Miguel Angel Rogel Garcia",
-            "Phone Thiha Kyaw",
-            "Jonathan Kelly"
+            "Miguel Antunes-García",
+            "Santiago Montiel-Marín",
+            "Fabio Sánchez-García",
+            "Rodrigo Gutiérrez-Moreno",
+            "Rafael Barea",
+            "Luis M. Bergasa"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-06T08:47:56+00:00",
+          "link": "https://arxiv.org/pdf/2607.04812v1",
+          "tags": [
+            "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:self-driving"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "text-guided end-to-end instance prediction in BEV for autonomous driving",
+          "llm_evidence_cn": "自动驾驶中文本引导的端到端实例预测",
+          "llm_evidence": "自动驾驶中文本引导的端到端实例预测",
+          "canonical_evidence": "自动驾驶中文本引导的端到端实例预测",
+          "llm_tldr_en": "TGRIP introduces text guidance to BEV end-to-end instance prediction, enabling object-specific behavior-aware forecasting beyond geometric supervision.",
+          "llm_tldr_cn": "本文针对自动驾驶BEV端到端实例预测缺乏语义感知的问题，提出文本引导表示（TGRIP），通过文本先验注入语义信息，使模型能够区分不同对象的特定行为。在复杂场景如超车、路口处，方法显著提高了预测准确性，推动了端到端感知的语义化发展。",
+          "llm_tldr": "本文针对自动驾驶BEV端到端实例预测缺乏语义感知的问题，提出文本引导表示（TGRIP），通过文本先验注入语义信息，使模型能够区分不同对象的特定行为。在复杂场景如超车、路口处，方法显著提高了预测准确性，推动了端到端感知的语义化发展。",
+          "llm_tags": [
+            "query:self-driving"
+          ],
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "recent advancements in autonomous driving perception",
+          "matched_requirement_id": "req-16",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04812v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2606.31603v1",
+          "source": "arxiv",
+          "title": "Preserve the Hard, Regenerate the Rest: Uncertainty-Guided Synthetic Training Data Augmentation with Diffusion Models",
+          "abstract": "Semantic segmentation models struggle with data sparsity and rare or visually diverse regions, e.g., dense regions or small objects in aerial or autonomous mobility data. While synthetic augmentation is an appealing solution, directly generating new labeled data risks misalignment of labels and generated pixels. Existing solutions to this problem often rely on external models, or employ coarse heuristics such as indiscriminately augmenting all foreground objects or entire backgrounds, which wastes capacity on uninformative pixels. To address this, we propose an uncertainty-guided synthetic context augmentation strategy that strictly preserves label validity and efficiently maximizes pixel informativeness per synthetic sample - no external guardrails required. Using a baseline segmenter's predictive entropy, we identify uncertain semantic regions and inpaint only the complementary visual context. When fine-tuning the segmenter on this synthetic data, we compute the loss only over the original pixels, excluding inpainted regions. This focuses learning on the unmodified, uncertain regions while presenting them in novel contexts. We demonstrate substantial mIoU gains on Cityscapes, UAVID, and BDD100K with the largest gains on rare and difficult classes such as buses, trains, or (from the aerial perspective) cars. Our results demonstrate that uncertainty-guided context augmentation is a highly effective lever to improve segmentation performance on complex datasets, with code provided at https://github.com/XITASO/Preserve-the-Hard-Regenerate-the-Rest.",
+          "authors": [
+            "Nikolai Röhrich",
+            "Julian Gleißner",
+            "Ahmed H. A. Ibrahim",
+            "Silvan Mertes",
+            "Tobias Huber"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.AI",
+            "cs.LG"
+          ],
+          "published": "2026-06-30T12:51:49+00:00",
+          "link": "https://arxiv.org/pdf/2606.31603v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:self-driving",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Uncertainty-guided data augmentation with diffusion models for autonomous driving perception",
+          "llm_evidence_cn": "基于不确定性的扩散模型数据增强用于自动驾驶感知",
+          "llm_evidence": "基于不确定性的扩散模型数据增强用于自动驾驶感知",
+          "canonical_evidence": "基于不确定性的扩散模型数据增强用于自动驾驶感知",
+          "llm_tldr_en": "Proposes an uncertainty-guided synthetic context augmentation method using diffusion models for semantic segmentation, targeting rare visual regions in autonomous mobility data, preserving label validity while maximizing informativeness.",
+          "llm_tldr_cn": "语义分割模型在自动驾驶数据稀缺区域性能差。现有合成增强可能标签错位。本文提出不确定性引导的上下文增强策略，利用扩散模型生成新图像区域，同时通过不确定性估计确保标签有效并聚焦信息量最大的像素。在Cityscapes等数据集上，方法有效提升分割性能，特别是对小物体和密集区域。",
+          "llm_tldr": "语义分割模型在自动驾驶数据稀缺区域性能差。现有合成增强可能标签错位。本文提出不确定性引导的上下文增强策略，利用扩散模型生成新图像区域，同时通过不确定性估计确保标签有效并聚焦信息量最大的像素。在Cityscapes等数据集上，方法有效提升分割性能，特别是对小物体和密集区域。",
+          "llm_tags": [
+            "query:self-driving"
+          ],
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "recent advancements in autonomous driving perception",
+          "matched_requirement_id": "req-16",
+          "selection_source": "carryover_cache",
+          "paper_id": "2606.31603v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.06262v1",
+          "source": "arxiv",
+          "title": "Optimal Transport Q-Learning for Flow Policy Steering and Acceleration",
+          "abstract": "Diffusion and flow policies have recently demonstrated remarkable performance in robotic applications by accurately capturing multimodal robot trajectory distributions, especially in the context of vision language action (VLA) models. However, high quality policy performance also requires fast inference and high quality demonstrations, which are often hard to get. Lack of these leads to suboptimal policy behaviors and failure under distribution shifts. In this work we address the problem of fine-tuning and accelerating suboptimal flow-based policies using the robot's experience through RL post-training. We introduce Optimal Transport Q-Learning (OTQL), a new method for finetuning flow policies using advantage weighted conditional optimal transport flow matching. OTQL can finetune and accelerate flows with an interaction budget of 50-60 episodes while avoiding computationally expensive distillation in simulation and real-world robot tasks. Our results show that OTQL post-trains flow policies using the robot's own experience, increasing average success percentage of single-task policies from 36% to 86% and of a pre-trained VLA from 38% to 76% while reducing the number of inference steps per action generation by 70%.",
+          "authors": [
+            "Andreas Sochopoulos",
+            "Esmeralda S. Whitammer",
+            "Nikolaos Tsagkas",
+            "João Moura",
+            "Michael Gienger",
+            "Sethu Vijayakumar"
           ],
           "primary_category": "cs.RO",
           "categories": [
             "cs.RO"
           ],
-          "published": "2026-06-24T22:00:13+00:00",
-          "link": "https://arxiv.org/pdf/2606.26408v1",
+          "published": "2026-07-07T13:29:35+00:00",
+          "link": "https://arxiv.org/pdf/2607.06262v1",
           "tags": [
             "keyword:gen-models",
+            "keyword:pendulum",
+            "keyword:self-driving",
             "keyword:world-models",
-            "query:causal-rep",
-            "query:gen-models"
+            "query:gen-models",
+            "query:pendulum",
+            "query:self-driving"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "analysis of diffusion model geometry with known ground truth",
-          "llm_evidence_cn": "利用已知真值分析扩散模型几何",
-          "llm_evidence": "利用已知真值分析扩散模型几何",
-          "canonical_evidence": "利用已知真值分析扩散模型几何",
-          "llm_tldr_en": "This paper studies diffusion model geometry on constrained inverse kinematics with known intrinsic dimensions, training conditional diffusion models across constraint families and evaluating recovered manifold structure.",
-          "llm_tldr_cn": "扩散模型能否恢复数据流形几何？以往研究多在自然图像上进行，但缺乏真值。本文以约束逆运动学为测试床，每个约束条件定义已知维度的配置流形。训练条件扩散模型后，评估其恢复的流形结构。结果表明扩散模型能有效学习流形内在几何，为模型理解提供新工具。",
-          "llm_tldr": "扩散模型能否恢复数据流形几何？以往研究多在自然图像上进行，但缺乏真值。本文以约束逆运动学为测试床，每个约束条件定义已知维度的配置流形。训练条件扩散模型后，评估其恢复的流形结构。结果表明扩散模型能有效学习流形内在几何，为模型理解提供新工具。",
+          "llm_evidence_en": "Uses flow policies and RL for VLA model fine-tuning and acceleration",
+          "llm_evidence_cn": "使用流策略和RL对VLA模型进行微调和加速",
+          "llm_evidence": "使用流策略和RL对VLA模型进行微调和加速",
+          "canonical_evidence": "使用流策略和RL对VLA模型进行微调和加速",
+          "llm_tldr_en": "Optimal Transport Q-Learning (OTQL) fine-tunes suboptimal flow-based policies using advantage-weighted conditional OT flow matching, improving policy performance and inference speed for VLA models in robotics.",
+          "llm_tldr_cn": "基于流策略的VLA模型在机器人应用中受限于演示质量和推理速度。OTQL通过最优传输Q学习，利用优势加权条件最优传输流匹配，从次优策略中微调并加速推理。在模拟和真实机器人任务上，OTQL显著提升了策略成功率和执行速度，证明了RL后训练对VLA模型的有效性。",
+          "llm_tldr": "基于流策略的VLA模型在机器人应用中受限于演示质量和推理速度。OTQL通过最优传输Q学习，利用优势加权条件最优传输流匹配，从次优策略中微调并加速推理。在模拟和真实机器人任务上，OTQL显著提升了策略成功率和执行速度，证明了RL后训练对VLA模型的有效性。",
           "llm_tags": [
-            "query:gen-models"
+            "query:self-driving"
           ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "diffusion models and flow matching",
-          "matched_requirement_id": "req-21",
+          "matched_query_tag": "query:self-driving",
+          "matched_query_text": "Find recent state of the art vision language action models for autonomous driving",
+          "matched_requirement_id": "req-19",
           "selection_source": "carryover_cache",
-          "paper_id": "2606.26408v1",
-          "carry_days": 8
-        },
+          "paper_id": "2607.06262v1",
+          "carry_days": 1
+        }
+      ]
+    },
+    "gen-models": {
+      "updated_date": "20260630-20260709",
+      "carryover_days": 9,
+      "items": [
         {
           "id": "2606.30053v1",
           "source": "arxiv",
@@ -1098,49 +858,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.30053v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2607.00301v1",
-          "source": "arxiv",
-          "title": "Generative Modeling of Quantum Distribution with Functional Flow Matching",
-          "abstract": "The emergence of powerful deep generative models based on diffusion and flow matching has enabled the learning and modeling of complex distributions. Learning quantum distributions, however, remains challenging due to the inherent difficulty of accurately modeling the meaningful physical properties of quantum states. We propose Quantum Flow Matching (QFM), a novel generative model designed to learn quantum distribution by utilizing spin Wigner function and flow matching. By converting density matrix into the spin Wigner function and leveraging functional flow matching to learn distributions in function space, QFM enables accurate and effective learning of multi-qubit quantum distributions. We demonstrate the effectiveness of our method by evaluating physical quantities such as trace, purity, and entanglement entropy of the generated quantum states, accurately capturing the underlying physics of the given quantum distributions.",
-          "authors": [
-            "Jaehoon Hahm",
-            "Tak Hur",
-            "Joonseok Lee",
-            "Daniel K. Park"
-          ],
-          "primary_category": "cs.LG",
-          "categories": [
-            "cs.LG",
-            "quant-ph"
-          ],
-          "published": "2026-07-01T00:57:09+00:00",
-          "link": "https://arxiv.org/pdf/2607.00301v1",
-          "tags": [
-            "keyword:causal-rep",
-            "keyword:gen-models",
-            "keyword:world-models",
-            "query:causal-rep"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "flow matching for generative modeling of quantum distributions",
-          "llm_evidence_cn": "流匹配方法用于量子分布生成建模",
-          "llm_evidence": "流匹配方法用于量子分布生成建模",
-          "canonical_evidence": "流匹配方法用于量子分布生成建模",
-          "llm_tldr_en": "QFM proposes a novel generative model for quantum distributions by leveraging functional flow matching on spin Wigner functions, enabling accurate learning of multi-qubit quantum states.",
-          "llm_tldr_cn": "学习量子分布对深度生成模型具有挑战性。该文提出量子流匹配（QFM），利用自旋维格纳函数与函数空间中的流匹配来学习多量子比特分布。通过将密度矩阵转换为自旋维格纳函数并直接在函数空间建模，QFM准确捕捉量子态的物理性质。实验证明该方法在量子分布学习上有效，为量子物理与生成模型的交叉提供了新方向。",
-          "llm_tldr": "学习量子分布对深度生成模型具有挑战性。该文提出量子流匹配（QFM），利用自旋维格纳函数与函数空间中的流匹配来学习多量子比特分布。通过将密度矩阵转换为自旋维格纳函数并直接在函数空间建模，QFM准确捕捉量子态的物理性质。实验证明该方法在量子分布学习上有效，为量子物理与生成模型的交叉提供了新方向。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "flow matching method for generative modeling",
-          "matched_requirement_id": "req-24",
-          "selection_source": "carryover_cache",
-          "paper_id": "2607.00301v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.27766v1",
@@ -1180,7 +898,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27766v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.28057v1",
@@ -1223,7 +941,7 @@
           "matched_requirement_id": "req-23",
           "selection_source": "carryover_cache",
           "paper_id": "2606.28057v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.27481v1",
@@ -1262,7 +980,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27481v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.28092v1",
@@ -1300,7 +1018,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.28092v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.29066v1",
@@ -1344,7 +1062,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29066v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.29013v1",
@@ -1389,7 +1107,7 @@
           "matched_requirement_id": "req-27",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29013v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.29275v1",
@@ -1429,7 +1147,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29275v1",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.28301v1",
@@ -1475,7 +1193,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.28301v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.30332v1",
@@ -1526,7 +1244,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.30332v1",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.27144v1",
@@ -1571,7 +1289,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27144v1",
-          "carry_days": 4
+          "carry_days": 7
         },
         {
           "id": "2606.27696v1",
@@ -1617,54 +1335,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.27696v1",
-          "carry_days": 4
-        },
-        {
-          "id": "2607.00766v2",
-          "source": "arxiv",
-          "title": "Decoupled Guidance: Disentangling Subject and Context Pathways in Text-to-Image Personalization",
-          "abstract": "Text-to-image personalization aims to generate a user-provided subject in novel scenes described by text. However, most existing methods encode subject identity (fidelity) and context (editability) through the same conditioning pathway, forcing the two to compete for attention-map resources. We refer to this phenomenon as conditioning entanglement and show that it induces a fidelity-editability trade-off. We further provide causal evidence by replacing the target subject token with a generic subject token, which produces shifts in attention allocation and corresponding changes in context adherence. To this end, we propose Decoupled Guidance (DeGu), a plug-and-play framework that routes subject identity and scene context through two independent guidance streams. We further introduce a spatial mixing mechanism that dynamically fuses these streams, ensuring each operates within its semantically relevant region without interference. Furthermore, DeGu can be readily applied to existing personalization methods without modifying the underlying backbone models, consistently improving the overall personalization performance while enabling inference-time control over the fidelity-editability balance, across diverse methods and backbones, including flow-matching Diffusion Transformers (DiTs).",
-          "authors": [
-            "Seongmin Kim",
-            "Kyucheol Shin",
-            "Heesun Jung",
-            "Jinseo Kim",
-            "Sungyong Baik"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-07-01T10:48:43+00:00",
-          "link": "https://arxiv.org/pdf/2607.00766v2",
-          "tags": [
-            "keyword:causal-rep",
-            "keyword:celebA-cf",
-            "keyword:cf-image-gen",
-            "keyword:gen-models",
-            "query:causal-rep",
-            "query:celebA-cf",
-            "query:cf-image-gen",
-            "query:gen-models",
-            "query:world-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "text-to-image personalization with disentangled subject and context pathways",
-          "llm_evidence_cn": "文本到图像个性化中解耦主体和上下文路径",
-          "llm_evidence": "文本到图像个性化中解耦主体和上下文路径",
-          "canonical_evidence": "文本到图像个性化中解耦主体和上下文路径",
-          "llm_tldr_en": "Proposes Decoupled Guidance (DeGu) to disentangle subject identity and scene context pathways in text-to-image personalization, overcoming fidelity-editability trade-off via causal analysis and plug-and-play routing.",
-          "llm_tldr_cn": "在文本到图像个性化任务中，现有方法因条件路径耦合导致保真度和可编辑性之间的折中。本文通过因果分析证明了耦合现象的存在，并提出解耦引导框架（DeGu），将主体身份和场景上下文分别路由到不同的注意力路径。实验证明DeGu在不牺牲编辑能力的前提下显著提高了主体身份保持度。",
-          "llm_tldr": "在文本到图像个性化任务中，现有方法因条件路径耦合导致保真度和可编辑性之间的折中。本文通过因果分析证明了耦合现象的存在，并提出解耦引导框架（DeGu），将主体身份和场景上下文分别路由到不同的注意力路径。实验证明DeGu在不牺牲编辑能力的前提下显著提高了主体身份保持度。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "state of the art generative model papers for image synthesis",
-          "matched_requirement_id": "req-27",
-          "selection_source": "carryover_cache",
-          "paper_id": "2607.00766v2",
-          "carry_days": 1
+          "carry_days": 7
         },
         {
           "id": "2607.00371v1",
@@ -1701,13 +1372,13 @@
             "query:world-models"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "visual autoregressive generation with mixture of experts",
-          "llm_evidence_cn": "视觉自回归生成中的混合专家架构",
-          "llm_evidence": "视觉自回归生成中的混合专家架构",
-          "canonical_evidence": "视觉自回归生成中的混合专家架构",
-          "llm_tldr_en": "Introduces MEPA, a scale-aware token-routed Mixture of Experts architecture for visual autoregressive modeling, addressing optimization conflicts and error propagation across scales.",
-          "llm_tldr_cn": "视觉自回归模型（VAR）在多尺度学习中存在优化冲突和早期尺度语义误差传播的问题。本文提出MEPA框架，采用尺度感知的令牌路由混合专家（MoE）架构，为不同尺度分配不同的专家子网络，从而缓解冲突并抑制误差传播。实验表明MEPA在图像生成质量上显著超越了原始VAR模型。",
-          "llm_tldr": "视觉自回归模型（VAR）在多尺度学习中存在优化冲突和早期尺度语义误差传播的问题。本文提出MEPA框架，采用尺度感知的令牌路由混合专家（MoE）架构，为不同尺度分配不同的专家子网络，从而缓解冲突并抑制误差传播。实验表明MEPA在图像生成质量上显著超越了原始VAR模型。",
+          "llm_evidence_en": "New visual autoregressive generative model with mixture of experts",
+          "llm_evidence_cn": "引入混合专家机制的视觉自回归生成模型",
+          "llm_evidence": "引入混合专家机制的视觉自回归生成模型",
+          "canonical_evidence": "引入混合专家机制的视觉自回归生成模型",
+          "llm_tldr_en": "MEPA introduces a scale-aware token-routed Mixture of Experts into visual autoregressive generation, overcoming representation conflicts across scales and preventing error propagation from early scales, achieving high-quality image synthesis.",
+          "llm_tldr_cn": "针对视觉自回归建模中多尺度表示冲突和早期误差传播问题，提出尺度感知的Token路由混合专家架构，为不同尺度分配专属专家网络，同时利用尺度自适应路由缓解语义漂移，在图像生成任务上取得显著性能提升。",
+          "llm_tldr": "针对视觉自回归建模中多尺度表示冲突和早期误差传播问题，提出尺度感知的Token路由混合专家架构，为不同尺度分配专属专家网络，同时利用尺度自适应路由缓解语义漂移，在图像生成任务上取得显著性能提升。",
           "llm_tags": [
             "query:gen-models"
           ],
@@ -1716,98 +1387,6 @@
           "matched_requirement_id": "req-27",
           "selection_source": "carryover_cache",
           "paper_id": "2607.00371v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2606.31278v1",
-          "source": "arxiv",
-          "title": "Editing Everything Everywhere All at Once",
-          "abstract": "Editing multiple elements of an image in a single forward pass is a practical alternative to multi-turn image manipulation, offering improved efficiency and potentially better harmonization. However, when several instructions target different regions, semantic interference often leads to attribute leakage and poor edit disentanglement, especially as the number of edits increases. In this work, we propose MICE (Multi-Instance Concurrent Editing), a training-free strategy for scalable multi-instance image editing with Multimodal Diffusion Transformers. MICE modifies the additive bias of joint attention to regulate interactions between instance-specific edit instructions, latent, and context tokens identified via user-provided segmentation masks. Specifically, MICE allows intra-instance attention, penalizes interactions between neighboring region tokens, and suppresses unrelated cross-instance attention. As a result, our method enforces attribute binding while preserving global visual consistency. We evaluate MICE on LoMOE-Bench and introduce MICE-Bench, a more challenging benchmark with an average of 8.5 concurrent edits per image. The experiments demonstrate that our approach outperforms strong baselines and recent competitors in terms of visual quality preservation and faithfulness to the editing instructions.",
-          "authors": [
-            "Fabio Quattrini",
-            "Carmine Zaccagnino",
-            "Enis Simsar",
-            "Marta Tintoré Gazulla",
-            "Rita Cucchiara",
-            "Alessio Tonioni",
-            "Silvia Cascianelli"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-06-30T07:52:46+00:00",
-          "link": "https://arxiv.org/pdf/2606.31278v1",
-          "tags": [
-            "keyword:celebA-cf",
-            "keyword:cf-image-gen",
-            "query:cf-image-gen",
-            "query:gen-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "multi-instance concurrent image editing with diffusion transformers, state-of-the-art generative model for image synthesis",
-          "llm_evidence_cn": "基于扩散Transformer的多实例并发图像编辑，代表图像合成的最新生成模型",
-          "llm_evidence": "基于扩散Transformer的多实例并发图像编辑，代表图像合成的最新生成模型",
-          "canonical_evidence": "基于扩散Transformer的多实例并发图像编辑，代表图像合成的最新生成模型",
-          "llm_tldr_en": "Proposes MICE, a training-free strategy for scalable multi-instance image editing using Multimodal Diffusion Transformers, modifying joint attention to reduce semantic interference.",
-          "llm_tldr_cn": "该论文针对多指令图像编辑中的语义干扰和属性泄露问题，提出MICE（多实例并发编辑）方法，通过修改多模态扩散Transformer的联合注意力偏置来调控不同实例编辑指令间的交互。无需额外训练，即可在单次前向传播中完成多个区域编辑。实验表明MICE有效提升了多编辑任务中的解耦和保真度，代表了扩散模型在图像编辑领域的最新进展。",
-          "llm_tldr": "该论文针对多指令图像编辑中的语义干扰和属性泄露问题，提出MICE（多实例并发编辑）方法，通过修改多模态扩散Transformer的联合注意力偏置来调控不同实例编辑指令间的交互。无需额外训练，即可在单次前向传播中完成多个区域编辑。实验表明MICE有效提升了多编辑任务中的解耦和保真度，代表了扩散模型在图像编辑领域的最新进展。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "state of the art generative model papers for image synthesis",
-          "matched_requirement_id": "req-27",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.31278v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2606.31683v1",
-          "source": "arxiv",
-          "title": "Histogram-constrained Image Generation",
-          "abstract": "Diffusion models have emerged as a dominant paradigm in generative modeling, enabling high-fidelity sampling from complex data distributions. Despite impressive capabilities, controlling diffusion models to produce outputs aligned with user intent remains an open challenge, especially when balancing global coherence with local precision. Existing control mechanisms vary in the granularity of their conditioning signals. For example, textual prompts guide generation globally through high-level semantics, while ControlNet-like approaches secure precise local structure via dense conditions. In this work, we introduce Histogram-constrained Image Generation (HIG), a novel control mechanism that falls into the middle ground of control granularity. Our framework enforces user-specified distributional constraints (e.g., color histograms or latent token distributions) during the generation process with exact precision. We model such control as an optimal transport (OT) problem and apply explicit guidance transformations during sampling, thereby driving the diffusion trajectory to align with the desired histogram. We demonstrate the versatility of HIG across diverse applications, including constrained generation via color/latent histograms and high-capacity information embedding through histogram-level encoding. Our findings underscore the promise of distributional control, a flexible and interpretable control scheme that is fully compatible with existing control mechanisms, diversifying the hybrid strategies for controllable image generation. Our project page is available at: https://maps-research.github.io/hig/.",
-          "authors": [
-            "Haoming Liu",
-            "Yuanhe Guo",
-            "Yijia Cao",
-            "Shenji Wan",
-            "Hongyi Wen"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.AI",
-            "cs.LG"
-          ],
-          "published": "2026-06-30T13:58:56+00:00",
-          "link": "https://arxiv.org/pdf/2606.31683v1",
-          "tags": [
-            "keyword:causal-rep",
-            "keyword:celebA-cf",
-            "keyword:cf-image-gen",
-            "keyword:gen-models",
-            "query:celebA-cf",
-            "query:cf-image-gen",
-            "query:gen-models",
-            "query:world-models"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "Histogram-constrained control for diffusion models",
-          "llm_evidence_cn": "直方图约束的扩散模型控制",
-          "llm_evidence": "直方图约束的扩散模型控制",
-          "canonical_evidence": "直方图约束的扩散模型控制",
-          "llm_tldr_en": "Proposes Histogram-constrained Image Generation (HIG), a control mechanism for diffusion models that enforces user-specified distributions at intermediate granularity.",
-          "llm_tldr_cn": "本文针对扩散模型控制中全局与局部精度平衡的挑战，提出直方图约束图像生成（HIG）方法。HIG通过在扩散过程中施加用户指定的直方图分布，实现了粗细粒度之间的控制。该方法在不牺牲生成质量的前提下，提供了灵活的分布约束。实验表明，HIG能有效引导生成结果符合特定统计属性，为可控图像生成提供了新途径。",
-          "llm_tldr": "本文针对扩散模型控制中全局与局部精度平衡的挑战，提出直方图约束图像生成（HIG）方法。HIG通过在扩散过程中施加用户指定的直方图分布，实现了粗细粒度之间的控制。该方法在不牺牲生成质量的前提下，提供了灵活的分布约束。实验表明，HIG能有效引导生成结果符合特定统计属性，为可控图像生成提供了新途径。",
-          "llm_tags": [
-            "query:gen-models"
-          ],
-          "matched_query_tag": "query:gen-models",
-          "matched_query_text": "diffusion models and flow matching",
-          "matched_requirement_id": "req-21",
-          "selection_source": "carryover_cache",
-          "paper_id": "2606.31683v1",
           "carry_days": 1
         },
         {
@@ -1836,6 +1415,8 @@
             "keyword:celebA-cf",
             "keyword:cf-image-gen",
             "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
             "query:causal-rep",
             "query:celebA-cf",
             "query:cf-image-gen",
@@ -1843,19 +1424,19 @@
             "query:world-models"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "distribution-wise reward for fine-tuning generative models",
-          "llm_evidence_cn": "使用分布级奖励微调生成模型",
-          "llm_evidence": "使用分布级奖励微调生成模型",
-          "canonical_evidence": "使用分布级奖励微调生成模型",
-          "llm_tldr_en": "Proposes distribution-wise rewards to replace sample-wise rewards in RL fine-tuning of visual generative models, mitigating mode collapse and visual anomalies.",
-          "llm_tldr_cn": "传统强化学习微调生成模型使用样本级奖励，容易导致模式崩塌和视觉异常。本文提出分布级奖励机制，评估生成样本的整体数据分布，能够更有效地对齐真实分布。同时引入子采样估计计算开销，实验表明该方法在图像生成质量和多样性上均优于已有方法。",
-          "llm_tldr": "传统强化学习微调生成模型使用样本级奖励，容易导致模式崩塌和视觉异常。本文提出分布级奖励机制，评估生成样本的整体数据分布，能够更有效地对齐真实分布。同时引入子采样估计计算开销，实验表明该方法在图像生成质量和多样性上均优于已有方法。",
+          "llm_evidence_en": "distribution-wise rewards for fine-tuning visual generative models",
+          "llm_evidence_cn": "分布级别奖励用于微调视觉生成模型",
+          "llm_evidence": "分布级别奖励用于微调视觉生成模型",
+          "canonical_evidence": "分布级别奖励用于微调视觉生成模型",
+          "llm_tldr_en": "Uses distribution-wise rewards instead of sample-wise to fine-tune generative models, mitigating mode collapse and improving diversity.",
+          "llm_tldr_cn": "提出分布级别奖励微调框架，摆脱传统样本级奖励导致的模式坍缩和视觉异常，通过考虑整体数据分布保持多样性，在图像生成质量与多样性上取得均衡提升。",
+          "llm_tldr": "提出分布级别奖励微调框架，摆脱传统样本级奖励导致的模式坍缩和视觉异常，通过考虑整体数据分布保持多样性，在图像生成质量与多样性上取得均衡提升。",
           "llm_tags": [
             "query:gen-models"
           ],
           "matched_query_tag": "query:gen-models",
-          "matched_query_text": "recent breakthroughs in generative model research",
-          "matched_requirement_id": "req-26",
+          "matched_query_text": "state of the art generative model papers for image synthesis",
+          "matched_requirement_id": "req-27",
           "selection_source": "carryover_cache",
           "paper_id": "2607.02291v1",
           "carry_days": 1
@@ -1907,7 +1488,7 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.29215v2",
-          "carry_days": 1
+          "carry_days": 4
         },
         {
           "id": "2606.30414v1",
@@ -1953,47 +1534,774 @@
           "matched_requirement_id": "req-21",
           "selection_source": "carryover_cache",
           "paper_id": "2606.30414v1",
+          "carry_days": 4
+        },
+        {
+          "id": "2607.05722v1",
+          "source": "arxiv",
+          "title": "Nemotron-Labs-Diffusion: A Tri-Mode Language Model Unifying Autoregressive, Diffusion, and Self-Speculation Decoding",
+          "abstract": "We introduce Nemotron-Labs-Diffusion, a tri-mode language model (LM) that unifies AR, diffusion, and self-speculation decoding within a single architecture. Trained with a joint AR-diffusion objective, Nemotron-Labs-Diffusion can switch modes to sustain high throughput across deployment settings and concurrency levels. Our study shows that (1) AR and diffusion objectives are complementary: diffusion improves lookahead planning, while AR provides left-to-right linguistic priors. (2) In self-speculation mode, diffusion drafts while AR verifies, outperforming multi-token prediction (MTP) methods in both acceptance rate and real-device efficiency. (3) A speed-of-light analysis further demonstrates diffusion's long-term potential, with up to 76.5% more tokens per forward pass than self-speculation under an optimal sampler. Scaling to 3B, 8B, and 14B parameters, our Nemotron-Labs-Diffusion family, including base, instruct, and vision-language models, consistently outperforms state-of-the-art open-source AR and diffusion LMs in both accuracy and speed. For example, Nemotron-Labs-Diffusion-8B decodes 6x more tokens per forward than Qwen3-8B with comparable accuracy, translating to 4x higher throughput on SPEED-Bench with SGLang on a GB200 GPU.",
+          "authors": [
+            "Yonggan Fu",
+            "Lexington Whalen",
+            "Abhinav Garg",
+            "Chengyue Wu",
+            "Maksim Khadkevich",
+            "Nicolai Oswald",
+            "Enze Xie",
+            "Daniel Egert",
+            "Sharath Turuvekere Sreenivas",
+            "Shizhe Diao",
+            "Chenhan Yu",
+            "Ye Yu",
+            "Weijia Chen",
+            "Sajad Norouzi",
+            "Jingyu Liu",
+            "Shiyi Lan",
+            "Ligeng Zhu",
+            "Jin Wang",
+            "Jindong Jiang",
+            "Morteza Mardani",
+            "Mehran Maghoumi",
+            "Song Han",
+            "Ante Jukić",
+            "Nima Tajbakhsh",
+            "Jan Kautz",
+            "Pavlo Molchanov"
+          ],
+          "primary_category": "cs.CL",
+          "categories": [
+            "cs.CL"
+          ],
+          "published": "2026-07-07T01:09:54+00:00",
+          "link": "https://arxiv.org/pdf/2607.05722v1",
+          "tags": [
+            "keyword:gen-models",
+            "keyword:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "tri-mode language model unifying AR and diffusion for text generation",
+          "llm_evidence_cn": "统一自回归和扩散的三模式语言模型用于文本生成",
+          "llm_evidence": "统一自回归和扩散的三模式语言模型用于文本生成",
+          "canonical_evidence": "统一自回归和扩散的三模式语言模型用于文本生成",
+          "llm_tldr_en": "Nemotron-Labs-Diffusion unifies autoregressive, diffusion, and self-speculation decoding in one LM, showing complementary benefits for lookahead planning and efficient drafting.",
+          "llm_tldr_cn": "该论文提出Nemotron-Labs-Diffusion，一种三模式语言模型，在同一架构中统一自回归、扩散和自推测解码。联合训练显示扩散改善前瞻规划，自回归提供语言先验；自推测模式中扩散草稿自回归验证，优于多头预测方法。在吞吐率和效率上取得显著提升。",
+          "llm_tldr": "该论文提出Nemotron-Labs-Diffusion，一种三模式语言模型，在同一架构中统一自回归、扩散和自推测解码。联合训练显示扩散改善前瞻规划，自回归提供语言先验；自推测模式中扩散草稿自回归验证，优于多头预测方法。在吞吐率和效率上取得显著提升。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "large language models text generation",
+          "matched_requirement_id": "req-23",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.05722v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04513v1",
+          "source": "arxiv",
+          "title": "Constrained Flow Matching via Lagrangian Dual Flows",
+          "abstract": "Flow matching is a powerful tool for generative modeling, but emerging applications in robotics, planning, and physics require inference-time constraints on generated outputs. Such constraints are often complex and highly nonlinear. As a result, methods designed for linear constraints like image inpainting are rarely sufficient, and projection or optimization-based alternatives can be prohibitively expensive. In this paper, we introduce Lagrangian Dual Flows, a new family of constrained generation techniques based on Lagrangian dual dynamics. By simply flowing a dual co-state alongside generated samples, we can guarantee nonlinear constraint satisfaction without expensive optimization subproblems, pseudoinverses, or projection steps during the denoising process. The resulting constrained generation algorithms are simple, effective, and open new theoretical connections between flow matching and primal-dual methods in numerical optimization.",
+          "authors": [
+            "Vince Kurtz",
+            "Alexander Davydov"
+          ],
+          "primary_category": "math.OC",
+          "categories": [
+            "math.OC",
+            "cs.LG"
+          ],
+          "published": "2026-07-05T21:25:51+00:00",
+          "link": "https://arxiv.org/pdf/2607.04513v1",
+          "tags": [
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:pendulum",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "constrained flow matching via Lagrangian dual dynamics",
+          "llm_evidence_cn": "通过拉格朗日对偶动力学实现约束流匹配",
+          "llm_evidence": "通过拉格朗日对偶动力学实现约束流匹配",
+          "canonical_evidence": "通过拉格朗日对偶动力学实现约束流匹配",
+          "llm_tldr_en": "Lagrangian Dual Flows enforce nonlinear constraints during flow matching inference without expensive optimization.",
+          "llm_tldr_cn": "流匹配生成模型在机器人、规划等应用中需要满足复杂约束，现有方法仅处理线性约束或计算昂贵。本文提出拉格朗日对偶流，在采样过程中引入对偶状态，通过拉格朗日对偶动力学保证非线性约束满足，无需投影或优化子问题。实验证实该方法在多种约束条件下生成质量与约束满足度俱佳。",
+          "llm_tldr": "流匹配生成模型在机器人、规划等应用中需要满足复杂约束，现有方法仅处理线性约束或计算昂贵。本文提出拉格朗日对偶流，在采样过程中引入对偶状态，通过拉格朗日对偶动力学保证非线性约束满足，无需投影或优化子问题。实验证实该方法在多种约束条件下生成质量与约束满足度俱佳。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "flow matching method for generative modeling",
+          "matched_requirement_id": "req-24",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04513v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.05392v1",
+          "source": "arxiv",
+          "title": "SynCity 3000: Bootstrapping Scene-Scale 3D Diffusion",
+          "abstract": "We present SynCity 3000, a framework for generating 3D scenes that are globally coherent while enabling fine-grained layout control. Building on the ability of current image-to-3D generators to produce complex 3D assets from a single image, we extend this capability to the scale of entire scenes by adapting the generator to be applicable as a convolutional operator. We achieve this by fine-tuning the model on scene-like data generated by a new synthetic data engine, which we propose to address the scarcity of 3D scene data for training. The convolutional generator is then applied to a dimetric image of the entire scene, generated from the user prompt, resulting in 3D scenes of arbitrary size and complexity. Across diverse prompts and layouts, SynCity 3000 produces large, coherent, and detailed scenes, addressing the shortcomings of prior approaches to 3D scene generation.",
+          "authors": [
+            "Paul Engstler",
+            "Iro Laina",
+            "Christian Rupprecht",
+            "Andrea Vedaldi"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-06T17:59:35+00:00",
+          "link": "https://arxiv.org/pdf/2607.05392v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "3D scene generation via diffusion models",
+          "llm_evidence_cn": "通过扩散模型进行三维场景生成",
+          "llm_evidence": "通过扩散模型进行三维场景生成",
+          "canonical_evidence": "通过扩散模型进行三维场景生成",
+          "llm_tldr_en": "SynCity 3000 extends image-to-3D generators to entire scenes via a convolutional operator and synthetic data engine, enabling globally coherent 3D scene generation with fine-grained layout control.",
+          "llm_tldr_cn": "针对当前3D场景生成数据稀缺、模型难以扩展到整个场景的问题，本文提出SynCity 3000框架，将图像到3D生成器改造为卷积算子，并通过合成数据引擎生成场景级训练数据。该方法能够根据用户提示生成任意规模和复杂度的3D场景，同时保持全局一致性和细粒度布局控制。实验展示了在不同提示和布局下的高质量生成结果，为场景级3D内容创作提供了有效途径。",
+          "llm_tldr": "针对当前3D场景生成数据稀缺、模型难以扩展到整个场景的问题，本文提出SynCity 3000框架，将图像到3D生成器改造为卷积算子，并通过合成数据引擎生成场景级训练数据。该方法能够根据用户提示生成任意规模和复杂度的3D场景，同时保持全局一致性和细粒度布局控制。实验展示了在不同提示和布局下的高质量生成结果，为场景级3D内容创作提供了有效途径。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "state of the art generative model papers for image synthesis",
+          "matched_requirement_id": "req-27",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.05392v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04691v1",
+          "source": "arxiv",
+          "title": "From Open Loop to Closed Loop: A Test-Time Iterative Optimization Framework for Reference-Consistent Image Generation",
+          "abstract": "While controllable image generation has made significant strides by incorporating visual reference conditions, existing methods predominantly operate as open-loop systems. They inject control signals in a strictly feed-forward manner, failing to guarantee strict fidelity to the reference due to the absence of active feedback and error correction mechanisms. To address this fundamental limitation, we propose a novel test-time iterative optimization framework that reformulates reference-consistent generation as a closed-loop dynamic tracking problem. By treating the pre-trained generative model as a control plant, our framework employs a sensor-controller architecture driven by a modified Proportional-Integral-Derivative (PID) algorithm. This mechanism iteratively optimizes the latent control signals at test time based on the sensed discrepancy between the generated output and the reference target. Notably, this approach is entirely training-free, model-agnostic, and integrates seamlessly around existing diffusion pipelines. Extensive evaluations across ID-preserving, pose-controlled, and depth-controlled generation tasks validate the universality of our method. Empirical results demonstrate improvements over computation-matched open-loop baselines, achieving relative performance gains of up to 25.36\\% for facial similarity, alongside spatial error reductions of up to 27.71\\% for pose alignment and 28.50\\% for depth consistency. More broadly, this work offers a new conceptual perspective: it demonstrates that controllable generation can be effectively managed as a dynamic feedback system, bringing the rigorous principles of classical control theory into the optimization of generative models. Code is available at https://github.com/zzdrill/From-Open-Loop-to-Closed-Loop.",
+          "authors": [
+            "Baixuan Zhao",
+            "Xinyu Zhang",
+            "Huayu Zheng",
+            "Shuaicheng Liu",
+            "Xiongkuo Min",
+            "Guangtao Zhai",
+            "Xiaohong Liu"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-06T05:36:30+00:00",
+          "link": "https://arxiv.org/pdf/2607.04691v1",
+          "tags": [
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "test-time iterative optimization for reference-consistent image generation",
+          "llm_evidence_cn": "测试时迭代优化实现参考一致的图像生成",
+          "llm_evidence": "测试时迭代优化实现参考一致的图像生成",
+          "canonical_evidence": "测试时迭代优化实现参考一致的图像生成",
+          "llm_tldr_en": "This work proposes a test-time iterative optimization framework for generative models, treating generation as closed-loop tracking to enforce reference consistency, using a sensor-controller architecture with modified PI control.",
+          "llm_tldr_cn": "现有可控图像生成方法多为开环系统，无法保证对参考条件的严格忠实。本文提出测试时迭代优化框架，将生成过程重构为闭环动态追踪问题，将预训练生成模型视为被控对象，采用传感器-控制器架构和修正的比例积分控制来持续校正输出。实验表明该方法显著提升了参考一致性，为生成模型的控制提供了新思路。",
+          "llm_tldr": "现有可控图像生成方法多为开环系统，无法保证对参考条件的严格忠实。本文提出测试时迭代优化框架，将生成过程重构为闭环动态追踪问题，将预训练生成模型视为被控对象，采用传感器-控制器架构和修正的比例积分控制来持续校正输出。实验表明该方法显著提升了参考一致性，为生成模型的控制提供了新思路。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "state of the art generative model papers for image synthesis",
+          "matched_requirement_id": "req-27",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04691v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.03488v1",
+          "source": "arxiv",
+          "title": "Learning to Generate Multiple Objects from Dense and Occluded Layouts",
+          "abstract": "Text-to-image diffusion models fail to generate correct object counts in dense scenes, where overlapping instances collapse into indistinguishable structures despite appearing visually plausible. We identify this as instance ownership collapse: tokens from overlapping objects interact freely through attention, while heavily occluded instances receive weak supervision due to their small visible areas. We address this through layout-aware attention biases that softly bias token interactions toward region-consistent grouping and suppress cross-instance leakage, paired with an amodal-balanced loss that amplifies gradients for occluded objects based on their occlusion level. To enable systematic evaluation, we introduce OverlapDepth-45K, a benchmark of densely overlapping scenes with amodal supervision. Our approach substantially improves count accuracy and prevents instance merging while preserving image quality. Project page: https://bachngoh.github.io/AIBL",
+          "authors": [
+            "Bach-Hoang Ngo",
+            "Si-Tri Ngo",
+            "Hieu Le",
+            "Trung-Nghia Le"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-03T16:56:01+00:00",
+          "link": "https://arxiv.org/pdf/2607.03488v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "layout-aware attention for multi-object generation in dense scenes",
+          "llm_evidence_cn": "面向密集场景多对象生成的布局感知注意力",
+          "llm_evidence": "面向密集场景多对象生成的布局感知注意力",
+          "canonical_evidence": "面向密集场景多对象生成的布局感知注意力",
+          "llm_tldr_en": "Identifies instance ownership collapse in diffusion models for dense scenes and proposes layout-aware attention biases and amodal-balanced loss; introduces OverlapDepth-45K benchmark.",
+          "llm_tldr_cn": "针对文本到图像扩散模型在密集遮挡场景下无法正确生成对象数量的问题，提出布局感知注意力偏置和不可见平衡损失，缓解实例所有权崩溃。并构建了密集重叠基准OverlapDepth-45K，在多个指标上显著提升计数准确性。",
+          "llm_tldr": "针对文本到图像扩散模型在密集遮挡场景下无法正确生成对象数量的问题，提出布局感知注意力偏置和不可见平衡损失，缓解实例所有权崩溃。并构建了密集重叠基准OverlapDepth-45K，在多个指标上显著提升计数准确性。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "state of the art generative model papers for image synthesis",
+          "matched_requirement_id": "req-27",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.03488v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04469v1",
+          "source": "arxiv",
+          "title": "Don't Commit Alone: Joint Token Commitment in Diffusion Large Language Models",
+          "abstract": "Diffusion large language models (dLLMs) commit multiple tokens per denoising step by decoding each selected position independently from the shared context; when those positions are dependent, the resulting factorization error is captured by conditional total correlation, which confidence-based selection cannot observe from marginals alone. We propose CoCommit, a marker-gated coordination pass that briefly defers commitment: after the usual bundle selection, a learned marker announces the commit set and the backbone's last-$n$ layers are re-applied so marked positions coordinate -- approximating joint-mode decoding -- before greedy argmax writes tokens. The method reuses existing weights with one extra partial forward pass and no auxiliary model. On LLaDA2.1-mini with LoRA adapters and matched greedy inference, joint commitment improves accuracy on all six benchmarks we evaluate, with the largest gains on reasoning and exact-answer tasks.",
+          "authors": [
+            "Lin Yao"
+          ],
+          "primary_category": "cs.CL",
+          "categories": [
+            "cs.CL"
+          ],
+          "published": "2026-07-05T19:29:13+00:00",
+          "link": "https://arxiv.org/pdf/2607.04469v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Joint token commitment in diffusion large language models",
+          "llm_evidence_cn": "扩散大语言模型中的联合令牌承诺",
+          "llm_evidence": "扩散大语言模型中的联合令牌承诺",
+          "canonical_evidence": "扩散大语言模型中的联合令牌承诺",
+          "llm_tldr_en": "CoCommit introduces a marker-gated coordination pass for diffusion LLMs that enables joint-mode decoding of multiple tokens, reducing factorization error.",
+          "llm_tldr_cn": "扩散大语言模型（dLLM）在去噪步骤中独立解码多个令牌，忽略了令牌间的依赖关系，导致分解误差。CoCommit提出标记门控协调机制：在选定承诺集合后，对标记位置的表示进行协调近似联合模式解码，从而提升生成质量，且仅增加一次额外前向传播。",
+          "llm_tldr": "扩散大语言模型（dLLM）在去噪步骤中独立解码多个令牌，忽略了令牌间的依赖关系，导致分解误差。CoCommit提出标记门控协调机制：在选定承诺集合后，对标记位置的表示进行协调近似联合模式解码，从而提升生成质量，且仅增加一次额外前向传播。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "large language models text generation",
+          "matched_requirement_id": "req-23",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04469v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.02349v1",
+          "source": "arxiv",
+          "title": "A PDE-Based Framework for Generative Modeling Beyond Classical Score-Based Diffusion",
+          "abstract": "We introduce an alternative generative framework based on a nonlinear modification of the classical Ornstein--Uhlenbeck dynamics. The proposed dynamics admits both a microscopic description through an interacting particle system and, in the mean-field limit, a macroscopic formulation given by a nonlinear Fokker--Planck equation with a superlinear drift term. We show that, for suitable choices of the model parameters and sufficiently large initial mass, the forward dynamics exhibits condensation phenomena by proving the loss of $L^2$ regularity of the solution in finite time. Building upon this formulation, we derive a stabilized reverse-time partial differential equation that reconstructs the initial distribution from the asymptotic state of the forward dynamics, thereby extending the generative paradigm beyond the classical score-based framework. Furthermore, we introduce numerical discretizations of both the forward and reverse processes that accurately capture the asymptotic behavior of the continuous model while successfully reconstructing the initial distribution. Numerical experiments in one and two spatial dimensions validate the proposed methodology and illustrate its application to density filtering through successive iterations of the generative process.",
+          "authors": [
+            "Horacio Tettamanti",
+            "Michael Herty"
+          ],
+          "primary_category": "math.NA",
+          "categories": [
+            "math.NA",
+            "math.PR"
+          ],
+          "published": "2026-07-02T15:53:21+00:00",
+          "link": "https://arxiv.org/pdf/2607.02349v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Novel PDE-based generative framework beyond score-based diffusion",
+          "llm_evidence_cn": "超越分数扩散的基于PDE的生成框架",
+          "llm_evidence": "超越分数扩散的基于PDE的生成框架",
+          "canonical_evidence": "超越分数扩散的基于PDE的生成框架",
+          "llm_tldr_en": "A PDE-based generative framework using nonlinear Ornstein-Uhlenbeck dynamics, with macroscopic Fokker-Planck equation and stabilized reverse-time PDE for distribution reconstruction, offering an alternative to score-based diffusion models.",
+          "llm_tldr_cn": "本文提出了一种基于偏微分方程的生成框架，利用非线性Ornstein-Uhlenbeck动力学及其平均场极限下的Fokker-Planck方程，通过稳定化的反向时间PDE重构初始分布。该框架为生成建模提供了超越经典分数扩散的新途径，并展示了凝聚现象。",
+          "llm_tldr": "本文提出了一种基于偏微分方程的生成框架，利用非线性Ornstein-Uhlenbeck动力学及其平均场极限下的Fokker-Planck方程，通过稳定化的反向时间PDE重构初始分布。该框架为生成建模提供了超越经典分数扩散的新途径，并展示了凝聚现象。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "diffusion models and flow matching",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.02349v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.03626v1",
+          "source": "arxiv",
+          "title": "Reflected Schrödinger Bridge Matching",
+          "abstract": "Recent advances in generative modeling have enabled the efficient computation of Schrödinger bridges (SB) in high-dimensional settings by leveraging partially simulation-free training methods inspired by flow matching. However, these have not covered SBs with reflecting dynamics, a useful model choice with built-in guarantees that generated samples stay in the data domain. Existing alternatives for reflected SBs instead rely on more complex training based on forward--backward SDE theory, requiring expensive higher-order derivatives and sampling entire paths during training. In this article, we introduce a partially simulation-free framework that allows reflected SBs to be trained similarly to flow matching, using a new sampling method and regression target. We demonstrate our results by coupling pairs of well-known high-dimensional image datasets. Using reflected dynamics incurs negligible additional wall-clock time during both training and inference while maintaining or slightly improving generative performance.",
+          "authors": [
+            "Marcus Häggbom",
+            "Viktor Nilsson",
+            "Pierre Nyquist",
+            "Joakim andén"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG",
+            "stat.ML"
+          ],
+          "published": "2026-07-03T23:01:13+00:00",
+          "link": "https://arxiv.org/pdf/2607.03626v1",
+          "tags": [
+            "keyword:celebA-cf",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:gen-models",
+            "query:pendulum"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "flow matching method for generative modeling, specifically reflected Schrodinger bridges",
+          "llm_evidence_cn": "针对反射薛定谔桥的流匹配方法",
+          "llm_evidence": "针对反射薛定谔桥的流匹配方法",
+          "canonical_evidence": "针对反射薛定谔桥的流匹配方法",
+          "llm_tldr_en": "Reflected Schrodinger Bridge Matching introduces a partially simulation-free framework to train reflected SB like flow matching, avoiding complex score-based training.",
+          "llm_tldr_cn": "现有的流匹配方法无法直接处理具有反射边界的薛定谔桥（SB），而反射SB可保证生成样本在数据域内。本文提出一种部分免模拟的训练框架，通过新的采样方法和回归目标，使反射SB的训练与流匹配类似，避免了复杂的高阶导数计算。实验表明该方法在保持样本域内约束的同时，实现了高效的生成建模。",
+          "llm_tldr": "现有的流匹配方法无法直接处理具有反射边界的薛定谔桥（SB），而反射SB可保证生成样本在数据域内。本文提出一种部分免模拟的训练框架，通过新的采样方法和回归目标，使反射SB的训练与流匹配类似，避免了复杂的高阶导数计算。实验表明该方法在保持样本域内约束的同时，实现了高效的生成建模。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "flow matching method for generative modeling",
+          "matched_requirement_id": "req-24",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.03626v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04775v1",
+          "source": "arxiv",
+          "title": "Non-asymptotic Convergence of Stochastic Gradient Descent in Score-based Generative Models",
+          "abstract": "Score-based Generative Models (SGMs) have achieved impressive performance in data generation across a wide range of applications. While the statistical properties of their sampling procedures are increasingly well understood, the optimization dynamics underlying their training remain less explored. SGMs are typically trained by minimizing a weighted denoising scorematching objective, yet optimization guarantees with stochastic gradients remain limited. In this work, we study Stochastic Gradient Descent (SGD) for SGMs, contributing results in two complementary regimes. First, for general score parameterizations, we establish a non-convex convergence rate for SGD on the weighted denoising score-matching objective, with explicit dependence on the schedule-dependent weighting factors. Second, for overparameterized two-layer ReLU networks, we develop a Neural Tangent Kernel analysis tailored to diffusion training with stochastic gradients, yielding score-approximation error bounds along the SGD trajectory. Finally, our analysis quantifies the role of the reweighting factor in the score approximation error, providing theoretical guidance for weighting choices used in practice.",
+          "authors": [
+            "Stanislas Strasman",
+            "Sobihan Surendran",
+            "Sylvain Le Corff"
+          ],
+          "primary_category": "stat.ML",
+          "categories": [
+            "stat.ML",
+            "cs.LG"
+          ],
+          "published": "2026-07-06T08:07:15+00:00",
+          "link": "https://arxiv.org/pdf/2607.04775v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "non-asymptotic convergence analysis for SGD in score-based generative models",
+          "llm_evidence_cn": "基于分数的生成模型中SGD的非渐近收敛性分析",
+          "llm_evidence": "基于分数的生成模型中SGD的非渐近收敛性分析",
+          "canonical_evidence": "基于分数的生成模型中SGD的非渐近收敛性分析",
+          "llm_tldr_en": "Provides theoretical convergence guarantees for SGD training of score-based generative models under non-convex optimization.",
+          "llm_tldr_cn": "针对基于分数的生成模型，理论分析了SGD在非凸优化下的收敛速度，填补了训练动态理论空白，为模型训练提供了优化保证。",
+          "llm_tldr": "针对基于分数的生成模型，理论分析了SGD在非凸优化下的收敛速度，填补了训练动态理论空白，为模型训练提供了优化保证。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "score based generative models recent",
+          "matched_requirement_id": "req-25",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04775v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.01775v1",
+          "source": "arxiv",
+          "title": "Set Diffusion: Interpolating Token Orderings Between Autoregression and Diffusion for Fast and Flexible Decoding",
+          "abstract": "Discrete diffusion models have steadily improved in quality relative to autoregressive (AR) models. However, these models are normally constrained to fixed-length generation and do not support key-value (KV) caching. Block diffusion partially bridges diffusion and AR by generating token blocks left-to-right, but its fixed-size sequential blocks limit decoding flexibility and parallelism. Here, we present a new class of language models, set diffusion, comprised of (i) a likelihood parameterization that factorizes over flexible-position, flexible-length token sets and (ii) a set-causal diffusion architecture that supports KV cache updates after every inference step. By factorizing over token sets instead of fixed-size blocks, tokens can be decoded in arbitrarily-ordered sets, including sliding-window sets, enabling faster inference and support for any-order decoding. Set diffusion achieves better speed-quality tradeoffs on mathematical reasoning, summarization, and unconditional generation compared to prior diffusion language models while offering stronger infilling performance than block diffusion. We provide the code, along with the model weights and blog post on the project page: https://m-arriola.com/setdlms/",
+          "authors": [
+            "Marianne Arriola",
+            "Volodymyr Kuleshov"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG"
+          ],
+          "published": "2026-07-02T06:45:43+00:00",
+          "link": "https://arxiv.org/pdf/2607.01775v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "set diffusion bridging autoregression and discrete diffusion for language generation",
+          "llm_evidence_cn": "集合扩散桥接自回归和离散扩散用于语言生成",
+          "llm_evidence": "集合扩散桥接自回归和离散扩散用于语言生成",
+          "canonical_evidence": "集合扩散桥接自回归和离散扩散用于语言生成",
+          "llm_tldr_en": "Introduces set diffusion, a language model that generates token sets with flexible orderings, combining diffusion and autoregression benefits.",
+          "llm_tldr_cn": "提出集合扩散语言模型，通过灵活位置和长度的token集生成，集成扩散质量与自回归速度，支持KV缓存，在语言建模任务中取得竞争性能。",
+          "llm_tldr": "提出集合扩散语言模型，通过灵活位置和长度的token集生成，集成扩散质量与自回归速度，支持KV缓存，在语言建模任务中取得竞争性能。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "diffusion models and flow matching",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.01775v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04360v1",
+          "source": "arxiv",
+          "title": "Optimal Mixture-of-Experts Model Averaging for Conditional Generative Models",
+          "abstract": "Conditional generative models have emerged as powerful tools for sampling from target conditional distributions, driving substantial advances across a wide range of scientific and applied domains. As these models proliferate, practitioners often face multiple plausible generators whose performance can vary with the task, data, or input condition. We propose an optimal model averaging framework for conditional generative models, allowing candidate generators to be combined even when they are accessible only through conditional samples without tractable densities. Specifically, we use a sample-based maximum mean discrepancy between conditional distributions, which first leads to a static model averaging method, StaticMA, assigning fixed weights to different candidates. In addition, we develop MoEMA (mixture-of-experts model averaging), an input-adaptive method that parameterizes covariate-dependent weights through a softmax neural-network gate. We establish in-sample and out-of-sample asymptotic optimality for the proposed methods, together with consistency of the estimated adaptive weight function under regularity conditions. The framework applies directly to Euclidean responses and extends to unstructured data by combining our formulation with fixed representation maps. Across a broad set of simulations and real-data studies spanning tabular, image, and text modalities, MoEMA generally improves over competing baselines, demonstrating the effectiveness of our proposed methods.",
+          "authors": [
+            "Shijin Gong",
+            "Baihua He",
+            "Xinyu Zhang"
+          ],
+          "primary_category": "stat.ML",
+          "categories": [
+            "stat.ML",
+            "cs.LG"
+          ],
+          "published": "2026-07-05T15:38:35+00:00",
+          "link": "https://arxiv.org/pdf/2607.04360v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:celebA-cf",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "proposes optimal mixture-of-experts averaging for conditional generative models",
+          "llm_evidence_cn": "提出了条件生成模型的最优专家平均框架",
+          "llm_evidence": "提出了条件生成模型的最优专家平均框架",
+          "canonical_evidence": "提出了条件生成模型的最优专家平均框架",
+          "llm_tldr_en": "Proposes a sample-based optimal model averaging framework for conditional generative models using maximum mean discrepancy, enabling combination of black-box generators without tractable densities.",
+          "llm_tldr_cn": "本文针对条件生成模型，提出了一种基于样本的最优模型平均框架，通过最大均值差异衡量条件分布差异，无需可处理的密度即可组合多个黑盒生成器。该框架包括静态和动态两种版本，实验表明能显著提升生成质量。",
+          "llm_tldr": "本文针对条件生成模型，提出了一种基于样本的最优模型平均框架，通过最大均值差异衡量条件分布差异，无需可处理的密度即可组合多个黑盒生成器。该框架包括静态和动态两种版本，实验表明能显著提升生成质量。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "recent breakthroughs in generative model research",
+          "matched_requirement_id": "req-26",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04360v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.05376v1",
+          "source": "arxiv",
+          "title": "MV-Forcing: Long Multi-View Video Generation via 4D-Grounded Spatio-Temporal Self-Forcing",
+          "abstract": "Recent advances in video diffusion models have enabled either long single-view generation through temporal autoregression, or short multi-view synthesis through bidirectional attention. However, generating long, multi-view consistent videos of dynamic scenes remains unsolved. In this work, we present MV-Forcing, a framework that composes temporal and view-wise autoregression within a single diffusion model by introducing a 4D geometric bridge between sequentially generated views. Our key insight is that an autoregressive 3D reconstruction model naturally interfaces between autoregressively generated views. Given a completed source view, we reconstruct its 3D structure and render a geometric prior of the next target viewpoint, which the diffusion model refines into a high-quality video. To extend generation beyond the teacher's fixed temporal window, we introduce a joint denoising regime where both view slots are initialized from noise during training, enabling temporally unbounded generation. We distill the model via Distribution Matching Distillation with Spatio-Temporal Self-Forcing, closing the train-inference exposure bias gap for both temporal and view-sequential autoregression. Extensive experiments on both synthetic and real-world data demonstrate that MV-Forcing produces geometrically consistent multi-view videos of dynamic scenes at arbitrary lengths and viewpoint counts using a single few-step student model.",
+          "authors": [
+            "Gal Fiebelman",
+            "Hadar Averbuch-Elor",
+            "Sagie Benaim"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.GR"
+          ],
+          "published": "2026-07-06T17:54:16+00:00",
+          "link": "https://arxiv.org/pdf/2607.05376v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "long multi-view video generation using diffusion models with 4D geometric bridge",
+          "llm_evidence_cn": "使用扩散模型和4D几何桥接实现长多视角视频生成",
+          "llm_evidence": "使用扩散模型和4D几何桥接实现长多视角视频生成",
+          "canonical_evidence": "使用扩散模型和4D几何桥接实现长多视角视频生成",
+          "llm_tldr_en": "MV-Forcing combines temporal and view-wise autoregression within a single diffusion model using a 4D geometric bridge from a 3D reconstruction model, enabling long multi-view consistent video generation.",
+          "llm_tldr_cn": "本文针对长时多视角视频生成这一难题，提出MV-Forcing框架，在单个扩散模型中融合时间和视角维度的自回归。核心创新是利用3D重建模型作为4D几何桥接，自动对齐连续视角。实验表明，该方法生成的视频在多视角一致性和时间连贯性上均达到当前最优，为动态场景生成开辟了新途径。",
+          "llm_tldr": "本文针对长时多视角视频生成这一难题，提出MV-Forcing框架，在单个扩散模型中融合时间和视角维度的自回归。核心创新是利用3D重建模型作为4D几何桥接，自动对齐连续视角。实验表明，该方法生成的视频在多视角一致性和时间连贯性上均达到当前最优，为动态场景生成开辟了新途径。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "diffusion models and flow matching",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.05376v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.04113v1",
+          "source": "arxiv",
+          "title": "Asymptotic-Preserving A Posteriori Analysis of Diffusion and Flow-Matching Samplers",
+          "abstract": "Diffusion and flow-matching samplers integrate a learned probability-flow ODE from a large noise scale down to a small terminal floor $σ_{\\min}$, at which the score is stiff and the flow develops a boundary layer. We treat $σ_{\\min}$ as a singular-perturbation parameter and determine which fixed-step samplers are asymptotic-preserving (AP), that is, stable and uniformly accurate as $σ_{\\min}\\to0$, casting the criteria as an a posteriori audit: residual functionals with $σ_{\\min}$-uniform coefficients, computable on a pretrained checkpoint without ground-truth scores or exact trajectories. On the terminal layer, Euler in the $σ$-clock, the deterministic DDIM update, is the unique layer-exact discretization up to affine reparameterization, with rectified flow its flow-matching counterpart; the $λ$-clock is stable only for steps $h\\le h_\\star=1+W(1/e)$, and the uniform-$σ^2$ heat clock stalls a $σ_{\\min}$-independent distance from the data. On two solvable models (rank-deficient Gaussian, symmetric two-point mixture), deterministic samplers remain first-order uniformly accurate with no $\\log(1/σ_{\\min})$ factor, even across a symmetric posterior-switching interface whose distributional budget is a universal constant; the logarithm is charged entirely to the Itô term of stochastic samplers, whose path-KL scales as $Λ^2/N$ against the ODE's $O(Λ^2/N^2)$ budget, with $Λ=\\log(σ_{\\max}/σ_{\\min})$. On the EDM CIFAR-10 checkpoint, spectra measured once predict held-out residual budgets across step count, schedule, and noise level against pre-specified gates with no per-configuration refitting, and calibrate the Itô coefficient at $M_1=1.00\\pm0.01$. The clock decides stability; the noise, not the geometry, charges the logarithm.",
+          "authors": [
+            "Shiheng Zhang"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG",
+            "math.NA"
+          ],
+          "published": "2026-07-05T04:48:33+00:00",
+          "link": "https://arxiv.org/pdf/2607.04113v1",
+          "tags": [
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "analysis of diffusion and flow-matching samplers, directly related to diffusion models and flow matching",
+          "llm_evidence_cn": "扩散和流匹配采样器分析，直接相关于扩散模型与流匹配",
+          "llm_evidence": "扩散和流匹配采样器分析，直接相关于扩散模型与流匹配",
+          "canonical_evidence": "扩散和流匹配采样器分析，直接相关于扩散模型与流匹配",
+          "llm_tldr_en": "Performs asymptotic-preserving analysis of diffusion and flow-matching samplers, identifying stable discretizations as sigma_min approaches zero.",
+          "llm_tldr_cn": "扩散和流匹配采样器在噪声尺度趋近零时面临数值刚性问题。本文将最小噪声尺度视为奇异摄动参数，分析了哪些固定步长采样器具有渐近保持性（即稳定且均匀精确）。提出了一种基于后验审计的判别准则，仅需预训练检查点，无需真实分数或精确轨迹。发现DDIM更新是终端层唯一精确离散化。该分析为实际采样提供了理论指导。",
+          "llm_tldr": "扩散和流匹配采样器在噪声尺度趋近零时面临数值刚性问题。本文将最小噪声尺度视为奇异摄动参数，分析了哪些固定步长采样器具有渐近保持性（即稳定且均匀精确）。提出了一种基于后验审计的判别准则，仅需预训练检查点，无需真实分数或精确轨迹。发现DDIM更新是终端层唯一精确离散化。该分析为实际采样提供了理论指导。",
+          "llm_tags": [
+            "query:gen-models"
+          ],
+          "matched_query_tag": "query:gen-models",
+          "matched_query_text": "diffusion models and flow matching",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.04113v1",
           "carry_days": 1
         }
       ]
     },
     "causal-rep": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": [
         {
-          "id": "2607.01936v1",
+          "id": "2607.00766v2",
           "source": "arxiv",
-          "title": "CausalSteward: An Agentic Divide-Conquer-Combine Copilot for Causal Discovery",
-          "abstract": "Learning causal models from high-dimensional data is a significant challenge, particularly in real-world settings where violations of core assumptions lead to causal identifiability issues. Although massive amounts of prior knowledge are available, and contain valuable causal information, effectively integrating this knowledge into the causal discovery process remains an open problem. We introduce CausalSTeward (CAST), a novel human-in-the-loop framework for interactively assembling large causal models. CausalSteward is a multi-agent collaborative system that tackles high-dimensional causality through a divide-and-conquer approach where large clusters of variables are iteratively partitioned and then separately analyzed. Our framework fuses prior knowledge with a data-driven approach by using tailored tools such as retrieval augmented generation and conditional independence tests. Finally, we use this work to examine the capabilities and limitations of causal reasoning in multi-agent frameworks, and how the human-in-the-loop can contribute to accurate and trustworthy results.",
+          "title": "Decoupled Guidance: Disentangling Subject and Context Pathways in Text-to-Image Personalization",
+          "abstract": "Text-to-image personalization aims to generate a user-provided subject in novel scenes described by text. However, most existing methods encode subject identity (fidelity) and context (editability) through the same conditioning pathway, forcing the two to compete for attention-map resources. We refer to this phenomenon as conditioning entanglement and show that it induces a fidelity-editability trade-off. We further provide causal evidence by replacing the target subject token with a generic subject token, which produces shifts in attention allocation and corresponding changes in context adherence. To this end, we propose Decoupled Guidance (DeGu), a plug-and-play framework that routes subject identity and scene context through two independent guidance streams. We further introduce a spatial mixing mechanism that dynamically fuses these streams, ensuring each operates within its semantically relevant region without interference. Furthermore, DeGu can be readily applied to existing personalization methods without modifying the underlying backbone models, consistently improving the overall personalization performance while enabling inference-time control over the fidelity-editability balance, across diverse methods and backbones, including flow-matching Diffusion Transformers (DiTs).",
           "authors": [
-            "Nicholas Tagliapietra",
-            "Gian Lorenzo Marchioni",
-            "Moritz Willig",
-            "Juergen Luettin",
-            "Lavdim Halilaj",
-            "Kristian Kersting"
+            "Seongmin Kim",
+            "Kyucheol Shin",
+            "Heesun Jung",
+            "Jinseo Kim",
+            "Sungyong Baik"
           ],
-          "primary_category": "cs.MA",
+          "primary_category": "cs.CV",
           "categories": [
-            "cs.MA",
-            "cs.AI"
+            "cs.CV"
           ],
-          "published": "2026-07-02T09:29:10+00:00",
-          "link": "https://arxiv.org/pdf/2607.01936v1",
+          "published": "2026-07-01T10:48:43+00:00",
+          "link": "https://arxiv.org/pdf/2607.00766v2",
           "tags": [
             "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:world-models",
             "query:causal-rep",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
             "query:world-models"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "causal discovery framework for representation learning",
-          "llm_evidence_cn": "因果发现框架用于表征学习",
-          "llm_evidence": "因果发现框架用于表征学习",
-          "canonical_evidence": "因果发现框架用于表征学习",
-          "llm_tldr_en": "CausalSteward is a multi-agent framework for interactive causal discovery from high-dimensional data, using divide-conquer-combine to integrate prior knowledge and address identifiability issues.",
-          "llm_tldr_cn": "本文提出CausalSteward，一个多智能体协作框架，采用分治结合策略从高维数据中交互式地学习因果模型。它融合先验知识，通过迭代划分变量簇并分别分析，有效解决因果可识别性问题，为因果表征学习提供了实用工具。",
-          "llm_tldr": "本文提出CausalSteward，一个多智能体协作框架，采用分治结合策略从高维数据中交互式地学习因果模型。它融合先验知识，通过迭代划分变量簇并分别分析，有效解决因果可识别性问题，为因果表征学习提供了实用工具。",
+          "llm_evidence_en": "decoupled guidance for disentangling subject and context in text-to-image generation with causal analysis",
+          "llm_evidence_cn": "基于因果分析解耦文本到图像生成中的主体与上下文路径",
+          "llm_evidence": "基于因果分析解耦文本到图像生成中的主体与上下文路径",
+          "canonical_evidence": "基于因果分析解耦文本到图像生成中的主体与上下文路径",
+          "llm_tldr_en": "Proposes Decoupled Guidance (DeGu), a plug-and-play framework that decouples subject identity and scene context in text-to-image personalization, mitigating fidelity-editability trade-off via separate conditioning pathways.",
+          "llm_tldr_cn": "针对文本到图像个性化中主体保真度和上下文可编辑性之间的权衡问题，提出解耦引导框架DeGu，通过将主体身份和场景上下文路由到不同条件路径，消除注意力竞争。因果实验证明了条件纠缠现象。DeGu即插即用，在多个个性化基准上同时提升保真度和编辑性。",
+          "llm_tldr": "针对文本到图像个性化中主体保真度和上下文可编辑性之间的权衡问题，提出解耦引导框架DeGu，通过将主体身份和场景上下文路由到不同条件路径，消除注意力竞争。因果实验证明了条件纠缠现象。DeGu即插即用，在多个个性化基准上同时提升保真度和编辑性。",
+          "llm_tags": [
+            "query:causal-rep"
+          ],
+          "matched_query_tag": "query:causal-rep",
+          "matched_query_text": "disentangled representation learning techniques",
+          "matched_requirement_id": "req-31",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.00766v2",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.05653v1",
+          "source": "arxiv",
+          "title": "Orthogonal Dendritic Intrinsic Networks: An Architecture for Significance-Ordered, Orthogonal Latent Spaces",
+          "abstract": "Principal Component Analysis or PCA-like properties (orthogonality, variance ranking) are seldom realized in deep autoencoder architectures. In this work, we present ODIN (Orthogonal Dendritic Intrinsic Network), a novel autoencoder architecture that recovers PCA-like latent structure in a fully non-linear regime. By incorporating a set of geometric constraints directly into the training objective, ODIN encourages latent dimensions to be mutually orthogonal and ordered by explained variance, mirroring the interpretable decomposition of PCA while retaining the expressive power of deep networks. We provide theoretical grounding for these constraints and demonstrate their compatibility with standard encoder-decoder frameworks. We also establish empirical results for both synthetic and real world datasets, establishing a principled path toward interpretable, structured feature learning and dimensionality reduction.",
+          "authors": [
+            "Jeanie Schreiber",
+            "Tyrus Berry",
+            "Zeeshan Ahmed"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG",
+            "math.OC"
+          ],
+          "published": "2026-07-06T21:51:01+00:00",
+          "link": "https://arxiv.org/pdf/2607.05653v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:gen-models",
+            "query:causal-rep",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "orthogonal latent space architecture for disentanglement",
+          "llm_evidence_cn": "用于解耦的正交潜空间架构",
+          "llm_evidence": "用于解耦的正交潜空间架构",
+          "canonical_evidence": "用于解耦的正交潜空间架构",
+          "llm_tldr_en": "ODIN autoencoder enforces orthogonal and variance-ordered latent dimensions, enabling PCA-like interpretability in deep nonlinear models, beneficial for representation disentanglement.",
+          "llm_tldr_cn": "该论文提出ODIN（正交树突内在网络），一种新型自编码器架构，通过几何约束使潜变量相互正交并按方差排序，在非线性深度网络中恢复PCA式的可解释分解。该方法直接支撑表征解耦技术，实验证明其与标准编码器解码器框架兼容，为学习有意义的解耦表征提供了新工具。",
+          "llm_tldr": "该论文提出ODIN（正交树突内在网络），一种新型自编码器架构，通过几何约束使潜变量相互正交并按方差排序，在非线性深度网络中恢复PCA式的可解释分解。该方法直接支撑表征解耦技术，实验证明其与标准编码器解码器框架兼容，为学习有意义的解耦表征提供了新工具。",
+          "llm_tags": [
+            "query:causal-rep"
+          ],
+          "matched_query_tag": "query:causal-rep",
+          "matched_query_text": "disentangled representation learning techniques",
+          "matched_requirement_id": "req-31",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.05653v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.05319v1",
+          "source": "arxiv",
+          "title": "Steering Optimisation Trajectories in Diffusion Representation Learning",
+          "abstract": "We study why diffusion autoencoders can achieve similar image quality while learning substantially different latent structures. We trace this behaviour to optimisation dynamics; we analyse curves of image reconstruction against latent representation quality, revealing trajectories that organise around two distinct regimes early in training. Models in the reconstruction regime prioritise image fidelity early, whereas those in the disentanglement regime improve reconstruction and disentanglement more gradually. We hypothesise that this behaviour can be influenced by targeting shortcut pathways in the diffusion U-Net and controlling early noise-level exposure, thereby shaping the reconstruction-disentanglement trade-off during training. To steer optimisation toward stronger representations, we introduce SteeringDRL, combining gated residual U-Nets with a simple noise-level exposure curriculum for training. Across disentanglement benchmarks, SteeringDRL improves representation quality and reduces seed sensitivity. Our method further extends to spatial disentanglement in object-centric learning, improving segmentation quality on synthetic and real-world datasets.",
+          "authors": [
+            "Rajat Rasal",
+            "Avinash Kori",
+            "Tian Xia",
+            "Ben Glocker"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.AI"
+          ],
+          "published": "2026-07-06T16:58:05+00:00",
+          "link": "https://arxiv.org/pdf/2607.05319v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:cf-image-gen",
+            "keyword:gen-models",
+            "keyword:self-driving",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:self-driving",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Disentanglement in diffusion representation learning",
+          "llm_evidence_cn": "扩散表征学习中的解耦研究",
+          "llm_evidence": "扩散表征学习中的解耦研究",
+          "canonical_evidence": "扩散表征学习中的解耦研究",
+          "llm_tldr_en": "This paper analyzes why diffusion autoencoders learn different latent structures and proposes to steer the reconstruction-disentanglement trade-off by targeting shortcut pathways and controlling noise exposure, enabling purposeful optimization trajectory manipulation.",
+          "llm_tldr_cn": "针对扩散自编码器产生不同潜在结构的问题，分析训练动力学发现早期存在重构和解耦两个优化阶段，通过干预捷径通路和噪声暴露可引导模型偏向解耦，从而在保持图像质量的同时获得更清晰、可解释的潜在表征。",
+          "llm_tldr": "针对扩散自编码器产生不同潜在结构的问题，分析训练动力学发现早期存在重构和解耦两个优化阶段，通过干预捷径通路和噪声暴露可引导模型偏向解耦，从而在保持图像质量的同时获得更清晰、可解释的潜在表征。",
+          "llm_tags": [
+            "query:causal-rep"
+          ],
+          "matched_query_tag": "query:causal-rep",
+          "matched_query_text": "disentangled representation learning techniques",
+          "matched_requirement_id": "req-31",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.05319v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.06126v1",
+          "source": "arxiv",
+          "title": "Causal Inference with Video Features as Treatments",
+          "abstract": "We develop the first statistical methodology for causal inference with video features as treatments. Video is the most engaging content modality on the internet. A central causal question is how audience reactions change in response to treatment features that unfold over the course of a video. Unfortunately, standard causal inference methods are not applicable because confounding features are latent, high-dimensional, and dynamically related to both the treatment sequence and the outcome trajectory. To address these challenges, we first reproduce each video using a deep generative model and leverage the model's internal representations as learned, low-dimensional summaries of video content for causal estimation. We then establish that the average potential-outcome trajectory under dynamic stochastic interventions is nonparametrically identified. Lastly, we propose a consistent and asymptotically normal estimator based on a longitudinal neural network architecture. We empirically validate our approach by constructing a new causal inference benchmark consisting of $10{,}000$ Super Mario Bros. levels played by fixed Mario AI agents, where ground-truth causal effects are known by construction. Finally, we apply our method to television advertisements from the 2020 U.S. presidential campaign and find that increasing the probability of a candidate appearing over time leads to higher average viewer evaluations. With the proposed methodology, researchers can ask which visual features, appearing at which points in a video, influence audience responses, while benchmarking new methods against datasets with known ground-truth causal effects.",
+          "authors": [
+            "Kentaro Nakamura",
+            "Adam Breuer",
+            "Michael H. Crespin",
+            "Bryce J. Dietrich",
+            "Kosuke Imai"
+          ],
+          "primary_category": "stat.AP",
+          "categories": [
+            "stat.AP"
+          ],
+          "published": "2026-07-07T10:36:27+00:00",
+          "link": "https://arxiv.org/pdf/2607.06126v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Causal inference using video features with generative model representations",
+          "llm_evidence_cn": "利用生成模型表征进行视频特征因果推断",
+          "llm_evidence": "利用生成模型表征进行视频特征因果推断",
+          "canonical_evidence": "利用生成模型表征进行视频特征因果推断",
+          "llm_tldr_en": "First causal inference framework that treats video features as treatments, using deep generative model representations as learned confounder summaries for valid estimation.",
+          "llm_tldr_cn": "首次提出将视频特征作为处理变量的因果推断方法。借助深度生成模型的内部表征对高维混杂因子进行压缩，解决了视频因果分析中的动态混杂挑战。通过理论证明和实验验证，该方法能够有效估计平均潜在结果轨迹。",
+          "llm_tldr": "首次提出将视频特征作为处理变量的因果推断方法。借助深度生成模型的内部表征对高维混杂因子进行压缩，解决了视频因果分析中的动态混杂挑战。通过理论证明和实验验证，该方法能够有效估计平均潜在结果轨迹。",
           "llm_tags": [
             "query:causal-rep"
           ],
@@ -2001,23 +2309,72 @@
           "matched_query_text": "causal representation learning methods and theory",
           "matched_requirement_id": "req-30",
           "selection_source": "carryover_cache",
-          "paper_id": "2607.01936v1",
+          "paper_id": "2607.06126v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2607.02601v1",
+          "source": "arxiv",
+          "title": "CV-DCLR: Causal-Visual Dynamic Label Refinement for Robust Zero-Shot Learning",
+          "abstract": "Zero-Shot Learning (ZSL) facilitates knowledge transfer via shared semantic spaces. However, a critical bottleneck in this paradigm is Semantic Entanglement, where visual representations are inevitably conflated with visually similar semantic concepts, such as distinguishing the intrinsic traits of a Wolf from the shared features of a Husky. Existing global alignment methods often indiscriminately maximize correlations between visual and semantic modalities, leading models to overfit spurious similarities rather than capturing distinctive class identities. To address this fundamental limitation, we propose the Causal-Visual Dynamic Label Refinement (CV-DCLR) framework. Unlike traditional approaches that rely on superficial visual statistics, CV-DCLR recalibrates visual-semantic associations via a Dual-Stream Mutual Correction Mechanism. This includes a Visual Likelihood Stream to model observational patterns and a Causal Importance Stream that verifies the structural necessity of candidate prototypes through Counterfactual Intervention. Acting as a logical filter, our adaptive gating mechanism dynamically modulates feature responses to amplify genuine causal traits while suppressing visually plausible but structurally irrelevant distractors. Extensive experiments on the CUB, SUN, and AWA2 benchmarks under a rigorous Semantic Entanglement Injection protocol demonstrate that CV-DCLR significantly outperforms state-of-the-art methods in high-ambiguity scenarios. Specifically, while existing models suffer catastrophic degradation under entanglement, our framework maintains robust performance, effectively disentangling true class identities from semantic confounders.",
+          "authors": [
+            "Can Wang",
+            "Jiangnan Li",
+            "Mingyu Li",
+            "Yining Song",
+            "Kangrui Ren",
+            "Min Gan",
+            "Jinfu Fan"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-07-01T12:45:35+00:00",
+          "link": "https://arxiv.org/pdf/2607.02601v1",
+          "tags": [
+            "keyword:causal-rep",
+            "keyword:celebA-cf",
+            "keyword:gen-models",
+            "keyword:world-models",
+            "query:causal-rep",
+            "query:celebA-cf",
+            "query:cf-image-gen",
+            "query:gen-models",
+            "query:world-models"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "proposes causal-visual framework for disentangled representations in zero-shot learning",
+          "llm_evidence_cn": "提出因果视觉框架用于零样本学习中的解耦表示学习",
+          "llm_evidence": "提出因果视觉框架用于零样本学习中的解耦表示学习",
+          "canonical_evidence": "提出因果视觉框架用于零样本学习中的解耦表示学习",
+          "llm_tldr_en": "CV-DCLR uses causal intervention to disentangle visual and semantic concepts, overcoming semantic entanglement in zero-shot learning.",
+          "llm_tldr_cn": "零样本学习中视觉表示与相似语义概念纠缠导致过拟合。本文提出因果视觉动态标签细化框架（CV-DCLR），通过因果干预解耦视觉与语义模态，避免依赖虚假相关性。在多个基准上验证了其鲁棒性提升，为因果表示学习在零样本场景提供了新思路。",
+          "llm_tldr": "零样本学习中视觉表示与相似语义概念纠缠导致过拟合。本文提出因果视觉动态标签细化框架（CV-DCLR），通过因果干预解耦视觉与语义模态，避免依赖虚假相关性。在多个基准上验证了其鲁棒性提升，为因果表示学习在零样本场景提供了新思路。",
+          "llm_tags": [
+            "query:causal-rep"
+          ],
+          "matched_query_tag": "query:causal-rep",
+          "matched_query_text": "causal representation learning methods and theory",
+          "matched_requirement_id": "req-30",
+          "selection_source": "carryover_cache",
+          "paper_id": "2607.02601v1",
           "carry_days": 1
         }
       ]
     },
     "pendulum": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": []
     },
     "celebA-cf": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": []
     },
     "cf-image-gen": {
-      "updated_date": "20260706",
+      "updated_date": "20260630-20260709",
       "carryover_days": 9,
       "items": [
         {
@@ -2045,13 +2402,13 @@
             "query:gen-models"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "wavelet-guided semantic compensation for inversion-free image editing, applicable to counterfactual editing",
-          "llm_evidence_cn": "小波引导的无反演图像编辑，适用于反事实编辑",
-          "llm_evidence": "小波引导的无反演图像编辑，适用于反事实编辑",
-          "canonical_evidence": "小波引导的无反演图像编辑，适用于反事实编辑",
-          "llm_tldr_en": "Proposes wavelet-guided semantic signal compensation to improve inversion-free text-guided image editing, addressing limited global modification in high-noise regimes, relevant to counterfactual image editing.",
-          "llm_tldr_cn": "该论文针对现有无反演图像编辑框架在处理全局属性偏移时修改不足的问题，提出小波引导的语义信号补偿方法。通过小波域分析识别缺失的全局语义信号并加以补偿，使得编辑轨迹在早期高噪声阶段仍能有效偏离源分布。实验表明该方法在多种属性编辑任务上优于FlowEdit，为反事实图像编辑等需要全局修改的应用提供了更鲁棒的技术方案。",
-          "llm_tldr": "该论文针对现有无反演图像编辑框架在处理全局属性偏移时修改不足的问题，提出小波引导的语义信号补偿方法。通过小波域分析识别缺失的全局语义信号并加以补偿，使得编辑轨迹在早期高噪声阶段仍能有效偏离源分布。实验表明该方法在多种属性编辑任务上优于FlowEdit，为反事实图像编辑等需要全局修改的应用提供了更鲁棒的技术方案。",
+          "llm_evidence_en": "inversion-free image editing with wavelet-guided compensation",
+          "llm_evidence_cn": "小波引导的无反演图像编辑技术",
+          "llm_evidence": "小波引导的无反演图像编辑技术",
+          "canonical_evidence": "小波引导的无反演图像编辑技术",
+          "llm_tldr_en": "Proposes wavelet-guided semantic signal compensation to improve inversion-free flow-based image editing, addressing limited global modification in high-noise regime.",
+          "llm_tldr_cn": "该论文针对无反演图像编辑中全局属性修改不足的问题，提出小波引导的语义信号补偿方法。分析发现高噪声区间的流轨道受数据流形影响偏离文本条件，使用小波变换增强早期编辑方向。实验证明该方法在保持背景的同时实现更大幅度的语义变化。",
+          "llm_tldr": "该论文针对无反演图像编辑中全局属性修改不足的问题，提出小波引导的语义信号补偿方法。分析发现高噪声区间的流轨道受数据流形影响偏离文本条件，使用小波变换增强早期编辑方向。实验证明该方法在保持背景的同时实现更大幅度的语义变化。",
           "llm_tags": [
             "query:cf-image-gen"
           ],

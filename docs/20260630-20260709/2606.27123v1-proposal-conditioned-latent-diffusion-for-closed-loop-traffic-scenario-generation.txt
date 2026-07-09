@@ -1,0 +1,451 @@
+Title: Proposal-Conditioned Latent Diffusion for Closed-Loop Traffic Scenario Generation
+
+URL Source: https://arxiv.org/pdf/2606.27123v1
+
+Published Time: Fri, 26 Jun 2026 01:07:10 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Proposal-Conditioned Latent Diffusion for Closed-Loop Traffic Scenario Generation 
+
+Shubham Vaijanath Phoolari 1,3∗, Aleyna Kara 2, Christoph Lauer 1, Steven Peters 3
+
+Abstract —Closed-loop traffic simulation remains challenging because it must generate interactive multi-agent behaviors that are scene-consistent and controllable during rollout. Prior diffusion-based approaches yield strong realism but their com-putational cost can hinder deployment in time-constrained replanning loops for AV planning and simulation. We present a diffusion-based scenario generation framework that conditions on instance-centric scene context and multi-modal proposal priors with optional test-time guidance for shaping safety-critical behaviors. A compact action-latent parameterization and proposal-based initialization improve sampling efficiency and reduce per-step runtime without retraining. Experiments on the Waymo Open Motion Dataset indicate a favorable bal-ance between realism, safety and controllability across diverse interactive scenarios and show that guidance enables systematic trade-offs across objectives. 
+
+I. I NTRODUCTION 
+
+Validating autonomous vehicles, AVs, demands systematic exposure to safety-critical events that, by definition, occur rarely in naturalistic driving data [1]. On-road testing is expensive and slow while simulated testing provides an inexpensive alternative as long as the simulated traffic is sufficiently realistic and includes a diverse set of meaningful edge cases. Prior research has contributed to the development of multi-agent scenario generation methodologies along two complementary directions. Realism-focused methods learn data-driven priors from large-scale datasets and generate highly realistic multi-agent behavior [2], [3]. However, these methods provide little control over the safety-critical aspects of the generated scenarios. Conversely, adversarial methods focus on generating scenarios that include collisions or near-miss events [4], [5] and may prioritize collision events at the expense of plausibility, such as agents violating road boundaries or kinematic constraints. Bridging this dichotomy is essential. Effective verification and validation requires scenarios that are simultaneously challenging and plausible to yield actionable safety insights. Controllable multi-agent motion generation using diffusion models presents a potential solution to the challenge of providing both controllability and plausibility. The iterative nature of diffusion model-based denoising facilitates the use of test-time guidance and objective composition without  
+
+> 1Authors are with CARIAD SE, Germany.
+> 2Author is with the Technical University of Munich, Germany.
+> 3Author is with the Institute of Automotive Engineering (FZD), TU Darmstadt, Germany.
+> Fig. 1. Our approach is proposal-informed diffusion for closed-loop traffic simulation, initializing sampling from instance-centric marginal priors.
+
+the need for retraining [6], [7]. Nevertheless, reverse sam-pling typically involves many sequential steps which limits throughput in closed-loop environments where replanning must occur frequently and can make runtime efficiency a bot-tleneck for AV planning and simulation. Furthermore, joint guidance across multiple agents increases the computational complexity associated with the diffusion process and can lead to kinematically inconsistent trajectories. Starting the reverse process from a data-informed Gaussian prior can reduce the number of steps while preserving closed-loop fidelity [8]. 
+
+Our key contributions:  
+
+> •
+
+We propose a proposal-conditioned joint diffusion policy for closed-loop simulation that conditions on instance-centric scene context and per-agent marginal proposals, explicitly modeling joint interaction rather than composing independent futures.  
+
+> •
+
+We map proposal trajectories to a compact action latent via PCA and use proposal statistics to construct a shifted Gaussian start distribution, enabling few-step reverse diffusion at test time without retraining.  
+
+> •
+
+We apply differentiable map, collision, and game-theoretic objectives as latent-space guidance to trade realism vs stress-testing in closed-loop rollouts. II. R ELATED WORK 
+
+This section reviews prior work on adversarial scenario generation, traffic simulation and diffusion-based motion modeling and highlights gaps that motivate the proposed approach. 
+
+> arXiv:2606.27123v1 [cs.RO] 25 Jun 2026
+
+A. Adversarial Scenario Generation 
+
+Safety-critical scenarios are infrequent in logged driv-ing data, motivating approaches based on importance sam-pling [9], [10] and reinforcement learning [11], [12] to iden-tify failures. STRIVE [4] introduced gradient-based adversar-ial optimization using a learned traffic prior and subsequent methods improved physical plausibility through kinematic constraints in KING [5] and closed-loop adversarial training in CAT [13]. Recent work has also leveraged human-driving priors for adversarial scenario generation [14]. A recurring tension remains that optimizing exclusively for adversarial objectives can produce unrealistic behaviors whereas strict realism constraints may reduce adversarial effectiveness. Our guidance design addresses this tension by enabling safety edits while maintaining realism in closed-loop rollouts. 
+
+B. Data-Driven Traffic Simulation 
+
+Traffic simulation has moved from rule-based models such as IDM [15] and MOBIL [16] toward data-driven policies and generative simulators trained on large-scale driving datasets. Imitation-learning simulators that simultaneously roll out all agents such as TrafficSim [2] and generative scenario augmentation methods such as TrafficGen [3] enhance real-ism and diversity. Other systems provide scalable evaluation simulators built on large datasets such as Waymax [17]. When paired with simple hand-designed policies (e.g., IDM), such platforms are better viewed as scalable evaluation backends than strong realism baselines. They also offer limited mech-anisms for targeted safety-critical editing while preserving interactive closed-loop consistency. Our method aims to add this editing capability while keeping joint interaction fidelity under replanning. 
+
+C. Diffusion Models for Scenario Generation 
+
+Diffusion models are effective for multimodal trajectory generation and flexible conditioning. MotionDiffuser [6] uses compressed representations to enable controllable joint pre-diction and variants such as MID [18] model trajectory ambiguity with Transformer denoisers. Intention-aware de-noising has also been explored for trajectory prediction [19]. To reduce inference cost, leapfrog diffusion initialization such as LED [20] aims to skip denoising steps. A practical limitation remains the computational demand at test time. Joint multi-agent diffusion can require many reverse steps and guidance that differentiates through the reverse process can further increase runtime. We address this by proposal-conditioned initialization and compact action latents that reduce steps without changing the model class. Unlike [7] that refines trajectories starting from standard diffusion noise, our primary efficiency gain comes from proposal-conditioned initialization in a compact action latent, which changes the starting distribution and makes few-step DDIM viable in closed-loop replanning. 
+
+D. Guided and Controllable Diffusion 
+
+Controllable diffusion is commonly achieved via classifier guidance [21] or classifier-free guidance [22]. Composable diffusion [23] shows that multiple objectives can be com-bined at inference by summing guidance terms. In planning, Diffusion-ES [24] explores gradient-free optimization. Game-aware approaches explicitly model strategic interaction in GameFormer [25] and motivate game-theoretic guidance for safety-critical scenario synthesis. Our formulation adapts these ideas to multi-agent closed-loop simulation with guid-ance applied in a compact latent space to control behavior without retraining. Collectively, prior work highlights a recurring tension between realism, controllability and efficiency. We address it with proposal-conditioned joint diffusion that preserves interaction fidelity while enabling low-latency guidance for targeted safety edits. III. M ETHODOLOGY 
+
+We first summarize the architecture in Fig. 2, then detail the formulation and inference procedure. 
+
+A. Problem formulation 
+
+We consider a simulated traffic scenario with N agents. Agent i at physical time t has state 
+
+xit = [ xit, y it, ψ it, v it]⊤ ∈ R4, (1) where (xit, y it) is planar position, ψit is heading, and vit is speed. The action is 
+
+uit = [ ait, ˙ψit]⊤ ∈ R2, (2) where ait is longitudinal acceleration and ˙ψit is yaw rate. We distinguish an ego agent that follows a fixed known policy and a set of reactive agents. At each replanning time τ ,the simulator provides the current closed loop state Xinit (τ )
+
+together with observation history Hτ and map context Mτ .Our goal is to learn a reactive policy g that maps the current state, history, and map context to a joint action plan for the reactive agents over a horizon of Tu steps. The joint plan is 
+
+Uτ = {uiτ +t}i∈R , t ∈{ 1,...,T u} ∈ R|R|× Tu×2, (3) where R denotes the set of reactive agents. Equivalently, 
+
+g : ( Xinit (τ ), H τ , M τ ) 7 → R|R|× Tu×2. The policy maps the current closed loop situation to a plan 
+
+Uτ = g(Xinit (τ ), H τ , M τ ) , (4) and the output of g is a finite horizon action sequence. The generated actions are rolled out by a differentiable kinematic model 
+
+ˆXτ = f (Xinit (τ ), Uτ ) , (5) with sampling period ∆t. In closed loop simulation, the ego agent executes its fixed policy, the reactive agents execute the first part of Uτ , and replanning repeats at the next replanning time. Fig. 2. Our architecture illustration. An instance-centric symmetric scene encoder maps agent history and map context into a scene context c and marginal futures that are converted to an action-prior latent via PCA to condition a joint Transformer denoiser for multi-agent trajectory generation. We optionally apply inference-time guidance to refine sampled plans for behavior control and safety-critical scenarios. 
+
+B. Instance-Centric Scene Encoding 
+
+We use an instance-centric scene encoding that repre-sents agents and map elements in a shared token space and produces both scene context features and per-agent marginal trajectory proposals. We provide a brief explanation of this method here and refer to [26] for a more detailed introduction. Each scene is decomposed into a set of agent instances and a set of map polyline instances. Each instance is expressed in its own local frame. For an agent instance, the local frame origin is the last observed pose at replanning time τ and the local x axis is aligned with the agent heading at that time. The agent input features include a fixed length history of motion and kinematics in this local frame. For a map polyline instance, the local frame origin is the polyline centroid. The local x axis is aligned with the polyline tangent direction defined by the polyline geometry. In our implementation, the tangent is the unit direction induced by the ordered polyline points from first to last after consistent ordering. Traffic light state is represented as a categorical attribute of lane elements and is embedded into the polyline features. The encoder produces agent tokens Z(a) = {z(a)  
+
+> i
+
+}Na 
+
+> i=1
+
+and map tokens Z(m) = {z(m)  
+
+> j
+
+}Nm
+
+> j=1
+
+, concatenated as Z ∈ RNz ×D
+
+with Nz = Na + Nm, where each of the Nz rows is a D dimensional instance embedding. Token interactions are parameterized by a relative positional encoding. Let 
+
+ci ∈ R2 denote the instance center in a common scene frame and qi ∈ R2 the unit direction associated with instance i
+
+(agent heading or lane tangent). We define the displacement 
+
+pi→j = cj − ci and the relation descriptor 
+
+rij = ∥pi→j ∥2, ∠(qi, p i→j ), ∠(qi, q j ), (6) where ∠(·, ·) returns a signed wrapped angle in (−π, π ]. An MLP maps rij to an edge embedding eij ∈ RD . A stack of Symmetric Fusion Transformer layers, abbreviated SFT, refines Z using attention conditioned on these relational em-beddings. This yields a scene context representation ˆcτ . The encoder also outputs K marginal future trajectory proposals per agent with associated scores. 
+
+C. Marginal priors and PCA latent construction 
+
+Given the K proposal futures and their probabilities, each proposal trajectory is mapped to an action sequence using an inverse dynamics routine consistent with the rollout model. Each action is u = [ a, ˙ψ]⊤, resulting in a flattened interleaved vector 
+
+ui = [ ai
+
+> 1
+
+, ˙ψi
+
+> 1
+
+, . . . , a iTu , ˙ψiTu ] ∈ RDu , (7) where Du = 2 Tu is the action dimension per agent over the horizon. Action sequences are compressed into a low-dimensional latent space using principal component analysis (PCA). We compute global affine statistics (μu, σu) over all action sequences in the training set (across agents and pro-posals) and fix them for normalization. With these statistics and PCA components V ∈ RDu×d,
+
+yi =  (ui − μu) ⊘ σu
+
+ V ∈ Rd, d ≪ Du, (8) where ⊘ denotes elementwise division. This process yields (i) a latent target y0 from the ground-truth action sequence and (ii) for each agent i, a set of latent proposal modes 
+
+{yi, (k)}Kk=1 . Across all agents, the marginal prior set is 
+
+{yi, (k) | i = 1 ..N, k = 1 ..K }.
+
+D. Latent diffusion denoiser 
+
+A diffusion model generates a clean latent plan by learning to reverse a gradual noising process. The clean joint latent plan is y0 ∈ RN ×d. For each diffusion step s, we define a noisy version ˜ys obtained by applying a variance preserving forward process to y0.b) Forward process and training objective. We use a variance preserving diffusion process defined by a noise schedule {βs}Ss=1 . We set 
+
+αs = 1 − βs, ¯αs =
+
+> s
+
+Y
+
+> j=1
+
+αj . (9) The quantity ¯αs determines how much of the clean signal remains at step s. Small s yields ¯αs close to one and ˜ys
+
+close to y0. Large s yields ¯αs close to zero and ˜ys close to noise. We initialize the noise scale using the marginal proposal set produced by the scene encoder. For agent i we have pro-posal latents {yi, (k)}Kk=1 ⊂ Rd. We compute per dimension proposal statistics 
+
+μi = 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+yi, (k),
+
+σtrain  
+
+> y,i
+
+= Std k
+
+ yi, (k)
+
+ + ϵσ , ϵσ > 0.
+
+(10) Stacking across agents gives 
+
+μ ∈ RN ×d, σtrain  
+
+> y
+
+∈ RN ×d. (11) The forward noising process is 
+
+˜ys = √¯αsy0 + √1 − ¯αs
+
+ σtrain  
+
+> y
+
+⊙ ϵ, (12) where ϵ ∼ N (0, I) and ⊙ denotes elementwise multipli-cation. This equation defines the noised latent under the schedule {¯αs}; it is obtained by injecting step-dependent noise according to ¯αs.The denoiser Dθ (˜ ys, s, ˆcτ , Pτ ) predicts the scaled noise term σtrain  
+
+> y
+
+⊙ ϵ from the noisy input ˜ys and the conditioning. We train it with the standard DDPM noise prediction loss [27] 
+
+Ldiff = E(scene) , s, ϵ
+
+h
+
+σtrain  
+
+> y
+
+⊙ϵ−Dθ (˜ ys, s, ˆcτ , Pτ ) 22
+
+i
+
+. (13) At inference we optionally use DDIM to reduce the number of denoising steps while keeping the same denoiser [28]. 
+
+Inverse PCA map used for rollout. Given a noisy latent, we form the one step estimate of the clean latent 
+
+ˆy0|s = ˜ys − √1 − ¯αs Dθ (˜ ys, s, ˆcτ , Pτ )
+
+√¯αs
+
+, (14) and map it back to action sequences using the fixed PCA inverse and fixed affine statistics computed once from the training set. For each agent i,
+
+ˆui = (ˆ yiV⊤) ⊙ σu + μu, (15) where ˆyi ∈ Rd, V ∈ RDu×d, and ˆui ∈ RDu . The vector is then reshaped into {ˆuit}Tu 
+
+> t=1
+
+with ˆuit = [ˆ ait, ˙ˆψit]⊤. We then roll out 
+
+ˆX = f (Xinit , ˆU). (16) We define a state matching loss on the rollout 
+
+Lstate = E(scene) , s, ϵ
+
+h
+
+SmoothL1 
+
+ ˆX(x,y,ψ ), X(x,y,ψ )gt 
+
+i 
+
+,
+
+(17) and combine it with the diffusion loss as, 
+
+L = λdiff Ldiff + λstate Lstate , (18) where λstate = 0 .5 and λdiff = 1 .
+
+Algorithm 1 Closed-loop simulation with latent diffusion policy                                                  
+
+> 1: Input. initial state X0; replanning interval ∆r; horizon Tu; ego policy πego ;rollout model f; SIMPL encoder; denoiser Dθ
+> 2: for τ= 0 ,∆r, 2∆ r, . . . do
+> 3: Encode the current scene at Xτto obtain context ˆcτand marginal proposals
+> {(y(k)
+> τ, π (k)
+> τ)}Kk=1
+> 4: Sample a joint latent plan ˆy0,τ by reverse diffusion conditioned on ˆcτand
+> {(y(k)
+> τ, π (k)
+> τ)}Kk=1
+> 5: Decode ˆy0,τ to a joint action plan ˆUτ={ˆuit}i=1 ..N, t =1 ..Tu
+> 6: Roll out ˆXτ=f(Xτ,ˆUτ)
+> 7: Execute the first ∆rsteps: ego uses πego , reactive agents use ˆUτ
+> 8: end for
+
+c) Shifted Gaussian initialization from proposal statis-tics. Motivated by OptTrajDiff’s proposal-informed Gaussian initialization [8], we warm-start the reverse process from a Gaussian whose mean and diagonal scale are given by Eq. (10). At reverse step S, we sample 
+
+˜yS = √¯αS μ + √1 − ¯αS
+
+ σtrain  
+
+> y
+
+⊙ ϵS
+
+, ϵS ∼ N (0, I).
+
+(19) 
+
+E. Guidance at inference 
+
+We optionally refine sampled plans using gradient-based guidance in latent space at inference time. Here, ˆy0|s is the one-step analytic estimate of the clean latent implied by the denoiser at the sampled diffusion step s.
+
+Objective-based guidance. We define a cost J( ˆX) on the rolled-out trajectories and refine the sampled plan to reduce it. In our experiments, 
+
+J( ˆX) = wmap Jmap ( ˆX) + wcoll Jcoll ( ˆX), (20) where Jmap penalizes map violations using an off-road signed-distance proxy and Jcoll penalizes near-term overlaps using a smooth distance-based proxy. At inference, we de-code the denoiser output to actions, roll out ˆX, and apply a gradient step that updates the latent plan: 
+
+ˆy0 ← ˆy0 − η∇ˆy0 J(f (Xτ , decode(ˆ y0))) (21) optionally, only in late reverse steps and without backpropa-gating through Dθ across diffusion steps. The guidance (i) tightens constraint satisfaction in rare corner cases and (ii) performs targeted, counterfactual edits without retraining. The same mechanism can incorporate additional differentiable objectives. 
+
+Safety-critical game-theoretic guidance. We model safety-critical interactions as a pursuit–evasion game with an IBR-style refinement during guided sampling [7]. Agents are split into ego-controlled and adversarial sets, with costs 
+
+Jego ( ˆX) and Jadv ( ˆX). From the current latent estimate ˆy0,we alternate a few best-response updates: adversaries increase 
+
+Jego , ego agents decrease it, and each step decodes and rolls out before computing gradients. This adapts both sides and produces interactive, scene-consistent adversarial scenarios. IV. E XPERIMENTS 
+
+A. Dataset 
+
+The experiments utilize the Waymo Open Motion Dataset (WOMD) [29], which contains over 500 hours of driving data collected across multiple cities in the United States. Each scenario comprises a 9-second segment, including 1 second of history and an 8-second prediction horizon. We train the diffusion model on a randomly sampled subset of 200k scenarios for efficiency. Closed-loop ablations utilize 500 randomly selected scenarios from the WOMD validation split. 
+
+Diffusion training details. We use two-stage training: a marginal proposal model first provides SIMPL context and per-agent multi-modal proposals, then a joint latent diffusion model is trained on the resulting proposal-derived priors. The second-stage DDPM uses a variance-preserving process over the joint standardized PCA latent plan with d = 32 , S = 100 
+
+diffusion steps and a linear β schedule βs ∈ [10 −4, 5 · 10 −2].The Transformer denoiser uses hidden size 128, 8 attention heads, dropout 0.3, λstate = 0 .5 and λdiff = 1 . We use AdamW with learning rate 5e−4, weight decay 10 −3 and bfloat16 mixed precision. 
+
+B. Baselines and Training Setup 
+
+We select baselines to isolate the main modeling choices: IDM provides a low-compute rule-based reference, SIMPL-AR tests marginal proposal selection without joint diffusion, the unguided joint diffusion baseline isolates guidance, and the context-only ablation removes proposal-informed initial-ization. All methods use the state/action definitions from Sec. III and the rollout model f from Eq. (5). All learned models are trained on a single NVIDIA H100 GPU. 
+
+1) IDM (rule-based baseline): The IDM baseline is a lightweight deterministic reference. Each non-ego agent fol-lows IDM-style longitudinal control along an assigned lane centerline with heuristic car-following and a default desired speed, without SIMPL predictions or diffusion sampling. This is a simple rule-based reference rather than a calibrated microscopic traffic simulator. 
+
+2) SIMPL-AR (collision-aware selection): At each replan-ning time τ , SIMPL predicts K = 6 multi-modal futures per reactive agent with confidence scores. We convert each proposal to actions via inverse dynamics, roll out with f , and select one mode per agent by approximately minimizing        
+
+> min
+> k1,...,k N
+> NX
+> i=1
+> −log
+> 
+> max
+> 
+> pi, (ki)
+> τ, ϵ
+> 
+> +λcoll
+> X
+> 1≤i<j ≤N
+> Coll
+> ˜Xi, (ki)
+> τ,˜Xj, (kj)
+> τ
+> 
+
+(22) with a lightweight circle-overlap proxy 
+
+Coll 
+
+ ˜Xi, (ki) 
+
+> τ
+
+, ˜Xj, (kj )
+
+> τ
+
+
+
+=
+
+> Tlook
+
+X
+
+> t=1
+
+I
+
+h
+
+pi, (ki) 
+
+> τ,t
+
+− pj, (kj ) 
+
+> τ,t 2
+
+< r i + rj
+
+i
+
+(23) where pi, (ki) 
+
+> τ
+
+is the confidence score of the selected mode, 
+
+λcoll weights the collision penalty, and ri is a circle radius derived from the agent footprint. Tlook is the collision looka-head horizon. This SIMPL-AR setup is consistent with a prior WOSAC-style simulator that builds autoregressive closed-loop execution on top of multi-modal motion predictors plus lightweight rollout-time consistency checks [30]. 
+
+3) Joint diffusion baseline (no guidance): The stage-2 baseline uses the same architecture and training setup as the main model and is trained for 25 epochs. At inference, it samples a joint latent plan y ∈ RN ×32 conditioned on SIMPL scene context ˆcτ and the marginal prior set, then decodes to actions and rolls out with f .
+
+4) Diffusion without prior initialization (context-only): 
+
+This ablation removes proposal-informed prior initialization and marginal-prior tokens while still conditioning on the SIMPL scene encoding. Reverse diffusion is initialized from a standard Gaussian rather than the shifted Gaussian in Eq. (19). The same stage-2 architecture is trained for 25 epochs. 
+
+C. Closed-loop evaluation 
+
+We evaluate with receding-horizon closed-loop simulation in Waymax [31]. At each replanning time τ , we sample a joint 8 s rollout for all reactive agents (up to N = 64 closest to SDC), execute the first control step at 10 Hz, and then replan from the updated simulator state. 
+
+D. Metrics 
+
+We report standard closed-loop safety and fidelity metrics aligned with prior controllable simulation work: collision rate for interaction feasibility, off-road rate for map consistency, minADE for positional accuracy, and Wasserstein-1 acceler-ation/jerk histograms for kinematic naturalness. We do not report Waymo Open Sim Agents Challenge metrics, which require the official evaluator and large-scale submission pro-tocol.  
+
+> •
+
+Off-road. A binary flag indicating that an agent departs the drivable road surface. We determine this using the agent position relative to oriented road-graph (lane-edge) reference points and report the off-road rate as the fraction of agents that become off-road at any point during rollout, aggregated over all agents and generated scenarios.  
+
+> •
+
+Collision. Collision rate, reported as the fraction of agents that participate in at least one collision during rollout.  
+
+> •
+
+Realism. Following prior work [32], [33], we report the average Wasserstein-1 distance between L1-normalized 
+
+histograms of longitudinal acceleration, lateral acceler-ation and jerk computed from generated trajectories and ground-truth trajectories, aggregated over all agents and timesteps.  
+
+> •
+
+Best-of-N displacement error (minADE). For each scene, we compute the minimum average ℓ2 displace-ment error to the logged future over N stochastic rollouts, then average over valid agents and scenes. 
+
+Accelerated sampling and runtime. To reduce test-time latency, we use DDIM [28] sampling and vary the number of reverse steps to expose an explicit balance between speed and quality. We report per-replanning runtime together with safety and realism metrics in Table II. TABLE I Closed-loop simulation metrics. For diffusion models we report mean and standard deviation over 5 random seeds. Deterministic baselines are shown without variance. 
+
+Method Collision rate [%] ↓ Off-road rate [%] ↓ Realism ↓ minADE [m] ↓
+
+IDM (Rule-based) 11.70 9.10 0.80 1.82 SIMPL-AR (collision-aware selection) 7.30 6.13 0.62 1.62 Ours (w/o Guidance) 4.83 ± 0.15 3.27 ± 0.02 0.46 ± 0.11 1.68 ± 0.013 
+
+Ours † (w/o Prior Init) 5.21 ± 0.30 4.0 ± 0.09 0.50 ± 0.01 1.83 ± 0.004  
+
+> †Trained from scratch without prior initialization from SIMPL marginal proposals. The SIMPL scene encoding is still used as context. TABLE II Accelerated DDIM sampling ablation with a fixed model and varying reverse diffusion steps. Runtime per replanning step.
+
+Method Steps Runtime [ms] ↓ Collision [%] ↓ Off-road [%] ↓ Realism ↓ ADE [m] ↓
+
+Ours (w/o Guidance) 5 91.40 ± 5.86 4.83 3.27 0.46 1.68 10 231.28 ± 3.84 5.07 3.52 0.47 1.73 25 411.15 ± 2.46 5.61 3.94 0.50 1.81 Ours (w/ Guidance) 5 128.74 ± 6.31 4.02 2.46 0.51 1.71 10 296.42 ± 5.27 4.18 2.63 0.57 1.74 25 525.63 ± 7.12 4.69 3.01 0.69 1.80 Ours (w/o Prior Init) 5 95.20 ± 4.10 5.21 4.00 0.50 1.83 10 238.40 ± 5.20 5.10 3.80 0.49 1.80 25 419.30 ± 6.40 5.02 3.70 0.48 1.74                                                                      
+
+> TABLE III Safety-game guidance aggressiveness ablation (100 scenarios). We vary wpursue and η(fixed model and scenarios) and report mean ±std over R= 3
+> seeds.
+> wpursue ηEgo Adv Coll [%] ↑Adv Off-road [%] ↓Realism ↓min tdego ,adv [m] ↓Impact speed [m/s] ↑
+> 10 0.05 18 .9±2.02.8±0.60.53 ±0.03 2.78 ±0.10 4.21 ±0.58
+> 30 0.07 33 .6±2.63.9±0.70.58 ±0.03 2.29 ±0.09 6.05 ±0.67
+> 60 0.10 47 .8±3.45.8±0.90.66 ±0.04 1.91 ±0.08 7.82 ±0.74
+
+V. E VALUATION 
+
+Tables I and II indicate a consistent pattern in closed-loop multi-agent simulation. Enforcing joint scene consistency im-proves interactive feasibility compared to composing agents independently while map and kinematic fidelity remain sen-sitive to representation choices and training objectives. 
+
+Closed-loop performance trends. The rule-based and marginal/autoregressive baselines provide reasonable rollouts but can exhibit interaction failures when multiple agents’ futures are combined without an explicit joint consistency mechanism. In contrast, joint diffusion denoising couples agents through shared refinement steps conditioned on the same scene context which tends to reduce multi-agent con-flicts and improve interaction coherence in closed-loop roll-outs. However, improvements are not uniform across metrics and residual map violations and kinematic artifacts remain. For example, in Table I, our unguided model reduces the collision rate from 11.70% to 4.83% and reduces the off-road rate from 9.10% to 3.27% while maintaining compa-rable realism and positional accuracy. Qualitative rollouts are shown in Fig. 3. These findings suggest that interaction modeling is important but not sufficient on its own to guaran-tee strong map adherence and physically consistent motion. Performance also depends on accurate scene encoding, map priors and the rollout model assumptions. Ablations without proposal-informed initialization further suggest that proposal priors help keep sampling stable by constraining the reverse process toward plausible regions of the trajectory space. When this initialization is removed, the denoiser must rely more heavily on context-only conditioning which can increase sensitivity to sampling variance and exacerbate rare failure modes. 
+
+Effects of accelerated sampling and step count. We evaluate sampling efficiency by varying the number of reverse DDIM denoising steps per replanning iteration, with all other model and scenario settings fixed and report closed-loop safety and fidelity metrics. The DDIM ablation study in Ta-ble II shows that modest denoising steps can preserve quality while reducing latency. Runtime increases approximately in proportion to the number of denoising steps, whereas the benefit of additional refinement diminishes beyond a moder-ate step count. With proposal-informed initialization, even a small number of reverse steps can preserve quality, whereas very few steps leave limited opportunity to resolve multi-agent conflicts and improve constraint satisfaction when initialization is removed. At high denoising steps, additional computation may produce smaller improvements in average closed-loop metrics and may shift sampling behavior toward increased variability which does not necessarily improve mean collision or off-road rates. In our experiments, 5 to 10 reverse denoising steps consistently provide the most Nominal policy Objective guidance Adversarial guidance        
+
+> Fig. 3. Qualitative results. Top: Nominal policy (w/o guidance) our method produces scene-consistent predictions for many reactive agents that remain interactive and map-adherent. Middle: Objective-based guidance encourages stronger lane adherence and safer behaviors (agent 9 accelerating while other agents stay on the road). Bottom: Game-theoretic guidance where agent 2 (magenta) attacks the ego evader (green).
+
+favorable balance relative to larger step counts which add compute without proportional gains in closed-loop metrics. Without proposal-informed initialization, the context-only variant generally needs more reverse steps to achieve com-parable closed-loop quality, indicating slower convergence toward plausible joint trajectories. This balance becomes increasingly important when guidance is enabled, as guidance increases computation per step and may dominate runtime at higher step counts. Efficiency comes from denoising a compact joint action-latent, warm-starting the reverse pro-cess with proposal-informed initialization and using only a small number of denoising steps at test time which keeps replanning latency low without retraining. 
+
+Guidance, Behavior and Limitations. Objective-based guidance provides a practical mechanism for targeted sce-nario editing and constraint tightening without retraining and it enables controllable behavior shifts while preserving interactive rollouts. In our experiments, it consistently im-proves safety-oriented outcomes when tuned with moderate weights. Its effectiveness depends on the differentiability and calibration of the chosen objectives. Guidance can introduce compromises: stronger optimization pressure for a specific objective may slightly degrade other fidelity metrics if the objective is imperfectly aligned with the data distribution. Moreover, gradient-based guidance introduces computational overhead and can be sensitive to hyperparameters such as step size and weighting. 
+
+Guidance aggressiveness. Table III varies the pursuit weight 
+
+wpursue and step size η to control adversarial guidance strength. More aggressive settings increase the ego and adversary collision rate and impact severity, including higher impact speed but also increase off-road rate and reduce realism. This balance is essential for testing a policy under different criticality levels. VI. C ONCLUSION 
+
+This work presents a diffusion-based method for closed-loop traffic scenario generation that produces realistic, in-teractive multi-agent behavior while remaining controllable at test time. The method combines instance-centric scene conditioning with a joint latent diffusion policy to generate scene-consistent rollouts under replanning. A key component is proposal-informed Gaussian initialization. Rather than starting reverse diffusion from isotropic Gaussian noise, initialization occurs from a shifted Gaussian whose mean and scale are computed from a marginal proposal model. This biases sampling toward plausible behaviors and improves sampling quality for joint generation. Closed-loop simulation results indicate that joint denois-ing improves interaction consistency relative to composing marginal rollouts while inference-time guidance enables tar-geted scenario editing including safety-critical and adversar-ial interactions. Overall, the framework supports challeng-ing yet plausible scenario generation for evaluation. Future work includes reporting Waymo Open Sim Agents Challenge metrics using the official evaluator and submission protocol, exploring scene-level rollout losses that penalize multi-agent inconsistency and training with closed-loop policy learning. We also plan to incorporate language conditioning for more intuitive control over scenarios. REFERENCES 
+
+[1] W. Wachenfeld and H. Winner, “The Release of Autonomous Vehicles,” in 
+
+Autonomous Driving: Technical, Legal and Social Aspects , Springer, pp. 425–449, 2016, doi:10 .1007/978-3-662-48847-8 21 .
+
+[2] S. Suo, S. Regalado, S. Casas, and R. Urtasun, “TrafficSim: Learning to Simulate Realistic Multi-Agent Behaviors,” in 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) . Los Alamitos, CA, USA: IEEE Computer Society, Jun. 2021, pp. 10 395–10 404. [3] L. Feng, Q. Li, Z. Peng, S. Tan, and B. Zhou, “TrafficGen: Learning to Gen-erate Diverse and Realistic Traffic Scenarios,” in 2023 IEEE International Conference on Robotics and Automation (ICRA) , 2023, pp. 3567–3575. [4] D. Rempe, J. Philion, L. J. Guibas, S. Fidler, and O. Litany, “Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior,” in 
+
+2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2022, pp. 17 284–17 294. [5] N. Hanselmann, K. Renz, K. Chitta, A. Bhattacharyya, and A. Geiger, “KING: Generating Safety-Critical Driving Scenarios for Robust Imitation via Kinematics Gradients,” arXiv:2204 .13683, 2022. [6] C. M. Jiang, A. Cornman, C. Park, B. Sapp, Y. Zhou, and D. Anguelov, “MotionDiffuser: Controllable Multi-Agent Motion Prediction Using Dif-fusion,” in 2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) . Los Alamitos, CA, USA: IEEE Computer Society, Jun. 2023, pp. 9644–9653. [7] Z. Huang, Z. Zhang, A. Vaidya, Y. Chen, C. Lv, and J. F. Fisac, “Versatile Behavior Diffusion for Generalized Traffic Agent Simulation,” arXiv : 2404 .02524v3, Feb. 2026. [8] Y. Wang, C. Tang, L. Sun, S. Rossi, Y. Xie, C. Peng, T. Hannagan, S. Saba-tini, N. Poerio, M. Tomizuka, and W. Zhan, “Optimizing Diffusion Models for Joint Trajectory Prediction and Controllable Generation,” in Computer Vision – ECCV 2024 , L. Leonardis, E. Ricci, S. Roth, O. Russakovsky, T. Sattler, and G. Varol, Eds., ser. Lecture Notes in Computer Science , vol. 15087. Cham: Springer, 2024, pp. 324–341, doi:10 .1007 / 978 - 3 - 031 -73397-0 19 .
+
+[9] Z. Jiang, W. Pan, J. Liu, S. Dang, Z. Yang, H. Li, and Y. Pan, “Efficient and Unbiased Safety Test for Autonomous Driving Systems,” IEEE Trans-actions on Intelligent Vehicles , vol. 8, no. 5, pp. 3336–3348, 2023. [10] T. Most, M. Rasch, P. T. Ubben, R. Niemeier, and V. Bayer, “A Multimodal Importance Sampling Approach for the Probabilistic Safety Assessment of Automated Driver Assistance Systems,” Journal of Autonomous Vehicles and Systems , vol. 3, no. 1, p. 011001, 2024. [11] Z. Cao, S. Xu, X. Jiao, H. Peng, and D. Yang, “Trustworthy Safety Improvement for Autonomous Driving Using Reinforcement Learning,” 
+
+Transportation Research Part C: Emerging Technologies , vol. 138, p. 103656, 2022. [12] R. Dagdanov, F. Eksen, H. Durmus, F. Yurdakul, and N. K. Ure, “DeFIX: Detecting and Fixing Failure Scenarios with Reinforcement Learning in Imitation Learning Based Autonomous Driving,” in Proc. IEEE Int. Conf. on Intelligent Transportation Systems (ITSC) , 2022, pp. 4215–4220. [13] L. Zhang, Z. Peng, Q. Li, and B. Zhou, “CAT: Closed-Loop Adversarial Training for Safe End-to-End Driving,” arXiv:2310 .12432, 2023. [14] K. Hao, W. Cui, Y. Luo, L. Xie, Y. Bai, J. Yang, S. Yan, Y. Pan, and Z. Yang, “Adversarial Safety-Critical Scenario Generation Using Naturalistic Human Driving Priors,” IEEE Transactions on Intelligent Vehicles , vol. 9, no. 9, pp. 5392–5406, 2024. [15] M. Treiber, A. Hennecke, and D. Helbing, “Congested Traffic States in Empirical Observations and Microscopic Simulations,” Physical Review E ,vol. 62, no. 2, pp. 1805–1824, 2000. [16] A. Kesting, M. Treiber, and D. Helbing, “General Lane-Changing Model MOBIL for Car-Following Models,” Transportation Research Record , vol. 1999, no. 1, pp. 86–94, 2007. [17] C. Gulino et al. , “Waymax: An Accelerated, Data-Driven Simulator for Large-Scale Autonomous Driving Research,” arXiv:2310 .08710, 2023. [18] T. Gu, G. Chen, J. Li, C. Lin, Y. Rao, J. Zhou, and J. Lu, “Stochastic Tra-jectory Prediction via Motion Indeterminacy Diffusion,” arXiv:2203 .13777, 2022. [19] C. Liu, S. He, H. Liu, and J. Chen, “Intention-Aware Denoising Diffusion Model for Trajectory Prediction,” IEEE Transactions on Intelligent Trans-portation Systems , vol. 26, no. 5, pp. 5915–5930, 2025. [20] G. Chen, Z. Chen, S. Fan, and K. Zhang, “Unsupervised Sampling Pro-moting for Stochastic Human Trajectory Prediction,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , June 2023, pp. 17 874–17 884. [21] P. Dhariwal and A. Nichol, “Diffusion Models Beat GANs on Image Synthesis,” arXiv:2105 .05233, 2021. [22] J. Ho and T. Salimans, “Classifier-Free Diffusion Guidance,” arXiv : 2207 .12598, 2022. [23] N. Liu, S. Li, Y. Du, A. Torralba, and J. B. Tenenbaum, “Compositional Visual Generation with Composable Diffusion Models,” arXiv:2206 .01714, 2023. [24] B. Yang, H. Su, N. Gkanatsios, T.-W. Ke, A. Jain, J. Schneider, and K. Fragkiadaki, “Diffusion-ES: Gradient-Free Planning with Diffusion for Autonomous and Instruction-Guided Driving,” in 2024 IEEE/CVF Con-ference on Computer Vision and Pattern Recognition (CVPR) , 2024, pp. 15 342–15 353. [25] Z. Huang, H. Liu, and C. Lv, “GameFormer: Game-theoretic Modeling and Learning of Transformer-Based Interactive Prediction and Planning for Autonomous Driving,” in 2023 IEEE/CVF International Conference on Computer Vision (ICCV) , 2023, pp. 3880–3890. [26] L. Zhang, P. Li, S. Liu, and S. Shen, “SIMPL: A Simple and Efficient Multi-Agent Motion Prediction Baseline for Autonomous Driving,” IEEE Robotics and Automation Letters , vol. 9, no. 4, pp. 3767–3774, 2024. [27] J. Ho, A. Jain, and P. Abbeel, “Denoising Diffusion Probabilistic Models,” in Advances in Neural Information Processing Systems , 2020. [28] J. Song, C. Meng, and S. Ermon, “Denoising Diffusion Implicit Models,” in 
+
+Proc. International Conference on Learning Representations (ICLR) , 2021. [29] S. Ettinger, S. Cheng, B. Caine, C. Liu, H. Zhao, S. Pradhan, Y. Chai, B. Sapp, C. Qi, Y. Zhou, Z. Yang, A. Chouard, P. Sun, J. Ngiam, V. Va-sudevan, A. McCauley, J. Shlens, and D. Anguelov, “Large-Scale Interac-tive Motion Forecasting for Autonomous Driving: Waymo Open Motion Dataset,” in 2021 IEEE/CVF International Conference on Computer Vision (ICCV) , 2021, pp. 9690–9699. [30] C. Qian, D. Xiu, and M. Tian, “The 2nd Place Solution for 2023 Waymo Open Sim Agents Challenge,” arXiv:2306 .15914, 2023. [31] C. Gulino et al. , “Waymax: An Accelerated, Data-Driven Simulator for Large-Scale Autonomous Driving Research,” in Advances in Neural Infor-mation Processing Systems (NeurIPS) , 2023. [32] W.-J. Chang, F. Pittaluga, M. Tomizuka, W. Zhan, and M. Chan-draker, “SAFE-SIM: Safety-Critical Closed-Loop Traffic Simulation with Diffusion-Controllable Adversaries,” arXiv:2401 .00391, 2024. [33] Z. Zhong, D. Rempe, D. Xu, Y. Chen, S. Veer, T. Che, B. Ray, and M. Pavone, “Guided Conditional Diffusion for Controllable Traffic Simula-tion,” in 2023 IEEE International Conference on Robotics and Automation (ICRA) , 2023, pp. 3560–3566.

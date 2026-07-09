@@ -1,0 +1,829 @@
+Title: ECoSim: Data Efficient Fine-Tuning for Controllable Traffic Simulation
+
+URL Source: https://arxiv.org/pdf/2607.00545v1
+
+Published Time: Thu, 02 Jul 2026 00:38:25 GMT
+
+Number of Pages: 30
+
+Markdown Content:
+# ECoSim: Data Efficient Fine-Tuning for Controllable Traffic Simulation 
+
+Yu-Hsiang Chen 1,2*, Wei-Jer Chang 2*, Yi-Ting Chen 1, and Masayoshi Tomizuka 2 
+
+> 1
+
+National Yang Ming Chiao Tung University, Taiwan  
+
+> 2
+
+University of California, Berkeley, USA Limited Paired Control Data 
+
+> (Only 1% of the original dataset)
+> Pre -trained Traffic Model
+> Small Control Adapter
+> (Finetuned)
+> Learned New Control Signal
+> Text Description
+> “The target vehicle is decelerating
+> and coming to a stop.”
+> Target vehicle guided by query
+> agent’s U -turn latent.
+> Target vehicles are guided by a
+> left -turn and a right -turn sketch.
+
+Sketch Latent Text 
+
+> Unconditioned Conditioned
+
+Fig. 1: Data-Efficient Multi-Modal Control of Pretrained Traffic Models. We introduce a data-efficient adaptation framework that steers frozen traffic models via sketch, latent, or text signals. Using only 1% of the paired control data, the framework adds new control modalities and enables targeted generation of diverse user-specified traffic scenarios while preserving the pretrained model’s performance. 
+
+Abstract. Controllable traffic simulation is critical for testing autonomous driving systems, yet existing approaches often require retraining large generative models with extensive annotated data. We introduce a lightweight control adaptation framework that enables multi-modal controllability (sketch, latent behavior codes, and text) for pretrained state-of-the-art diffusion and autoregressive traffic models. By modulating intermediate features through identity-initialized FiLM layers, our method efficiently adds new control modalities while preserving the base model’s generative prior. Evaluated on Waymo Open Sim Agents Challenge, our approach demonstrates strong controllability with less than 1% of the paired con-trol data. Through context-aware condition transfer, our framework en-ables counterfactual scenario generation and long-tail synthesis while maintaining stable closed-loop driving realism and safety. Our framework * Equal contribution.   
+
+> arXiv:2607.00545v1 [cs.CV] 1 Jul 2026 2Y.-H. Chen et al. unlocks new possibilities for controllable traffic simulation, enabling tar-geted scenario generation through lightweight adaptation of pretrained generative models. Project page: https://ecosim-web.github.io/
+
+## 1 Introduction 
+
+Traffic simulation is essential to autonomous vehicle (AV) development, enabling scalable and repeatable evaluation in controlled settings. It supports systematic validation under diverse driving conditions, shortens development cycles, and provides a safe platform for training and assessment. A key requirement is con-trollability : the ability to deliberately induce targeted behavior patterns that probe specific system responses. Many traffic scenes are non-interactive and trivial, offering limited insight into failure modes. With controllability, simu-lation enables the construction of counterfactual “what-if” scenarios that expose potential weaknesses and improve diagnostic effectiveness. Despite its importance, enabling controllable traffic simulation remains chal-lenging. Prior approaches typically fall into two paradigms: inference-time guid-ance and direct conditioning through retraining. Inference-time methods, such as diffusion via optimization or gradient-based control during sampling [2,12,14], offer flexible guidance. However, such approaches often rely on carefully designed objectives and introduce additional computational overhead at inference. Alter-natively, direct conditioning enables models [3, 22, 23, 29] to internalize control signals during training, often yielding stable and faithful behavior. However, this comes at the cost of large-scale paired data and expensive retraining for each new control modality. Also, most existing evaluations focus on alignment with ground-truth trajectories, leaving the ability to generate controllable counter-factual scenarios across diverse contexts less explored. In this work, we introduce a data-efficient fine-tuning framework that en-ables controllable traffic simulation using traffic simulation models pretrained on large-scale data, hereafter referred to as traffic models. We freeze the base model and learn lightweight control adapters that inject conditioning signals into intermediate features, enabling efficient adaptation to new control modali-ties with limited paired control data. The adapters are trained under closed-loop simulation to enable controllability while preserving long-horizon interaction dy-namics. Our framework supports multiple control modalities. Trajectory sketches provide precise spatial guidance, latent behavior embeddings extracted by our BehaviorVAE capture driving patterns learned from data, and natural language offers an intuitive user interface for specifying high-level behaviors. The same adaptation mechanism generalizes across different model paradigms, including diffusion-based and autoregressive traffic models. Finally, we introduce a context-aware retrieval pipeline that transfers learned behaviors into compatible scenes, enabling counterfactual and long-tail scenario generation. We evaluate on the Waymo Open Sim Agents Challenge (WOSAC) [17] under closed-loop simulation. Across both diffusion-based and autoregressive models, our lightweight adapters reduce control error by up to 83% while improving Data Efficient Fine-Tuning for Controllable Traffic Simulation 3Context Closed -Loop Training  
+
+> Agents
+> Maps
+> Multi -agent
+> Trajs .
+> Conditioning Data
+> Modality
+> Encoder
+> FiLM Layer
+> (Identity Initialized)
+> Modulated Feature
+> injection
+> Base Model
+> Block 1
+> Decoder
+> Blocks
+> Sketch
+> Latent
+> Text
+> Block 2
+> Block L
+> Modality Consistent Joint plans
+> Selected Modality
+> Compare with GT and Correct Compare with GT & Correct
+
+Fig. 2: Model-Agnostic Control Adaptation Architecture. A lightweight adapter injects multi-modal control signals into a frozen pretrained traffic model by predicting FiLM parameters ( γ, β) that modulate intermediate features h. The design is compatible with both autoregressive and diffusion backbones, and identity initial-ization preserves the base model’s generative prior. 
+
+closed-loop realism by 0.02–0.03 absolute points in the WOSAC Meta score (see Sec. 4.2). Remarkably, these gains are achieved using as little as 0.01%–1% paired fine-tuning data. Despite this data efficiency, our method matches or surpasses fully fine-tuned baselines trained on substantially larger datasets [22]. Our main contributions can be summarized as follows: 
+
+– We propose a data-efficient control adaptation framework that adds multi-modal controllability ( sketch , latent , and text ) to both diffusion and state-of-the-art autoregressive traffic models. 
+
+– We demonstrate strong sample efficiency . With identity-initialized FiLM adapters, our method achieves competitive controllability using minimal paired supervision (as few as 500 scenarios, 0.1% of the paired control data) while keeping the pretrained backbone frozen. 
+
+– The proposed context-aware condition transfer mechanism enables counter-factual and long-tail scenario generation while preserving closed-loop realism. 
+
+## 2 Related Work 
+
+Controllable Traffic Scenario Generation. Recent work has made signifi-cant progress in building data-driven, realistic traffic models that support multi-agent interactions in closed-loop environments [1, 9, 13]. Recent autoregressive (AR) and reactive traffic models achieve strong closed-loop realism by modeling traffic generation as sequential next-token prediction [24, 27, 31]. However, these models are primarily designed for unconditional simulation and provide limited mechanisms for controllable scenario synthesis, which is crucial for structured, target-case testing [8, 19]. Several works explore the generation of controllable traffic scenarios to syn-thesize targeted or safety-critical situations [2, 4, 8]. Existing approaches can be broadly categorized into three mechanisms: (1) Inference-time guidance steers unconditional samples during generation via gradient-based or constraint-based 4 Y.-H. Chen et al. 
+
+objectives [14, 30]. While flexible, it often introduces significant inference over-head. (2) Direct conditioning trains generative models from scratch to internalize explicit control signals (e.g., goal specifications, scene constraints or language de-scriptions) [3,22,23,29]. However, introducing new modalities requires expensive retraining. (3) Retrieval-based control guides generation using similar scenarios retrieved from large datasets, such as RealGen [6]. In contrast, we adapt pre-trained traffic models to support new control modalities without retraining the backbone. Our framework further extends retrieval-based guidance by introduc-ing multiple control interfaces, including behavior latents learned via Behavior-VAE, enabling context-aware control within closed-loop simulation. 
+
+Control Adaptation in Generative Models. Recent works in image and video synthesis explore adapting pretrained generative models to enable control-lable generation. Rather than retraining large conditional models from scratch, these approaches augment pretrained backbones with mechanisms that incorpo-rate new conditioning signals. For example, ControlNet [26] introduces dedicated control branches connected via zero-initialized convolutions that progressively learn to modulate a pretrained diffusion model in response to structural inputs such as edges or poses. Similarly, LoRA [11] adapts pretrained models by inject-ing low-rank updates into existing weight matrices, enabling new capabilities while preserving the original model parameters. These works demonstrate that powerful generative models can be extended to new control modalities by lever-aging pretrained generative priors. Despite their success in visual generation, such control adaptation strategies remain largely unexplored in traffic modeling, where preventing compounding er-rors requires closed-loop training. We introduce a control adaptation framework optimized under closed-loop simulation to enable controllability while preserving the behavior of pretrained traffic models. 
+
+## 3 Method 
+
+3.1 Problem Formulation 
+
+Let πref denote a model pre-trained on large-scale, unconditional driving data that generates future trajectories in a closed-loop manner given a scene context 
+
+c. Our goal is to extend this model to conditional generation, πθ (St:t+T | c, r ),where r denotes a control signal (e.g., trajectory sketches, latent behavior codes, or language descriptions) and to enable controllable multi-agent generation in a data-efficient manner. The notation St:t+T denotes the joint multi-agent future states over a prediction horizon. The generator should control designated agents according to r while preserving realistic interactions of the pre-trained model 
+
+πref . For each control modality m, we assume access to a small control-annotated dataset Dm ⊂ D and aim to adapt the pretrained traffic models with limited supervision. Data Efficient Fine-Tuning for Controllable Traffic Simulation 5
+
+3.2 Control Adaptation via Feature Modulation 
+
+Given a raw control input rm from modality m, we first map it to a unified 
+
+d-dimensional conditioning embedding z ∈ Rd via a modality-specific encoder (where d = 256 in our implementation). For each agent i, only targeted agents receive their corresponding zi, while non-targeted agents are assigned zi = 0.To enable controllable generation while preserving the pretrained traffic model prior, we inject the conditioning embedding zi into intermediate representa-tions of the frozen backbone through lightweight feature modulation. We adopt Feature-wise Linear Modulation (FiLM) [18], which conditions intermediate acti-vations via an affine transformation. For an intermediate feature map h(l) ∈ RD
+
+at the l-th decoder layer (where D is the hidden dimension of the backbone), FiLM applies: 
+
+FiLM( h(l); zi) = γ(l)(zi) ⊙ h(l) + β(l)(zi), (1) where γ(l), β(l) ∈ RD are layer-specific modulation functions (implemented as lightweight MLPs) predicted from zi.A key design principle of our framework is extensibility: pretrained traffic models should be incrementally augmented with new controllability without re-training or destabilizing the original model. To this end, we initialize the modu-lation layers near identity ( γ(l) ≈ 1, β(l) ≈ 0), ensuring that the adapted model initially approximates the base model. This identity-preserving initialization is particularly important in closed-loop traffic simulation, where small perturba-tions can compound over long horizons and disrupt multi-agent interactions. Conceptually related to zero-initialized conditioning strategies such as Control-Net [26], this design enables controllability to be learned gradually through lightweight additional parameters while maintaining the backbone’s learned dy-namics. 
+
+3.3 Modality-Specific Control Representations Sketch and Language Conditioning. Trajectory sketches provide coarse spatial guidance in the form of future waypoints expressed in the agent’s local frame. We encode the waypoint sequence using a lightweight temporal encoder and aggregate it into a fixed-dimensional embedding zi, capturing the intended motion trend while allowing reactive interactions. Following [3], we utilize a DistilBERT [21] model adapted via Low-Rank Adaptation (LoRA) [11] for natural language commands (e.g., “turn left at the intersection”). While language instructions are inherently abstract, we establish spatial and kinematic grounding by jointly optimizing the LoRA parameters with the downstream closed-loop control objective. Specifically, given a text prompt pi, we extract the language features Hi = BERT( pi). We pool the [CLS] 
+
+token embedding and apply a learned linear projection to match the shared d-dimensional control space. 6 Y.-H. Chen et al. Agent Trajectories  
+
+> Query -Centric Transformation BehaviorVAE
+> Scene Context
+> Attention
+> GRU Encoder
+> Concatenate
+> Compressed Behavior
+> Distribution
+> Posterior heads
+> MLP Decoder
+> Reparametrize
+> Reconstructed
+> Agents Trajectories
+> Extract and pair each agent latent
+> in a single forward pass
+> Paired Latent Codes
+
+Fig. 3: BehaviorVAE overview. Agent trajectories and scene context are encoded into a Gaussian latent posterior; reparameterized per-agent latents are decoded for trajectory reconstruction and exported as paired latent codes in a single forward pass. 
+
+Context-Aware Behavior Latent. Beyond explicit sketches or language com-mands, we introduce a context-aware behavior latent that captures high-level driving patterns directly from data, without manual annotations. This compact control space abstracts interaction styles such as yielding or merging, enabling scalable and data-efficient controllability (see Sec. 4.3). To learn this representation, we employ a Conditional VAE (CVAE) [28], re-ferred to as BehaviorVAE , which is trained separately from the control adapters. We adopt a CVAE instead of deterministic autoencoder-based approaches [6,20] because KL regularization encourages a smooth latent space where similar be-haviors cluster together. This representation enables strong sample efficiency, as shown in Sec. 4.3. Given a traffic scene, the encoder jointly processes all agents’ future motion sequences together with scene context in a single forward pass. By modeling relative geometry and multi-agent dependencies, it infers a latent variable zi for each agent that captures structured interaction behaviors in a context-aware manner (see Fig. 3). Formally, the encoder produces a Gaussian latent distribution qϕ(zi | ξ, c env ),where ξ denotes the set of agent trajectories in the scene. Because latent inference is performed jointly at the scene level, the resulting zi encodes interaction-aware behavior patterns rather than independent per-agent dynamics. The model is trained using a conditional ELBO objective: 
+
+LVAE = Eq [log pψ (ξi | zi)] − βD KL (qϕ(zi | ξ, c env ) ∥ p(z)) , (2) with KL annealing for stable optimization. At inference time, sampling zi from the prior enables counterfactual behavior generation, and the latent is projected into the shared conditioning space for downstream control. 
+
+3.4 Backbone Integration and Closed-Loop Fine-Tuning 
+
+To enable controllable traffic simulation, the proposed adapters must be in-tegrated into existing generative traffic models while preserving their learned generative priors. A key challenge is that the model operates in a closed-loop Data Efficient Fine-Tuning for Controllable Traffic Simulation 7
+
+setting, where small prediction errors can accumulate over time and destabilize multi-agent interactions. We integrate control adapters into the generative cores of both diffusion [12] and autoregressive traffic models [24] while keeping back-bone parameters frozen. In both cases, control is injected at the decoder level to directly influence trajectory generation, systematically modulating the repre-sentations at every transformer decoder layer output across both the diffusion and autoregressive backbones. Only the control encoders and FiLM layers are updated during closed-loop fine-tuning [3, 27]. By leveraging FiLM-based fea-ture modulation at the decoder level, the same control adaptation mechanism can be applied to different generative backbones without modifying their core architectures. The key idea of our closed-loop fine-tuning is to bias sampled trajectories toward those aligned with the control target while maintaining stable multi-agent interactions. The exact procedure depends on the generative backbone. 
+
+Diffusion: Receding-Horizon Control. Following a “plan–select–execute” paradigm [3], we generate  M = 8  candidate rollouts at each replanning step and select the can-didate closest to the ground-truth trajectory: 
+
+m∗ = argmin 
+
+> m
+
+Lmatch (ˆS(m), Sgt ), (3) where ˆS(m) denotes the m-th predicted joint trajectory and Sgt is the ground truth. The adapter parameters are updated using the selected rollout to compute the training loss during closed-loop fine-tuning. 
+
+Autoregressive: Closed-Loop Fine-Tuning. For the autoregressive (AR) model, trajectories are generated sequentially under control conditioning zi. We opti-mize a cross-entropy objective under closed-loop unrolling: 
+
+LAR = − 1
+
+N T 
+
+X
+
+> i,t
+
+log πθ (sgt i,t | ˆS≤t, z i), (4) where ˆS≤t denotes the dynamically generated joint state history up to time t,where N is the number of agents and T is the prediction horizon. To reinforce controllability, we bias sampling toward trajectories [27] aligned with the condi-tioning signal, enabling the adapter to recover from its own prediction errors. 
+
+3.5 Context-Aware Scenario Transfer 
+
+In traffic simulation, it is important to explore alternative futures or synthesize rare interactions that deviate from recorded data while remaining realistic. How-ever, directly forcing arbitrary control signals often leads to implausible behav-iors in the current traffic context. To address this, we introduce a context-aware scenario transfer pipeline that retrieves compatible agents from similar sce-narios and transfers their control signals into the target traffic scene, enabling realistic variations within existing environments. 8 Y.-H. Chen et al. Agent Context Match   
+
+> Scene Context
+> Embedding
+> Similarity Score
+> Heuristic Filter Top -K Selection
+> Query Agents Top -K Matched Scenarios Dataset
+> Encoder
+
+Fig. 4: Context-Match Retrieval Pipeline. Query agents are encoded into a shared embedding space. Following heuristic filtering for dynamic feasibility, candidates are ranked via similarity scoring to retrieve the Top-K environmentally compatible scenar-ios from the dataset. 
+
+Specifically, we use context embedding similarity to retrieve compatible agents across scenarios. Given a target agent, we search the dataset for agents whose encoded scene context embeddings are similar (see Fig. 4). The retrieved agents serve as sources of plausible behaviors that can be transferred to the target scene. Using this scenario transfer mechanism, we support two types of controllable scenario generation: (i) Counterfactual Rollouts , where we retrieve context-matched agents representing different driving intentions and transfer their be-havior signals (e.g., sketch or latent trajectory) to the target scene to generate alternative futures, and (ii) Long-Tail Synthesis , where we identify rare be-haviors using SMART likelihood and transfer their latent behavior codes to context-matched agents in new scenes to synthesize rare interactions. 
+
+## 4 Experiments 
+
+In this section, we demonstrate that our framework enables effective multi-modal controllability for both autoregressive and diffusion traffic models using only small amounts of paired control data, and further show its practical utility for counterfactual traffic simulation. 
+
+4.1 Experimental Setup Datasets and Benchmark. We evaluate our framework on the Waymo Open Motion Dataset (WOMD) [7], following the standard WOSAC [17] protocol for closed-loop traffic simulation. BehaviorVAE is trained separately on 10,000 WOMD training scenarios. 
+
+Backbone Models. To demonstrate the architecture-agnostic nature of our framework, we evaluate two state-of-the-art generative traffic models as uncon-ditional backbones: VBD [12], a diffusion-based model, and SMART [24], an autoregressive model. 
+
+Metrics. Following established practices in controllable generation [3, 22], we evaluate along two axes: Realism , measured by the WOSAC Meta score ( ↑), evaluates distributional realism using likelihood-based metrics across multiple Data Efficient Fine-Tuning for Controllable Traffic Simulation 9
+
+aspects of driving behavior. Controllability , measured by the minimum Aver-age Displacement Error (mADE ↓) and relative mADE Gain ( ↑), which quantify alignment with the intended control signals. For counterfactual scenario synthe-sis (Sec. 4.4), we additionally report driving quality and safety metrics, including collision and off-road rates, as well as an adapted closed-loop PDMScore [5]. 
+
+Control Signal Generation. To quantitatively evaluate controllability, we de-rive control signals from held-out ground truth (GT) trajectories: (i) Sketch: 
+
+We downsample the GT future trajectories to obtain sparse waypoints as the sketch input; (ii) Latent: We process the GT trajectories through our pre-trained BehaviorVAE encoder to extract latent codes z; and (iii) Text: We utilize natural language descriptions of each agent’s motion from the ProSim-Instruct-520k dataset [22]. We explicitly note that derived controls are used only for standardized quantitative evaluation (e.g., mADE), not as a deployment assumption. Practical non-oracle controllability is evaluated via retrieval-based sketch/latent/text transfer in Sec. 4.4. 
+
+4.2 Controllable Simulation Evaluation 
+
+Tab. 1 reports controllable simulation results across both diffusion-based (VBD) and autoregressive (SMART) traffic models. To establish robust backbones for controllable simulation, we first convert the open-loop VBD and SMART models into closed-loop traffic models via additional training, denoted as VBD-CL and 
+
+SMART-tiny-CLSFT [27]. All control adapters in this comparison are trained using only 1% of the paired control data . Despite this limited supervision, our adapters consistently reduce mADE and improve the overall WOSAC Meta score relative to the corresponding unconditional backbones across all three con-trol modalities. Spatially grounded signals provide the strongest gains: Sketch 
+
+and Latent reduce mADE by approximately 65% on VBD and by up to 83% 
+
+on SMART. Text conditioning also improves controllability and overall realism, although its control gain is smaller because natural-language instructions provide weaker spatial grounding than trajectory sketches or behavior latents. To isolate the effect of the proposed adaptation mechanism from backbone strength, we ap-ply our FiLM adapters to a retrained unconditional ProSim backbone. As shown in Tab. 2, using only 1% of the paired control data achieves sketch controllabil-ity comparable to the original ProSim model trained with 100% paired control data. For text conditioning, FiLM adaptation provides substantially stronger controllability despite using 100 × less paired supervision. These same-backbone results show that the observed data efficiency comes from the proposed adapta-tion mechanism rather than solely from differences in backbone strength. 3
+
+4.3 Sample Efficiency and Data Scaling 
+
+In this section, we focus on evaluating the sample efficiency of our proposed adaptation framework. Adapters are trained on logarithmically spaced subsets of  
+
+> 3Original ProSim uses the official checkpoint; FiLM uses a retrained backbone (details in Supp. E3); gains are computed relative to each model’s unconditional baseline.
+
+10 Y.-H. Chen et al. 
+
+Table 1: Controllable Simulation Across Backbones and Modalities. Using only 1% of the paired control data, our lightweight FiLM adapters consistently reduce mADE and improve the overall WOSAC Meta score across both diffusion and autore-gressive backbones. Bold indicates the best metric within each block.                                                                      
+
+> Backbone (Data Ratio) Trainable Params Meta ↑Kinematic ↑Interactive ↑Map ↑mADE ↓mADE Gain ↑
+> Unconditional Base Models
+> VBD-CL 12.3M 0.7186 0.4181 0.7705 0.8237 2.7223 –SMART-tiny-CLSFT 7.0M 0.7728 0.4660 0.8057 0.9058 1.5044 –
+> Sketch Control
+> VBD-CL (1%) 1.3M 0.7432 0.4720 0.7592 0.8776 0.9645 64.56% SMART-tiny-CLSFT (1%) 2.1M 0.7984 0.5305 0.8146 0.9307 0.2561 82.97% Latent Control
+> VBD-CL (1%) 1.9M 0.7440 0.4625 0.7801 0.8584 0.9221 66.12% SMART-tiny-CLSFT (1%) 1.4M 0.7912 0.5227 0.8077 0.9234 0.3238 78.48% Text Control
+> VBD-CL (1%) 1.9M 0.7306 0.4270 0.7670 0.8572 2.0005 26.51%
+> SMART-tiny-CLSFT (1%) 2.0M 0.7767 0.4751 0.8072 0.9098 1.3537 10.02%
+
+Table 2: Same-Backbone Comparison on ProSim. Using only 1% of the paired control data, FiLM adaptation achieves sketch controllability comparable to the origi-nal ProSim trained with 100% paired data, while providing stronger text controllabil-ity. The mADE gain is computed relative to each block’s unconditional baseline.                               
+
+> Method Paired Control Data Meta ↑mADE ↓mADE Gain ↑
+> Original ProSim
+> ProSim Uncond. –0.704 2.679 –ProSim Sketch 100% 0.749 1.099 58.96%
+> ProSim Text 100% 0.709 2.330 13.03%
+> ProSim with FiLM Adaptation
+> ProSim Uncond. –0.703 2.641 –ProSim + FiLM Sketch 1% 0.750 1.130 57.23% ProSim + FiLM Text 1% 0.717 1.824 30.92%
+
+the Waymo paired control dataset (50 to 50,000 scenarios; 0.01% ∼ 10% data). Figure 5 illustrates how controllability (mADE ↓) and distributional realism (Meta Score ↑) evolve as the amount of training data increases. For reference, we additionally report the performance obtained by fine-tuning the base model with LoRA on the full 100% dataset using the same control adapters. 
+
+Data Efficiency Across Modalities. Our adapters demonstrate strong sample ef-ficiency across control modalities. Even with extremely small amounts of paired control data, they are able to learn effective controllable behaviors while preserv-ing the generative prior of the frozen base model. Among the evaluated modali-ties, Latent control is the most data-efficient: with only 0.01% of the training data, it already achieves performance close to the reference model trained with the full dataset. The Sketch modality also performs strongly under limited supervision, approaching the reference performance with merely 0.1% of the data. In contrast, the Text modality exhibits a delayed scaling curve, requir-ing ∼1% data to outperform the baseline. Because natural language provides abstract guidance and relies on noisy auto-generated captions (e.g., ProSim-Data Efficient Fine-Tuning for Controllable Traffic Simulation 11 0.25               
+
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> mADE
+> Sketch
+> Reference line (100%)
+> Latent Text
+> 00.01% 0.1% 1% 10%
+> 0.770
+> 0.775
+> 0.780
+> 0.785
+> 0.790
+> 0.795
+> 0.800
+> Realism
+> 00.01% 0.1% 1% 10% 00.01% 0.1% 1% 10%
+> Training data used (%)
+
+Fig. 5: Sample Efficiency on WOSAC. Evaluated using the autoregressive back-bone. We report controllability (mADE ↓, top) and realism (Meta Score ↑, bottom) as a function of training data size. The unconditional base model corresponds to the 
+
+0% data point. Our adapters achieve strong controllability with minimal supervision, surpassing the base model with only 0.01% (Latent) and 0.1% (Sketch) data while maintaining comparable realism. Performance saturates around 10% data, matching a full-data LoRA finetuning. 
+
+Instruct-520k), text control primarily serves as high-level intent biasing rather than precise trajectory supervision. 
+
+Realism Preservation and Saturation. Importantly, extremely low-data regimes do not compromise simulation realism. While Meta scores for Sketch and Text dip slightly at 0.01% , they rapidly recover and match the base model by 0.1% 
+
+data, while Latent control improves realism from the start. Performance across all modalities saturates around 10% data, where Sketch, Latent and Text adapters achieve mADE comparable to the reference performance obtained by LoRA fine-tuning on the full 100% dataset (see Fig. 5). This suggests that effective controllable simulation can be achieved without large-scale paired annotations. 
+
+4.4 Counterfactual and Long-Tail Scenario Generation 
+
+Having established the sample efficiency of our control adaptation framework, we next evaluate its practical utility for scenario generation using the context-aware scenario transfer pipeline described in Sec. 3.5. Specifically, we generate counterfactual and long-tail scenarios within existing traffic scenes. For these ex-periments, we use logits-level classifier-free guidance during decoding; see Section E.1 of the supplementary material. (i) Counterfactual Rollouts: We select 250 query agents and retrieve context-matched agents representing common driving intentions ( turning, lane changing, accelerating, decelerating, cruising, stopping ). For each query agent, we select up to four distinct intentions with the highest context-match scores and transfer the corresponding behavior annotations ( sketch or latent ) to the query agent in the original scene to generate counterfactual rollouts. 12 Y.-H. Chen et al. 
+
+Table 3: Counterfactual Rollouts. Control adapters enable diverse counterfac-tual rollouts while maintaining closed-loop driving quality. Sketch and latent controls achieve strong controllability (low Control ADE and high maneuver success), while all modalities increase trajectory diversity (Coverage) compared to the unconditional model without degrading safety metrics or PDMScore.                                    
+
+> Method Control ADE (m) Success (%) ↑Coverage ↑Coll. ↓Offroad ↓PDMScore ↑
+> Unconditional ––201.02 0.0563 0.0252 78.40
+> Sketch CF 0.3727 70.61 287.17 0.0836 0.0252 79.30
+> Latent CF 0.4542 73.89 254.41 0.0774 0.0251 80.33 Text CF 2.4446 69.84 282.57 0.0520 0.0227 79.56
+
+Evaluation Metrics. For counterfactual generation, we evaluate three as-pects: (i) controllability , i.e., how well the transferred behavior controls the target agent, (ii) behavioral diversity , and (iii) driving realism . Controlla-bility is measured using Control ADE , which computes the displacement er-ror between the generated trajectory and the transferred control behavior (e.g., sketch or latent trajectory). We also report the maneuver Success Rate , defined as the fraction of rollouts that successfully execute the same high-level maneuver in each scenario. To evaluate diversity, Coverage measures the spatial distri-butional spread of generated trajectories, computed as the number of grid cells whose kernel density estimate (KDE) exceeds a predefined threshold [25]. Driv-ing realism is evaluated using Collision , Offroad , and the closed-loop PDM-Score [5]. We do not report WOSAC metrics in this setting, as they measure similarity to ground-truth trajectories, which is not appropriate for counterfac-tual generation where trajectories intentionally deviate from the recorded future. Table 3 shows that our control adapters enable effective counterfactual gener-ation across modalities. Sketch and latent controls achieve strong controllability, reflected by low Control ADE and high maneuver success rates ( 70%). At the same time, driving realism is preserved, with all modalities maintaining stable safety metrics and achieving PDM scores comparable to or higher than the un-conditional baseline. Finally, the generated trajectories exhibit greater diversity: conditioning on different high-level behaviors increases trajectory coverage com-pared to the unconditional baseline, indicating that our framework can explore multiple plausible futures within the same scene (see Sec. A of the supplementary material for qualitative results). (ii) Long-Tail Synthesis: Beyond generating alternative futures within a scene, we also evaluate whether our framework can synthesize rare behaviors in new contexts. We use the SMART model’s likelihood from [27] to identify the top 
+
+0.1% hardest-to-predict scenarios in the dataset. From these scenarios, we curate eight long-tail behavior categories, including plaza turning, meandering, thread-ing stopped cars, multi-lane weaving, unsignalized crossing, fork-merge turning, tight merging, and aggressive U-turns , as shown in Fig. 6. Similar to the counterfactual setup, for each behavior, we retrieve the top 30 context-matched candidate agents and transfer the corresponding behavior la-tent ztarget to the selected agent while leaving surrounding agents unconditioned. Data Efficient Fine-Tuning for Controllable Traffic Simulation 13 
+
+Table 4: Long-Tail Scenario Generation. Context-aware retrieval significantly improves intent alignment and driving quality when transferring rare behaviors to new contexts. Compared to random context selection, context matching reduces collisions and improves closed-loop driving performance.                       
+
+> Strategy Control ADE ↓Traj ADE Coll. ↓Offroad ↓PDMScore ↑
+> Context Random 3.8723 16.33 0.3175 0.1553 39.06
+> Context Match 1.6994 11.30 0.1574 0.0661 65.27 Unconditioned Conditioned  Query
+> Cyclist Plaza Turn Aggressive U -Turn Stopped -Car Bypass Tight Merge Fork Merge
+
+Fig. 6: Qualitative results of long-tail scenario generation. Top: Source sce-narios providing the target long-tail behavioral latents. Middle: Default base model predictions in the retrieved matching contexts, showing only nominal driving. Bot-tom: Our framework successfully injects the queried intent, enabling agents to execute complex, safety-critical maneuvers realistically in novel contexts. 
+
+As a baseline, we compare against randomly selecting agents within the scene to receive the transferred behavior. Since long-tail behaviors intentionally deviate from nominal driving, we additionally report Traj ADE to quantify the extent to which the generated trajectory diverges from the unconditional simulation. Table 4 highlights the importance of context-aware transfer. Random context transfer often places the target behavior in incompatible environments, leading to significantly higher collision rates ( 0.3175 ) and degraded driving performance. In contrast, Context Match better aligns the injected behavior with compatible traffic contexts, reducing collisions ( 0.1574 ) and improving the PDMScore. Nevertheless, transferring long-tail behaviors across scenarios remains inher-ently challenging, as these maneuvers (e.g., tight merges) are rare and highly constrained. We observe that many collision cases result from the trade-off be-tween enforcing the conditioned long-tail behavior and preserving safe inter-actions with surrounding agents. Finally, the large trajectory deviation ( Traj ADE = 11 .30 m) indicates that the model successfully overrides the nominal unconditional behavior to execute the targeted long-tail interactions. 14 Y.-H. Chen et al. 0 10,000 20,000 30,000 40,000 50,000             
+
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> minADE
+> 010,000 20,000 30,000 40,000 50,000
+> 0.70
+> 0.72
+> 0.74
+> 0.76
+> 0.78
+> Realism meta
+> 010,000 20,000 30,000 40,000 50,000
+> 1.05
+> 1.20
+> 1.35
+> 1.50
+> 1.65
+> Open-loop validation loss
+> Training step
+> FiLM FiLM without identity init Additive
+
+Fig. 7: Ablation on Modulation Mechanisms. Multiplicative FiLM (Blue) con-verges faster and achieves lower mADE than additive modulation (Green), reaching strong performance within fewer optimization steps. Identity initialization is crucial for preserving the base model’s realism prior (Center) at the start of training. 
+
+Table 5: Static vs. Dynamic Control Conditioning. Realism and controllability results for Sketch and Latent modalities. 
+
+Representation Time Emb. Meta ↑ Kinematic ↑ Interactive ↑ Map ↑ mADE ↓
+
+Sketch Control Modality 
+
+Dynamic × 0.7799 0.5261 0.7921 0.9091 0.3970 
+
+Static ✓ 0.7719 0.5083 0.7823 0.9091 1.0598 
+
+Latent Control Modality 
+
+Dynamic × 0.7848 0.5272 0.8027 0.9089 0.3151 
+
+Static ✓ 0.7880 0.5113 0.8087 0.9195 0.4842 
+
+4.5 Ablation Studies 
+
+We conduct additional ablations to validate our core design choices regarding adapter modulation design and conditioning strategies. Unless otherwise speci-fied, models are trained on a 5,000-scenario subset ( ∼1% of WOMD) utilizing the autoregressive backbone to ensure rapid iteration while preserving statistical significance. 
+
+Adapter Modulation Design. We study the architectural design of the con-trol adapter using the Sketch modality. Figure 7 compares our proposed FiLM with Identity Initialization against two baselines: FiLM with random initial-ization and additive modulation. The additive baseline injects control signals via bias addition, i.e., h(l)
+
+add = h(l) + β(l)(zi).As shown in Fig. 7, identity initialization is critical. Randomly initialized adapters significantly disrupt the pretrained model early in training, causing a severe drop in realism, whereas identity-initialized FiLM preserves the base model’s behavior from the start. Moreover, FiLM is substantially more efficient: while additive modulation fails to converge after 50k steps ( ∼9 hours on a single RTX 4090), our FiLM adapter reaches better mADE in under 12k steps ( ∼2.2 hours). These results suggest that identity-initialized multiplicative modulation provides a stronger inductive bias for control-adapter fine-tuning. Data Efficient Fine-Tuning for Controllable Traffic Simulation 15 
+
+Control Conditioning Strategy. We compare two conditioning strategies: (i) 
+
+Static , which encodes the control signal once and injects it with a time embed-ding, and (ii) Dynamic , which re-encodes the control signal at each timestep. As shown in Table 5, dynamic conditioning achieves lower mADE, while static conditioning preserves competitive realism and avoids strict timestep alignment. This flexibility is beneficial in closed-loop simulation, where agents must adapt to surrounding interactions. 
+
+## 5 Limitations and Future Work 
+
+Despite these gains, our method still faces limitations in handling infeasible or ambiguous controls. When a user-specified instruction conflicts with the sur-rounding traffic context, the model may prioritize control satisfaction over real-istic and safe interactions. Future work could address this through RL fine-tuning or guidance-based inference to better balance control fidelity and realism. In ad-dition, our experiments focus primarily on controlling a single agent, and future work will extend the framework toward coordinated multi-agent control. 
+
+## 6 Conclusion 
+
+We present a data-efficient control adaptation framework that enables control-lable traffic simulation across multiple conditioning modalities, including sketch, latent behavior codes, and natural language. Built on top of pretrained genera-tive traffic models, our lightweight adapters can be applied to both autoregres-sive and diffusion-based architectures without modifying the backbone mod-els. Experiments show that our approach achieves strong controllability while preserving simulation realism using only 1% of the paired control data .Beyond standard control evaluations, our framework enables counterfactual scenario generation and long-tail behavior synthesis , producing diverse yet realistic traffic interactions. 
+
+## Acknowledgements 
+
+This work was supported by the National Science and Technology Council under Grants 113-2628-E-A49-022 and 114-2628-E-A49-007, the H&J Global Chair, the Ministry of Education, and the Yushan Fellow Program Administrative Support Grant. W.-J. Chang was supported by the National Science Foundation Grad-uate Research Fellowship Program under Grant DGE-2146752. The views ex-pressed herein are those of the authors and do not necessarily reflect those of the National Science Foundation. Y.-H. Chen thanks the HCIS Lab at NYCU and the MSC Lab at UC Berkeley for their support. 16 Y.-H. Chen et al. 
+
+## References 
+
+1. Bergamini, L., Ye, Y., Scheel, O., Chen, L., Hu, C., Del Pero, L., Osiński, B., Grimmett, H., Ondruska, P.: Simnet: Learning reactive self-driving simulations from real-world observations. In: ICRA (2021) 2. Chang, W.J., Pittaluga, F., Tomizuka, M., Zhan, W., Chandraker, M.: Safe-sim: Safety-critical closed-loop traffic simulation with diffusion-controllable adversaries. In: ECCV (2024) 3. Chang, W.J., Zhan, W., Tomizuka, M., Chandraker, M., Pittaluga, F.: Langtraj: Diffusion model and dataset for language-conditioned trajectory simulation. In: ICCV (2025) 4. Chen, P.L., Kung, C.H., Chang, C.H., Chiu, W.C., Chen, Y.T.: Controllable col-lision scenario generation via collision pattern prediction. In: ICRA (2026) 5. Dauner, D., Hallgarten, M., Li, T., Weng, X., Huang, Z., Yang, Z., Li, H., Gilitschenski, I., Ivanovic, B., Pavone, M., Geiger, A., Chitta, K.: Navsim: Data-driven non-reactive autonomous vehicle simulation and benchmarking. In: NeurIPS (2024) 6. Ding, W., Cao, Y., Zhao, D., Xiao, C., Pavone, M.: Realgen: Retrieval augmented generation for controllable traffic scenarios. In: ECCV (2024) 7. Ettinger, S., Cheng, S., Caine, B., Liu, C., Zhao, H., Pradhan, S., Chai, Y., Sapp, B., Qi, C.R., Zhou, Y., Yang, Z., Chouard, A., Sun, P., Ngiam, J., Vasudevan, V., McCauley, A., Shlens, J., Anguelov, D.: Large scale interactive motion forecasting for autonomous driving: The waymo open motion dataset. In: ICCV (2021) 8. Feng, L., Li, Q., Peng, Z., Tan, S., Zhou, B.: Trafficgen: Learning to generate diverse and realistic traffic scenarios. In: ICRA (2023) 9. Gulino, C., Fu, J., Luo, W., Tucker, G., Bronstein, E., Lu, Y., Harb, J., Pan, X., Wang, Y., Chen, X., Co-Reyes, J.D., Agarwal, R., Roelofs, R., Lu, Y., Montali, N., Mougin, P., Yang, Z., White, B., Faust, A., McAllister, R., Anguelov, D., Sapp, B.: Waymax: An accelerated, data-driven simulator for large-scale autonomous driving research. In: NeurIPS (2023) 10. Ho, J., Salimans, T.: Classifier-free diffusion guidance. arXiv preprint arXiv:2207.12598 (2022) 11. Hu, E.J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W.: LoRA: Low-rank adaptation of large language models. In: ICLR (2022) 12. Huang, Z., Zhang, Z., Vaidya, A., Chen, Y., Lv, C., Fisac, J.F.: Versatile behavior diffusion for generalized traffic agent simulation. arXiv preprint arXiv:2404.02524 (2024) 13. Igl, M., Kim, D., Kuefler, A., Mougin, P., Shah, P., Shiarlis, K., Anguelov, D., Palatucci, M., White, B., Whiteson, S.: Symphony: Learning realistic and diverse agents for autonomous driving simulation. In: ICRA (2022) 14. Jiang, C.M., Bai, Y., et al.: Scenediffuser: Efficient and controllable driving simu-lation initialization and rollout. In: NeurIPS (2024) 15. Loshchilov, I., Hutter, F.: Decoupled weight decay regularization. In: ICLR (2019) 16. Van der Maaten, L., Hinton, G.: Visualizing data using t-sne. Journal of machine learning research (2008) 17. Montali, N., Lambert, J., Mougin, P., Boone, A., Boulton, P., Lu, Y., Devin, C., Huguet, R., Dasari, J., Sapp, B., et al.: The waymo open sim agents challenge. In: NeurIPS (2023) 18. Perez, E., Strub, F., de Vries, H., Dumoulin, V., Courville, A.C.: Film: Visual reasoning with a general conditioning layer. In: AAAI (2018) Data Efficient Fine-Tuning for Controllable Traffic Simulation 17 19. Rempe, D., Philion, J., Guibas, L.J., Fidler, S., Litany, O.: Generating useful accident-prone driving scenarios via a learned traffic prior. In: CVPR (2022) 20. Rowe, L., Girgis, R., Gosselin, A., Paull, L., Pal, C., Heide, F.: Scenario dreamer: Vectorized latent diffusion for generating driving simulation environments. In: CVPR (2025) 21. Sanh, V., Debut, L., Chaumond, J., Wolf, T.: Distilbert, a distilled version of bert: smaller, faster, cheaper and lighter. arXiv preprint arXiv:1910.01108 (2019) 22. Tan, S., Ivanovic, B., Chen, Y., Li, B., Weng, X., Cao, Y., Krähenbühl, P., Pavone, M.: Promptable closed-loop traffic simulation. In: CoRL (2024) 23. Tan, S., Ivanovic, B., Weng, X., Pavone, M., Krähenbühl, P.: Language conditioned traffic generation. In: CoRL (2023) 24. Wu, W., Feng, X., Gao, Z., Kan, Y.: Smart: Scalable multi-agent real-time motion generation via next-token prediction. In: NeurIPS (2024) 25. Xu, D., Chen, Y., Ivanovic, B., Pavone, M.: Bits: Bi-level imitation for traffic simulation. In: ICRA (2023) 26. Zhang, L., Rao, A., Agrawala, M.: Adding conditional control to text-to-image diffusion models. In: ICCV (2023) 27. Zhang, Z., Karkus, P., Igl, M., Ding, W., Chen, Y., Ivanovic, B., Pavone, M.: Closed-loop supervised fine-tuning of tokenized traffic models. In: CVPR (2025) 28. Zhao, T., Zhao, L., Eskenazi, M., Black, A.W.: Learning discourse-level diversity for neural dialog models using conditional variational autoencoders. In: ACL (2017) 29. Zhong, Z., Rempe, D., Chen, Y., Ivanovic, B., Cao, Y., Xu, D., Pavone, M., Ray, B.: Language-guided traffic simulation via scene-level diffusion. In: CoRL (2023) 30. Zhong, Z., Rempe, D., Xu, D., Chen, Y., Veer, S., Che, T., Ray, B., Pavone, M.: Guided conditional diffusion for controllable traffic simulation. In: ICRA (2023) 31. Zhou, Z., Hu, H., Chen, X., Wang, J., Guan, N., Wu, K., Li, Y.H., Huang, Y.K., Xue, C.J.: Behaviorgpt: Smart agent simulation for autonomous driving with next-patch prediction. In: NeurIPS (2024) 18 Y.-H. Chen et al. 
+
+# Supplementary Material 
+
+ECoSim: Data Efficient Fine-Tuning for Controllable Traffic Simulation Compared to prior work, our approach enables data-efficient finetuning to in-troduce multiple control knobs for generating counterfactual behaviors in closed-loop simulation. Section A provides qualitative results, Section B presents addi-tional baseline comparisons and ablation studies, Section C provides discussion and limitations, Section D details the experimental setup and metrics, and Sec-tion E covers guidance strategies, architecture and implementation details. Scenario1       
+
+> Accelerating Right Turn Decelerating Straight
+> Right Turn Straight Left Turn Right lane change
+> Scenario 2
+> Conditioned Conditioned  Query Query
+
+Fig. A1: Qualitative counterfactual generation across different traffic scenarios. For each scenario, the Query row displays the isolated reference behaviors (e.g., accel-erating, right turn, lane change), while the Conditioned row illustrates our model’s synthesized trajectories. The results demonstrate that our framework successfully in-jects diverse control queries while seamlessly adapting the resulting kinematics to the target scene’s unique road topology and interactive context. 
+
+## A Qualitative Results 
+
+To better illustrate the dynamic closed-loop performance of our framework, we invite reviewers to view the supplementary videos, which showcase complex coun-terfactual and long-tail simulation scenarios, visualizations shown in Fig. A1. Data Efficient Fine-Tuning for Controllable Traffic Simulation 19 
+
+## B Additional Experimental Results 
+
+B.1 ProSim Baseline and Counterfactual Setup 
+
+Evaluation Setup We additionally report counterfactual generation results com-pared with ProSim [22]. Evaluation is conducted on the subset of validation sce-narios that match ProSim’s processed data. Metrics are computed exclusively on the target controlled agents across all generated rollouts. The ProSim Uncondi-tional (Uncond) setting serves as a baseline representing the model’s unguided prior, where all condition inputs are fully masked. 
+
+Results and Comparison As detailed in Table A1, ProSim suffers a performance trade-off when explicit controls ( Sketch or Text ) are introduced: while it at-tempts to follow the instructions, its overall simulation quality degrades (e.g., Text PDMScore drops to 70.25) and off-road rates increase. In contrast, our framework (using the SMART [24] backbone trained on a 10% subset of WOMD) demonstrates transfer fidelity and generative diversity. 
+
+Our model achieves lower Control ADE across all modalities, translating to higher Success Rates ( ∼87% vs. 67-79%). Crucially, our approach enforces con-trol conditions without compromising base realism, maintaining high PDMScores (∼77-78) and lower off-road rates ( ∼0.040). Furthermore, our method generates substantially broader Spatial Coverage (up to 148.70 vs. ProSim’s 105.60), prov-ing it can execute specific prompts while exploring a richer diversity of plausible futures. 
+
+Table A1: Counterfactual evaluation on the matched ProSim subset. Compared to the ProSim baseline, our proposed framework achieves higher Success Rates and Spatial Coverage while maintaining superior trajectory fidelity (Control ADE) and overall simulation quality (PDMScore) across diverse control modalities.                                                       
+
+> Method Setting Control ADE (m) ↓Success (%) ↑Coverage ↑Coll. ↓Offroad ↓PDMScore ↑
+> ProSim Uncond ––91.25 0.065 0.055 78.90
+> Sketch Only 0.728 79.58 92.41 0.107 0.081 72.35 Text Only 1.768 67.14 105.60 0.133 0.077 70.25
+> Ours
+> Uncond ––91.25 0.072 0.040 76.46 Sketch Only 0.213 87.93 148.70 0.109 0.040 77.95 Latent Only 0.217 88.09 143.59 0.108 0.039 77.47 Text Only 1.363 87.20 140.39 0.072 0.040 77.11
+
+B.2 Target-Only vs. Full-GT Control Conditioning 
+
+We further examine the control-conditioning scope used in Sec. 4.2 of the main paper. Here, target agents refer to the agents designated by the WOSAC proto-col for evaluation in each WOMD scenario. Under the Full-GT setting, control 20 Y.-H. Chen et al. 
+
+Table A2: Ablation on control conditioning scope. Metrics are reported under the same evaluation protocol, while control signals are provided either to all ground-truth-valid agents (Full GT) or only to the WOSAC-designated target agents (Target Only). Bold indicates the better value between Sketch and Text within each condition-ing scope. Control Conditioning Scope Control Meta ↑ Kinematic ↑ Interactive ↑ Map ↑ mADE ↓                      
+
+> Full GT Sketch 0.7984 0.5305 0.8146 0.9307 0.2561
+> Text 0.7767 0.4751 0.8072 0.9098 1.3537 Target Only Sketch 0.7898 0.5237 0.8025 0.9254 0.4602
+> Text 0.7770 0.4767 0.8074 0.9095 1.4101
+
+signals are provided to all ground-truth-valid agents. Under the Target-Only set-ting, control signals are provided only to the WOSAC-designated target agents, while all other agents receive zero conditioning. Both settings are evaluated us-ing the same metrics and evaluation protocol. As shown in Table A2, restricting control conditioning to the designated target agents leads to a reduction in con-trol precision, particularly for Sketch control, while the realism metrics remain largely comparable. These results indicate that our method remains effective under target-only conditioning, although conditioning additional surrounding agents can further improve control accuracy and interaction consistency. 
+
+B.3 Ablation on BehaviorVAE Posterior and Latent Space Analysis 
+
+To validate the BehaviorVAE’s posterior formulation using the VBD [12] back-bone, we investigate the impact of concatenating scene context embeddings with encoded trajectories before the CVAE posterior head ( μ, log σ2). As shown in Table A3, the Without Context baseline achieves a slightly higher Meta metric (0.7361 vs. 0.7335) by defaulting to conservative, generic kinemat-ics that easily satisfy rigid rule-based safety metrics. However, explicitly condi-tioning on scene context ( With Context ) improves spatial fidelity, reducing the Minimum Average Displacement Error (mADE) to 1.0228 by adapting genera-tive predictions to specific road topologies. This quantitative trade-off is visually corroborated by our t-SNE [16] projections (Figure A2). Relying strictly on raw kinematics ( Without Context ) collapses latents into rigidly separated clusters. In contrast, concatenating scene context introduces crucial intra-cluster variance while maintaining clear semantic manifolds (e.g., straight, stop, turns). This context-induced diversity prevents CVAE mode collapse, providing the genera-tive flexibility necessary for accurate behavior transfer across novel scenes. 
+
+B.4 Ablation on Language Instruction Formats 
+
+To determine the optimal language conditioning strategy, we evaluate three dif-ferent formats of descriptions derived from the ProSim-Instruct-520k dataset: Data Efficient Fine-Tuning for Controllable Traffic Simulation 21 With Context Without Context 
+
+Fig. A2: t-SNE visualization of the BehaviorVAE latent space. Colors indicate distinct semantic trajectory types. Left: The With Context formulation, which concatenates scene context embeddings prior to the posterior head, captures rich behavioral diver-sity (intra-cluster variance) while maintaining clear semantic groupings. Right: The 
+
+Without Context posterior relies solely on trajectory features, producing overly con-cise clusters that lack the contextual variance necessary for topology-aware conditional generation. 
+
+Table A3: Ablation on scene context concatenation in BehaviorVAE using the VBD diffusion backbone. With Context improves spatial accuracy (mADE) and kinematic realism by enabling diverse, context-aware generation.                     
+
+> Setting Meta ↑Kinematic ↑Interactive ↑Map ↑mADE ↓
+> No Context 0.7361 0.4481 0.7665 0.8615 1.0368 With Context 0.7335 0.4511 0.7636 0.8563 1.0228
+
+– Text Only: Utilizing the original auto-generated scene descriptions from ProSim-Instruct-520k [22] (e.g., "Make vehicle 1, vehicle 2... and the ego vehicle remain parked for the entire simulation" ). 
+
+– Tag Only: Employing simple, template-based sentences filled with discrete kinematic motion tags (e.g., "The target vehicle is turning left and acceler-ating" ). 
+
+– Text + Tag: A concatenation of both high-level scene descriptions and low-level motion tags. As shown in Table A4, the Tag Only format achieves the lowest Minimum Average Displacement Error (mADE) of 1.4011 and the highest mADE reduc-tion (15.60%). This is expected, as explicit motion tags provide direct kinematic "shortcuts" that make trajectory matching easier for the model. However, we ultimately adopt the Text + Tag strategy for our framework. While it yields slightly higher mADE compared to the tag-only approach, it maintains the high-est Map realism score (0.9024) by retaining crucial high-level scene context. This fosters a more diverse and comprehensive language-guided controllability rather than merely overfitting to kinematic templates. Furthermore, this observation highlights that future efforts in curating precise, manually annotated, and di-verse language descriptions will be pivotal in unlocking the full potential of instruction-following in traffic simulation [3]. 22 Y.-H. Chen et al. 
+
+Table A4: Ablation on language instruction formats. The Text + Tag format bal-ances low-level kinematic precision with high-level scene context.                                       
+
+> Format Meta ↑Kinematic ↑Interactive ↑Map ↑mADE ↓mADE Gain ↑
+> Uncond 0.7665 0.4669 0.8030 0.8906 1.6601 –Text Only 0.7685 0.4690 0.8050 0.8928 1.5790 4.88% Tag Only 0.7766 0.4832 0.8099 0.9015 1.4011 15.60%
+> Text + Tag 0.7742 0.4779 0.8062 0.9024 1.4655 11.72% At -Fault Collision
+> Sudden Brake Collision
+> Time
+
+t1 t2 t3 
+
+Fig. A3: Failure cases during strong context domain shifts. Top (Sudden Brake): 
+
+The agent strictly executes a stop instruction, ignoring trailing vehicles. Bottom (At-Fault): The agent forces a prompted maneuver in dense traffic, overriding reactive safety. 
+
+## C Discussion and Limitations 
+
+While our modulation framework demonstrates effective controllable generation with data efficiency, challenges remain in handling out-of-distribution behaviors and instruction conflicts. In particular, retrieved counterfactual scenarios can be imbalanced: simple behaviors are common, while complex interactions such as overtaking or merging are harder to identify and label due to their rarity in the dataset. Furthermore, we notice that the model may prioritize control in-structions over reactive safety, leading to failures such as sudden brake collisions 
+
+(e.g., ignoring trailing vehicles) or at-fault collisions (e.g., forcing maneuvers in dense traffic), as illustrated in Fig. A3. Future work can utilize reinforcement learning fine-tuning to mitigate these safety-related failures by better balancing instruction adherence with environment-aware reactions. Finally, our current experiments focus on transferring behaviors of a single controlled agent; future work will explore conditioning on multiple agents simultaneously to enable richer multi-agent interaction modeling. Data Efficient Fine-Tuning for Controllable Traffic Simulation 23 
+
+## D Experimental Setup and Evaluation Metrics 
+
+D.1 Datasets and Oracle Validation Setup 
+
+In our evaluation for controllable simulation (Sec 4.2 and 4.3), we feed ground-truth (GT) condition inputs (e.g., sketches, latent codes, or text instructions) directly to the target agents within the scene, ensuring a direct measure of the model’s trajectory synthesis performance. Conversely, for counterfactual and long-tail generation (Sec 4.4), we condition target agents on behavioral inputs transferred from context-matched agents to evaluate practical, non-oracle sce-nario synthesis. 
+
+D.2 WOSAC Challenge Metrics Formulation 
+
+The Waymo Open Sim Agent Challenge (WOSAC) evaluates simulation quality by computing negative log-likelihood (NLL) scores across nine statistical fea-tures, categorized into kinematics, agent interactions, and map adherence. The challenge requires simulating up to 128 agents for 8 seconds, generating 32 joint future samples per scenario. For a given scenario i, target agent a, at timestep t, and statistical feature 
+
+Fj , the likelihood of the ground-truth trajectory is given by: 
+
+NLL (i, a, t, j ) = − log pi,j,a (Fj (x∗(i, a, t )))  (A1) where pi,j,a (·) represents the empirical histogram distribution constructed from the simulated samples. A lower NLL indicates better alignment with real-world behavior. The per-scenario metric is obtained by aggregating NLL values over valid timesteps: 
+
+m(a, i, j ) = exp − 1
+
+N (i, a )
+
+X
+
+> t
+
+v(i, a, t ) · NLL (i, a, t, j )
+
+!
+
+(A2) where N (i, a ) = P 
+
+> t
+
+v(i, a, t ) denotes the number of valid timesteps for agent a.The scenario-level metric is computed by averaging over all target agents Atarget :
+
+m(i, j ) = 1
+
+|Atarget |
+
+X
+
+> a∈Atarget
+
+m(a, i, j ) (A3) Finally, the composite WOSAC Meta metric M is a weighted average over all F
+
+statistical features across N scenarios: 
+
+M = 1
+
+N
+
+> N
+
+X
+
+> i=1
+> F
+
+X
+
+> j=1
+
+wj m(i, j ), s.t. 
+
+> F
+
+X
+
+> j=1
+
+wj = 1  (A4) 24 Y.-H. Chen et al. 
+
+Component Metric Definitions – Kinematic Metrics: 
+
+• Linear Speed: Magnitude of velocity, ∥v∥ = ∥ xt+1 −xt 
+
+> ∆t
+
+∥2.
+
+• Linear Acceleration: Magnitude of acceleration, ∥ vt+1 −vt 
+
+> ∆t
+
+∥2.
+
+• Angular Speed: Rate of heading change, ω = d(θt+1 ,θ t) 
+
+> ∆t
+
+.
+
+• Angular Acceleration: Rate of change of angular speed, d(ωt+1 ,ω t) 
+
+> ∆t
+
+.
+
+– Interaction Metrics: 
+
+• Distance to Nearest Object: Signed distance calculated via the GJK al-gorithm. 
+
+• Collisions: Boolean flag triggered when signed distance < 0.
+
+• Time-to-Collision (TTC): Estimated time until collision under constant velocity. 
+
+– Map Metrics: 
+
+• Distance to Road Edge: Signed distance to the nearest map boundary. 
+
+• Road Departure: Boolean indicator of whether the agent exits the road boundary. 
+
+– Displacement Metrics: 
+
+• Average Displacement Error (ADE): Mean Euclidean distance between the predicted and ground-truth 3D trajectories. For agent  i in rollout  r
+
+over valid timesteps  Ti, it is computed as 
+
+ADE r,i = 1
+
+|Ti|
+
+X
+
+> t∈Ti
+
+p(r) 
+
+> i,t
+
+− plog  
+
+> i,t 2
+
+. (A5) Averaging across all  R rollouts and  N agents gives 
+
+ADE = 1
+
+RN 
+
+> R
+
+X
+
+> r=1
+> N
+
+X
+
+> i=1
+
+ADE r,i . (A6) 
+
+• Minimum Average Displacement Error (mADE): The minimum displace-ment error among all generated rollouts. It first averages  ADE r,i  over all 
+
+N evaluated agents within each rollout and then selects the minimum across  R rollouts: 
+
+mADE = min 
+
+> r∈{ 1,...,R }
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ADE r,i . (A7) For further implementation details, refer to the WOSAC Challenge docu-mentation [17]. 
+
+D.3 PDMScore Formulation 
+
+We adapt PDMScore [5] to evaluate controlled closed-loop rollouts on the Waymo dataset. Compared with the original ego-centric formulation, our adaptation (i) evaluates the controlled target agent, (ii) measures progress along the queried Data Efficient Fine-Tuning for Controllable Traffic Simulation 25 
+
+condition trajectory when available and along the associated route otherwise, and (iii) sets the traffic-light compliance term to one because traffic-light states are not evaluated. The original score structure, component weights, and remain-ing metric definitions are retained and implemented using WOMD map and agent geometry. The final score S is the product of multiplicative compliance terms ( M ) and weighted performance metrics ( W ): 
+
+S = 100 M W, M = N C · DAC · DDC · T LC, W = 5EP + 5 T T C + 2 LK + 2 HC 
+
+14 .
+
+(A8) We set T LC = 1 because traffic-light states are not evaluated in our setting. The remaining metric components are defined as follows: 
+
+– No At-Fault Collision ( N C ): A binary multiplier indicating whether the target agent avoids at-fault collisions. Collisions are detected using oriented bounding-box overlap, and at-fault status is classified from the relative po-sitions and motions of the interacting agents. 
+
+– Drivable-Area Compliance ( DAC ): A binary multiplier indicating whether the target agent remains within the drivable region. We associate the roll-out with nearby lane and drivable-area polylines and evaluate the distances of both the bounding-box center and corners. Brief off-road deviations are tolerated according to the thresholds specified in our implementation. 
+
+– Driving-Direction Compliance ( DDC ): A route-compliance multiplier that penalizes sustained motion opposite to the direction of the associated lane. 
+
+– Ego Progress ( EP ): Following the original PDMScore terminology, this metric measures the positive projected displacement of the target agent along the queried condition trajectory when available, or along the associated route otherwise. The resulting progress score is normalized and clipped to [0 , 1] .
+
+– Time-to-Collision Proxy ( T T C ): A binary short-horizon safety score ob-tained by extrapolating the target agent under a constant-velocity assump-tion and checking for potential at-fault collisions within the TTC horizon. 
+
+– Lane Keeping ( LK ): A binary route-adherence score based on the smoothed lateral distance to the associated lane. We set LK = 0 when this distance continuously exceeds the lane-keeping threshold for the configured duration. 
+
+– History Comfort ( HC ): A binary comfort score based on bounds on longi-tudinal and lateral acceleration, jerk, yaw rate, and yaw acceleration. Tempo-ral smoothing and quantile-based aggregation reduce sensitivity to isolated noise in generated rollouts. 
+
+D.4 Additional Evaluation Metrics 
+
+Beyond WOSAC and PDMScore, we report the following metrics in Sec. 4.4 of the main text to provide a comprehensive analysis of trajectory fidelity and 26 Y.-H. Chen et al. 
+
+generative diversity. For each scenario, metrics are computed exclusively on the target controlled agents across K = 32 generated rollouts. 
+
+– Trajectory ADE (TrajADE): Calculates the mean L2 distance between the predicted trajectories and the unconditioned model rollout trajectories over the overlapping valid frames Toverlap . Averaged over the K rollouts, it measures the overall spatial deviation: 
+
+TrajADE = 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ 1
+
+|Toverlap |
+
+X
+
+> t∈Toverlap
+
+∥xpred  
+
+> k,t
+
+− xref  
+
+> t
+
+∥2
+
+ (A9) 
+
+– Control ADE: Measures the geometric fidelity between the synthesized tra-jectory and the queried condition trajectory after applying a local coordinate alignment (translation and rotation). This alignment removes ego-motion bias to strictly evaluate control adherence. Averaged over the K rollouts: 
+
+Control ADE = 1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ 1
+
+|Toverlap |
+
+X
+
+> t∈Toverlap
+
+∥xq, local  
+
+> k,t
+
+− xpred, local  
+
+> k,t
+
+∥2
+
+
+
+(A10) 
+
+– Success Rate (%): The average ratio of valid rollouts that successfully meet specific safety and goal completion criteria, averaged across all Ncases 
+
+scenarios: 
+
+Success = 1
+
+Ncases 
+
+> Ncases
+
+X
+
+> i=1
+
+ nsuccess ,i 
+
+nvalid ,i 
+
+
+
+× 100%  (A11) 
+
+– Coverage: Quantifies the exploration breadth of the generative rollouts. Following [25], we discretize the map into a set of grid cells G, where each cell g has a center cg and an area ∆A . Let dg ∈ { 0, 1} denote the drivable space mask ( 1 for drivable). We apply Kernel Density Estimation (KDE) over all rollouts and timesteps to obtain the spatial density ˆρ(x). A cell is defined as "covered" if its density exceeds a threshold τ , denoted by the indicator function: 
+
+zg = 1[ˆ ρ(cg ) > τ ] (A12) From this, we define the Coverage Ratio ( Call ) as follows: 
+
+Call = 1
+
+|G| 
+
+X
+
+> g∈G
+
+zg (A13) 
+
+## E Implementation Details 
+
+E.1 Inference and Decoding Strategy 
+
+To explicitly balance control fidelity and natural driving priors, our synthetic scenario experiments utilize the SMART [24] model trained on a 10% subset Data Efficient Fine-Tuning for Controllable Traffic Simulation 27 
+
+of the full training data. During autoregressive decoding, we employ a logits-level Classifier-Free Guidance (CFG) [10] mechanism. At each decoding step, we extract unconditional logits ( Lbase ) from the base model and conditional logits ( Lcontrol ) from the control model. The final extrapolated logits are then computed as: 
+
+Lfinal = Lbase + ω × (Lcontrol − Lbase )
+
+This mixed Lfinal is subsequently converted to a probability distribution via Soft-max, followed by standard Top-K and Top-P sampling strategies to predict the next trajectory token. To optimize the trade-off between instruction adherence and scene realism, we empirically configure the guidance scale ω based on the control modality: ω = 0 .5 for Sketch, ω = 0 .7 for Latent, and ω = 1 .0 for Text conditioning. 
+
+E.2 LoRA Base-Model Finetuning on the Full Training Set 
+
+As a reference performance in Sec. 4.3 (Fig. 5), we additionally consider a setting where the control branch is trained jointly with LoRA adapters inserted into the base decoder using the full training dataset. This setting increases both adaptation capacity and data scale. Concretely, we keep the pretrained SMART backbone frozen at the full-parameter level but inject LoRA adapters into the base decoder’s attention projections with a rank of 16, a scaling factor of 0.4, and a dropout of 0.05. The control branch remains active and uses the same FiLM-based conditioning interface as in the standard control experiments. In the sketch-conditioned exam-ple run, the control encoder utilizes a 16-step control horizon, 256-dimensional control tokens, 2 temporal transformer layers, 4 attention heads, and FiLM mod-ulation at decoder blocks 0–5 with a FiLM hidden dimension of 256. This setting is trained on the full Waymo training set (486,995 scenarios) using a batch size of 4, a learning rate of 5×10 −5, 16-bit mixed-precision training, and gradient clipping at 0.5 for up to 100 epochs. 
+
+E.3 ProSim Unconditional Baseline Implementation 
+
+To obtain the true unconditional ProSim baseline, which has not been exposed to any paired control data during training, we mask all prompt inputs and retrain the model from scratch following the original ProSim training procedure [22]. We use the original optimizer and training hyperparameters and select the check-point after the validation loss has converged. The retrained model achieves an mADE of 2.641, comparable to 2.679 from the official ProSim checkpoint, pro-viding a consistent unconditional baseline for evaluating our FiLM adaptation. 
+
+E.4 BehaviorVAE Training Details 
+
+Our BehaviorVAE was trained on 10,000 Waymo scenarios (approximately 2% of the full training set), processing up to 64 agents per scene and predicting 28 Y.-H. Chen et al. 
+
+41 future time steps. The model employs a 6-layer context encoder inherited from VBD [12], which is jointly optimized with the VAE. Each agent’s fu-ture trajectory is transformed into its local coordinate frame, represented as 
+
+(∆x, ∆y, sin ∆θ, cos ∆θ ), and processed by a 2-layer GRU (hidden size 512) fol-lowed by a single relative-geometry-aware self-attention layer to model inter-agent interactions. This extracts a 512-dimensional agent-specific latent variable without relying on a global scene latent. The posterior is parameterized by con-catenating trajectory and context features, while the conditional prior is pre-dicted solely from context features. The decoder, a 6-layer MLP, reconstructs trajectory deltas by conditioning on the latent code and a learned time em-bedding. The training objective minimizes a masked MSE reconstruction loss alongside a KL regularization term ( L = Lrecon + βLKL ). Using latent sampling after a 1,000-step warm-up, the KL coefficient ( β) is linearly annealed to 0.001 over the first 20,000 steps. The model is optimized using AdamW [15] (learning rate 3 × 10 −4, batch size 4, gradient clipping 1.0) in FP32 precision on two RTX 4080 GPUs for 200 epochs. At convergence, the training loss reached 0.0269 and the validation loss was 0.0389, establishing a diverse and structured behavior prior. 
+
+E.5 Control Representation Encoders 
+
+We adopt the same control-conditioning interface for both the SMART and VBD backbones, where each control modality is first encoded into a standardized 256-dimensional per-agent control token and injected into the frozen generative decoder through FiLM layers. For text control, both models utilize a frozen Dis-tilBERT [21] ( distilbert-base-uncased ) backbone to process prompts (trun-cated to 384 tokens) from the ProSim-Instruct-520k corpus. We insert LoRA [11] adapters (rank 16, scaling factor 0.4, dropout 0.05) into the attention projec-tions of 6 adapted layers, and the resulting text features are linearly projected into the shared control space. For sketch control, each agent’s relative (x, y, θ )
+
+trajectory over a 16-step control horizon is processed by a 2-layer temporal transformer (with 4 attention heads and a feed-forward dimension of 256) and pooled into the control token. Finally, for latent control, we retain the identical FiLM interface but replace the sequence encoders with a 3-layer MLP that maps the 512-dimensional BehaviorVAE latent codes directly into the 256-dimensional conditioning space. Across all settings, the backbone generative decoder remains completely frozen; only the modality-specific control branches and FiLM layers are optimized. 
+
+E.6 FiLM Parameters and Structure 
+
+The FiLM [18] module in both the SMART and VBD backbones utilizes direct feature-wise affine modulation: 
+
+FiLM( x, c ) = γ(c) ⊙ x + β(c) (A14) Data Efficient Fine-Tuning for Controllable Traffic Simulation 29 
+
+where x denotes the decoder hidden feature and c denotes the control token. In both models, the FiLM MLP takes a 256-dimensional conditioning feature as input and predicts channel-wise modulation parameters for the decoder hidden state. For the SMART backbone, FiLM is attached to decoder blocks 0–5, with a FiLM hidden dimension of 256. For VBD, FiLM is attached to denoiser blocks 0–1, with a FiLM hidden dimension of 512 in the referenced text-conditioned run. Crucially, in both implementations, FiLM is initialized close to the iden-tity transformation. The final FiLM layer is initialized with very small weights, the scale branch is biased toward γ ≈ 1, and the shift branch is biased toward 
+
+β ≈ 0 (with a minor random perturbation added to avoid exact identity at ini-tialization). This design stabilizes control fine-tuning by ensuring the pretrained decoder behavior is perfectly preserved at the beginning of training, allowing the control branch to gradually learn non-trivial modulations. 
+
+E.7 Optimization Hyperparameters 
+
+For control fine-tuning, both models are optimized using AdamW under 16-bit mixed-precision training. Unless otherwise noted, the base decoder remains frozen, and only the control modules are updated. For the SMART backbone, the learning rate is set to 5 × 10 −5 with no warm-up, a minimum learning-rate ratio of 0.05, gradient clipping at 0.5, and synchronized batch normalization. For VBD control training, we use a learning rate of 1 × 10 −4 for the Control branch, with a weight decay of 0.01 and gradient clipping via value clamping at 5.0. Both SMART and VBD are trained under receding-horizon closed-loop con-trol. In VBD, replanning is performed every 11 steps, utilizing a prediction hori-zon of 40 steps and 5 denoising steps per planning update; additionally, during closed-loop training, we generate 8 candidate trajectories and select the one clos-est to the ground truth. In SMART, control is similarly applied in a receding-horizon manner, processing 11 historical steps and 80 future steps in the decoder, with control signals injected over a 16-step control horizon (window-aligned la-tent indexing is used for latent control). 
+
+E.8 Context Matching Heuristic Filter 
+
+To retrieve compatible donor scenarios, we use a non-leaky context-matching heuristic based only on observed history. For each query agent, candidate agents are represented by a SMART history embedding and five historical descriptors: 
+
+(i) Dynamic , including speed, acceleration, yaw rate, curvature, and displace-ment; (ii) Trajectory , the recent ego-aligned trajectory; (iii) Map Context ,the local map composition; (iv) Map kNN , nearby map geometry and types; and (v) Neighbor Context & kNN , surrounding traffic layout, relative mo-tion, and agent types. Retrieval proceeds in three stages. First , candidates are restricted to the same agent type and the query scenario is excluded. Second , a coarse pool is 30 Y.-H. Chen et al. 
+
+formed by combining top candidates ranked by encoder-feature similarity and trajectory distance. Third , candidates are re-ranked using 
+
+s = wfeat sfeat + wtraj dtraj + wmap _knn dmap _knn + wnbr _knn dnbr _knn 
+
+− wdyn ddyn − wmap dmap − wnbr dnbr , (A15) which rewards feature similarity and penalizes descriptor distances. We use geometry-aware weights of wfeat = 0 .18 , wtraj = 0 .40 , wmap _knn =0.22 , wnbr _knn = 0 .20 , wdyn = 0 .08 , wmap = 0 .04 , and wnbr = 0 .03 . We further require dtraj ≤ 0.08 , dmap _knn ≤ 1.4, and dnbr _knn ≤ 1.3. If no candidate passes these thresholds, a score-based fallback retrieves the minimum required number of matches. 
+
+E.9 Qualitative Examples of Language Prompts 
+
+We show five prompts from scenario b6975ecc8d04afde to illustrate our Text + Tag format, which combines scene descriptions with motion tags. 
+
+Scenario ID: b6975ecc8d04afde 
+
+Agent 777: Meanwhile, vehicle 1, the target vehicle, and vehicle 2 move in a straight line throughout the scenario. The target vehicle is moving straight between 0.0 seconds and 9.0 seconds and decelerating between 5.0 seconds and 6.0 seconds. 
+
+Agent 781: The target vehicle makes a left turn from 4.0 seconds onwards. The target vehicle is turning left between 1.0 seconds and 6.0 seconds, slowing down to a stop between 5.5 seconds and 9.0 seconds, and moving straight between 6.0 seconds and 8.5 seconds. 
+
+Agent 877: At the start of the simulation, have the target vehicle accel-erate and then make a right turn. The target vehicle first accelerates, then makes a right turn, and eventually stops. The target vehicle is accelerating between 0.0 seconds and 1.0 seconds and turning right between 0.0 seconds and 1.5 seconds. 
+
+Agent 773: The target vehicle makes a left turn from the start to the end of the scenario. The target vehicle is turning left between 0.0 seconds and 9.0 seconds and keeping a steady speed between 5.5 seconds and 6.5 seconds. 
+
+Agent 768: A cluster of vehicles, including the target vehicle, vehicle 1, vehicle 2, and others, remain parked throughout the simulation. The target vehicle is parked between 0.0 seconds and 9.0 seconds.
