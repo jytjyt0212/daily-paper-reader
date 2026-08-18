@@ -1,0 +1,2662 @@
+Title: The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning
+
+URL Source: https://arxiv.org/pdf/2608.16245v1
+
+Published Time: Tue, 18 Aug 2026 02:19:38 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+# Małgorzata Łazęcka 
+
+m.lazecka@uw.edu.pl Faculty of Mathematics, Informatics, and Mechanics, University of Warsaw Warsaw, Poland 
+
+# Ewa Szczurek 
+
+em.szczurek@uw.edu.pl Institute of AI for Health, Helmholtz Munich Munich, Germany Faculty of Mathematics, Informatics, and Mechanics, University of Warsaw Warsaw, Poland 
+
+## Abstract 
+
+Disentangled representation learning seeks latent representations whose indicidual dimensions each align with a distinct covariate. Unsupervised approaches typically target latent dimension inde-pendence, yet this gives no guarantee that the resulting dimen-sions align with semantically meaningful covariates. Supervised approaches structure the latent space using observed covariates, but under correlated covariates they cannot simultaneously control one-to-one latent-covariate alignment and latent independence. We introduce a unified, supervised framework that couples latent dimension-covariate dependence with constraints on the latent structure. Within this framework, we show an inherent trade-off, where enforcing latent independence or exclusive one-to-one latent-covariate dependence comes at a provable cost in latent-covariate alignment. We prove that the resulting disentanglement regimes are ordered by the strength of that alignment. Each regime ad-mits a closed-form transformation of the latent space. We apply these transformations post-hoc to realign the representations of pretrained models such as CLIP, DINOv2, and ViT, and we fold them into the inference of informed factor analysis (iFA), a proba-bilistic model with covariate-informed factors. On simulated and real multi-omics data, we show that both post-hoc alignment and iFA enable controllability of structured latent representations. 
+
+## CCS Concepts 
+
+• Computing methodologies → Learning latent representa-tions ; Supervised learning ; Latent variable models ; Factor analy-sis .
+
+## Keywords 
+
+disentanglement, supervised latent representation learning, factor analysis 
+
+## 1 Introduction 
+
+Latent representation learning maps a high-dimensional data space to a low-dimensional one, encoding each observation as a compact 
+
+latent representation capturing its essential characteristics. A long-standing objective of latent representation learning is to obtain representations whose individual dimensions align with distinct, semantically meaningful factors of variation [6]. Such disentangled representations promise interpretability, controllable generation and 
+
+Figure 1: Overview of the proposed framework. Correlated covariates ( Σ𝑌 ) shape the latent structure ( Σ𝑍 ). The trans-formations impose different constraints on the latent space, trading off structural constraints (exclusive latent-covariate dependence, latent inter-independence) against the strength of pairwise latent-covariate dependence ( Σ𝑌 , ˜𝑍 ). 
+
+improved generalization, because they seek to ensure that manipu-lating a single latent dimension changes only one underlying factor of variation [54]. In many real-world applications, the factors of interest are not latent abstractions, but observed covariates such as clinical variables, experimental conditions, or category labels, and the practical aim is a representation in which each latent dimension is aligned one-to-one with its corresponding covariate [23]. This assumption holds when the observed covariates are inde-pendent, but fails in the practically relevant regime of correlated covariates [16, 52], as exemplified by Σ𝑌 in Fig. 1. This correlation arXiv:2608.16245v1 [cs.LG] 17 Aug 2026 Łazęcka M., Szczurek E. 
+
+among covariates creates a tension between two objectives: mak-ing each latent dimension strongly aligned with its covariate, and imposing structural constraints on the latent space, such as indepen-dence among the latent dimensions or exclusive dependence (each dimension aligning only with its own covariate). This trade-off be-tween latent-covariate dependence and structural constraints on the latent space has not been systematically studied. The principle of latent independence is common in fully unsuper-vised approaches, and the way it is applied varies: classical linear methods such as PCA [25, 42] and ICA [27] assume and recover independent sources of variation, while modern nonlinear models encourage independence e.g. through factorized latent representa-tions [12, 23, 32]. Enforcing independence alone, however, does not in general ensure that latent dimensions align with interpretable or meaningful covariates, nor does it guarantee identifiability [38]. Conditioning latent variable models on observed covariates under additional assumptions restores identifiability up to simple trans-formations [31], and a broad family of nonlinear [22, 28, 34, 50, 56] and linear [2, 4, 5, 11, 21, 41, 48, 58] supervised representation learn-ing methods uses observed covariates to structure the latent space. Yet all existing approaches leave open the problem of the simul-taneous control of the one-to-one alignment of each latent dimension with its covariate and of the structural constraints on the latent space, particularly in the general, correlated-covariate setting. 
+
+We close this gap with a supervised framework that character-izes the trade-off between latent dimension-covariate dependence and latent structural constraints, providing a principled approach to controlling latent representations. Our contributions are both theoretical and practical. First, (i) leveraging the non-identifiability of latent representations, we formulate optimization problems over invertible latent space transformations (𝑇 in Fig. 1) whose so-lutions yield latent-covariate dependence across different disen-tanglement regimes: independent latent dimensions ( 𝑇 0), tunable intermediate latent inter-dependencies ( 𝑇 𝜆 ), unconstrained latent inter-dependencies ( 𝑇 1), and a variant with exclusive one-to-one latent-covariate dependence ( 𝑇 ex ). Second, (ii) we prove that these regimes are strictly ordered by latent-covariate alignment strength , and that there exists a fundamental trade-off between structural latent constraints and latent-covariate dependence .Finally, (iii) we demonstrate that the proposed transformations can be applied post hoc to re-align pretrained representations or integrated into a probabilistic graphical model, informed Fac-tor Analysis (iFA) . Through experiments on simulated covariate-covariance scenarios and real multi-omics data, we show that both approaches enable controllability of structured representations. 
+
+## 2 Related works 
+
+Independence-based disentanglement methods. Many disentan-glement approaches assume or encourage independence among the dimensions of the representation, an idea rooted in classical latent variable methods such as principal component analysis (PCA) [25, 42], independent component analysis (ICA) [27], factor anal-ysis (FA) [51], and extended to probabilistic latent variable mod-els, including multi-view factor models, e.g. MOFA [3] and others [33, 44, 57]. The most prominent deep generative examples are VAE-based methods regularizing the latent distribution toward independence, e.g. 𝛽 -VAE [23], FactorVAE [32], or 𝛽 -TCVAE [12]. Similar ideas have also been explored beyond VAEs, for example through concept whitening in convolutional neural networks [14], InfoGAN [13], a generative GAN model which promotes indepen-dence using mutual information, or non-linear ICA extension [9]. 
+
+Supervision in disentanglement and latent representation models. 
+
+Assuming latent independence alone does not guarantee identifia-bility [38]. Consequently, many successful approaches incorporate weak-supervision, such as grouped observations [8], temporal struc-ture [26], or paired observations in which some factors of variation are shared [39]. A second line is supervised in the stronger sense that covariates are directly observed, e.g. used to condition the latent representation, as in CVAE [50], iVAE [31], or SE-VAE [56], among others [22, 28, 34]. The Identifiable VAE (iVAE) [31] tar-gets identifiability by conditioning a factorized exponential-family prior on the covariates, which identifies the latent representation up to a linear and component-wise transformation, which can be understood as a form of disentanglement. 
+
+Supervised linear latent variable models. The use of covariates to guide representations has been also used in linear models. Early examples include supervised extensions of PCA (SPCA), such as by Bair et al. [4], which focus only on features that are individually as-sociated with the covariates, and Barshan et al. [5], which estimates a sequence of principal components that have maximal dependence with covariates. Other related methods include regression- and correlation-based approaches, such as partial least squares (PLS) [55] and canonical correlation analysis (CCA), as well as supervised variants of FA [2, 21, 41, 48, 58]. These methods leverage covari-ates to improve prediction or interpretability, but generally do not enforce a one-to-one latent-covariate alignment. To the best of our knowledge, the only exception is SOFA [11], which explicitly associates individual latent dimensions with specific covariates. 
+
+Disentanglement under correlated covariates. Disentangling the latent space under correlated covariates is important but relatively underexplored [52]. Empirical studies that introduce correlated co-variates [16, 52] show that the problem differs fundamentally from the usual assumption of independent covariates. Enforcing inde-pendence between latent dimensions under correlated covariates degrades the model by e.g. preventing it from attaining the optimal likelihood [52] or discarding information relevant to the covariates and thus harming predictive performance [19]. Exact independence is therefore the wrong objective, motivating relaxations. One line of work requires only the latent space’s support to factorize [47], while another enforces independence conditionally on the covari-ates [19]. The very definitions and metrics of disentanglement must also be rethought to remain valid under dependence [1]. 
+
+## 3 Proposed framework 
+
+In this section, we introduce a unified framework that formally explores the trade-off between latent-covariate dependence and structural constraints on the latent space. The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+## 3.1 Notation and problem setup 
+
+Let 𝑍 ∈ R𝑃 be a latent random vector with covariance matrix Σ𝑍 ≔
+
+Cov (𝑍 ) and unit marginal variances Var (𝑍 𝑝 ) = 1 for 𝑝 = 1, . . . , 𝑃 .Let 𝑌 ∈ R𝑃 be a vector of observed covariates, with Var (𝑌 𝑝 ) = 1for 𝑝 = 1, . . . , 𝑃 , and define the cross-covariance matrix Σ𝑍𝑌 ≔
+
+Cov (𝑍, 𝑌 ). Our objective is a latent representation in which every dimension is paired with the covariate, so that we obtain strong alignment in pairs (𝑍 𝑝 , 𝑌 𝑝 ) for 𝑝 = 1, . . . , 𝑃 .We assume that the latent representation 𝑍 is non-identifiable, in the sense that for any invertible matrix 𝑇 ∈ R𝑃 ×𝑃 , the linearly transformed vector ˜ 𝑍 = 𝑇 𝑍 provides an equivalent representation of the data 𝑋 . We exploit this freedom to select a transformation 
+
+𝑇 that imposes a desirable structure on the latent space, thereby defining a canonical structured representation and resolving rep-resentation ambiguity. Here 𝑋 may be a single vector 𝑋 ∈ R𝑑 or, in the multi-modal case, a collection of vectors {𝑋 (𝑚 ) ∈ R𝑑 (𝑚 )
+
+}𝑀 𝑚 =1
+
+across 𝑀 modalities. In particular, we consider three disentanglement regimes: (i) strong latent dependence on covariates , which maximizes the correlation between each latent dimension and its covariate while leaving the latent dependence structure otherwise unconstrained, 
+
+(ii) decorrelated/independent latent dimensions , which en-forces uncorrelatedness among the latent dimensions (indepen-dence under a joint Gaussian assumption) while aligning each latent dimension with its covariate, and (iii) intermediate latent inter-dependence , which weights the alignment objective against proximity to the decorrelated solution and thereby interpolates between the two extremes. We additionally examine a fourth sce-nario, (iv) exclusive latent-dimension-covariate dependence ,in which each latent dimension is required to correlate only with its own covariate. We pose the problem as pairwise latent-covariate dependence under structural constraints on the latent space, by framing (i)-(iv) within a single unified setup. In particular, in following section we prove that regime (iii) arises as a continuous interpolation between (i) and (ii), and an ordering ordering of all four regimes by their alignment strength. 
+
+## 3.2 Optimization-based formulations and solutions 
+
+We begin with the independence regime (ii), since its whitening transformation fixes a canonical representation 𝑍 on which all re-maining solutions are expressed, then we solve the unconstrained regime (i), followed by the interpolation (iii), and finally the exclusive-dependence regime (iv). 
+
+3.2.1 Independent latent dimensions. We first consider the problem of finding a whitening transformation 𝑇 such that the transformed latent variables are uncorrelated and standardized Cov (𝑇 𝑍 ) = 𝐼 , or equivalently 𝑇 Σ𝑍 𝑇 ′ = 𝐼 . This constraint alone does not determine 
+
+𝑇 uniquely: if 𝑇 satisfies the above condition, then so does 𝑄𝑇 for any orthogonal matrix 𝑄 [30], so whitening is defined only up to an orthogonal rotation. A canonical choice for 𝑇 is the symmetric whitening transformation Σ−1/2 
+
+> 𝑍
+
+, the unique symmetric positive-definite matrix that whitens 𝑍 . The general solution has a form 
+
+𝑇 = 𝑄 Σ−1/2 
+
+> 𝑍
+
+, 𝑄 ′𝑄 = 𝐼 . 
+
+To resolve the remaining ambiguity, we incorporate the covariates 𝑌 
+
+and seek a transformation that, in addition to whitening, maximizes the alignment in latent dimension-covariate pairs ( ˜𝑍 𝑝 , 𝑌 𝑝 ), which leads to max  
+
+> 𝑇
+
+tr (𝑇 Σ𝑍𝑌 ) s.t. 𝑇 Σ𝑍 𝑇 ′ = 𝐼 . (1) Substituting 𝑇 with 𝑄 Σ−1/2 
+
+> 𝑍
+
+reduces the problem to max  
+
+> 𝑄 ′𝑄 =𝐼
+
+tr  𝑄 Σ−1/2 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+,
+
+which is the orthogonal Procrustes problem [49] (Section A.1). Let 
+
+Σ−1/2 
+
+> 𝑍
+
+Σ𝑍𝑌 = 𝑈 𝐷𝑉 ′
+
+be the singular value decomposition. Then the optimal solution is 
+
+𝑄 ∗ = 𝑉𝑈 ′, 𝑇 ∗ 
+
+> 0
+
+= 𝑄 ∗ Σ−1/2 
+
+> 𝑍
+
+.
+
+In terms of Σ𝑍 and Σ𝑍𝑌 (Section A.2) 𝑇 ∗ 
+
+> 0
+
+equals 
+
+𝑇 ∗ 
+
+> 0
+
+=  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+ −1/2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+. (2) Note that (2) is well-defined whenever Σ𝑍 is positive definite. In the following sections, we work with latent variables that have been whitened by the transformation 𝑇 ∗ 
+
+> 0
+
+, and we denote the transformed 𝑍 by 𝑍 ≔ 𝑇 ∗ 
+
+> 0
+
+𝑍 . This simplifies the algebra while preserving the generality of the results, as to recover the transform on the original 𝑍 we simply compose the optimal transformations 
+
+𝑇 (𝑍 ) with 𝑇 ∗ 
+
+> 0
+
+(justification that this yields the same solution as solving the problem for a general 𝑍 is given in Section A.4). 
+
+3.2.2 Strong latent dependence on covariates. We now consider a formulation that prioritizes alignment with 𝑌 while relaxing the demand on the latent independence. In particular, we only enforce that the transformed latent variables have unit marginal variances, thus the problem is max  
+
+> 𝑇
+
+tr (𝑇 Σ𝑍𝑌 ) s.t. diag (𝑇𝑇 ′) = (1, . . . , 1)′ . (3) Let 𝑇 = [𝑡 1, . . . , 𝑡 𝑃 ]′, where 𝑡 𝑝 ∈ R𝑃 are the rows of 𝑇 . The con-straint reduces to 𝑡 𝑝 = 1 for all 𝑝 , and the objective term decom-poses as tr (𝑇 Σ𝑍𝑌 ) =
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+𝑡 ′ 
+
+> 𝑝
+
+(Σ𝑍𝑌 )·𝑝 .
+
+Denoting 𝑎 𝑝 ≔ (Σ𝑍𝑌 )·𝑝 , the problem separates into 𝑃 independent subproblems: max   
+
+> ∥𝑡 𝑝 ∥=1
+
+𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑝 .
+
+By the Cauchy-Schwarz inequality, 
+
+𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑝 ≤ ∥ 𝑡 𝑝 ∥ ∥ 𝑎 𝑝 ∥,
+
+with equality if and only if 𝑡 𝑝 is collinear with 𝑎 𝑝 . Hence, the optimal solution is 𝑡 ∗ 
+
+> 𝑝
+
+= 𝑎 𝑝 
+
+∥𝑎 𝑝 ∥ for 𝑎 𝑝 ≠ 0, or equivalently, 
+
+𝑡 ∗ 
+
+> 𝑝
+
+= (Σ𝑍𝑌 )·𝑝 
+
+∥( Σ𝑍𝑌 )·𝑝 ∥ . (4) For general 𝑍 , the corresponding transformation is 𝑇 ∗ 
+
+> 1
+
+= 𝑇 ∗ 
+
+> 1
+
+(𝑍 ) 𝑇 ∗ 
+
+> 0
+
+.
+
+The connection to regression is discussed in Section A.3. Łazęcka M., Szczurek E. 
+
+3.2.3 Intermediate scenarios. We now interpolate between the two regimes. Let 𝜆 ∈ [ 0, 1] and consider max  
+
+> 𝑇
+
+𝜆 tr (𝑇 Σ𝑍𝑌 ) − 1 − 𝜆 
+
+2 ∥𝑇 − 𝐼 ∥2 
+
+> 𝐹
+
+s.t. diag (𝑇𝑇 ′) = (1, . . . , 1)′, (5) For 𝜆 = 0, 𝑇 ∗ = 𝐼 , while for 𝜆 = 1 we recover (3). Using the identity 
+
+∥𝑇 − 𝐼 ∥2 
+
+> 𝐹
+
+=
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+∥𝑡 𝑝 − 𝑒 𝑝 ∥2,
+
+where 𝑒 𝑝 is the 𝑝 -th canonical basis vector, the problem decomposes into: max   
+
+> ∥𝑡 𝑝 ∥=1
+
+𝜆 𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑝 − 1 − 𝜆 
+
+2 ∥𝑡 𝑝 − 𝑒 𝑝 ∥2,
+
+where 𝑎 𝑝 := (Σ𝑍𝑌 )·𝑝 . Expanding the quadratic term and using 
+
+∥𝑡 𝑝 ∥ = 1, the objective is equivalent to (up to a constant independent of 𝑡 𝑝 )max   
+
+> ∥𝑡 𝑝 ∥=1
+
+𝜆 𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑝 + ( 1 − 𝜆 ) 𝑡 ′
+
+> 𝑝
+
+𝑒 𝑝 .
+
+By the Cauchy-Schwarz inequality, the optimum is attained when 
+
+𝑡 𝑝 is collinear with 𝜆𝑎 𝑝 + ( 1 − 𝜆 )𝑒 𝑝 , which results in 
+
+𝑡 ∗ 
+
+> 𝑝
+
+= 𝜆 (Σ𝑍𝑌 )·𝑝 + ( 1 − 𝜆 )𝑒 𝑝 
+
+∥𝜆 (Σ𝑍𝑌 )·𝑝 + ( 1 − 𝜆 )𝑒 𝑝 ∥ . (6) For general 𝑍 , we obtain 𝑇 ∗ 
+
+> 𝜆
+
+= 𝑇 ∗ 
+
+> 𝜆
+
+(𝑍 ) 𝑇 ∗ 
+
+> 0
+
+. 𝑇 ∗ 
+
+> 𝜆
+
+recovers the previous solutions 𝑇 ∗ 
+
+> 0
+
+and 𝑇 ∗ 
+
+> 1
+
+for 𝜆 = 0 and 𝜆 = 1, respectively (see Table S1). 
+
+3.2.4 Exclusive latent dependence with covariates. We now require each latent dimension to be associated with its covariate while being cross-uncorrelated with all others, i.e. the cross-covariance Cov (𝑇 𝑍, 𝑌 ) = 𝑇 Σ𝑍𝑌 is diagonal max  
+
+> 𝑇
+
+tr (𝑇 Σ𝑍𝑌 ) s.t. (𝑇 Σ𝑍𝑌 )𝑝𝑞 = 0 (𝑝 ≠ 𝑞 ), diag (𝑇𝑇 ′) = (1, . . . , 1)′ .
+
+(7) With 𝑇 = [𝑡 1, . . . , 𝑡 𝑃 ]′ and 𝑎 𝑝 ≔ (Σ𝑍𝑌 )·𝑝 , each row solves max   
+
+> ∥𝑡 𝑝 ∥=1
+
+𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑝 s.t. 𝑡 ′ 
+
+> 𝑝
+
+𝑎 𝑞 = 0 (𝑞 ≠ 𝑝 ).
+
+The constraints force 𝑡 𝑝 to be orthogonal to all 𝑎 𝑞 for 𝑞 ≠ 𝑝 , so the optimum lies in a one-dimensional subspace spanned by (Σ−1 
+
+> 𝑍𝑌
+
+)𝑝 · as 
+
+(Σ−1 
+
+> 𝑍𝑌
+
+)𝑝 · (Σ𝑍𝑌 )·𝑞 = I(𝑝 = 𝑞 ). Thus, taking into account the second constraint, we get 
+
+𝑡 ∗ 
+
+> 𝑝
+
+=
+
+(Σ−1 
+
+> 𝑍𝑌
+
+)′ 
+
+> 𝑝 ·
+
+(Σ−1 
+
+> 𝑍𝑌
+
+)𝑝 ·
+
+(8) giving 𝑇 ∗ 
+
+> ex
+
+= 𝑇 ∗ 
+
+> ex
+
+(𝑍 )𝑇 ∗ 
+
+> 0
+
+for a general 𝑍 . Note that here invertibility of Σ𝑍𝑌 is required for feasibility. 
+
+3.2.5 The comparison of the strength of the dependencies of the regimes. Theorem 3.1 orders the four regimes by latent-covariate dependence strength (proof in Section A.6): dependence increases from the independent regime (ii) through the intermediate regime (iii) to the unconstrained regime (i), while the exclusive regime (iv) at-tains weaker alignment than all of (i)-(iii). The result makes the trade-off between latent-covariate dependence and structural con-straints on the latent precise: in particular latent independence constraint in (ii) carries a cost in alignment relative to the uncon-strained regime (i), and the intermediate regime (iii) traces the entire spectrum of solutions between the two extremes. For general 𝑍 , the regime regularizes the transformation using ∥𝑇 (𝑇 ∗ 
+
+> 0
+
+)−1 − 𝐼 ∥𝐹 , the deviation from the decorrelating solution. This choice makes the problem separable and admits the closed-form solutions 𝑇 𝜆 , which is not the case for the latent-correlation penalty ∥ Cov ( ˜𝑍 ) − 𝐼 ∥𝐹 .All four transformations and their per-dimension covariate depen-dences are summarised in Section A.5. Theorem 3.1. (a) Assume Σ𝑍 is positive definite and that Σ𝑍𝑌 
+
+has full rank. Let 𝐽 (𝑇 ) ≔ tr   Cov ( ˜𝑍, 𝑌 ) denote the total latent dimension-covariate alignment, where ˜𝑍 = 𝑇 𝑍 . Then the optimal transformations of the four regimes are ordered by their alignment strength, 
+
+𝐽 (𝑇 ∗
+
+> ex
+
+) ≤ 𝐽 (𝑇 ∗ 
+
+> 0
+
+) ≤ 𝐽 (𝑇 ∗ 
+
+> 𝜆
+
+) ≤ 𝐽 (𝑇 ∗ 
+
+> 1
+
+), 𝜆 ∈ [ 0, 1]
+
+and 𝜆 ↦ → 𝐽 (𝑇 ∗ 
+
+> 𝜆
+
+) is non-decreasing, so the intermediate regime inter-polates 𝐽 (𝑇 ∗ 
+
+> 0
+
+) and 𝐽 (𝑇 ∗ 
+
+> 1
+
+). Moreover, all three inequalities hold with equality simultaneously if and only if  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+1/2 is diagonal, i.e. the whitened cross-covariance columns are mutually orthogonal. (b) Let 𝐹 (𝑇 ) = ∥ Cov ( ˜𝑍 −𝐼 ∥𝐹 = ∥𝑇 Σ𝑍 𝑇 ⊤ −𝐼 ∥𝐹 measure the deviation from mutually decorrelated unit-variance latent dimensions, then 
+
+𝐹 (𝑇 ∗ 
+
+> 0
+
+) ≤ 𝐹 (𝑇 ∗ 
+
+> 1
+
+) and 𝐹 (𝑇 ∗ 
+
+> 0
+
+) ≤ 𝐹 (𝑇 ∗
+
+> ex
+
+).
+
+## 3.3 Statistical model 
+
+We now embed the framework in a probabilistic factor analysis model that uses the covariates to learn informed factors and the transformation family 𝑇 𝜆 to reshape them. 
+
+3.3.1 Factor analysis with pairwise dependencies with covariates. 
+
+We consider a random vector 𝑋 ∈ R𝐷 of 𝐷 features following a factor model 
+
+𝑋 |𝑍,𝑊 , 𝜏 ∼ N ( 𝑊 𝑍, 𝐷 1/𝜏 ),
+
+where 𝑍 is a latent representation, with each component corre-sponding to a factor, and 𝑊 ∈ R𝐷 ×𝑃 is a matrix of loadings. The matrix 𝐷 1/𝜏 = diag (1/𝜏 1, . . . , 1/𝜏 𝐷 ) encodes feature-specific noise variances, where 𝜏 𝑑 denotes the precision of the 𝑑 -th observed fea-ture. In this model, with no further constraints on 𝑊 or 𝑍 , the representation is invariant to invertible linear transformations, as 
+
+𝑊 𝑍 = (𝑊𝑇 −1)( 𝑇 𝑍 ) = ˜𝑊 ˜𝑍, 
+
+for any invertible matrix 𝑇 ∈ R𝑃 ×𝑃 .We extend this framework by introducing a vector of covariates 
+
+𝑌 ∈ R𝑃 , with covariance matrix Σ𝑌 := Cov (𝑌 ), assumed to have unit diagonal entries. Each latent factor is then modeled as being 
+
+informed by the corresponding covariate through a pairwise linear relationship (see Fig. S6) 
+
+𝑍 |𝑌 ∼ N ( 𝛽 (0) + 𝐷 𝛽 𝑌, 𝐷 1−𝛽 2 ),
+
+where 𝛽 (0) ∈ R𝑃 is a vector of intercepts, 𝐷 𝛽 = diag (𝛽 1, . . . , 𝛽 𝑃 ),and coefficients 𝛽 𝑝 ∈ [ 0, 1]. The matrix 𝐷 1−𝛽 2 = diag (1 − 𝛽 21, . . . , 1 −
+
+𝛽 2 
+
+> 𝑃
+
+) ensures unit variance of each latent factor. The full covariance of 𝑍 is given by 
+
+Σ𝑍 ≔ Cov (𝑍 ) = 𝐷 𝛽 Σ𝑌 𝐷 𝛽 + 𝐷 1−𝛽 2
+
+which shows that latent factors are generally dependent due to the dependence structure of 𝑌 . However, conditionally on 𝑌 , the factors become independent since their conditional covariance matrix is diagonal: 
+
+Σ𝑍 |𝑌 ≔ Cov (𝑍 |𝑌 ) = 𝐷 1−𝛽 2 .The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+Under this model, the cross-covariance between latent factors and covariates is given by 
+
+Σ𝑍𝑌 ≔ Cov (𝑍, 𝑌 ) = 𝐷 𝛽 Σ𝑌 .
+
+3.3.2 Informed factor analysis (iFA). We introduce a probabilistic graphical model that follows the generative formulation of Sec-tion 3.3.1 augmented with additional uninformed latent factors (Fig. S6) and using transformations (i)-(iii) introduced in Section 3.2. Let X ∈ R𝑁 ×𝐷 denote the observed features, Y ∈ R𝑁 ×𝑃 the covariates (assumed standardized to unit variance per column), and 
+
+Z ∈ R𝑁 ×𝐾 the latent factors with 𝑃 ≤ 𝐾 . The first 𝑃 factors are informed by the covariates as in Section 3.3.1; the remaining 𝐾 − 𝑃 
+
+are uninformed and follow a standard Gaussian prior. The invertible transformation 𝑇 ∈ R𝐾 ×𝐾 is applied to factors ˜ 𝑧 𝑛, · = 𝑧 𝑛, ·𝑇 ′, and we take 𝑇 to act trivially on the uninformed block, so ˜ 𝑧 𝑛,𝑃 +1: 𝐾 = 𝑧 𝑛,𝑃 +1: 𝐾 .We place an automatic relevance determination (ARD) prior on the loadings 𝑊 ∈ R𝐷 ×𝐾 to encourage factor-level sparsity, and Gamma priors on the feature-specific noise precisions 𝜏 𝑑 . The joint distri-bution factorizes as 
+
+𝑝 (X, ˜Z,𝑊 , 𝛼, 𝜏 | Y, 𝛽 ) =
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+
+N  𝑥 𝑛,𝑑 | ˜𝑧 𝑛, ·𝑤 ′
+
+> 𝑑, ·
+
+, 1/𝜏 𝑑 
+
+ (9) 
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝑃
+
+Ö
+
+> 𝑝 =1
+
+N ( 𝑧 𝑛,𝑝 | 𝛽 (0) 
+
+> 𝑝
+
++ 𝛽 𝑝 𝑦 𝑛,𝑝 , 1 − 𝛽 2 
+
+> 𝑝
+
+)
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =𝑃 +1
+
+N ( 𝑧 𝑛,𝑘 | 0, 1)
+
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+N ( 𝑤 𝑑,𝑘 | 0, 1/𝛼 𝑘 )
+
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+G( 𝛼 𝑘 | 𝑎 (𝛼 ) 
+
+> 0
+
+, 𝑏 (𝛼 ) 
+
+> 0
+
+)
+
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+
+G( 𝜏 𝑑 | 𝑎 (𝜏 ) 
+
+> 0
+
+, 𝑏 (𝜏 ) 
+
+> 0
+
+).
+
+In the supplement Eq. (10) we provide the joint distribution for multi-modal data. 
+
+3.3.3 Inference. The posterior 𝑝 ( ˜Z,𝑊 , 𝛼, 𝜏 | X, Y, 𝛽, 𝛽 (0) ) is ap-proximated by variational inference [7, 53] with the mean-field factorization 
+
+𝑞 ( ˜𝑍,𝑊 , 𝛼, 𝜏 | 𝑌, 𝛽 ) =
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+
+𝑞 ( ˜𝑧 𝑛, 1: 𝑃 )
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =𝑃 +1
+
+𝑞 ( ˜𝑧 𝑛,𝑘 )
+
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+𝑞 (𝑤 𝑑,𝑘 )
+
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+𝑞 (𝛼 𝑘 )
+
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+
+𝑞 (𝜏 𝑑 ).
+
+Variational inference chooses 𝑞 to maximize the evidence lower bound (ELBO) 
+
+L( 𝑞, 𝛽, 𝛽 (0) ) = E𝑞 
+
+log 𝑝 (X, Z,𝑊 , 𝛼, 𝜏 | Y, 𝛽, 𝛽 (0) ) − E𝑞 [log 𝑞 ],
+
+which satisfies log 𝑝 (X | Y, 𝛽, 𝛽 (0) ) = L + KL (𝑞 ∥ 𝑝 ) ≥ L . We maximize L by coordinate ascent: for each latent variable, the optimal variational parameters are obtained from log 𝑞 ∗ (𝜃 𝑗 ) = E𝑞 − 𝑗 log 𝑝 + const ,
+
+while 𝛽 and 𝛽 (0) are updated by maximizing L with respect to them as point parameters. The updates for 𝑞 (𝛼 𝑘 ) and 𝑞 (𝜏 𝑑 ) are standard in Bayesian factor analysis (e.g. [3]). Below we provide the updates specific to the covariate-informed setting. The two natural choices of the parameterization of latent factors lead to different conveniences. The updates for 𝑊 and 𝜏 are simpler when written in terms of ˜ 𝑧 , since the likelihood depends on the factors only through ˜ 𝑧 . The 𝛽 (0) 
+
+> 𝑝
+
+, 𝛽 𝑝 updates, in contrast, are simpler in terms of 𝑧 , since the prior is defined on 𝑧 . Throughout, we use ˜𝑧 as the variational variable and recover the moments of 𝑧 via the inverse transformation 𝑇 −1.
+
+Updates for informed factors ˜𝑧 𝑛, 1: 𝑃 . The conditional log-density is a quadratic form in ˜ 𝑧 𝑛, 1: 𝑃 , so 𝑞 ∗ ( ˜𝑧 𝑛, 1: 𝑃 ) = N ( ˜𝜇 𝑛 , ˜Σ𝑛 ) with ˜Σ−1 
+
+> 𝑛
+
+= (𝑇 ′)−1𝐷 1/( 1−𝛽 2 )𝑇 −1 +
+
+> 𝐷
+
+∑︁ 
+
+> 𝑑 =1
+
+⟨𝜏 𝑑 ⟩ ⟨ 𝑤 𝑑, 1: 𝑃 𝑤 ′ 
+
+> 𝑑, 1: 𝑃
+
+⟩,
+
+˜𝜇 𝑛 = ˜Σ𝑛 
+
+h
+
+𝑇 −1𝐷 1/( 1−𝛽 2 )
+
+ 𝛽 (0) + 𝐷 𝛽 𝑦 𝑛 
+
+
+
++
+
+> 𝐷
+
+∑︁ 
+
+> 𝑑 =1
+
+⟨𝜏 𝑑 ⟩  𝑥 𝑛,𝑑 − ⟨ 𝑤 𝑑,𝑃 +1: 𝐾 ⟩′ ⟨ ˜𝑧 𝑛,𝑃 +1: 𝐾 ⟩ ⟨𝑤 𝑑, 1: 𝑃 ⟩
+
+i
+
+,
+
+where ⟨·⟩ denotes expectation under 𝑞 and 𝐷 1/( 1−𝛽 2 ) = diag   11−𝛽 2
+
+> 𝑝
+
+.
+
+Updates for 𝛽 0 
+
+> 𝑝
+
+and 𝛽 𝑝 . The ELBO contribution that depends on 
+
+𝛽 (0) 
+
+> 𝑝
+
+and 𝛽 𝑝 is 
+
+L𝑝 (𝛽 (0) 
+
+> 𝑝
+
+, 𝛽 𝑝 ) = − 𝑁  
+
+> 2
+
+log (1 − 𝛽 2 
+
+> 𝑝
+
+) − 
+
+Í𝑁 𝑛 =1 E(𝑧 𝑛,𝑝 − 𝛽 (0) 
+
+> 𝑝
+
+− 𝛽 𝑝 𝑦 𝑛,𝑝 )2
+
+2(1 − 𝛽 2 
+
+> 𝑝
+
+) ,
+
+Maximizing with respect to 𝛽 (0) 
+
+> 𝑝
+
+gives 𝛽 (0) 
+
+> 𝑝
+
+= ⟨𝑧 𝑝 ⟩ − 𝛽 𝑝 ¯𝑦 𝑝 , with 
+
+⟨𝑧 𝑝 ⟩ = 𝑁 −1 Í𝑛 ⟨𝑧 𝑛𝑝 ⟩ and ¯ 𝑦 𝑝 = 𝑁 −1 Í𝑛 𝑦 𝑛𝑝 . Substituting this ex-pression back into L𝑝 yields 
+
+L𝑝 (𝛽 𝑝 ) = − 𝑁  
+
+> 2
+
+log (1 − 𝛽 2 
+
+> 𝑝
+
+) − 𝑆 (𝑝 ) 
+
+> 𝑧
+
+− 2𝛽 𝑝 𝐶 (𝑝 ) 
+
+> 𝑧𝑦
+
++ 𝛽 2 
+
+> 𝑝
+
+𝑁 
+
+2(1 − 𝛽 2 
+
+> 𝑝
+
+) ,
+
+with 
+
+𝑆 (𝑝 ) 
+
+> 𝑧
+
+=∑︁ 
+
+> 𝑛
+
+⟨( 𝑧 𝑛𝑝 − ⟨ 𝑧 𝑝 ⟩) 2⟩,𝐶 (𝑝 ) 
+
+> 𝑧𝑦
+
+=∑︁ 
+
+> 𝑛
+
+(⟨ 𝑧 𝑛𝑝 ⟩ − ⟨ 𝑧 𝑝 ⟩)( 𝑦 𝑛𝑝 − ¯𝑦 𝑝 ).
+
+The stationarity equation is cubic in 𝛽 𝑝 
+
+𝑁 𝛽 3 
+
+> 𝑝
+
+− ( 1 + 𝛽 2 
+
+> 𝑝
+
+) 𝐶 (𝑝 ) 
+
+> 𝑧𝑦
+
++ 𝛽 𝑝 𝑆 (𝑝 ) 
+
+> 𝑧
+
+= 0,
+
+which we solve numerically (one-dimensional root-finding within 
+
+(0, 1)). When the variational moments are close to the prior 𝑆 (𝑝 ) 
+
+> 𝑧
+
+≈
+
+𝑁 , we get the closed-form approximation 𝛽 𝑝 ≈ 𝐶 (𝑝 ) 
+
+> 𝑧𝑦
+
+/𝑁 , i.e., the empirical correlation between ⟨𝑧 𝑝 ⟩ and 𝑦 𝑝 .
+
+Updates for loadings 𝑤 𝑑𝑘 . The conditional log-joint is quadratic in each 𝑤 𝑑𝑘 , giving 𝑞 ∗ (𝑤 𝑑𝑘 ) = N 𝜇 (𝑤 ) 
+
+> 𝑑𝑘
+
+, (𝜎 (𝑤 ) 
+
+> 𝑑𝑘
+
+)2  with precision and mean 
+
+(𝜎 (𝑤 ) 
+
+> 𝑑𝑘
+
+)−2 = ⟨𝛼 𝑘 ⟩ + ⟨ 𝜏 𝑑 ⟩
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+⟨ ˜𝑧 2 
+
+> 𝑛𝑘
+
+⟩,𝜇 (𝑤 ) 
+
+> 𝑑𝑘
+
+= (𝜎 (𝑤 ) 
+
+> 𝑑𝑘
+
+)2 ⟨𝜏 𝑑 ⟩
+
+
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+⟨ ˜𝑧 𝑛𝑘 ⟩ 𝑥 𝑛𝑑 −∑︁ 
+
+> 𝑗 ≠𝑘
+
+⟨𝑤 𝑑 𝑗 ⟩
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+⟨ ˜𝑧 𝑛 𝑗 ˜𝑧 𝑛𝑘 ⟩
+
+
+
+.
+
+The cross-moment ⟨ ˜𝑧 𝑛 𝑗 ˜𝑧 𝑛𝑘 ⟩ equals ⟨ ˜𝑧 𝑛 𝑗 ⟩⟨ ˜𝑧 𝑛𝑘 ⟩ whenever 𝑗 or 𝑘 
+
+lies outside the informed block (mean-field independence), and equals ⟨ ˜𝑧 𝑛 𝑗 ⟩⟨ ˜𝑧 𝑛𝑘 ⟩ + ( ˜Σ𝑛 )𝑗𝑘 when both 𝑗, 𝑘 ≤ 𝑃 , with ˜ Σ𝑛 as defined above. Substituting these expressions makes the dependence on Łazęcka M., Szczurek E. 
+
+the informed-block covariance explicit, and reduces to the standard Bayesian factor analysis update when 𝑃 = 0. 
+
+3.3.4 Transformation application. The transformations we want to apply ( 𝑇 ∗ 
+
+> 𝜆
+
+of Section 5.0.1) depend on (𝛽, Σ𝑌 ), so we do not optimise 
+
+𝑇 and 𝛽 jointly. Instead, we use a two-stage procedure. 
+
+Stage 1. We fit the model with 𝑇 = 𝐼 by coordinate-ascent VI as described above. This yields ˆ 𝑞 (1) (𝑧 𝑛, 1: 𝑃 ) = N ( 𝜇 𝑛 , Σ𝑛 ), point estimates ˆ𝛽, ˆ𝛽 (0) , and the standard posteriors for 𝑊 , 𝛼, 𝜏 .
+
+Computing 𝑇 ∗ 
+
+> 𝜆
+
+. From ˆ𝛽 and the empirical covariate covariance ˆΣ𝑌 we form ˆ Σ𝑍 = 𝐷 ˆ𝛽 ˆΣ𝑌 𝐷 ˆ𝛽 + 𝐷 1− ˆ𝛽 2 and ˆ Σ𝑍𝑌 = 𝐷 ˆ𝛽 ˆΣ𝑌 , and plug them into the closed-form expressions of Section 3.2. We block-extend 𝑇 ∗ 
+
+> 𝜆
+
+to act as the identity on the uninformed factors, so 𝑇 ∈
+
+R𝐾 ×𝐾 with 𝑇 1: 𝑃, 1: 𝑃 = 𝑇 ∗ 
+
+> 𝜆
+
+and 𝑇 𝑃 +1: 𝐾,𝑃 +1: 𝐾 = 𝐼 .
+
+Stage 2. We replace the variational means of the informed block with their 𝑇 -transformed versions, ˜ 𝜇 𝑛 ← 𝑇 1: 𝑃 𝜇 𝑛 . We then hold ˜𝜇 𝑛, 1: 𝑃 , ˆ𝛽, ˆ𝛽 (0) ,𝑇 fixed and continue coordinate-ascent VI for the rest of variational parameters until convergence. Stage 2 is a relatively cheap fine-tuning step (standard FA with some factor moments fixed) that can be repeated, for the same Stage 1 fit, across many values of 𝜆 . It lets the loadings 𝑊 adapt to the new basis. Although the generative model assumes continuous 𝑌 , the frame-work extends to binary 𝑦 𝑝 by replacing correlation coefficient with point-biserial correlations. 
+
+## 4 Experimental setup 
+
+Our experiments have two goals: to empirically show the theoretical properties of the transformed latent spaces on simulations, and to demonstrate the framework’s practical application as a post-hoc transformation and inside iFA on simulations and real-world data. 
+
+4.0.1 Artificial data. We designed four data-generation scenarios, following the generative process of the model defined in Eq. (9) (see Fig. S6 for graphical representation) with 𝑇 = 𝐼 , each tar-geting a different realistic covariance structure (Tab. S2) among the normally distributed covariates: 1. mixed positive and nega-tive correlations (PN) (e.g. blood-panel markers, where some pairs move together and others in opposite directions), 2. autoregressive structure (AR) (e.g. measurements taken consecutively over time), 3. purely positive correlations (P) (e.g. bone measurements that all scale with overall body size), and 4. purely negative correlations (N) (e.g. dummy-coded categories to which patients are assigned). Across all scenarios we held fixed the number of features ( 𝐷 = 100), the latent dimension ( 𝐾 = 10), the number of covariates ( 𝑃 = 5), the factor-covariate dependence strengths 𝛽 = (0.9, 0.75 , 0.6, 0.45 , 0.3),and the noise-to-signal ratio ( 𝜃 = 0.1) (Tab. S3). We vary two param-eters: 𝛼 , controlling covariate correlation strength (from 0 to strong dependence), and 𝑏 , scaling the 𝛽 vector (Tab. S4). In sample-based experiments we used 𝑁 = 500 observations and 20 repetitions. 
+
+4.0.2 Large model’s representations. As a testbed for post-hoc alignment on realistic latent space, we use image representations from three large pretrained models spanning the main pretraining paradigms: CLIP [45] (contrastive image-text), DINOv2 [40] (self-supervised self-distillation), and ViT [17] (supervised classification on ImageNet). As input data, we use a validation subset of the 
+
+Figure 2: Post-hoc latent space transformations of pretrained representations (CLIP, DINOv2, and ViT): dimensions with max corr (latent dimensions most strongly correlated with the covariates) and Procrustes orthogonal rotation against the proposed transformation applied after Procrustes rotation. 
+
+Tiny-ImageNet dataset [37], which is a downsampled version of ImageNet [15], covering 200 classes with 50 validation images per class. From this subset, we retain 2000 observations and use the 
+
+𝑃 = 20 dummy-coded class indicators as covariates correspond-ing to animal categories (see Fig. S7 for the exact labels). For each observation we extract the representations from each of the three pretrained models. 
+
+4.0.3 Real-world data. We used the breast TCGA dataset [10], pre-processed by [46], consisting of multi-modal data (mRNA, miRNA, and proteomics) from 150 breast cancer patients categorized into cancer subtypes (Basal, Her2, and LumA), which we used as dummy-coded covariates. We used 5-fold cross-validation, ensuring a strati-fied distribution of cancer subtypes across folds, and standardized the data matrices within each fold prior to analysis. 
+
+4.0.4 Comparison methods. We compare against methods divided into three categories. Unsupervised: PCA , which assumes full latent independence, and MOFA [3], which uses a mean-field approximation that factorizes the variational distribution over factors, approximat-ing rather than strictly enforcing their independence. Supervised but not paired: two supervised extensions of PCA , SPCA (Bair) [4] and 
+
+SPCA (Barshan) [5], PLS , which extracts components maximizing the data-covariate covariance, and iVAE [31], a VAE model with covariate-conditioned prior. Supervised and paired: Y as factors 
+
+takes the covariates directly as factors, 𝑍 𝑝 = 𝑌 𝑝 , achieving perfect alignment by construction but not controlling for independence, and SOFA [11], an extension of MOFA that models factor-covariate dependencies using a scaling factor ( sf ) - a weight on the factor-covariate term in the objective that can up- or down-weight it relative to the data-factor terms (default sf = 0.1). For not paired methods we first calculate all pairs of correlation between covariates and latent factors. We then solve a linear sum assignment problem [35] to align each latent with the covariate that best correlates with it. 
+
+4.0.5 Evaluation: performance metrics. We evaluate performance using the average factor-covariate correlations, the squared Frobe-nius distance between the covariance matrix of latent factors 𝑍 The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+and the identity matrix, and the average variance explained per factor. We also report four disentanglement metrics (Section C.2): disentanglement ( 𝐷 ), measuring whether each latent factor encodes information about only one covariate, completeness ( 𝐶 ), whether each covariate is captured by only one latent factor, informative-ness ( 𝐼 ), whether the factors jointly contain the information needed to predict the covariate [18], and separated attribute predictabil-ity (SAP), the gap between the top and second-best single-latent predictor of each covariate [36]. All four take values in [0, 1], with higher values indicating better disentanglement. We further report normalised SAP, a variant that measures the scale of dominance, that divides SAP by the top predictor’s performance. 
+
+## 5 Results 
+
+5.0.1 Numerical validation of the theoretical results. For simula-tion scenarios (1)-(4) defined above, the optimal transformations 
+
+𝑇 ∗ 
+
+> 𝜆
+
+and 𝑇 ∗ 
+
+> ex
+
+can be computed explicitly from the covariances Σ𝑍 and 
+
+Σ𝑍𝑌 (Fig. 1). Under 𝑇 ∗ 
+
+> 1
+
+the dependence between pairs (𝑍 𝑝 , 𝑌 𝑝 ) is strongest, and weaker under 𝑇 ∗
+
+> 1/2
+
+, 𝑇 ∗ 
+
+> 0
+
+, and 𝑇 ∗
+
+> ex
+
+, as stated in Theo-rem 3.1. For 𝑇 ∗ 
+
+> 0
+
+, the reduced alignment is a consequence of enforcing uncorrelated latent factors, a constraint absent under 𝑇 ∗ 
+
+> 1
+
+, which consequently produces correlated factors. A parallel argument ap-plies to 𝑇 ∗
+
+> ex
+
+, which imposes exclusive one-to-one factor-covariate dependence at a further cost in alignment. The result illustrates a general principle: constraining the latent structure reduces the achievable dependence between latent dimensions and covariates. Moreover, in contrast to 𝑇 ∗ 
+
+> 1
+
+, under the constraints imposed by 𝑇 ∗
+
+> ex
+
+or 𝑇 ∗ 
+
+> 0
+
+, the factor covariance matrix no longer resembles the depen-dence structure among the covariates. Similar conclusions follow across all scenarios (Figs. S8-S11, panels A, B, and C). 
+
+5.0.2 Post-hoc application of the transformations . When pretrained representations are available, the transformations can be computed from empirical estimates ˆ Σ𝑍 and ˆ Σ𝑍𝑌 and applied post-hoc to the latent representation (Fig. 2). The proposed transformations achieve substantially stronger one-to-one dependence between latent di-mensions and covariates than the naive baseline of selecting the most correlated dimension of the original representation, and they empirically reproduce the covariate dependence-strength ordering of Theorem 3.1. Applying a Procrustes rotation [20, 29] directly to the original embedding yields correlated latent dimensions, be-cause the initial embedding is itself correlated, 𝑇 ∗ 
+
+> 0
+
+, in contrast, first whitens the representation and thus produces uncorrelated dimen-sions. The transformation 𝑇 ∗ 
+
+> 1
+
+trades some of this independence for higher covariate alignment, though for all three model embeddings the resulting dimensions remain less correlated than under the plain Procrustes rotation. The covariance matrices (Fig. S7) con-firm both the weak alignment of the initial embedding and that the constraints on the latent imposed by 𝑇 ex and 𝑇 0 are satisfied. Downstream applications that require decoding from the trans-formed latent, e.g. new sample generation through the original decoder, would apply the inverse transformation to map back to the decoder’s expected input space. 
+
+5.0.3 The iFA model controls the trade-off. Having established the theoretical trade-off between latent-dimension-covariate depen-dence and latent structure, we now show that the same trade-off 
+
+Figure 3: Trade-off between covariate dependence and factor independence for simulation scenarios 1 (PN) and 4 (N). Out-lined markers denote means over 20 repetitions. 
+
+emerges when the transformations are folded into the iFA model’s inference procedure. As a sanity check on the inference procedure, we verify that the pre-transformation variant ( iFA no 𝑇 ) converges to the true parameters as the number of observations grows: in Scenario 1, both the estimated 𝛽 and the informed latent factors approach their true values (Fig. S16). Moreover, iFA no 𝑇 recovers the assumed average factor-covariate dependence in every scenario: diagonal correlations concentrate around 𝛽 , reaching approximately 0 .6 at 
+
+𝑏 = 1 and 0 .4 at 𝑏 = 0.6 (Fig. 3; Figs. S8-S11, panel D). In Fig. 3, an ideal method would achieve average covariate cor-relation of 1 and Frobenius norm 0, jointly maximising covariate dependence and factor independence. Theorem 3.1 shows this is unattainable in general, as the two objectives trade off. The family of the iFA models with the transformation applied ( iFA 𝜆 ) traces this trade-off: as 𝜆 increases, covariate dependence grows and factor independence weakens (Fig. 3; Figs. S8–S11, panel D). The gain in covariate dependence from moving toward 𝑇 ∗ 
+
+> 1
+
+is largest when the covariates are strongly inter-correlated, at the cost of factor independence (Figs. S12–S15, panel A). Panel B of Figs. S12-S15 con-firms the same pattern across the 𝛽 sweep: correlations of iFA 𝜆 rise from around 0 .2 to 0 .6 (which are the true generative values), and 
+
+𝑇 ∗ 
+
+> 1
+
+consistently yields stronger covariate dependence and stronger factor inter-dependence than 𝑇 ∗ 
+
+> 0
+
+across all 𝛽 values. Variance explained per factor remains high across all settings and all values of 𝜆 , showing that the transformation reshapes the latent geometry without sacrificing reconstruction or per-factor interpretability of 𝑋 .Łazęcka M., Szczurek E. 
+
+Figure 4: Disentanglement metrics for the latent space transformed using 𝑇 𝜆 family and the exclusive transform 𝑇 ex as a function of covariate-correlation strength 𝛼 in simulation scenario 1 (PN). 
+
+Per-factor interpretability is critical for real-data applications, where individual factors should map onto meaningful directions in the observed features. We confirm this on real data (Fig. 5): the variance explained by individual factors remains high across the entire iFA 𝜆 family, with 𝑇 ∗ 
+
+> 1
+
+explaining the most and 𝑇 ∗ 
+
+> 0
+
+the least. The trade-off between latent independence and covariate dependence is preserved throughout. 
+
+5.0.4 Disentanglement-metric view of the trade-off. For population-level transformations (Fig. 4) and for the iFA 𝜆 (Figs. S12-S15), dis-entanglement ( 𝐷 ) and completeness ( 𝐶 ) are lower at small 𝜆 and improve as 𝜆 grows, with most prominent difference when the covariate correlations are strong. Enforcing latent-dimension inde-pendence carries a 𝐷 /𝐶 cost: each factor holds less covariate-specific information, and each covariate’s information is spread across mul-tiple factors. Informativeness ( 𝐼 ) tracks signal strength instead -more correlated covariates (larger 𝑏 ) and stronger factor-covariate dependencies (larger 𝛼 ) both increase 𝐼 regardless of 𝜆 . SAP and its normalised variant, in contrast, favour transformations with small 
+
+𝜆 : when factors are constrained to be independent, each covariate is predicted most strongly by a single latent. The two variants disagree on 𝑇 ∗
+
+> ex
+
+: normalised SAP is high as each factor genuinely carries in-formation about only one covariate, by construction, while the unnormalised version is low as the overall dependence magnitude is small (Fig. 4). 
+
+Figure 5: Results on the breast TCGA multi-omics data. Out-lined markers denote means over 20 repetitions. 
+
+5.0.5 iFA’s strengths over competing methods. Most competing methods fall behind the front traced by the iFA 𝜆 family (Fig. 3, Fig. 5, Figs. S8-S11). Some unsupervised and supervised baselines achieve strong factor independence at the cost of low covariate dependence: 
+
+MOFA , PCA , PLS , and SPCA (Bair) , the last three of which produce independent factors by construction. The regression baseline ( Y as factors ) sits at the opposite extreme, attaining maximal covariate dependence but inheriting the same factor inter-dependence as the covariates themselves. SOFA is the closest competitor in structure: it also parameterises the strength of covariate dependence, via a scaling factor on the objective, however, this parameterisation gives only indirect control, since the scaling factor reweights loss terms rather than the underlying constraints. This lack of steerability causes SOFA to collapse toward Y as factors at high scaling fac-tors. When the covariates are themselves strong factors of variation in 𝑋 , this collapse is benign, but when they are only weakly infor-mative, SOFA loses any advantage over the regression baseline and its factors lose interpretability in terms of 𝑋 . The lack of steerability is also visible on real data where SOFA even at the largest scaling factor achieves weaker covariate dependence than iFA at large 𝜆 
+
+(Fig. 5). Across disentanglement metrics, SOFA in general spans a broader range of scores than iFA 𝜆 (Figs. S12-S15). When covariate correlations are varied, it is iFA 𝜆 whose scores shift systematically, while SOFA ’s remain largely unchanged. 
+
+iFA 𝜆 is slower than the classical baselines but faster than SOFA .Once the base model is fitted, multiple 𝑇 𝜆 transformations can be applied at negligible cost, making regime exploration cheaper than refitting (Fig. S17). 
+
+## 6 Conclusions 
+
+We introduced a supervised framework for disentangled representa-tion learning that navigates the trade-off between latent-covariate dependence and structural constraints on the latent space. Four dis-entanglement regimes, independent, intermediate, unconstrained, and exclusive, arise as solutions of optimizations problems, and we proved an ordering of the regimes by latent-covariate dependence (Theorem 3.1). The resulting transformations admit closed-form expressions and apply both post-hoc to pretrained embeddings and inside a new probabilistic factor-analysis model (iFA). Experiments confirm that iFA enable controllability between covariate depen-dence and latent independence while preserving reconstruction. The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+## References 
+
+[1] Antonio Almudévar and Alfonso Ortega. 2026. Rethinking Disentanglement under Dependent Factors of Variation. Transactions on Machine Learning Research 
+
+(2026). [2] Niccolo Anceschi, Federico Ferrari, David B. Dunson, and Himel Mallick. 2024. Bayesian Joint Additive Factor Models for Multiview Learning. doi:10.48550/ arxiv.2406.00778 [3] Ricard Argelaguet, Britta Velten, Damien Arnol, Sascha Dietrich, Thorsten Zenz, John C Marioni, Florian Buettner, Wolfgang Huber, and Oliver Stegle. 2018. Multi-Omics Factor Analysis - a framework for unsupervised integration of multi-omics data sets. Molecular Systems Biology 14, 6 (2018), e8124. doi:10. 15252/msb.20178124 [4] Eric Bair, Trevor Hastie, Debashis Paul, and Robert Tibshirani. 2006. Prediction by Supervised Principal Components. J. Amer. Statist. Assoc. 101, 473 (2006), 119–137. doi:10.1198/016214505000000628 [5] Elnaz Barshan, Ali Ghodsi, Zohreh Azimifar, and Mansoor Zolghadri Jahromi. 2011. Supervised principal component analysis: Visualization, classification and regression on subspaces and submanifolds. Pattern Recognition 44, 7 (2011), 1357–1371. doi:10.1016/j.patcog.2010.12.015 [6] Yoshua Bengio, Aaron Courville, and Pascal Vincent. 2013. Representation Learning: A Review and New Perspectives. IEEE Trans. Pattern Anal. Mach. Intell. 
+
+35, 8 (Aug. 2013), 1798–1828. doi:10.1109/TPAMI.2013.50 [7] David Blei, Alp Kucukelbir, and Jon McAuliffe. 2016. Variational Inference: A Review for Statisticians. J. Amer. Statist. Assoc. 112 (01 2016). doi:10.1080/ 01621459.2017.1285773 [8] Diane Bouchacourt, Ryota Tomioka, and Sebastian Nowozin. 2018. Multi-Level Variational Autoencoder: Learning Disentangled Representations From Grouped Observations. Proceedings of the AAAI Conference on Artificial Intelligence 32, 1 (April 2018). doi:10.1609/aaai.v32i1.11867 [9] Philemon Brakel and Yoshua Bengio. 2017. Learning Independent Features with Adversarial Nets for Non-linear ICA. arXiv:arXiv:1710.05050 [10] Cancer Genome Atlas Network. 2012. Comprehensive molecular portraits of human breast tumours. Nature 490, 7418 (Oct. 2012), 61–70. [11] Tümay Capraz, Harald Vöhringer, Klaus Sebastian Augusto Kruger Serrano, Ricardo Omar Ramirez Flores, Julio Saez-Rodriguez, and Wolfgang Huber. 2025. Semi-supervised Omics Factor Analysis (SOFA) disentangles known and latent sources of variation in multi-omic data. bioRxiv (2025). doi:10.1101/2024.10.10. 617527 [12] Ricky T. Q. Chen, Xuechen Li, Roger Grosse, and David Duvenaud. 2018. Isolating Sources of Disentanglement in Variational Autoencoders. In Advances in Neural Information Processing Systems .[13] Xi Chen, Yan Duan, Rein Houthooft, John Schulman, Ilya Sutskever, and Pieter Abbeel. 2016. InfoGAN: interpretable representation learning by information maximizing generative adversarial nets. In Proceedings of the 30th International Conference on Neural Information Processing Systems (Barcelona, Spain) (NIPS’16) .Curran Associates Inc., Red Hook, NY, USA, 2180–2188. [14] Zhi Chen, Yijie Bei, and Cynthia Rudin. 2020. Concept whitening for interpretable image recognition. Nat. Mach. Intell. 2, 12 (Dec. 2020), 772–782. [15] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. 2009. Ima-geNet: A large-scale hierarchical image database. In 2009 IEEE Conference on Com-puter Vision and Pattern Recognition . 248–255. doi:10.1109/CVPR.2009.5206848 [16] Andrea Dittadi, Frederik Träuble, Francesco Locatello, Manuel Wuthrich, Vaibhav Agrawal, Ole Winther, Stefan Bauer, and Bernhard Schölkopf. 2021. On the Transfer of Disentangled Representations in Realistic Settings. In International Conference on Learning Representations .[17] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xi-aohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. 2021. An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale. In International Conference on Learning Representations .[18] Cian Eastwood and Christopher K. I. Williams. 2018. A framework for the quan-titative evaluation of disentangled representations. In International Conference on Learning Representations .[19] Christina M Funke, Paul Vicol, Kuan-Chieh Wang, Matthias Kuemmerer, Richard Zemel, and Matthias Bethge. 2022. Disentanglement and Generalization Under Correlation Shifts. In ICLR2022 Workshop on the Elements of Reasoning: Objects, Structure and Causality .[20] Gene H Golub and Charles F Van Loan. 2013. Matrix Computations (4 ed.). Johns Hopkins University Press, Baltimore, MD. [21] Jeremy P Gygi, Anna Konstorum, Shrikant Pawar, Edel Aron, Steven H Kleinstein, and Leying Guan. 2024. A supervised Bayesian factor model for the identification of multi-omics signatures. Bioinformatics 40, 5 (May 2024). doi:10.1101/2023.01. 25.525545 [22] Naama Hadad, Lior Wolf, and Moni Shahar. 2018. A Two-Step Disentanglement Method. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) .[23] Irina Higgins, Loic Matthey, Arka Pal, Christopher Burgess, Xavier Glorot, Matthew Botvinick, Shakir Mohamed, and Alexander Lerchner. 2017. beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework. In International Conference on Learning Representations .[24] Nicholas J. Higham. 1986. Computing the Polar Decomposition—with Applica-tions. SIAM J. Sci. Stat. Comput. 7, 4 (Oct. 1986), 1160–1174. [25] H Hotelling. 1933. Analysis of a complex of statistical variables into principal components. J. Educ. Psychol. 24, 6 (Sept. 1933), 417–441. doi:10.1037/h0071325 [26] Aapo Hyvärinen, Hiroaki Sasaki, and Richard E. Turner. 2018. Nonlinear ICA Using Auxiliary Variables and Generalized Contrastive Learning. ArXiv 
+
+abs/1805.08651 (2018). [27] A. Hyvärinen and E. Oja. 2000. Independent component analysis: algorithms and applications. Neural Networks 13, 4 (2000), 411–430. doi:10.1016/S0893-6080(00)00026-5 [28] Aya Abdelsalam Ismail, Julius Adebayo, Hector Corrada Bravo, Stephen Ra, and Kyunghyun Cho. 2024. Concept Bottleneck Generative Models. In The Twelfth International Conference on Learning Representations .[29] Wolfgang Kabsch. 1976. A solution for the best rotation to relate two sets of vectors. Acta Crystallographica Section A 32 (1976), 922–923. [30] Agnan Kessy, Alex Lewin, and Korbinian Strimmer. 2018. Optimal Whitening and Decorrelation. The American Statistician 72, 4 (Jan. 2018), 309–314. doi:10. 1080/00031305.2016.1277159 [31] Ilyes Khemakhem, Diederik P. Kingma, and Aapo Hyvärinen. 2019. Variational Autoencoders and Nonlinear ICA: A Unifying Framework. In International Con-ference on Artificial Intelligence and Statistics .[32] Hyunjik Kim and Andriy Mnih. 2018. Disentangling by Factorising. In Proceedings of the 35th International Conference on Machine Learning (Proceedings of Machine Learning Research, Vol. 80) , Jennifer Dy and Andreas Krause (Eds.). PMLR, 2649– 2658. [33] Arto Klami, Seppo Virtanen, Eemeli Leppäaho, and Samuel Kaski. 2014. Group Factor Analysis. IEEE transactions on neural networks and learning systems 26 (11 2014). doi:10.1109/TNNLS.2014.2376974 [34] Jack Klys, Jake Snell, and Richard Zemel. 2018. Learning latent subspaces in variational autoencoders. In Proceedings of the 32nd International Conference on Neural Information Processing Systems (Montréal, Canada) (NIPS’18) . Curran Associates Inc., Red Hook, NY, USA, 6445–6455. [35] Harold W. Kuhn. 1955. The Hungarian method for the assignment problem. 
+
+Naval Research Logistics (NRL) 52 (1955). [36] Abhishek Kumar, Prasanna Sattigeri, and Avinash Balakrishnan. 2018. Variational Inference of Disentangled Latent Concepts from Unlabeled Observations. In 
+
+International Conference on Learning Representations .[37] Ya Le and Xuan S. Yang. 2015. Tiny ImageNet Visual Recognition Challenge. [38] Francesco Locatello, Stefan Bauer, Mario Lučić, Gunnar Rätsch, Sylvain Gelly, Bernhard Schölkopf, and Olivier Frederic Bachem. 2019. Challenging Common Assumptions in the Unsupervised Learning of Disentangled Representations. In 
+
+International Conference on Machine Learning . Best Paper Award. [39] Francesco Locatello, Ben Poole, Gunnar Rätsch, Bernhard Schölkopf, Olivier Bachem, and Michael Tschannen. 2020. Weakly-supervised disentanglement without compromises. In Proceedings of the 37th International Conference on Machine Learning (ICML’20) . JMLR.org, Article 589, 12 pages. [40] Maxime Oquab, Timothée Darcet, Théo Moutakanni, Huy V. Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa, Alaaeldin El-Nouby, Mido Assran, Nicolas Ballas, Wojciech Galuba, Russell Howes, Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael Rabbat, Vasu Sharma, Gabriel Synnaeve, Hu Xu, Herve Jegou, Julien Mairal, Patrick Labatut, Armand Joulin, and Piotr Bojanowski. 2024. DINOv2: Learning Robust Visual Features without Supervision. Transactions on Machine Learning Research (2024). Featured Certification. [41] Elise F Palzer, Christine H Wendt, Russell P Bowler, Craig P Hersh, Sandra E Safo, and Eric F Lock. 2022. sJIVE: Supervised joint and individual variation explained. Comput. Stat. Data Anal. 175, 107547 (Nov. 2022), 107547. doi:10.1016/ j.csda.2022.107547 [42] Karl Pearson. 1901. LIII. On lines and planes of closest fit to systems of points in space. The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science 2, 11 (1901), 559–572. doi:10.1080/14786440109462720 [43] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, O. Grisel, M. Blondel, P. Prettenhofer, R. Weiss, V. Dubourg, J. Vanderplas, A. Passos, D. Cour-napeau, M. Brucher, M. Perrot, and E. Duchesnay. 2011. Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research 12 (2011), 2825–2830. [44] Arber Qoku and Florian Buettner. 2023. Encoding Domain Knowledge in Multi-view Latent Variable Models: A Bayesian Approach with Structured Sparsity. In Proceedings of The 26th International Conference on Artificial Intelligence and Statistics (Proceedings of Machine Learning Research, Vol. 206) , Francisco Ruiz, Jennifer Dy, and Jan-Willem van de Meent (Eds.). PMLR, 11545–11562. [45] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. 2021. Learning Transferable Visual Models From Natural Language Supervision. ArXiv abs/2103.00020 (2021). Łazęcka M., Szczurek E. 
+
+[46] Florian Rohart, Benoît Gautier, Amrit Singh, and Kim-Anh Lê Cao. 2017. mixOmics: An R package for ‘omics feature selection and multiple data integra-tion. PLOS Computational Biology 13, 11 (11 2017), 1–19. doi:10.1371/journal. pcbi.1005752 [47] Karsten Roth, Mark Ibrahim, Zeynep Akata, Pascal Vincent, and Diane Boucha-court. 2023. Disentanglement of Correlated Factors via Hausdorff Factorized Support. In The Eleventh International Conference on Learning Representations .[48] Sarah Samorodnitsky, Chris H. Wendt, and Eric F. Lock. 2024. Bayesian simultane-ous factorization and prediction using multi-omic data. Computational Statistics & Data Analysis 197 (Sept. 2024), 107974. doi:10.1016/j.csda.2024.107974 [49] Peter H. Schönemann. 1966. A Generalized Solution of the Orthogonal Procrustes Problem. Psychometrika 31, 1 (March 1966), 1–10. doi:10.1007/bf02289451 [50] Kihyuk Sohn, Honglak Lee, and Xinchen Yan. 2015. Learning Structured Output Representation using Deep Conditional Generative Models. In Neural Information Processing Systems .[51] L. L. Thurstone. 1931. Multiple Factor Analysis. Psychological Review 38, 5 (1931), 406–427. doi:10.1037/h0069792 [52] Frederik Träuble, Elliot Creager, Niki Kilbertus, Francesco Locatello, Andrea Dittadi, Anirudh Goyal, Bernhard Schölkopf, and Stefan Bauer. 2021. On Disen-tangled Representations Learned from Correlated Data. In Proceedings of the 38th International Conference on Machine Learning (Proceedings of Machine Learning Research, Vol. 139) , Marina Meila and Tong Zhang (Eds.). PMLR, 10401–10412. [53] Martin J. Wainwright and Michael I. Jordan. 2008. Graphical Models, Exponential Families, and Variational Inference. Foundations and Trends® in Machine Learning 
+
+1, 1–2 (2008), 1–305. doi:10.1561/2200000001 [54] Xin Wang, Hong Chen, Si’ao Tang, Zihao Wu, and Wenwu Zhu. 2024. Disentan-gled Representation Learning. IEEE Trans. Pattern Anal. Mach. Intell. 46, 12 (Dec. 2024), 9677–9696. doi:10.1109/TPAMI.2024.3420937 [55] Herman Wold. 1975. Soft Modelling by Latent Variables: The Non-Linear Iterative Partial Least Squares (NIPALS) Approach. Journal of Applied Probability 12, S1 (1975), 117–142. doi:10.1017/S0021900200047604 [56] Ruiyu Zhang, Ce Zhao, Xin Zhao, Lin Nie, and Wai-Fung Lam. 2025. Structural Equation-VAE: Disentangled Latent Representations for Tabular Data. (2025). doi:10.2139/ssrn.5384208 [57] Shiwen Zhao, Chuan Gao, Sayan Mukherjee, and Barbara E Engelhardt. 2016. Bayesian group factor analysis with structured sparsity. Journal of Machine Learning Research 17, 196 (2016), 1–47. [58] Yifan Zhou, Kaixuan Luo, Lifan Liang, Mengjie Chen, and Xin He. 2023. A new Bayesian factor analysis method improves detection of genes and biological processes affected by perturbations in single-cell CRISPR screening. Nature Methods 20, 11 (Sept. 2023), 1693–1703. doi:10.1038/s41592-023-02017-4 The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+## A Proofs and derivations A.1 Reformulation of an orthogonal Procrustes problem [20] 
+
+Let 𝑍 ∈ R𝑃 and 𝑌 ∈ R𝑃 be both centered so that E[𝑍 ] = E[𝑌 ] =
+
+0. Let 𝑍 ≔ Σ−1/2 
+
+> 𝑍
+
+𝑍 denote the whitened vector, which satisfies Cov (𝑍 ) = Σ−1/2 
+
+> 𝑍
+
+Σ𝑍 Σ−1/2 
+
+> 𝑍
+
+= 𝐼 . The orthogonal Procrustes problem in population terms is min  
+
+> 𝑄 ′𝑄 =𝐼
+
+E 𝑌 − 𝑄 Σ−1/2 
+
+> 𝑍
+
+𝑍 2.
+
+Expanding the squared norm, 
+
+E 𝑌 − 𝑄 𝑍 2 = E∥𝑌 ∥2 − 2 E𝑌 ′𝑄 𝑍  + E𝑍 ′𝑄 ′𝑄 𝑍  .
+
+The first term is constant in 𝑄 , and the last term equals E[𝑍 ′𝑍 ] =
+
+tr (𝐼 ) = 𝑃 since 𝑄 ′𝑄 = 𝐼 , hence is also constant. Minimizing the objective is therefore equivalent to maximizing the cross term. Using E[𝑍𝑌 ′] = Σ𝑍𝑌 and the cyclic invariance of the trace, 
+
+E𝑌 ′𝑄 Σ−1/2 
+
+> 𝑍
+
+𝑍  = tr  𝑄 Σ−1/2 
+
+> 𝑍
+
+E[𝑍𝑌 ′] = tr  𝑄 Σ−1/2 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+.
+
+Consequently, min  
+
+> 𝑄 ′𝑄 =𝐼
+
+E 𝑌 − 𝑄 Σ−1/2 
+
+> 𝑍
+
+𝑍 2 ⇔ max  
+
+> 𝑄 ′𝑄 =𝐼
+
+tr  𝑄 Σ−1/2 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+,
+
+which is the optimization problem we defined. 
+
+## A.2 Closed-form solution of 𝑇 ∗
+
+0 [24] 
+
+Let 𝐴 = 𝑈 𝐷𝑉 ′ be the singular value decomposition of 𝐴 . Then 
+
+𝐴 ′𝐴 = (𝑈 𝐷𝑉 ′)′ (𝑈 𝐷𝑉 ′) = 𝑉 𝐷𝑈 ′ 𝑈 𝐷𝑉 ′ = 𝑉 𝐷 2𝑉 ′,
+
+which is an eigendecomposition, so 
+
+(𝐴 ′𝐴 )−1/2 = 𝑉 𝐷 −1𝑉 ′ .
+
+Multiplying by 𝐴 ′ = 𝑉 𝐷𝑈 ′ gives 
+
+(𝐴 ′𝐴 )−1/2𝐴 ′ = 𝑉 𝐷 −1𝑉 ′ 𝑉 𝐷𝑈 ′ = 𝑉 𝐷 −1𝐷𝑈 ′ = 𝑉𝑈 ′ .
+
+Hence the maximizer can be written in closed form as 
+
+𝑄 ∗ = 𝑉𝑈 ′ = (𝐴 ′𝐴 )−1/2𝐴 ′ .
+
+With 𝐴 = Σ−1/2 
+
+> 𝑍
+
+Σ𝑍𝑌 , we have 𝐴 ′𝐴 = Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 and 𝐴 ′ = Σ′ 
+
+> 𝑍𝑌
+
+Σ−1/2 
+
+> 𝑍
+
+,so 
+
+𝑄 ∗ =  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+ −1/2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1/2 
+
+> 𝑍
+
+,
+
+and therefore 
+
+𝑇 ∗ 
+
+> 0
+
+= 𝑄 ∗ Σ−1/2 
+
+> 𝑍
+
+=  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+ −1/2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+.
+
+## A.3 Notes on 𝑇 ∗
+
+1 : connection to regression. 
+
+The strong-dependence transformation coincides with multivariate least-squares regression of the covariates on the latent variables. The population OLS coefficient of 𝑌 𝑝 on 𝑍 is 𝑏 ∗ 
+
+> 𝑝
+
+= Σ−1 
+
+> 𝑍
+
+(Σ𝑍𝑌 )·𝑝 , so the optimal 
+
+𝑡 ∗ 
+
+> 𝑝
+
+= Σ−1 
+
+> 𝑍
+
+(Σ𝑍𝑌 )·𝑝 / (Σ𝑍𝑌 )′·𝑝 Σ−1 
+
+> 𝑍
+
+(Σ𝑍𝑌 )·𝑝 
+
+1/2 = 𝑏 ∗ 
+
+> 𝑝
+
+/∥ 𝑏 ∗ 
+
+> 𝑝
+
+∥Σ𝑍 ,
+
+where ∥𝑥 ∥Σ𝑍 ≔ (𝑥 ′ Σ𝑍 𝑥 )1/2, is exactly the coefficient vector, rescaled so that Var (𝑡 ∗′  
+
+> 𝑝
+
+𝑍 ) = 1. Equivalently 𝑇 ∗ 
+
+> 1
+
+= 𝐷 1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+, with Σ′ 
+
+> 𝑍𝑌
+
+Σ−1
+
+> 𝑍
+
+the matrix of regression coefficients. The attained alignment is the multiple correlation coefficient, 
+
+𝐽 (𝑇 ∗ 
+
+> 1
+
+, 𝑝 ) =√︃ (Σ𝑍𝑌 )′·𝑝 Σ−1 
+
+> 𝑍
+
+(Σ𝑍𝑌 )·𝑝 =√︃ (𝑀 2)𝑝𝑝 = 𝑅 𝑝 ,
+
+the maximal correlation of 𝑌 𝑝 with any linear combination of 𝑍 (for derivation details of 𝑡 ∗ 
+
+> 𝑝
+
+for general 𝑍 and 𝐽 (𝑇 ∗ 
+
+> 1
+
+, 𝑝 ), see Section A.5). 
+
+## A.4 Identifiability 
+
+Proposition A.1. Fix a regime • ∈ { 0, 1, 𝜆, ex } and let 𝑇 ∗• (𝑍 )
+
+denote its optimal transformation. For any invertible 𝐴 ∈ R𝑃 ×𝑃 ,replacing the latent by the equivalent representation 𝑍 ′ = 𝐴𝑍 yields the same structured representation: 
+
+𝑇 ∗• (𝑍 ′) 𝑍 ′ = 𝑇 ∗• (𝑍 ) 𝑍 . 
+
+Hence ˜𝑍 • ≔ 𝑇 ∗• (𝑍 ) 𝑍 identifies a canonical representation of the latent. 
+
+Proof. The objective and constraints of each regime depend on the latent only through the transformed vector ˜ 𝑍 = 𝑇 𝑍 , via Cov ( ˜𝑍, 𝑌 ) = 𝑇 Σ𝑍𝑌 and Cov ( ˜𝑍 ) = 𝑇 Σ𝑍 𝑇 ′. Under 𝑍 ′ = 𝐴𝑍 one has 
+
+Σ𝑍 ′ = 𝐴 Σ𝑍 𝐴 ′ and Σ𝑍 ′𝑌 = 𝐴 Σ𝑍𝑌 , so the substitution 𝑇 ↦ → 𝑇 ′ =
+
+𝑇 𝐴 −1 is a bijection between transformations of 𝑍 and of 𝑍 ′ with 
+
+𝑇 ′𝑍 ′ = 𝑇 𝑍 , hence Cov (𝑇 ′𝑍 ′, 𝑌 ) = Cov (𝑇 𝑍, 𝑌 ) and Cov (𝑇 ′𝑍 ′) =
+
+Cov (𝑇 𝑍 ). The objective and feasible set for 𝑍 ′ therefore coincide with those for 𝑍 under this bijection, so both problems have the same optimal representation ˜ 𝑍 , and 𝑇 ∗• (𝑍 ′)𝑍 ′ = 𝑇 ∗• (𝑍 )𝑍 . □
+
+Corollary A.2. Taking 𝐴 = 𝑇 ∗ 
+
+> 0
+
+in Proposition A.1, solving the regime in the whitened frame and composing with the whitening yields the general 𝑍 solution: 𝑇 ∗• = 𝑇 ∗• (𝑍 ) 𝑇 ∗ 
+
+> 0
+
+.
+
+## A.5 Summary of the defined transformations 
+
+We now unify and summarise the transformations defined above, using the following notation. Let 𝑀 ≔ (Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 )1/2, and let 
+
+𝐽 𝑇 = 𝐽 (𝑇 ) ≔ tr   Cov (𝑇 𝑍, 𝑌 )
+
+denote the total latent dimension-covariate alignment, with per-dimension contribution 
+
+𝐽 𝑇 ,𝑝 = 𝐽 (𝑇 , 𝑝 ) ≔   Cov (𝑇 𝑍, 𝑌 ) 
+
+> 𝑝𝑝
+
+.
+
+Throughout, we assume Σ𝑍 ≻ 0 and that Σ𝑍𝑌 has full rank. Under these assumptions 𝑀 ≔ (Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 )1/2 is symmetric, and posi-tive definite. Sections A.5.1-A.5.4 derive the general form of each transformation together with its per-dimension alignment 𝐽 (𝑇 , 𝑝 ).The results are summarised in Table S1. 
+
+A.5.1 Transformation 𝑇 ∗ 
+
+> 0
+
+.
+
+(a) Using (2), we get 
+
+𝑇 ∗ 
+
+> 0
+
+=  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+ −1/2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+= 𝐷𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+.
+
+(b) There is no scaling in 𝑇 ∗ 
+
+> 0
+
+, thus 𝐷 = 𝐼 .(c) The cross-covariance induced by 𝑇 ∗ 
+
+> 0
+
+is Cov (𝑇 ∗ 
+
+> 0
+
+𝑍, 𝑌 ) = 𝑇 ∗ 
+
+> 0
+
+Σ𝑍𝑌 
+
+=  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+ −1/2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+=  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 
+
+1/2 = 𝑀. 
+
+thus 
+
+𝐽 (𝑇 ∗ 
+
+> 0
+
+, 𝑝 ) = 𝑀 𝑝𝑝 .Łazęcka M., Szczurek E. 
+
+Transformation 𝑇 (a) 𝑇 formula (general 𝑍 ) (b) 𝑑 𝑝 (𝐷 = diag (𝑑 𝑝 ) ) (c) 𝐽 𝑇 ,𝑝 
+
+𝑇 ∗ 
+
+> 0
+
+𝐷𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+1 𝑀 𝑝𝑝 
+
+𝑇 ∗ 
+
+> 1
+
+𝐷 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1
+
+> 𝑍
+
+ (𝑀 2)𝑝𝑝 
+
+ −1/2√︁ (𝑀 2)𝑝𝑝 = ∥𝑀 ·𝑝 ∥
+
+𝑇 ∗ 
+
+> 𝜆
+
+𝐷  (1 − 𝜆 )𝑀 −1 + 𝜆𝐼 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1
+
+> 𝑍
+
+ (( 1 − 𝜆 )𝐼 + 𝜆𝑀 )2
+
+> 𝑝𝑝
+
+ −1/2 (1 − 𝜆 )𝑀 𝑝𝑝 + 𝜆 (𝑀 2)𝑝𝑝 √︁ 
+
+(1 − 𝜆 )2 + 2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + 𝜆 2 (𝑀 2)𝑝𝑝 
+
+𝑇 ∗ 
+
+> ex
+
+𝐷 Σ−1
+
+> 𝑍𝑌
+
+ (𝑀 −2)𝑝𝑝 
+
+ −1/2  (𝑀 −2)𝑝𝑝 
+
+ −1/2
+
+Table S1: Summary of the transformations, (a) their formulas, (b) diagonal normalizers, and (c) per-dimension correlations with covariates. 
+
+A.5.2 Transformation 𝑇 ∗ 
+
+> 1
+
+.
+
+(a) From (4), the optimal rows in the whitened form are 
+
+𝑡 ∗ 
+
+> 𝑝
+
+= (Σ𝑍𝑌 )·𝑝 
+
+∥( Σ𝑍𝑌 )·𝑝 ∥ .
+
+Collecting them and using Σ𝑍𝑌 = 𝑇 ∗ 
+
+> 0
+
+Σ𝑍𝑌 = 𝑀 gives 
+
+𝑇 ∗ 
+
+> 1
+
+(𝑍 ) = 𝐷 1 𝑀, 
+
+thus 
+
+𝑇 ∗ 
+
+> 1
+
+= 𝑇 ∗ 
+
+> 1
+
+(𝑍 ) 𝑇 ∗ 
+
+> 0
+
+= 𝐷 1𝑀𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+= 𝐷 1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+.
+
+(b) The normalizer 𝐷 1 scales each row to unit norm. Since 
+
+∥( Σ𝑍𝑌 )·𝑝 ∥ = ∥( 𝑇 ∗ 
+
+> 0
+
+Σ𝑍𝑌 )·𝑝 ∥ = ∥𝑀 ·𝑝 ∥, and ∥𝑀 ·𝑝 ∥2 = 𝑀 ′·𝑝 𝑀 ·𝑝 =
+
+(𝑀 2)𝑝𝑝 (using 𝑀 = 𝑀 ′), we obtain 
+
+𝐷 1 = diag  ∥𝑀 ·𝑝 ∥−1  = diag  (𝑀 2)−1/2
+
+> 𝑝𝑝
+
+.
+
+(c) The cross-covariance induced by 𝑇 ∗ 
+
+> 1
+
+is Cov (𝑇 ∗ 
+
+> 1
+
+𝑍, 𝑌 ) = 𝑇 ∗ 
+
+> 1
+
+Σ𝑍𝑌 = 𝐷 1 𝑀 𝑀, 
+
+so its 𝑝 -th diagonal entry gives the per-dimension align-ment 
+
+𝐽 (𝑇 ∗ 
+
+> 1
+
+, 𝑝 ) =√︃ (𝑀 2)𝑝𝑝 .
+
+A.5.3 Transformation 𝑇 ∗ 
+
+> 𝜆
+
+.
+
+(a) From (6), the optimal rows in the whitened form are 
+
+𝑡 ∗ 
+
+> 𝑝
+
+= 𝜆 (Σ𝑍𝑌 )·𝑝 + ( 1 − 𝜆 )𝑒 𝑝 
+
+∥𝜆 (Σ𝑍𝑌 )·𝑝 + ( 1 − 𝜆 )𝑒 𝑝 ∥ ,
+
+thus 
+
+𝑇 ∗ 
+
+> 𝜆
+
+(𝑍 ) = 𝐷 𝜆 
+
+ (1 − 𝜆 )𝐼 + 𝜆𝑀 ,
+
+and composing with the whitening 𝑇 ∗ 
+
+> 0
+
+= 𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+,
+
+𝑇 ∗ 
+
+> 𝜆
+
+= 𝑇 (𝑍 )∗  
+
+> 𝜆
+
+𝑇 ∗ 
+
+> 0
+
+= 𝐷 𝜆 
+
+ (1 − 𝜆 )𝑀 −1 + 𝜆𝐼  Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+.
+
+(b) The diagonal entries of the normalizer 𝐷 𝜆 are 𝑑 𝜆,𝑝 = ∥(( 1 −
+
+𝜆 )𝐼 + 𝜆𝑀 )·𝑝 ∥−1. Expanding the squared norm, 
+
+(( 1 − 𝜆 )𝐼 + 𝜆𝑀 )·𝑝 2
+
+= (1 − 𝜆 )𝑒 𝑝 + 𝜆𝑀 ·𝑝 2
+
+= (1 − 𝜆 )2 + 2𝜆 (1 − 𝜆 ) ⟨ 𝑒 𝑝 , 𝑀 ·𝑝 ⟩ + 𝜆 2 ∥𝑀 ·𝑝 ∥2
+
+= (1 − 𝜆 )2 + 2𝜆 (1 − 𝜆 ) 𝑀 𝑝𝑝 + 𝜆 2 (𝑀 2)𝑝𝑝 ,
+
+using ⟨𝑒 𝑝 , 𝑀 ·𝑝 ⟩ = 𝑀 𝑝𝑝 and ∥𝑀 ·𝑝 ∥2 = (𝑀 2)𝑝𝑝 . Hence 
+
+𝑑 𝜆,𝑝 =
+
+
+
+(1 − 𝜆 )2 + 2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + 𝜆 2 (𝑀 2)𝑝𝑝 
+
+ −1/2
+
+.
+
+(c) The cross-covariance induced by 𝑇 ∗ 
+
+> 𝜆
+
+is Cov (𝑇 ∗ 
+
+> 𝜆
+
+𝑍, 𝑌 ) = 𝑇 ∗ 
+
+> 𝜆
+
+Σ𝑍𝑌 = 𝐷 𝜆 
+
+ (1 − 𝜆 )𝐼 + 𝜆𝑀  𝑀, 
+
+so its 𝑝 -th diagonal entry gives the per-dimension align-ment 
+
+𝐽 (𝑇 ∗ 
+
+> 𝜆
+
+, 𝑝 ) = (1 − 𝜆 )𝑀 𝑝𝑝 + 𝜆 (𝑀 2)𝑝𝑝 √︁ 
+
+(1 − 𝜆 )2 + 2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + 𝜆 2 (𝑀 2)𝑝𝑝 
+
+.
+
+A.5.4 Transformation 𝑇 ∗
+
+> ex
+
+.
+
+(a) From (7), the optimal rows are the unit-normalized rows of 
+
+Σ−1 
+
+> 𝑍𝑌
+
+,
+
+𝑡 ∗ 
+
+> 𝑝
+
+=
+
+(Σ−1 
+
+> 𝑍𝑌
+
+)′ 
+
+> 𝑝 ·
+
+∥( Σ−1 
+
+> 𝑍𝑌
+
+)𝑝 · ∥ ,
+
+which gives 
+
+𝑇 (𝑍 )∗  
+
+> ex
+
+= 𝐷 ex 𝑀 −1,
+
+and composing with the whitening 𝑇 ∗ 
+
+> 0
+
+= 𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+,
+
+𝑇 ∗ 
+
+> ex
+
+= 𝑇 ∗ 
+
+> ex
+
+(𝑍 ) 𝑇 ∗ 
+
+> 0
+
+= 𝐷 ex 𝑀 −1 𝑀 −1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1
+
+> 𝑍
+
+= 𝐷 ex 𝑀 −2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+= 𝐷 ex Σ−1 
+
+> 𝑍𝑌
+
+,
+
+where the last step uses 
+
+𝑀 −2 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+= (Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 )−1 Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+= Σ−1 
+
+> 𝑍𝑌
+
+.
+
+(b) The normalizer 𝐷 ex = diag (𝑑 ex ,𝑝 ) is 𝑑 ex ,𝑝 = ∥( 𝑀 −1)𝑝 · ∥−1.Since 𝑀 (and 𝑀 −1) is symmetric, ∥( 𝑀 −1)𝑝 · ∥2 = (𝑀 −1𝑀 −1)𝑝𝑝 =
+
+(𝑀 −2)𝑝𝑝 , giving 
+
+𝐷 ex = diag  ∥( 𝑀 −1)𝑝 · ∥−1  = diag  (𝑀 −2)−1/2
+
+> 𝑝𝑝
+
+.
+
+(c) The cross-covariance induced by 𝑇 ∗ 
+
+> ex
+
+is Cov (𝑇 ∗
+
+> ex
+
+𝑍, 𝑌 ) = 𝑇 ∗ 
+
+> ex
+
+Σ𝑍𝑌 = 𝐷 ex Σ−1 
+
+> 𝑍𝑌
+
+Σ𝑍𝑌 = 𝐷 ex ,
+
+which is diagonal, so the cross-covariance constraint holds and the per-dimension alignment is 
+
+𝐽 (𝑇 ∗
+
+> ex
+
+, 𝑝 ) =  𝐷 ex 
+
+ 
+
+> 𝑝𝑝
+
+=  (𝑀 −2)𝑝𝑝 
+
+ −1/2.The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+## A.6 Proof of Theorem 3.1 
+
+(a) The theorem follows by summing the per-dimension inequalities over 𝑝 . The first inequality, together with its equality condition, is Lemma A.3. The remaining two, together with the monotonicity of 
+
+𝜆 ↦ → 𝐽 (𝑇 ∗ 
+
+> 𝜆
+
+), are Lemma A.4. In lemmas proofs, we use the notation and per-dimension representations of Section A.5, in particular that 
+
+𝑀 = (Σ′ 
+
+> 𝑍𝑌
+
+Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 )1/2.(b) The theorem follows directly from the problem formulations. Lemma A.3. For each 𝑝 ,
+
+𝐽 𝑇 ∗  
+
+> 𝑒𝑥 ,𝑝
+
+≤ 𝐽 𝑇 ∗ 
+
+> 0,𝑝
+
+with equality if and only if 𝑀 2 
+
+> 𝑝𝑝
+
+= ∥𝑀 ·𝑝 ∥2, i.e. the column 𝑀 ·𝑝 has no off-diagonal entries. 
+
+Proof. Since 𝑀 is symmetric positive definite, the two per-dimension values are 𝐽 𝑇 ∗  
+
+> 0,𝑝
+
+= 𝑀 𝑝𝑝 and 𝐽 𝑇 ∗  
+
+> 𝑒𝑥 ,𝑝
+
+=  (𝑀 −2)𝑝𝑝 
+
+ −1/2, so the claim is  (𝑀 −2)𝑝𝑝 
+
+ −1/2 ≤ 𝑀 𝑝𝑝 .
+
+We prove it through the intermediate quantity  (𝑀 −1)𝑝𝑝 
+
+ −1, using the Cauchy-Schwarz inequality twice. 
+
+Step 1:  (𝑀 −2)𝑝𝑝 
+
+ −1/2 ≤  (𝑀 −1)𝑝𝑝 
+
+ −1. Apply Cauchy-Schwarz to 𝑒 𝑝 and 𝑀 −1𝑒 𝑝 :
+
+(𝑀 −1)𝑝𝑝 = ⟨𝑒 𝑝 , 𝑀 −1𝑒 𝑝 ⟩ ≤ ∥ 𝑒 𝑝 ∥ ∥ 𝑀 −1𝑒 𝑝 ∥ =  (𝑀 −2)𝑝𝑝 
+
+1/2,
+
+using ∥𝑒 𝑝 ∥ = 1 and ∥𝑀 −1𝑒 𝑝 ∥2 = 𝑒 ′ 
+
+> 𝑝
+
+𝑀 −2𝑒 𝑝 = (𝑀 −2)𝑝𝑝 . Squaring and inverting gives the claim. 
+
+Step 2:  (𝑀 −1)𝑝𝑝 
+
+ −1 ≤ 𝑀 𝑝𝑝 . Apply Cauchy-Schwarz to 𝑀 1/2𝑒 𝑝 
+
+and 𝑀 −1/2𝑒 𝑝 :1 = ⟨𝑒 𝑝 , 𝑒 𝑝 ⟩ = ⟨𝑀 1/2𝑒 𝑝 , 𝑀 −1/2𝑒 𝑝 ⟩≤ ∥ 𝑀 1/2𝑒 𝑝 ∥ ∥ 𝑀 −1/2𝑒 𝑝 ∥ = 𝑀 1/2 
+
+> 𝑝𝑝
+
+(𝑀 −1)1/2 
+
+> 𝑝𝑝
+
+,
+
+so 𝑀 𝑝𝑝 (𝑀 −1)𝑝𝑝 ≥ 1, i.e.  (𝑀 −1)𝑝𝑝 
+
+ −1 ≤ 𝑀 𝑝𝑝 .Chaining the two steps, 
+
+𝐽 𝑇 ∗  
+
+> 𝑒𝑥 ,𝑝
+
+=  (𝑀 −2)𝑝𝑝 
+
+ −1/2 ≤  (𝑀 −1)𝑝𝑝 
+
+ −1 ≤ 𝑀 𝑝𝑝 = 𝐽 𝑇 ∗  
+
+> 0,𝑝
+
+.
+
+Equality in Step 1 holds iff 𝑀 −1𝑒 𝑝 ∥ 𝑒 𝑝 , i.e. 𝑒 𝑝 is an eigenvector of 
+
+𝑀 ; the same condition makes Step 2 an equality. This is equiva-lent to 𝑀 ·𝑝 having no off-diagonal entries, i.e. 𝑀 2 
+
+> 𝑝𝑝
+
+= ∥𝑀 ·𝑝 ∥2, and otherwise both inequalities are strict. □
+
+Lemma A.4. The map 𝜆 ↦ → 𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+is non-decreasing on [0, 1], thus 
+
+𝐽 𝑇 ∗  
+
+> 0,𝑝
+
+≤ 𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+≤ 𝐽 𝑇 ∗  
+
+> 1,𝑝
+
+, 𝜆 ∈ [ 0, 1].
+
+The inequalities are strict unless 𝜆 ∈ { 0, 1} or 𝑀 2 
+
+> 𝑝𝑝
+
+= ∥𝑀 ·𝑝 ∥2, i.e. unless the column 𝑀 ·𝑝 has no off-diagonal entries. 
+
+Proof. From Section A.5, the per-dimension alignment is 
+
+𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+= 𝜆 ∥𝑀 ·𝑝 ∥2 + ( 1 − 𝜆 ) 𝑀 𝑝𝑝 √︁ 
+
+𝜆 2 ∥𝑀 ·𝑝 ∥2 + 2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + ( 1 − 𝜆 )2 .
+
+Writing this as 𝑢 (𝜆 ) 𝑤 (𝜆 )−1/2 with numerator 𝑢 and 𝑤 = 𝜆 2 ∥𝑀 ·𝑝 ∥2+
+
+2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + ( 1 − 𝜆 )2, we have 𝑑 𝑑𝜆 𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+= 𝑤 −3/2  𝑢 ′𝑤 − 12𝑢𝑤 ′ . Ex-panding 𝑢 ′𝑤 − 12𝑢𝑤 ′ cancels all terms except (1−𝜆 )(∥ 𝑀 ·𝑝 ∥2 −𝑀 2 
+
+> 𝑝𝑝
+
+),
+
+𝛽 𝑝 , 𝛽 (0)
+
+> 𝑝
+
+𝑇 𝜆 
+
+𝑦 𝑛,𝑝 
+
+𝑧 𝑛,𝑝 𝑧 𝑛,𝑘 
+
+˜𝑧 𝑛,𝑝 𝑧 𝑛,𝑘 
+
+𝛼 𝑘 
+
+𝑤 𝑑,𝑘 
+
+𝜏 𝑑 
+
+𝑥 𝑛,𝑑 𝑝 = 1, . . . , 𝑃 𝑘 = 𝑃 + 1, . . . , 𝐾 𝑘 = 𝑃 + 1, . . . , 𝐾 𝑘 = 1, . . . , 𝐾 𝑘 = 1, . . . , 𝐾 𝑑 = 1, . . . , 𝐷 𝑛 = 1, . . . , 𝑁 
+
+Figure S6: Graphical model for iFA (uni-modal case). 
+
+giving 
+
+𝑑 𝑑𝜆 𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+= (1 − 𝜆 )  ∥𝑀 ·𝑝 ∥2 − 𝑀 2
+
+> 𝑝𝑝
+
+ 𝜆 2 ∥𝑀 ·𝑝 ∥2 + 2𝜆 (1 − 𝜆 )𝑀 𝑝𝑝 + ( 1 − 𝜆 )2 3/2 .
+
+Both factors in the numerator are non-negative on [0, 1]: 1 − 𝜆 ≥ 0, and 𝑀 2 
+
+> 𝑝𝑝
+
+≤ Í𝑘 𝑀 2 
+
+> 𝑘𝑝
+
+= ∥𝑀 ·𝑝 ∥2 since 𝑀 𝑝𝑝 is one entry of the column 
+
+𝑀 ·𝑝 . Hence 𝑑 𝑑𝜆 𝐽 𝑇 ∗  
+
+> 𝜆 ,𝑝
+
+≥ 0, and the endpoint values 𝐽 𝑇 ∗  
+
+> 0,𝑝
+
+= 𝑀 𝑝𝑝 and 
+
+𝐽 𝑇 ∗  
+
+> 1,𝑝
+
+= ∥𝑀 ·𝑝 ∥ give the lower and upper bound, respectively. The derivative vanishes only at 𝜆 = 1 or when ∥𝑀 ·𝑝 ∥2 = 𝑀 2 
+
+> 𝑝𝑝
+
+, which yields the strictness condition. □
+
+## B Additional model details 
+
+Let 𝑚 = 1, . . . , 𝑀 index the modalities in the multi-modal dataset. For each modality 𝑚 , we denote the observed data matrix by X(𝑚 ) ,the corresponding loading matrix by W(𝑚 ) , and the modality-specific parameters by 𝜶 (𝑚 ) and 𝝉 (𝑚 ) . The latent representation ˜ Z
+
+is shared across all modalities. The joint distribution factorizes as 
+
+𝑝 ({ X(𝑚 ) }𝑀 𝑚 =1, ˜Z, {W(𝑚 ) }𝑀 𝑚 =1, {𝛼 (𝑚 ) }𝑀 𝑚 =1, {𝜏 (𝑚 ) }𝑀 𝑚 =1 | Y, 𝛽 ) =
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝑀
+
+Ö
+
+> 𝑚 =1
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+
+N  𝑥 (𝑚 ) 
+
+> 𝑛,𝑑
+
+| ˜𝑧 𝑛, · (𝑤 (𝑚 ) 
+
+> 𝑑, ·
+
+)′, 1/𝜏 (𝑚 )
+
+> 𝑑
+
+
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝑃
+
+Ö
+
+> 𝑝 =1
+
+N ( 𝑧 𝑛,𝑝 | 𝛽 (0) 
+
+> 𝑝
+
++ 𝛽 𝑝 𝑦 𝑛,𝑝 , 1 − 𝛽 2 
+
+> 𝑝
+
+)
+
+> 𝑁
+
+Ö
+
+> 𝑛 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =𝑃 +1
+
+N ( 𝑧 𝑛,𝑘 | 0, 1)
+
+> 𝑀
+
+Ö
+
+> 𝑚 =1
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+N ( 𝑤 (𝑚 ) 
+
+> 𝑑,𝑘
+
+| 0, 1/𝛼 (𝑚 ) 
+
+> 𝑘
+
+)
+
+> 𝑀
+
+Ö
+
+> 𝑚 =1
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+G( 𝛼 (𝑚 ) 
+
+> 𝑘
+
+| 𝑎 (𝛼 ) 
+
+> 0
+
+, 𝑏 (𝛼 ) 
+
+> 0
+
+)
+
+> 𝑀
+
+Ö
+
+> 𝑚 =1
+> 𝐷
+
+Ö
+
+> 𝑑 =1
+
+G( 𝜏 (𝑚 ) 
+
+> 𝑑
+
+| 𝑎 (𝜏 ) 
+
+> 0
+
+, 𝑏 (𝜏 ) 
+
+> 0
+
+). (10) The graphical model for the uni-modal case is shown in Fig. S6. Łazęcka M., Szczurek E. 
+
+Scenario 1 Scenario 2 Scenario 3 Scenario 4 
+
+Positive & negative (PN) Autoregressive (AR) Positive (P) Negative (N) 
+
+- (Σ𝑌 )𝑖 𝑗 = (0.6)|𝑖 − 𝑗 | (Σ𝑌 )𝑖 𝑗 =
+
+(
+
+1 if 𝑖 = 𝑗 
+
+0.25 if 𝑖 ≠ 𝑗 (Σ𝑌 )𝑖 𝑗 =
+
+(
+
+1 if 𝑖 = 𝑗 
+
+−0.25 if 𝑖 ≠ 𝑗 
+
+Unstructured dependencies Time/space dependences Scale effects Dummy-coded categories 
+
+Table S2: Simulation scenarios with different covariate dependency structures 
+
+## C Additional details on the numerical experiments C.1 Simulation scenarios 
+
+We generate synthetic data from the generative model of Eq. (9) (Fig. S6) with 𝑇 = 𝐼 , varying the covariance structure of the co-variates to reflect qualitatively different but realistic dependence patterns. The four scenarios with different covariate-covariance structure are summarized in Tab. S2, and the parameters held fixed across all of them in Tab. S3. In simulations, we vary two parameters (Tab. S4): 𝛼 ∈ [ 0, 1] controls the strength of the covariate correla-tions by interpolating the covariance matrix toward the identity, and 𝑏 ∈ [ 0, 1] scales the factor-covariate coefficient vector control-ling the strength of the pairwise latent-covariate dependence. 
+
+Parameter Description Value 
+
+𝑁 number of observations 500 D number of features 100 
+
+𝐾 number of factors 10 
+
+𝛽 a vector of coefficients (0.9, 0.75 , 0.6, 0.45 , 0.3)
+
+𝜃 noise to signal ratio 0.1
+
+Table S3: Simulation parameter settings 
+
+## C.2 Metrics 
+
+Let 𝑍 = (𝑧 1, . . . , 𝑧 𝐾 ) denote the latent representation and 𝑌 =
+
+(𝑦 1, . . . , 𝑦 𝑃 ) the observed covariates. For each covariate 𝑦 𝑝 , we fit a regressor predicting 𝑦 𝑝 from 𝑍 and obtain a per-latent impor-tance vector; collecting these across 𝑝 yields the importance matrix 
+
+𝑅 ∈ R𝐾 ×𝑃 , where 𝑅 𝑘𝑝 measures the contribution of 𝑧 𝑘 to predict-ing 𝑦 𝑝 . On sample data, following [18], we set 𝑅 𝑘𝑝 to the absolute Lasso coefficient. For population-level metrics, we exploit the joint covariance of 𝑍 and 𝑌 and use the closed-form OLS coefficients: 
+
+𝑅 𝑘𝑝 = |( Σ−1 
+
+> 𝑍
+
+Σ𝑍𝑌 )𝑘𝑝 |. We compute these metrics only for the in-formed (aligned with covariates) latent dimensions. 
+
+• Disentanglement (D) measures the degree to which each latent dimension 𝑧 𝑘 encodes information about a single covariate. A latent that contributes to predicting only one 
+
+𝑦 𝑝 is fully disentangled; a latent that contributes to many is entangled. Formally, 
+
+𝐷 =
+
+> 𝐾
+
+∑︁ 
+
+> 𝑘 =1
+
+𝜌 𝑘 𝐷 𝑘 , 𝐷 𝑘 = 1 − 𝐻 ( ˜𝑅 𝑘, · )
+
+log 𝑃 ,
+
+˜𝑅 𝑘𝑝 = 𝑅 𝑘𝑝 
+
+Í𝑃 𝑞 =1 𝑅 𝑘𝑞 
+
+, 𝜌 𝑘 =
+
+Í𝑝 𝑅 𝑘𝑝 
+
+Í𝑘 ′,𝑝 ′ 𝑅 𝑘 ′𝑝 ′
+
+,
+
+where 𝐻 (·) is the Shannon entropy of the row-normalised importance vector. A high 𝐷 means each latent is spe-cialised to one factor and a low 𝐷 means the latents are entangled across factors. [18] 
+
+• Completeness (C) 
+
+Measures the degree to which each ground-truth factor is captured by a single latent. Formally, 
+
+𝐶 =
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+𝜔 𝑝 𝐶 𝑝 , 𝐶 𝑝 = 1 − 𝐻 ( ˜𝑅 ·,𝑝 )
+
+log 𝐾 ,
+
+˜𝑅 𝑘𝑝 = 𝑅 𝑘𝑝 
+
+Í𝐾 𝑘 ′=1 𝑅 𝑘 ′𝑝 
+
+, 𝜔 𝑝 =
+
+Í𝑘 𝑅 𝑘𝑝 
+
+Í𝑘 ′,𝑝 ′ 𝑅 𝑘 ′𝑝 ′
+
+.
+
+A high 𝐶 means each factor is concentrated in one latent, whereas a low 𝐶 means a factor’s information is spread across many latents. [18] 
+
+• Informativeness (I) measures whether the latent represen-tation actually contains the information needed to recover the ground-truth factors - independent of how that infor-mation is organised. Computed as the mean out-of-sample predictive performance of the regressors: 
+
+𝐼 = 1
+
+𝑃 
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+𝑅 2 ( ˆ𝑦 𝑝 , 𝑦 𝑝 ),
+
+where ˆ 𝑦 𝑝 is the prediction of 𝑦 𝑝 from 𝑍 . A high 𝐼 indicates the latents jointly preserve covariate information and a low 
+
+𝐼 indicates information loss. [18] 
+
+• Separated Attribute Predictability (SAP) 
+
+For each pair (𝑧 𝑘 , 𝑦 𝑝 ), fit a univariate regression ˆ 𝑦 𝑝 = 𝑎 𝑘𝑝 𝑧 𝑘 +
+
+𝑏 𝑘𝑝 and compute the predictive score 𝑆 𝑘𝑝 = 𝑅 2 ( ˆ𝑦 𝑝 , 𝑦 𝑝 ). For each ground-truth factor, compute the gap between the The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+Parameter Description Values 
+
+𝛼 ∈ [ 0, 1] Controls the strength of covariate dependences. The covariance matrix is transformed as 
+
+Σ(𝛼 ) 
+
+> 𝑌
+
+= 𝛼 Σ𝑌 + ( 1 − 𝛼 )𝐼 , with smaller values yielding weaker correlations (0 - no correlations, 1 - strongest correlations). 0, 0.25 , 0.5, 0.75 , 1
+
+𝑏 ∈ [ 0, 1] Controls the strength of latent-covariate dependence by scaling the coefficient vector: 𝛽 (𝑏 ) = 𝑏𝛽 ;the smallest 𝑏 is selected so that the lowest 𝛽 𝑝 = 0.1, then 𝑏 are spread equilly (1 /3 - smallest factor-covariate dependence 0 .2 on average, 1 strongest factor covariate dependence 0 .6 on average) 1/3, 1/2, 2/3, 3/4, 1
+
+Table S4: Simulation parameters varied across experiments. 
+
+highest and second-highest single-feature score, and aver-age over factors: SAP = 1
+
+𝑃 
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+
+
+𝑆 𝑘 (1)  
+
+> 𝑝 ,𝑝
+
+− 𝑆 𝑘 (2) 
+
+> 𝑝 ,𝑝
+
+
+
+,
+
+where 𝑘 (1) 
+
+> 𝑝
+
+and 𝑘 (2) 
+
+> 𝑝
+
+denote the latents with the highest and second-highest scores for factor 𝑝 . A high SAP means a single latent stands out as the dominant predictor of each ground-truth factor, and a low SAP means several latents share predictive power for the same factor. Unlike 𝐷 and 𝐶 ,which use the joint-regression importance matrix, SAP mea-sures single-feature predictability and is consequently more sensitive to correlations among the ground-truth factors. [36] 
+
+• Normalised Separated Attribute Predictability (nSAP) 
+
+A scale-invariant variant of SAP, in which the gap is divided by the top predictor’s score: nSAP = 1
+
+𝑃 
+
+> 𝑃
+
+∑︁ 
+
+> 𝑝 =1
+
+
+
+𝑆 𝑘 (1)  
+
+> 𝑝 ,𝑝
+
+− 𝑆 𝑘 (2) 
+
+> 𝑝 ,𝑝
+
+
+
+/𝑆 𝑘 (1)  
+
+> 𝑝 ,𝑝
+
+.
+
+Unlike SAP, which reports the absolute gap and therefore mixes together the strength of the dominant predictor with its lead over the runner-up, nSAP isolates the relative domi-nance of the best predictor. This is particularly useful when overall predictive scores are low: a small SAP gap may reflect either a weak dominant predictor or genuinely com-peting predictors, whereas nSAP disentangles these two cases. 
+
+## C.3 Methods details 
+
+Tab. S5 lists the methods we compare against, together with the packages and hyperparameters used. To keep the comparison fair, every method is given the same number of factors and the same op-timisation budget: 𝐾 = 10 and 2000 iterations (or epochs/SVI steps) for the simulations, and 𝐾 = 20 and 5000 iterations for the real data. Methods whose factors are not paired with the covariates by construction (PCA, MOFA, PLS, both supervised PCA variants, and iVAE) have their informed factors selected by Hungarian match-ing on |corr (𝑍, 𝑌 )| , with signs aligned. SOFA and the regression baseline are paired by design and need no matching. Our method (iFA) is fitted with the same 𝐾 and iteration budget: variational inference for 2000 (5000 for the real data) iterations, preceded by 250 (1000) pretraining iterations of the unsupervised model, and stopped early when the relative ELBO change falls below 5 × 10 −7. The fine-tuning step is run at 𝜆 ∈ { 0, 0.25 , 0.5, 0.75 , 1} for the simulations, and 𝜆 ∈ { 0, 0.25 , 0.5, 0.75 , 0.9} for real data. 
+
+## C.4 Image representations 
+
+Represenations are extracted with three pretrained models obtained through the HuggingFace transformers :
+
+• ViT [17], https://huggingface.co/google/vit-base-patch16-224, 
+
+• CLIP [45], https://huggingface.co/openai/clip-vit-large-patch14, 
+
+• DINOv2 [40], https://huggingface.co/facebook/dinov2-base. For ViT and DINOv2 we take the model’s pooled output, for CLIP we take the projected image features, each of dimension 768. 
+
+## D Supplementary figures 
+
+This section collects the complete set of results across all simu-lation scenarios, the pretrained representations, and the runtime comparison. The main text reports Scenarios 1 (PN) and 4 (N). For completeness, some panels shown in the main text are repeated here: 
+
+• Fig. S8, panels A and B also shown in Fig. 1; 
+
+• Fig. S8 and Fig. S11, right panel of D also shown in Fig. 3. Figure S7 shows the latent-covariate and latent-latent covariance matrices for CLIP, ViT, and DINOv2 under the two baselines and the proposed transformations. Figures S8-S11 report, for each of the four scenarios, the data-generating covariance matrices (panel A), the covariance matrices after each transformation (panel B), the trade-off traced by the family of transformations (panel C), and the empirical comparison of all methods under two parameter settings (panel D). Figures S12-S15 report, for each scenario, the three proposed met-rics (average factor-covariate correlation, factor independence, and average variance explained per factor) and the five disentanglement metrics ( 𝐷 , 𝐶 , 𝐼 , SAP, nSAP), varying the strength of the covariate correlations ( 𝛼 , panel A) and of the factor-covariate associations ( 𝑏 ,panel B). Figure S16 reports parameter recovery as the number of obser-vations grows: the estimated coefficients, their mean squared error, and the cosine similarity between recovered and true informed factors. Figure S17 compares the runtime of all methods. Łazęcka M., Szczurek E. 
+
+Name Description Implementation details 
+
+PCA Principal Component Analysis. An unsupervised lin-ear method extracting orthogonal directions that max-imise variance in 𝑋 . [25, 42] 
+
+PCA(n_components=10/20) - sklearn 1.8.0 [43] MOFA Multi-Omicss Factor Analysis A probabilistic multi-view factor analysis model with a mean-field variational approximation that approximates factor independence. [3] 
+
+mofapy2 0.7.4 
+
+model options: factors=10/20, spikeslab_weights=True, ard_weights=True, ard_factors=True ,train options: convergence_mode="medium", iter=2000/5000 
+
+PLS Partial Least Squares. Extracts latent directions that maximise the covariance between 𝑋 and 𝑌 , subject to orthogonality of successive components. [55] 
+
+PLSRegression(n_components=10/20) - sklearn 1.8.0 [43] SPCA (Bair 2006) Screening-based supervised PCA. A two-step method that first screens features of 𝑋 by their uni-variate association with 𝑌 (e.g., absolute correlation coefficient above a threshold), then applies standard PCA to the surviving submatrix. The factors are PCA directions of a covariate-relevant subset of features. Our implementation: features filtered by absolute correlation above the 0 .5 empirical quantile treshold, then PCA(n_components=10/20) - sklearn 1.8.0 
+
+[43] SPCA (Barshan 2011) HSIC-based supervised PCA. Finds directions in 𝑋 
+
+maximising the Hilbert-Schmidt Independence Crite-rion with 𝑌 . The objective reduces to a generalised eigenproblem on 𝑋 ′𝐻𝐿𝐻𝑋 , where 𝐿 is the 𝑌 -kernel matrix and 𝐻 = 𝐼 − 1 
+
+> 𝑛
+
+11 ′ is the centring matrix. Our implementation: RBF kernel on 𝑌 with median bandwidth, linear kernel on 𝑋 ,
+
+scipy 1.17.1 and numpy 2.4.6 
+
+iVAE Identifiable VAE. A variational autoencoder where the prior over 𝑍 is conditioned on the auxiliary variables 𝑌 
+
+via a factorised exponential family, 𝑝 (𝑧 | 𝑦 ) = Î𝑝 𝑝 (𝑧 𝑝 |
+
+𝑦 ). Trained by maximising the conditional ELBO with both an encoder 𝑞 (𝑧 | 𝑥, 𝑦 ) and a decoder 𝑝 (𝑥 | 𝑧 ). [31] Our implementation: PyTorch 1.13.1+cu117 , Gauss-ian variant encoder, prior and decoder MLPs with 2 × 64 hidden units, LeakyReLU (0.1); Adam, lr = 10 −3, batch = 256, epochs=2000/5000. SOFA Semi-supervised Factor Analysis An extension of MOFA that models pairwise factor-covariate dependen-cies. A scaling factor ( sf ) reweights the factor-covariate loss term relative to the data-factor terms, providing indirect control over the factor-covariate dependence strength. [11] 
+
+biosofa 0.7.5 , 𝐾 = 10 /20, llh= ’gaussian’, ’bernoulli’ , n_steps=2000/5000, lr=0 .01 
+
+sf ∈ { 0.01 , . . . , 0.05 , 0.1}.Y as factors Regression. A supervised baseline that takes the co-variates themselves as the first 𝑃 informed factors and fills the remaining 𝐾 − 𝑃 slots with the leading principal components of the residual 𝑋 − 𝑌 ˆ𝛽 𝑦 , where ˆ𝛽 𝑦 is the OLS fit of 𝑋 on 𝑌 .
+
+LinearRegression , PCA - sklearn 1.8.0 
+
+Table S5: Comparison methods, with a brief description and implementation details. 
+
+> Received 26 July 2027; revised X XXXX 2027; accepted X XXXX 2027 The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning
+
+Figure S7: Covariance structure of the pretrained image representations under each transformation, for A. CLIP, B. ViT, and C. DINOv2. Each panel shows latent-covariate (top) and latent-latent (bottom) covariances for the two baselines (dimensions with max correlation, Procrustes rotation) and the proposed 𝑇 ex ,𝑇 0,𝑇 1.Łazęcka M., Szczurek E. 
+
+Figure S8: Scenario 1 (PN) results. A. Covariance matrices Σ𝑌 𝑍 and Σ𝑍 in the data-generating setting. B. Covariance matrices Σ𝑌 ˜𝑍 
+
+and Σ ˜𝑍 after transformations 𝑇 ex , 𝑇 0, 𝑇 1/2, and 𝑇 1. C. Frontier after transformations 𝑇 𝜆 and 𝑇 ex . D. Empirical results for methods under two parameter settings: baseline and reduced 𝛼 .
+
+Figure S9: Scenario 2 (AR) results.A. Covariance matrices Σ𝑌 𝑍 and Σ𝑍 in the data-generating setting. B. Covariance matrices Σ𝑌 ˜𝑍 
+
+and Σ ˜𝑍 after transformations 𝑇 ex , 𝑇 0, 𝑇 1/2, and 𝑇 1. C. Frontier after transformations 𝑇 𝜆 and 𝑇 ex . D. Empirical results for methods under two parameter settings: baseline and reduced 𝛼 .The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+Figure S10: Scenario 3 (P) results. A. Covariance matrices Σ𝑌 𝑍 and Σ𝑍 in the data-generating setting. B. Covariance matrices Σ𝑌 ˜𝑍 
+
+and Σ ˜𝑍 after transformations 𝑇 ex , 𝑇 0, 𝑇 1/2, and 𝑇 1. C. Frontier after transformations 𝑇 𝜆 and 𝑇 ex . D. Empirical results for methods under two parameter settings: baseline and reduced 𝑏 .
+
+Figure S11: Scenario 4 (N) results. A. Covariance matrices Σ𝑌 𝑍 and Σ𝑍 in the data-generating setting. B. Covariance matrices 
+
+Σ𝑌 ˜𝑍 and Σ ˜𝑍 after transformations 𝑇 0, 𝑇 1/2, and 𝑇 1 (no 𝑇 ex is reported, as in Scenario 4 (N) Σ𝑍𝑌 is not invertible). C. Frontier of transformations 𝑇 𝜆 . D. Empirical results for methods under two parameter settings: baseline and reduced 𝑏 .Łazęcka M., Szczurek E. 
+
+Figure S12: Performance in Scenario 1 (PN), measured by three proposed metrics (average factor–covariate correlations, factor independence measured by the squared Frobenius distance of the correlation matrix of 𝑍 from the identity, and average variance explained per factor) and five disentanglement metrics (disentanglement, completeness, informativeness, SAP, and normalised SAP). A. Varying the strength of correlations among covariates. B. Varying the strength of factor–covariate associations. The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+Figure S13: Performance in Scenario 2 (AR), measured by three proposed metrics (average factor–covariate correlations, factor independence measured by the squared Frobenius distance of the correlation matrix of 𝑍 from the identity, and average variance explained per factor) and five disentanglement metrics (disentanglement, completeness, informativeness, SAP, and normalised SAP). A. Varying the strength of correlations among covariates. B. Varying the strength of factor–covariate associations Łazęcka M., Szczurek E. 
+
+Figure S14: Performance in Scenario 3 (P), measured by three proposed metrics (average factor–covariate correlations, factor independence measured by the squared Frobenius distance of the correlation matrix of 𝑍 from the identity, and average variance explained per factor) and five disentanglement metrics (disentanglement, completeness, informativeness, SAP, and normalised SAP). A. Varying the strength of correlations among covariates. B. Varying the strength of factor–covariate associations The Trade-off Between Covariate Dependence and Latent Structure in Representation Learning 
+
+Figure S15: Performance in Scenario 4 (N), measured by three proposed metrics (average factor–covariate correlations, factor independence measured by the squared Frobenius distance of the correlation matrix of 𝑍 from the identity, and average variance explained per factor) and five disentanglement metrics (disentanglement, completeness, informativeness, SAP, and normalised SAP). A. Varying the strength of correlations among covariates. B. Varying the strength of factor–covariate associations Łazęcka M., Szczurek E. 
+
+Figure S16: Consistency of iFA (no 𝑇 ) as the number of observations 𝑁 grows, Scenario 1 (PN). A. Recovery of factor-covariate coefficients. B. Mean squared error of the estimated ˆ𝛽 𝑝 averaged over 𝑝 . C. cosine similarity between recovered and true informed factors. Shaded bands show ±1 s.d. over repetitions. 
+
+Figure S17: Runtime of all methods on the one simulation setup.
