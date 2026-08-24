@@ -1,0 +1,435 @@
+Title: scDNM-VAE enables directly inspectable deep clustering of single-cell RNA-seq data through signed dendritic gating
+
+URL Source: https://arxiv.org/pdf/2608.17228v1
+
+Published Time: Wed, 19 Aug 2026 00:20:57 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+# scDNM-VAE enables directly inspectable deep clustering of single-cell RNA-seq data through signed dendritic gating 
+
+Melih Ağraz a,b,c, ∗, Deniz Karapınar c, Aysel Topsır d, Qianying Cao e, Erol Eğrioğlu c, Gaurav Choudhary a,b,f,g 
+
+> a
+
+Department of Medicine, Brown University, Providence, RI 02903, USA 
+
+> b
+
+Division of Cardiology, Brown University Health, Providence, RI 02903, USA 
+
+> c
+
+Department of Data Science and Analytics, Faculty of Arts and Sciences, Giresun University, Giresun, Türkiye 
+
+> d
+
+Department of Industrial Engineering, Faculty of Mechanical Engineering, Yildiz Technical University, Istanbul, Türkiye 
+
+> e
+
+Department of Mechanical Engineering, Rochester Institute of Technology, Rochester, NY 14623, USA 
+
+> f
+
+Alpert Medical School of Brown University and Brown Health Cardiovascular Institute, Providence, RI 02903, USA 
+
+> g
+
+VA Providence Healthcare System, Providence, RI 02908, USA 
+
+Abstract 
+
+Deep clustering models for single-cell RNA sequencing often assign cells through latent or centroid-based mechanisms that are difficult to inspect. We introduce scDNM-VAE (single-cell Dendritic Neuron Model Variational Autoencoder), a deep clustering framework that combines a variational au-toencoder with a dendritic neuron-inspired head. Cluster assignments are governed by learnable signed synaptic weights and thresholds: the weight sign determines the direction of a gate’s response to a latent coordinate, its magnitude controls steepness, and the weight–threshold pair determines the transition location. The trained clustering function can therefore be in-spected directly without fitting a post-hoc explanation model. 
+
+> ∗
+
+Corresponding author 
+
+Email address: melih_agraz@brown.edu (Melih Ağraz) 
+
+Preprint submitted to Information Sciences August 19, 2026 arXiv:2608.17228v1 [q-bio.QM] 18 Aug 2026 We benchmark scDNM-VAE on four datasets spanning immune, cortical, cardiac, and hematopoietic cells against scVI followed by KMeans and an MLP-DEC ablation. scDNM-VAE performs better than scVI on PBMC3k, comparably on the Human Heart Cell Atlas and Paul15, and worse on Zeisel, while producing biologically coherent marker-gene signatures. Ablating each cluster’s three highest-magnitude synaptic dimensions causes numerically greater reassignment than random-dimension ablation across all datasets, but the margins are modest and negligible on Zeisel. These results show that signed dendritic gating supports competitive clustering with a parameter-inspectable decision function, while indicating that decision-relevant infor-mation is distributed across the latent space. 
+
+Keywords: single-cell RNA-seq, deep clustering, dendritic neuron model, variational autoencoder, explainable AI 
+
+1. Introduction 
+
+Single-cell RNA sequencing (scRNA-seq) profiles the transcriptomes of in-dividual cells and resolves cell types, transitional states, and rare populations that bulk assays miss. Unsupervised clustering of these expression profiles is one of the first steps in nearly every scRNA-seq pipeline, and the quality of that clustering shapes downstream analyses and interpretation of differential expression, trajectory inference, and cell–cell communication [1, 5, 6]. As machine learning becomes increasingly embedded in biomedical decision-making, accuracy alone is no longer treated as sufficient. Guidance from both the scientific community and regulatory bodies is increasingly framed under the heading of trustworthy AI : models should be interpretable and account-able as well as accurate [33, 34]. The EU Artificial Intelligence Act (Reg-ulation (EU) 2024/1689) [33] imposes transparency obligations on systems classified as high-risk, and the NIST AI Risk Management Framework [34] lists explainability and interpretability among the characteristics of trust-worthy systems. Within computational biology, it has been explicitly argued that interpretability methods should themselves be evaluated rather than assumed reliable [40]. It has been argued that, for high-stakes decisions, post-hoc explanation methods such as SHAP (SHapley Additive exPlana-tions) [41] and LIME (Local Interpretable Model-agnostic Explanations) [42] should be replaced by models that are inherently interpretable, because post-2hoc explanations are approximations of the model’s behavior, not the model’s actual decision logic, and can be unstable or even misleading [35]. Single-cell biology is a high-stakes domain in this sense: a misclassified cell population can propagate through differential expression analyses, trajectory inferences, and ultimately therapeutic hypotheses [24, 25]. Current deep-learning approaches to scRNA-seq clustering fall into two broad categories, neither of which inherently provides direct parameter-level interpretability of the clustering decision function. Two-stage pipelines typ-ically combine generative representation-learning models such as scVI [1] with conventional clustering algorithms such as KMeans or Leiden [10]. Al-ternatively, joint deep-clustering methods, including DEC [4] and its single-cell adaptations such as scDeepCluster [5], integrate a clustering objective directly into representation learning. These approaches benefit from deep autoencoder-based representations and, in some cases, explicit modelling of sparse count data; however, their clustering decisions are governed by centroid distances or target-distribution refinement, rules whose parameters carry no directly readable meaning, and explanations of those decisions are typically introduced as a separate downstream step, such as Wilcoxon dif-ferential expression analysis, SHAP, or attention visualization. Even when clustering is optimized jointly with representation learning, these methods typically rely on target-distribution refinement or distances to learnable cen-troids, offering limited mechanistic insight into why a cell is assigned to a particular cluster. In both paradigms, interpretability is a downstream patch rather than a property of the model itself. Supervised cell-type anno-tation methods and benchmarking studies have further demonstrated the im-portance of robust cell-identity assignment in scRNA-seq analysis, although these approaches generally assume labelled reference data rather than solving the unsupervised clustering problem directly [22, 23, 26, 32]. Autoencoder-based denoising methods such as DCA have also shown the utility of deep autoencoder-based representations for handling sparse and noisy scRNA-seq count data [27]. In contrast, the architecture of the dendritic neuron model (DNM) intro-duced by Todo and colleagues [2] has properties that support direct parameter-level inspection. DNM was designed to capture how biological neurons in-tegrate signals along their dendritic trees: each synapse applies a nonlinear sigmoid gate parameterized by a weight and a threshold (Figure 1a), the synaptic outputs along each dendritic branch are combined multiplicatively, 3and the resulting branch outputs are then summed at the membrane/soma layer [3, 13]. It has been used for classification [14, 15, 20, 21, 30], function approximation [3], and forecasting [28, 31], with accuracy comparable to stan-dard neural networks but with parameters that remain inspectable [16, 17]. A range of DNM variants and training strategies have since been proposed, in-cluding models with explicit dendrite morphology, adaptive synapses, and multi-input/multi-output extensions [18, 19, 29]. Related work on non-standard neuron architectures has also explored multiplicative aggregation, including single multiplicative neuron models within physics-informed neural networks, where architectural simplicity offered computational advantages in some settings but also revealed important convergence limitations [44]. Two properties make this architecture particularly appealing for clustering. The threshold-gated formulation carves the latent space into regions defined by distinct activation patterns, which is a stronger inductive bias than Eu-clidean distance to a centroid; note that our Stage-1 head aggregates the per-dimension gates additively, as dist k = P
+
+> d
+
+(1 − Akd )2, and reserves the DNM’s multiplicative branch aggregation for the Stage-2 gene-module de-coder. Crucially, each signed weight-threshold pair specifies how a cluster reads one latent coordinate: the weight sign determines whether the gate in-creases or decreases, the magnitude controls the steepness of this dependence, and the weight–threshold pair determines the transition location. These quantities are part of the clustering decision function itself and can therefore be inspected without fitting a separate post-hoc model. In scDNM-VAE, we adapt the DNM principle differently across the two stages: Stage 1 uses signed weight-threshold gating for cluster assignment, whereas Stage 2 uses a modified dendritic branch aggregation based on the geometric mean for gene-module decomposition. A growing body of work pursues inherent interpretability in single-cell models by constraining the latent space to align with known biology. Bio-logically informed VAEs such as expiMap [36] and VEGA [37] tie individ-ual latent dimensions to curated gene programs or pathways, while linearly-decoded VAEs (LDVAE [38]) and embedded topic models (scETM [39]) ex-pose interpretable gene loadings directly from the decoder. These methods make the gene-program content of the latent space readable. Our approach is complementary but operates on a different axis: rather than annotating what each latent dimension represents, scDNM-VAE exposes the signed weight-threshold gates that determine how each cluster reads the latent space, and 4we test by ablation whether the dimensions receiving the largest synaptic weights influence the resulting assignments. In this manuscript we report a novel scDNM-VAE pipeline, a method de-signed from the start to make its clustering rule directly inspectable, building on the DNM [2] for clustering of cells based on scRNA-seq data. We evalu-ate it against scVI+KMeans and an MLP-DEC ablation on four scRNA-seq datasets covering immune cells, cortical neurons, cardiac tissue, and hematopoietic progenitors. Across five random seeds, scDNM-VAE outper-formed scVI+KMeans decisively on PBMC3k in mean ARI, fell within seed-to-seed variability of the alternatives on Paul15 and on the Human Heart Cell Atlas—where it is nonetheless roughly twice as stable across seeds as scVI—and was outperformed on Zeisel Cortex, where scVI performed clearly better. We further evaluated whether conventional cluster-quality metrics faithfully reflect biological structure. This analysis showed that apparently stronger cluster separation can reflect compact partitions that are misaligned with expert-curated labels. Distinct from a post-hoc explanation, scDNM-VAE’s signed gating parameters are components of the clustering rule itself and can be read directly from the trained model. 
+
+2. Results 
+
+2.1. Model architecture 
+
+scDNM-VAE operates in two stages (Figure 2). Stage 1 consists of a shared variational encoder, a DNM-inspired dendritic clustering head, and an MLP decoder, whereas Stage 2 augments the model with a dendritic gene-module decoder trained on frozen Stage 1 latent representations that pro-vides complementary gene-level interpretability without altering the Stage 1 clustering solution. Importantly, the Stage 1 clustering head uses synap-tic weight-threshold gating to define cluster assignments in the latent space, while the geometric-mean branch aggregation is used in the Stage 2 dendritic decoder to decompose latent representations into gene modules. The encoder maps a cell’s expression profile x ∈ RG through two hidden layers (512 and 128 units; BatchNorm, ReLU, 10% dropout) to produce a mean vector μ
+
+and a log-variance vector log σ2 in a 10-dimensional latent space. A latent sample z is drawn via the reparameterization trick, z = μ + ε · σ, where 
+
+ε ∼ N (0, I) [11]. 5The dendritic clustering head implements the DNM gating mechanism. For each cluster k and latent dimension d, a sigmoid gate is computed as 
+
+Akd = σ ksharp (zd Wkd − Qkd ),
+
+where Wsyn and Qsyn are learnable synaptic weight and threshold matri-ces and ksharp = 2 .0 controls the gating sharpness. The gate-based assignment score for cluster k is dist k = P
+
+> d
+
+(1 − Akd )2, which decreases as that cluster’s gates open, and the soft assignment probability is qk = (1 + dist k)−1, nor-malized across clusters (Figure 1). We retain the symbol dist k for continuity with the DEC formulation, but it is not a metric: it is bounded, never reaches zero, and is minimized not at a centroid but along the direction of Wk. The gate derivative is ∂A kd /∂z d = ksharp Wkd Akd (1 − Akd ), so the sign of Wkd de-termines whether the gate increases or decreases with the latent coordinate, while |Wkd | controls the steepness and, for Wkd ̸ = 0 , the transition midpoint occurs at zd = Qkd /W kd . The decoder reconstructs the input through a sym-metric MLP that mirrors the encoder (128 and 512 hidden units), producing a G-dimensional output matching the input gene space. Training proceeds in three phases. Phase 1 (300 epochs) pretrains the en-coder and decoder using reconstruction and KL-divergence losses. In Phase 2 (300 epochs), KMeans is fitted to the pretrained posterior-mean representa-tions, and its cluster centres are copied into the rows of Wsyn ; Qsyn is then initialized from the nearest-neighbour distances among these rows before joint optimization with the DEC-style target distribution. In Phase 3 (50 epochs), 
+
+Qsyn is recomputed from the optimized Wsyn using the same distance-based rule, followed by brief refinement at a lower learning rate. 
+
+KL regularization.. For the reported scDNM-VAE experiments, the KL co-efficient was set to β = 10 −3 for PBMC3k and Paul15 and β = 5 × 10 −4 for Zeisel and Heart. Within each dataset, the same value was held fixed across all five random seeds. 
+
+2.2. Benchmark performance 
+
+We benchmarked scDNM-VAE, the MLP-DEC ablation, and scVI+KMeans on four datasets with expert-curated labels (Table 1, Figure 3). All three methods, including the scVI baseline, were run with five random seeds (42, 67, 123, 256, 999); we report the best-seed ARI along with the mean ± stan-dard deviation (Table 2). We evaluated clustering quality with two comple-mentary families of metrics. Label-based metrics compare predicted clusters against expert-curated labels: ARI evaluates how closely two clustering as-signments correspond after accounting for agreement expected by chance; Normalized Mutual Information (NMI) captures the extent of information shared between predicted clusters and reference labels; and clustering accu-racy (ACC) is the fraction of correctly assigned cells after optimal cluster-to-label matching. Geometry-based metrics assess cluster compactness and sep-aration directly in the latent space without using labels: the Silhouette score (SIL) and the Calinski–Harabasz index (CH) increase with tighter, better-separated clusters, whereas the Davies–Bouldin index (DB) decreases with better separation. For all metrics except DB, higher values indicate better clustering. Full definitions and implementations are given in the Methods. On mean ARI across the five seeds (Table 2)—the summary least sensitive to seed selection—scDNM-VAE ranks highest on one of the four datasets (PBMC3k); its best-seed ARI (Table 1) additionally leads on Paul15, though within seed variability there. Read together with the seed variability, the benchmarks separate into three regimes. On PBMC3k scDNM-VAE holds a decisive advantage: best-seed ARI 0.769 vs. 0.477 for scVI ( ∆ = +0 .292 ) and mean ARI 0.636 vs. 0.449, a gap that exceeds the combined seed variability of the two methods and is mirrored in NMI (0.723 vs. 0.686) and clustering accuracy (0.814 vs. 0.631). On the Human Heart Cell Atlas, scVI attained a slightly higher mean ARI (0.773 vs. 0.753), but this difference was smaller than scVI’s own seed-to-seed standard deviation. scDNM-VAE was more stable across seeds: its ARI standard deviation was 0.031, compared with 0.066 for scVI (Table 2). We therefore interpret this benchmark as comparable mean performance, with greater seed-to-seed variability for scVI. On Paul15, the most fine-grained benchmark, the three methods lie within seed variability: scDNM-VAE is nominally ahead on best-seed ARI (0.335 vs. 0.328) and MLP-DEC on mean ARI (0.308 vs. 0.296), differences smaller than one seed standard deviation in both directions. On Zeisel Cortex, scVI+KMeans is clearly better on all three label-based metrics (best-seed ARI 0.725 vs. 0.585; mean 0.700 vs. 0.528). scVI’s advantage on Zeisel may reflect its count-based likelihood, optimization procedure, or other architec-7Table 1: Benchmark performance across four scRNA-seq datasets. Best-seed ARI is reported for scDNM-VAE, the MLP-DEC ablation, and scVI+KMeans across five random seeds. The MLP-DEC ablation uses a DEC-style clustering head with the corresponding deterministic encoder and training configuration. ∆ vs scVI is calculated from unrounded best-seed ARI values and may therefore differ slightly from the displayed three-decimal values.                                     
+
+> Dataset Cells Types βscDNM-VAE MLP-DEC scVI+KM ∆vs scVI
+> PBMC3k 2,638 80.001 0.769 0.701 0.477 +0 .292
+> Zeisel 3,005 70.0005 0.585 0.445 0.725 −0.140
+> Heart 18,641 11 0.0005 0.805 0.748 0.821 −0.017
+> Paul15 2,730 19 0.001 0.335 0.328 0.286 +0 .049
+
+Table 2: ARI mean ± standard deviation across five random seeds. 
+
+Dataset scDNM-VAE MLP-DEC scVI+KMeans 
+
+PBMC3k 0.636 ± 0.101 0.545 ± 0.088 0.449 ± 0.020 Zeisel 0.528 ± 0.062 0.373 ± 0.087 0.700 ± 0.018 
+
+Heart 0.753 ± 0.031 0.736 ± 0.014 0.773 ± 0.066 
+
+Paul15 0.296 ± 0.023 0.308 ± 0.014 0.272 ± 0.011 
+
+tural differences; isolating the source of the gap requires a dedicated decoder ablation. Section 2.5 examines the Heart benchmark in detail and shows that the label-based scores there under-report scDNM-VAE’s clusters, which are highly pure but over-segmented relative to the reference annotation. The MLP-DEC ablation achieves a lower best-seed ARI than scDNM-VAE on all four datasets and a lower mean ARI on three of four; the ex-ception is Paul15 in the mean, where the two remain within seed variability. Because the two architectures share the decoder, reconstruction and cluster-ing objectives, optimizer, and the first two training phases, but differ jointly in the clustering head, variational versus deterministic encoding, KL regu-larization, and threshold-refinement phase, the observed gap reflects their combined architectural differences rather than dendritic gating in isolation. 82.3. Geometric tightness does not imply biological correctness 
+
+An important pattern appears when we compare the geometry-based met-rics of Supplementary Figure S5 with the label-based metrics of Table 1 and Figure 3. The MLP-DEC ablation achieves dramatically higher Silhou-ette scores than scDNM-VAE on every dataset (0.88–0.96 vs. 0.37–0.84) and substantially better Davies–Bouldin and Calinski–Harabasz indices (Supple-mentary Figure S5); on the Heart Atlas its Calinski–Harabasz index exceeds scDNM-VAE’s by an order of magnitude ( 1.4 × 10 6 vs. 1.1 × 10 5). Taken in isolation, these geometry metrics would suggest that MLP-DEC is the bet-ter clustering method. Yet on all four datasets MLP-DEC produces lower 
+
+best-seed ARI than scDNM-VAE (PBMC3k: 0.701 vs. 0.769; Heart: 0.748 vs. 0.805). The MLP-DEC encoder is finding tight, well-separated regions of the latent space that do not correspond to true cell-type identities. 
+
+Replacing the dendritic clustering head.. We replaced the dendritic head with a standard DEC head while retaining the decoder, optimizer, hyperparame-ters, and the first two training phases; in this variant the encoder is deter-ministic rather than variational, and there is no threshold-refinement phase (Methods 5.7). This MLP-DEC ablation underperformed scDNM-VAE in best-seed ARI on all four datasets (Table 1), with the largest gaps on Zeisel (0.445 vs. 0.585) and PBMC3k (0.701 vs. 0.769). Because the two variants differ jointly in the clustering head, the encoding scheme, KL regulariza-tion, and the threshold-refinement phase, this gap reflects those combined architectural differences rather than dendritic gating alone. 
+
+2.4. Biological characterization through differential expression 
+
+To check whether the resulting clusters carry biological meaning, we ran Wilcoxon rank-sum differential expression with Scanpy [6]. Top marker genes matched textbook cell-type signatures across all four datasets. In PBMC3k, the CD14 + monocyte clusters were defined by LYZ , S100A9 , and S100A8 ,and the B-cell cluster by CD79A and CD74 . In the Human Heart Cell Atlas, cardiomyocyte clusters expressed RYR2 , FHL2 , and MYL7 ; endothelial clus-ters expressed VWF ; fibroblast clusters expressed DCN and LUM . In Zeisel Cortex, oligodendrocyte clusters were marked by Mobp and Mag ; astrocytes by Clu and Slc1a3 . In Paul15, erythroid progenitors expressed Car1 , Car2 ,and Ermap ; granulocyte progenitors expressed Mpo , Elane , and Ctsg . These genes are representative differentially expressed markers; the curated panels 9used for marker-based annotation (Table 3) are listed in full in Supplemen-tary Table S2. The automatic marker-overlap annotation (Methods, Cluster annotation by marker overlap) showed its highest agreement on Zeisel Cortex, where all six clusters meeting the prespecified ≥ 40% dominant-label eligibility crite-rion carried their dominant harmonized reference label as their panel anno-tation (100%; Table 3). This figure is conditional on that criterion rather than a property of the partition as a whole. The one remaining populated cluster, C2, had a dominant harmonized label accounting for 39% of its cells; it therefore fell just below the threshold and was excluded from the calcu-lation, and its automatic annotation does not match that dominant label. Counting all seven populated clusters, agreement would be 6/7. We accord-ingly read the reported percentage as panel–cluster agreement among eligible clusters rather than as an independent biological-validation score. With that reading, although scVI achieved higher ARI on Zeisel, the marker overlap indicates that scDNM-VAE retained biologically coherent cluster structure in this dataset. Visual inspection of the latent-space Uniform Manifold Ap-proximation and Projection (UMAP) embeddings (Figure 5) supports this: scDNM-VAE’s predicted clusters (bottom row) recover the spatial organiza-tion of the ground-truth cell-type labels (top row) across all four datasets, with the cleanest correspondence on the Human Heart Cell Atlas and the noisiest separation on Paul15, consistent with the ARI rankings. 
+
+2.5. Cluster-to-ground-truth correspondence on the Human Heart Cell Atlas 
+
+Mapping each of the eleven populated clusters directly to its dominant expert-curated label (Figure 6) shows that ten meet the ≥ 40% dominant-label eligibility criterion used in Table 3; nine reach a purity of ≥ 73% , and seven exceed 90%. The marker-overlap annotation nonetheless records only six of those ten eligible clusters as exact panel matches (60%; Table 3), a figure that understates how well scDNM-VAE recovers the underlying biol-ogy. The ARI penalty partly reflects label-consistent splitting of abundant lineages, while also capturing genuine merging of several rare populations in C5. First, the model resolves structure finer than a curated marker panel can express. Clusters C2 and C8 separate ventricular from atrial cardiomyocytes almost perfectly (purity 1.00 and 0.99; C8 carries the atrial markers MYL7 ,
+
+MYH6 and NPPA ), yet a panel built around generic cardiomyocyte markers 10 Table 3: Harmonized panel-category-level agreement of the automatic marker-panel annotation with dominant reference labels (Methods, Clus-ter annotation by marker overlap). Reference labels were first mapped onto the curated marker-panel vocabulary (Supplementary Table S3), which merges some finer reference categories into broader panel categories, for example atrial and ven-tricular cardiomyocytes into “Cardiomyocytes.” Both the dominant label and the 
+
+≥ 40% eligibility criterion were computed after this mapping; the reported agree-ment therefore applies at the harmonized panel-category level rather than at the resolution of the original reference annotations. “Eligible clusters” is the number of predicted clusters whose dominant harmonized reference label accounts for at least 40% of the cluster’s cells. “Exact match” counts eligible clusters whose automatic marker-overlap annotation matches that dominant harmonized label, and “Agree-ment” is the exact-match count divided by the number of eligible clusters. The automatic annotations were evaluated before the manual DE-signature inspection reported in Supplementary Table S1. This measure evaluates panel–cluster agree-ment, not clustering quality; direct cluster–reference correspondence is shown by the per-cluster purity of the confusion matrices (Figure 6, Supplementary Fig-ure S6). Eligible clusters are not the total number of reference cell types. 
+
+Dataset Eligible clusters ( ≥40%) Exact match Agreement 
+
+Zeisel Cortex 6 6 100.0% Heart Cell Atlas 10 6 60.0% PBMC3k 7 5 71.4% Paul15 14 7 50.0% 
+
+assigns both the same label. The lymphoid cluster C9 (purity 0.74) is likewise recovered as a single compartment but is annotated with the narrower “NK” term, since NK cells are the dominant lymphoid subset in the panel. Second, single annotated populations are split across more than one cluster—a label-consistent splitting in which no foreign cell type dominates either fragment. The endothelium is split across C0 (3,066 cells, purity 0.96) and C10 (940 cells, purity 1.00); the macrophage compartment across C4 (516 cells, purity 0.95) and C7 (361 cells, purity 0.73); and the mural com-partment across C3 (2,356 cells, purity 0.94), annotated as pericytes, and C6 (1,197 cells, purity 0.65), which lies on the pericyte/smooth-muscle bound-ary where markers such as RGS5 and TAGLN are shared between the two lineages. The fibroblast compartment forms a single eligible cluster (C1, 11 2,119 cells, purity 0.92). In each case both fragments clear the purity crite-rion, so the partition is label-consistent with the reference annotation rather than erroneous; whether the split reflects genuine substructure or redun-dant partitioning would require a pathway or differential-expression compar-ison to resolve. The least resolved cluster is C5 (980 cells, purity 0.38), a heterogeneous mixed stromal cluster composed primarily of fibroblast (370 cells), smooth-muscle (224 cells), and endothelial (164 cells) populations, with smaller contributions from several additional cell types, including the panel-absent mesothelial population. Its low purity therefore reflects cross-lineage merging rather than the concentration of a single rare cell type. These observations reinforce the paper’s central caution: a label-based score com-puted against a coarser annotation can under-report clustering quality, just as a geometry-based score can over-report it (Section “Geometric tightness does not imply biological correctness”). 
+
+2.6. Architectural interpretability through signed synaptic gating 
+
+Unlike post-hoc explanation methods, scDNM-VAE exposes the parame-ters of the clustering rule itself. For each cluster k and latent dimension d,the gate 
+
+Akd (zd) = σ(ksharp (zdWkd − Qkd )) 
+
+is determined by a learned weight Wkd and threshold Qkd . Its derivative, 
+
+∂A kd 
+
+∂z d
+
+= ksharp Wkd Akd (1 − Akd ),
+
+shows that the sign of Wkd determines whether the gate increases or de-creases with the latent coordinate. The magnitude |Wkd | controls the steep-ness of this dependence, and, for Wkd ̸ = 0 , the transition midpoint occurs at 
+
+zd = Qkd /W kd . The complete matrices Wsyn and Qsyn therefore provide a compact, model-internal description of how every cluster reads every latent dimension, without fitting a separate post-hoc explanation model. Because the VAE latent coordinates are not confined to a fixed input in-terval, and the empirical range of each latent dimension varies across datasets and random seeds, we interpret the trained gates continuously through their signed weights, threshold parameters, and realized activation functions rather than assigning them to discrete excitatory, inhibitory, constant-0, or constant-1 categories. The ablation analysis below complements this parameter-level 12 access by testing whether the latent dimensions receiving the largest absolute synaptic weights measurably influence cluster assignments. 
+
+2.7. Faithfulness: how much of the clustering decision do the highest-weight synaptic dimensions carry? 
+
+A parameter-level interpretation is useful only if the dimensions it high-lights influence the model’s decisions rather than merely co-varying with them. Because the signed weight–threshold functions are part of the trained clustering rule, we can directly test whether a simple magnitude ranking faithfully summarizes which latent dimensions influence assignments. We therefore tested the quantity the clustering head weights most heavily: each cluster’s highest-magnitude synaptic dimensions. For each cluster we ranked all ten latent dimensions by synaptic-weight magnitude |Wkd | and ablated the top three by neutralizing their input to that cluster’s gates ( zdWkd → 0,so the gate depends only on its threshold), recomputed the soft assignments, and measured the fraction of the cluster’s cells that were reassigned (the defection rate). We compared this against two controls: ablating the top di-mensions of a different, randomly chosen cluster, and ablating three random dimensions (each averaged over 20 draws). On all four datasets, ablating a cluster’s own top synaptic dimensions caused more defection than ablating three random dimensions (Table 4, Fig-ure 7). The margin, however, is modest: the own-dimension effect exceeds the random-dimension control by 1.01 –1.39 × (PBMC3k 47.9% vs. 34.6%; Zeisel 33.1% vs. 32.7%; Heart 55.2% vs. 48.3%; Paul15 93.3% vs. 90.9%), with the clearest separation on PBMC3k ( 1.39 ×) and essentially none on Zeisel ( 1.01 ×). Against the second control—the top dimensions of a differ-ent cluster—the picture is weaker still: the own-dimension effect is larger on three of four datasets but the two are indistinguishable on Zeisel ( 1.00 ×). The absolute defection rates are as informative as the ratios: ablating 
+
+any three latent dimensions already reassigns a large fraction of cells (35% on PBMC3k, 91% on Paul15). These results are consistent with a cluster-ing decision distributed across the ten-dimensional latent space rather than concentrated in a sparse subset of dimensions, and the top-|Wkd | dimensions are a consistent but not dominant contributor. We therefore do not claim that these dimensions are the primary causal drivers of cluster membership; the ablation supports the weaker statement that they carry decision-relevant 13 Table 4: Faithfulness of the highest-magnitude synaptic dimensions by ablation. Cluster defection rate (fraction of a cluster’s cells reassigned) after ablating, per cluster, its own top-3 synaptic dimensions versus two controls: the top dimensions of a different cluster, and three random dimensions (controls averaged over 20 draws, seed-42 model; populated clusters only). Ablation neutralizes the dimension’s input to that cluster’s gates ( zdWkd → 0; Methods). Own-dimension ablation exceeds the random control on every dataset, but only by 1.01 –1.39 ×, and random ablation alone already reassigns a large fraction of cells. This faithfulness ablation is distinct from the architectural MLP-DEC ablation reported in Table 1.                
+
+> Dataset Own top-3 dims Other cluster’s dims Random dims
+> PBMC3k 0.479 0.434 0.346 Zeisel 0.331 0.331 0.327 Heart 0.552 0.483 0.483 Paul15 0.933 0.908 0.909
+
+signal on each dataset tested while the remaining dimensions carry a com-parable amount. This limits the specificity of a simple magnitude ranking, while the complete signed weight-threshold decision function remains directly inspectable. Thus, the negative result concerns the adequacy of magnitude ranking as a summary, not the accessibility of the complete signed weight– threshold decision function itself. 
+
+2.8. Gene-module decomposition (Stage 2) 
+
+The signed-gating analysis and ablation above describe how latent di-mensions enter the clustering rule, but not which gene programs those di-mensions encode. To bridge this gap, Stage 2 freezes the encoder and feeds the latent representations through a dendritic gene-module decoder contain-ing twenty branches. One branch was assigned to the differential-expression signature of each populated Stage-1 cluster, and the remaining branches ab-sorbed background genes. These signatures were obtained using one-vs-rest Wilcoxon ranking on the highly variable genes. Mitochondrial genes were ex-cluded from this step, so that the resulting modules would reflect cell identity rather than metabolic or technical variation. The decoder was trained us-ing a reconstruction loss and a supervised activation term. The activation term encouraged each module to become active in its corresponding Stage-1 14 cluster. This supervision was based on the predicted Stage-1 cluster assign-ments, not on ground-truth cell-type labels. Thus, each module describes the gene programme associated with the cluster learned by the model. Because the encoder was frozen, Stage 2 did not feed back into the clustering model or change the Stage-1 assignments. Its role was therefore limited to gene-level interpretation. In other words, Stage 2 characterizes the learned clus-ters, whereas the clustering decision itself is encoded by the Stage-1 signed weight-threshold gates. As expected from the supervised activation objective, the gene modules generally showed their strongest activation in their assigned target clusters. Because each branch was trained with a supervised activation term that explicitly rewards this alignment, this result reflects training-alignment suc-cess rather than independent biological recovery. Because each branch was defined and masked using the differential-expression signature of its tar-get cluster, we use that signature as the primary biological characteriza-tion of the module. Top-10 summaries per module are provided in Supple-mentary Table S1, and the complete ranked gene lists, under both the DE score and the decoder’s own absolute weight, are provided in Supplementary Data S1. In PBMC3k, the B-cell module was defined by CD74 , CD79A ,
+
+CD79B , and MS4A1 ; the natural-killer module by NKG7 , GZMA , CCL5 ,and PRF1 ; the CD14 + monocyte module by S100A9 , S100A8 , LYZ , and 
+
+FCN1 ; and C5 showed a platelet/megakaryocyte-associated Stage-2 signa-ture led by PPBP , PF4 , GP9 , GNG11 , SDPR , and SPARC , despite having a CD8 T-cell-majority reference composition. In the Zeisel cortex, the astro-cyte module was led by Clu , Slc1a3 , Gja1 , and Aqp4 ; the microglia module by Csf1r , Tyrobp , C1qa , and C1qb ; the oligodendrocyte module by Mobp ,
+
+Mag , and Cldn11 ; and the interneuron module by Gad1 , Gad2 , and Dner .In the Human Heart Cell Atlas, the ventricular cardiomyocyte module was led by RYR2 , FHL2 , SORBS2 , and MYOM1 and the atrial cardiomyocyte module by MYL7 , MYH6 , and NPPA ; the pericyte module by PDGFRB ,
+
+GUCY1A2 , and EGFLAM ; the macrophage module by MRC1 , CD163 , and 
+
+F13A1 ; and the smooth-muscle/mural module by ACTA2 , TAGLN , RGS5 ,and NOTCH3 . In Paul15, the erythroid module was defined by Car2 , Ermap ,
+
+Cpox , and Rhd ; the megakaryocyte module by Itga2b and Pf4 ; and the mono-cyte/dendritic module by Irf8 , Lgals1 , and Tyrobp . Alignment appeared weaker on Paul15, where the continuous hematopoietic differentiation trajec-tory produces transcriptionally adjacent clusters that can share modules; this 15 dataset also showed the weakest overall label-based performance, consistent with the ARI results in Table 2 and the ACC results in Figure 3. Because the modules are built from the predicted-cluster DE signatures, a module’s lead-ing genes are its most discriminative transcripts rather than, necessarily, its textbook lineage markers, and neither the DE nor the decoder-|weight | order-ing is guaranteed to surface the curated panel markers first: across the four datasets the panel markers have a median rank of 22 under the DE ordering and 20 under the |weight | ordering, and 24 of the 43 signature modules carry at least one panel marker among their ten leading DE genes. On the Human Heart Cell Atlas, for example, the module of the endothelial cluster C0 is led by broadly expressed transcripts ( TMSB10 , IFI27 , B2M ), with its curated markers VWF and CLDN5 at DE ranks 17 and 16 among the 346 genes as-signed to it. Supplementary Data S1 lists every gene of every module under both rankings, with panel-membership and highly-variable-gene flags. Each module’s gene list can be passed directly to pathway-enrichment tools such as Enrichr and Gene Set Enrichment Analysis (GSEA)-based workflows [12]. 
+
+3. Discussion 
+
+scDNM-VAE was designed to make interpretability a structural prop-erty of the clustering model rather than a post-hoc patch. By replacing the Euclidean distance-to-centroid head used in DEC-style deep clustering with a dendritic gating mechanism, we obtain a model whose cluster deci-sion function can be inspected directly through its learned signed weights and thresholds. For each gate, the weight sign determines whether activa-tion rises or falls with the corresponding latent coordinate, the magnitude controls the steepness of that dependence, and the weight–threshold pair de-termines the transition location. We refer to this direct access to the trained decision function as architectural inspectability ; a specific form of inherent interpretability. Beyond this parameter-level inspectability, our analysis surfaces a phe-nomenon that is broadly relevant to the deep-clustering literature. The MLP-DEC ablation, which shares the decoder, reconstruction and cluster-ing objectives, optimizer, and first two training phases with scDNM-VAE, achieves dramatically higher Silhouette and Calinski–Harabasz scores on ev-ery dataset, yet a lower best-seed ARI on every one of them. This is not a marginal effect: on Zeisel, for instance, MLP-DEC attains a Silhouette 16 score of 0.944 while recording a best-seed ARI of 0.445, the lowest of the three methods. A reader who saw only geometry metrics would conclude that MLP-DEC is the superior method; a reader who saw only label metrics would draw the opposite conclusion. Geometric tightness in latent space is rewarded by the DEC objective itself, but it does not require, and is not guaranteed to produce, partitions that correspond to expert-curated cell-type labels. Such cases caution against treating compact latent geometry or plausible post-hoc attributions as sufficient evidence of biological align-ment. scDNM-VAE addresses a complementary need by exposing the signed weight-threshold decision function that drives its partitioning. Both findings have the same structure: a convenient proxy—latent-space compactness in one case and synaptic-weight magnitude in the other— diverged from the quantity it was intended to summarize. In the first case the reference was agreement with curated labels; in the second, it was the observed effect of perturbing the trained clustering rule. Architectural inspectability does not imply that a small subset of param-eters dominates the decision. The highest-magnitude-weight ablation shows that a cluster’s own top three dimensions cause numerically more defection than random dimensions on every dataset, but only by 1.01 –1.39 ×, while ran-dom ablation alone already reassigns a large fraction of cells. The ablation results are consistent with a decision distributed across the ten-dimensional latent space, and the top-|Wkd | dimensions should be interpreted as con-tributing rather than decisive. This result narrows the claim appropriately: the complete signed gating rule is directly accessible, but a sparse ranking of a few latent dimensions captures only part of what the model computes. The two-stage design separates clustering from gene-module interpreta-tion. Because the encoder and Stage 1 clustering model are frozen before Stage 2, the gene-module decoder cannot alter the learned latent repre-sentation or the Stage 1 cluster assignments. The Stage 1 interpretability claim rests on direct inspection of the signed weight-threshold gates that constitute the clustering function, whereas Stage 2 provides complementary supervised, cluster-aligned gene-level characterization without changing the primary clustering solution. Two datasets warrant explicit discussion. On Zeisel Cortex, scVI+KMeans clearly outperforms scDNM-VAE in mean ARI (0.700 vs. 0.528). This advan-tage may reflect differences in the observation model, latent representation, optimization procedure, or subsequent KMeans partitioning; isolating the 17 source of the gap would require dedicated component-wise ablations. One useful next step is therefore to replace the current reconstruction decoder with a count-based likelihood while retaining the dendritic gating head. Even in this regime where scDNM-VAE loses the ARI comparison, the marker-overlap annotation indicates coherent cluster structure among eligible clus-ters (Table 3). On Paul15, scDNM-VAE and the MLP-DEC ablation fall within seed-to-seed variability of each other in mean ARI (0.296 vs. 0.308), with closely matched best-seed values (0.335 vs. 0.328); both differences are well within the seed-variability range. Inherent interpretability is an active theme in single-cell deep learning, and several methods precede ours in spirit. expiMap [36] and VEGA [37] constrain VAE latent dimensions to correspond to annotated gene programs, so that activity along a dimension can be read as activity of a known path-way; scETM [39] factorizes expression into interpretable cell-by-topic and topic-by-gene embeddings; and LDVAE [38] replaces the non-linear decoder with a linear one so that gene contributions to each latent factor are directly inspectable. All of these locate interpretability at the level of gene-program semantics : they answer “what does this latent dimension mean biologically.” scDNM-VAE addresses a complementary question—“how does the model compute cluster membership”—through signed weight-threshold gates that are part of the clustering head itself. Our contribution is therefore a directly inspectable dendritic clustering function, a benchmark against scVI+KMeans and an MLP-DEC architectural ablation, a direct ablation test showing that the largest-magnitude synaptic dimensions carry decision-relevant but dis-tributed signal, and a separate supervised gene-module decoder that char-acterizes the learned clusters. The need to evaluate interpretability claims rather than assume their reliability is increasingly emphasized in computa-tional biology [40]. 
+
+Limitations and future work.. Several limitations warrant explicit discussion. First, scDNM-VAE assumes the number of clusters K is known a priori; au-tomatic K-selection remains a natural extension. Second, our reconstruction loss assumes Gaussian-distributed expression values after log-normalization, while scVI’s ZINB likelihood explicitly models count distributions, which may contribute to scVI’s advantage on Zeisel. Replacing the MLP decoder with a ZINB head while retaining the dendritic clustering mechanism is a clear next step. Third, although the signed gates are directly inspectable 18 in latent space, translating them into gene-level statements passes through the variational encoder and inherits its seed-dependent non-identifiability, an open problem for VAE-based clustering methods. Fourth, across five ran-dom seeds scDNM-VAE shows standard deviations of 0.02–0.10 in ARI; on PBMC3k in particular, seed variability is appreciable ( σ = 0 .101 ), which mo-tivates per-seed reporting (Table 2). On PBMC3k and the 19-class Paul15 benchmark, the dendritic clustering head occasionally leaves one initialized cluster unpopulated; such empty clusters carry no gene-module signal and are omitted from Supplementary Table S1. Finally, the faithfulness abla-tion (Table 4) was performed on the seed-42 model and is descriptive rather than inferential. The small margin over random ablation and the high ab-solute sensitivity to ablating any three dimensions show that the decision is distributed, limiting the specificity of interpretations based only on a few top-ranked weights. Future work should quantify uncertainty across seeds and test whether sparsity constraints can concentrate the decision without reducing clustering performance. 
+
+4. Conclusions 
+
+scDNM-VAE shows that a directly inspectable clustering architecture can remain competitive with black-box alternatives on real biological bench-marks; that geometrically tight partitions can nevertheless be misaligned with expert-curated labels; and that clustering decisions can be examined from the model’s own signed weights and thresholds rather than through a separate approximate explanation step. The ablation is consistent with the highest-magnitude parameters carrying decision-relevant signal while also showing that the decision remains distributed across the latent space. 
+
+5. Methods 
+
+5.1. Datasets 
+
+PBMC3k: peripheral blood mononuclear cells ( n = 2 ,638 , 8 cell types) from 10x Genomics. Zeisel Cortex: mouse somatosensory cortex (S1) and hippocampal CA1 region ( n = 3 ,005 cells) [8]; benchmarking here uses the dataset’s standard seven-category reference-label taxonomy, coarser than the nine major cell classes reported in the original study. Human Heart Cell At-las: a fixed random subsample of the adult human heart atlas of Litviňuková 19 et al. [7], distributed with scvi-tools [43] ( n = 18 ,641 cells, 11 annotated cell types); we used this subsample as provided, together with the cell_type 
+
+annotations it carries as ground truth, rather than subsampling the ∼486K-cell atlas ourselves. Paul15: mouse hematopoietic progenitors ( n = 2 ,730 ,19 cell types) [9]. Exact loaders and accessions for all four benchmarks are listed under Data availability. 
+
+5.2. Preprocessing 
+
+Filtered cells < 200 genes and genes < 3 cells. Cells with more than 20% of counts mapping to mitochondrial genes were removed as putative dead or damaged cells; mitochondrial genes themselves were retained as biologi-cally informative (e.g., for high-energy cardiac populations). Across all four benchmarks no cell exceeded this threshold (maximum mitochondrial frac-tion 19.95% on the Human Heart Cell Atlas), consistent with the published quality control of these datasets. Data were normalized to 10,000 counts/cell, 
+
+log(1 + x)-transformed, reduced to the top 2,000 highly variable genes (Seu-rat method), and scaled to unit variance with max = 10 . The identical mitochondrial filter was applied to the scDNM-VAE, scVI, and annotation data paths. For scVI baselines, raw counts were preserved with the ZINB likelihood [1]. 
+
+5.3. Dendritic Neuron Model (DNM) 
+
+The DNM [2] is a biologically inspired architecture that mimics how a single neuron integrates inputs along its dendritic tree through four se-quential layers—synaptic, dendritic, membrane, and soma. In the synap-tic layer , each input xi to dendrite j passes through a sigmoid gate yij =
+
+σ k(wij xi − qij ). The derivative ∂y ij /∂x i = kw ij yij (1 − yij ) makes the gate’s directional dependence explicit: positive weights produce increasing gates, negative weights produce decreasing gates, |wij | controls transition steep-ness, and qij shifts the transition location. The dendritic layer combines gated outputs along each branch multiplicatively, dj = Q 
+
+> i
+
+yij ; the mem-brane layer aggregates branch outputs by summation, u = P 
+
+> j
+
+dj ; and the 
+
+soma layer applies a final sigmoid, o = σ(u). This threshold-gated struc-ture makes the role of each connection directly inspectable through its trained weight, threshold, and activation function. scDNM-VAE adapts this princi-ple to clustering, using signed per-dimension gates in the Stage-1 clustering 20 head and geometric-mean branch aggregation in the Stage-2 gene-module decoder. 
+
+5.4. scDNM-VAE architecture 
+
+Architecture. The variational encoder is a two-layer MLP (input, 512 and 128) with BatchNorm, ReLU activations, and 10% input dropout, pro-jecting onto a 10-dimensional latent space. We parameterize the variational posterior with a mean vector μ and a log-variance vector log σ2 (clamped to [−4, 4] for numerical stability), and draw latent samples via the standard reparameterization trick z = μ + ε · σ with ε ∼ N (0, I). The decoder mir-rors the encoder symmetrically. The dendritic clustering head computes a sigmoid gate per (cluster, latent dimension) pair, 
+
+Akd = σ(ksharp (zdWkd − Qkd )) ,
+
+with gating sharpness ksharp = 2 .0 and learnable thresholds capped above by 
+
+Qmax = 1 .5. Its derivative is 
+
+∂A kd 
+
+∂z d
+
+= ksharp Wkd Akd (1 − Akd ),
+
+so Wkd > 0 defines an increasing gate and Wkd < 0 a decreasing gate; |Wkd |
+
+controls transition steepness, and for Wkd ̸ = 0 the transition midpoint is 
+
+Qkd /W kd . Because the VAE latent coordinates are not restricted to the bounded input interval assumed by classical four-state DNM partitions, we do not discretize the trained gates into excitatory, inhibitory, constant-0, or constant-1 categories. Instead, architectural interpretation is based on the continuous signed weight-threshold functions actually used to compute cluster assignments. No final threshold lay at the imposed upper boundary; the maximum final Qkd value across the four datasets was 1.21 .
+
+Training objective. The full loss combines a reconstruction term, a DEC-style clustering term, and a KL-regularization term: 
+
+L = Lrecon + γ Lcluster + β LKL , (1) with γ = 2 .0 and dataset-specific fixed KL coefficients: β = 10 −3 for PBMC3k and Paul15 and β = 5 × 10 −4 for Zeisel and Heart. The DEC target distribution pik ∝ q2
+
+> ik
+
+/ P 
+
+> i
+
+qik is recomputed every 5 epochs from the 21 current soft assignments qik .
+
+5.5. KL-regularization settings 
+
+For the reported experiments, the KL coefficient was set to β = 10 −3
+
+for PBMC3k and Paul15 and β = 5 × 10 −4 for Zeisel and Heart. Within each dataset, the same value was held fixed across all five random seeds. These values are reported as dataset-specific implementation settings for the benchmark experiments and should not be interpreted as estimates of dataset noise or as a generally applicable data-driven rule for selecting β.A systematic sensitivity analysis of the KL coefficient was not performed; the reported values should therefore not be interpreted as generally optimal for these datasets. 
+
+5.6. Training protocol 
+
+scDNM-VAE and the MLP-DEC ablation are optimized with Adam (weight decay 10 −5) using full-batch updates and a cosine-annealing learning-rate schedule; the scVI baseline follows its own training protocol, given in Sec-tion 5.8. Training proceeds in three phases. In Phase 1 (300 epochs, learning rate 10 −3), the encoder and decoder are pretrained on Lrecon + βLKL (the clustering term is switched off), allowing the latent space to organize before any clustering signal is introduced. The KL term was included in Phase 1 for all four benchmarks because all reported β values were positive. In Phase 2 (300 epochs, learning rate 5×10 −4), KMeans ( ninit = 20 , with random_state 
+
+set to the corresponding training seed) is fitted to the posterior-mean rep-resentations μ produced by the pretrained encoder, and the resulting K
+
+cluster-centre vectors are copied directly into the rows of Wsyn . For each cluster k, let δk denote the Euclidean distance between its row Wk and the nearest other row of Wsyn ; every threshold in that cluster is initialized as 
+
+Qkd = clip 
+
+δk
+
+3 , 0.05 , 0.8Qmax 
+
+
+
+, d = 1 , . . . , D, 
+
+with Qmax = 1 .5, after which the full objective L = Lrecon + γ Lcluster + β LKL 
+
+is optimized end-to-end. In Phase 3 (50 epochs, learning rate 2 × 10 −4), the same threshold-initialization rule is applied again using the optimized Wsyn ,and the model is briefly fine-tuned at the lower learning rate. Each model 22 is trained with five random seeds (42, 7, 123, 256, 999); we report best-seed performance alongside the mean ± standard deviation across seeds. 
+
+Selection of representative runs.. Unless otherwise stated, single-run biolog-ical analyses and visualizations, including the UMAP embeddings, confu-sion matrices, marker-gene profiles, marker-overlap annotations, and Stage 2 gene-module analyses, were generated from the dataset-specific scDNM-VAE run attaining the highest unrounded ARI among the five evaluated seeds. The faithfulness ablation was conducted separately using the seed-42 model for every dataset. 
+
+Determinism and hardware.. All results reported here were obtained from a single archived execution of the complete multi-seed analysis pipeline. Be-fore CUDA initialization we set CUBLAS_WORKSPACE_CONFIG=:4096:8 . At every seed reset we enabled deterministic cuDNN behaviour, disabled cuDNN benchmarking, and activated PyTorch’s deterministic-algorithm mode with 
+
+warn_only=True . We also reset the random-number-generator seeds of Python, NumPy, PyTorch and scvi-tools; KMeans, UMAP and the Silhouette sub-sample were given explicit random_state values. Under these settings the pipeline reproduces bit-identical ARI values when re-run on the same GPU architecture. We note that the values do shift when the same code is run on a different GPU architecture—on our benchmarks by an amount com-parable to the seed-to-seed variability itself—because cuBLAS and cuDNN select different kernels; this is a general property of GPU-based deep learning rather than of this model, and we therefore report the hardware explicitly. All results in this paper were produced on a single NVIDIA L40S (CUDA 12.4, PyTorch 2.5.1, scvi-tools 1.4.2). Trained model weights and cluster assignments are archived with the code so that the exact partitions can be recovered without retraining. 
+
+5.7. MLP-DEC ablation 
+
+The MLP-DEC comparator replaces the dendritic clustering head with a standard DEC head while retaining the decoder, optimizer, and first two training phases of scDNM-VAE; the encoder is deterministic and the DEC head has no analogue of the threshold-refinement phase. 
+
+Encoder and decoder. The encoder uses the same two-hidden-layer MLP (input →512 →128) with BatchNorm, ReLU, and 10% input dropout as 23 scDNM-VAE, but maps deterministically to the 10-dimensional latent space through a final linear layer, with no variational posterior and hence no KL term ( z = fenc (x)). The decoder mirrors it symmetrically (128, 512 hidden units), identical to scDNM-VAE’s. 
+
+Clustering head. In place of the synaptic weights and thresholds, the head holds K learnable centroids {μk} in the latent space. The soft assign-ment of cell i to cluster k is a Student-t kernel with one degree of freedom, 
+
+qik =
+
+ 1 + ∥zi − μk∥2−1
+
+P
+
+> k′
+
+ 1 + ∥zi − μk′ ∥2−1 , (2) and the auxiliary target distribution sharpens these assignments, 
+
+pik = q2
+
+> ik
+
+/f k
+
+P 
+
+> k′
+
+q2 
+
+> ik ′
+
+/f k′
+
+, fk = X
+
+> i
+
+qik , (3) recomputed every five epochs. The clustering loss is Lcluster = KL( P ∥ Q) = P 
+
+> i,k
+
+pik log( pik /q ik )—the same auxiliary-distribution loss optimized by scDNM-VAE’s head; only the assignment qik differs, using Euclidean distance to cen-troids here versus the dendritic gate score dist k = P
+
+> d
+
+(1 − Akd )2 in scDNM-VAE. 
+
+Training. The ablation follows the same pretraining-then-joint schedule as scDNM-VAE: a 300-epoch reconstruction-only pretraining (Adam, learn-ing rate 10 −3), KMeans initialization of the centroids ( ninit = 20 ) on the pretrained latent space, and a 300-epoch joint phase (learning rate 5 × 10 −4)minimizing L = Lrecon + γ Lcluster with γ = 2 . It does not include scDNM-VAE’s 50-epoch Phase 3, which re-initializes the thresholds Qsyn from the stabilized Wsyn : the DEC head has no threshold parameter and therefore no analogue of that refinement. 
+
+Scope of the ablation. The two models thus share the encoder trunk, decoder, reconstruction loss, clustering loss Lcluster , optimizer, and the first two training phases, and differ in (i) the clustering head— K threshold-gated synaptic weight/threshold pairs ( Wsyn , Qsyn ; 2 × K × 10 parameters) versus 
+
+K Euclidean centroids ( K × 10 parameters); (ii) the variational versus de-terministic encoding of the latent space; and (iii) the threshold-refinement Phase 3. Because these components differ together, the performance gap in Table 1 is attributable to the combined architectural replacement rather than 24 to dendritic gating or clustering-head replacement in isolation. 
+
+5.8. scVI baseline 
+
+As an external reference point, we benchmarked against scVI [1], a widely used variational autoencoder for scRNA-seq data that models gene counts with a ZINB likelihood. We trained scVI with the same latent dimension-ality as scDNM-VAE ( nlatent = 10 ) for 150 epochs with batch size 128 and a 50-epoch KL warm-up schedule. Because scVI does not include a cluster-ing objective, we obtained discrete cluster assignments by running KMeans (ninit = 20 ) on the resulting latent representations, with the number of clus-ters set to the ground-truth value for each dataset (Table 1). To match the reporting protocol used for scDNM-VAE and the MLP-DEC ablation, scVI was trained with the same five random seeds (42, 7, 123, 256, 999); we report the best-seed ARI in Table 1 alongside the mean ± standard deviation across seeds in Table 2. 
+
+5.9. Faithfulness ablation of the highest-magnitude synaptic dimensions 
+
+To test how much of each cluster assignment a cluster’s highest-magnitude synaptic dimensions account for, we used a single scDNM-VAE per dataset (seed 42) and, for each cluster, ranked all ten latent dimensions by synaptic-weight magnitude |Wkd |. We then ablated the cluster’s top three dimensions by neutralizing their input to that cluster’s gates: the drive zdWkd is set to zero for those (cluster, dimension) pairs only, so that Akd = σ(−ksharp Qkd )
+
+no longer responds to the cell’s latent value while the remaining clusters are untouched. We then recomputed the soft assignments from dist k =P
+
+> d
+
+(1 − Akd )2 and recorded the defection rate: the fraction of cells originally assigned to the cluster that were reassigned elsewhere. Note that simply dropping the masked terms from the sum would lower dist k and make the cluster more attractive, so it cannot produce defection; neutralizing the in-put is the ablation that tests whether the dimension informs the decision. Each cluster was ablated independently. As controls, for each cluster we ablated (i) the top three dimensions of a different, randomly chosen clus-ter, and (ii) three randomly chosen dimensions; both controls were averaged over 20 random draws. Random three-dimensional control sets were sampled without excluding the target cluster’s top-ranked dimensions; because these sets overlap the target top three by 0.9 dimensions on average, this compari-son provides a conservative estimate of the contrast between top-ranked and 25 arbitrary latent dimensions. Dataset-level values (Table 4) are means over clusters. This faithfulness ablation is distinct from the architectural MLP-DEC ablation used for the benchmark comparison (Table 1): the former perturbs a trained model’s synaptic dimensions to test explanation sensitiv-ity, whereas the latter benchmarks the combined architectural replacement used in Table 1. 
+
+5.10. Cluster annotation by marker overlap 
+
+To assess the biological coherence of the clusters discovered by scDNM-VAE, we annotated each predicted cluster with a putative cell type by overlap with curated marker-gene panels. We did not use a reference-based auto-mated annotation tool (e.g., Azimuth); instead, each cluster was matched to the cell type whose curated marker panel showed the greatest overlap with the cluster’s differentially expressed genes, and all cells in a cluster received that cluster’s label. For each cluster, we identified the top differentially expressed genes against all other clusters using sc.tl.rank_genes_groups (Wilcoxon rank-sum test) on the full expression matrix prior to highly-variable-gene subsetting, with dataset-specific thresholds for the number of top genes (ntop = 200 for PBMC3k and Heart; ntop = 500 for Zeisel and Paul15), the log 2-fold-change cutoff ( ≥ 0.10 and ≥ 0.05 , respectively) and the ad-justed p-value cutoff ( ≤ 0.1 and ≤ 0.5, respectively). Each cluster’s top DE gene list was scored against curated cell-type marker panels using a custom weighted marker-overlap score that distinguishes between primary and sec-ondary markers. For each candidate cell type, primary markers (the first three genes in the panel, typically canonical lineage-defining genes) were as-signed weight 2, while secondary markers (the remaining genes) were assigned weight 1. Writing hp and hs for the number of primary and secondary markers recovered in a cluster’s top-gene list, np and ns for the panel sizes and T for the length of the top-gene list, the score is the harmonic mean of a weighted recall (2 hp + hs)/(2 np + ns) and an unweighted precision (hp + hs)/T , plus an additive hit-count term 0.03 ( hp + hs). The cluster was annotated with the cell type whose markers achieved the highest marker-overlap score, subject to a minimum of two marker hits for PBMC3k and Heart and one for Zeisel and Paul15. Because the reference annotations and the panel vocabulary do not coincide, reference labels were mapped onto panel categories before scoring and cluster majorities were computed after this mapping; the complete map-ping is given in Supplementary Table S3. For PBMC3k, marker-positivity 26 symbols were harmonized explicitly: “CD14+ Monocytes” and “FCGR3A+ Monocytes” were mapped to the panel categories “CD14 Monocytes” and “FCGR3A Monocytes”, respectively, before exact-match scoring. Annota-tion agreement was evaluated among clusters meeting the prespecified ≥ 40% 
+
+dominant-label eligibility criterion. 
+
+5.11. Complementary gene-module decoder (Stage 2) 
+
+To translate the abstract latent dimensions of Stage 1 into biologically interpretable gene programs, we trained a separate dendritic decoder (DN-MDecoder) on top of the frozen Stage 1 encoder. Freezing the encoder guar-antees that Stage 2 cannot alter the clustering solution and serves only as a supervised, cluster-aligned gene-level interpretability layer. One branch was assigned to each populated Stage-1 cluster and masked to reconstruct that cluster’s differential-expression signature genes, obtained by one-vs-rest Wilcoxon ranking ( sc.tl.rank_genes_groups ) on the highly-variable genes; genes not up-regulated in any cluster were pooled into background branches, and mitochondrial genes were excluded from the reconstruction target so that modules report cell identity rather than mitochondrial content. The DNMDecoder routes the frozen latent vector z through 20 parallel branches; each branch m has its own learnable synaptic weights Wm and thresholds 
+
+Th m, which apply per-dimension sigmoid gating to z, and the branch acti-vation Dm is the geometric mean of its gate openings. The 20-dimensional branch-activation vector was LayerNorm-normalized across branches for each cell before being used as module logits and passed to the masked linear re-construction layer. The DNMDecoder was trained for 500 epochs with Adam (learning rate 10 −3) using a combined objective: a mean-squared-error recon-struction loss against the original (Stage 1) input plus a supervised activa-tion term (weight 0.5) that treats the branch-activation vector as logits over modules and applies cross-entropy against each cell’s cluster-assigned mod-ule (assignments taken from the Stage-1 predicted clusters, not ground-truth labels), encouraging each module to be active in its target cluster. Gradients flowed only through the DNMDecoder parameters, leaving the encoder un-changed. After training, each cluster’s gene-module signature was obtained by averaging the per-cell branch activations Dm across all cells assigned to that cluster. 27 5.12. Evaluation metrics 
+
+We assessed clustering performance along two complementary axes. Label-based metrics measure agreement between predicted clusters and curated ground-truth cell-type labels: adjusted Rand index (ARI), normalized mu-tual information (NMI), homogeneity, completeness, and V-measure were computed using their scikit-learn implementations, while clustering accuracy (ACC) was obtained by first solving the cluster–label assignment problem with the Hungarian algorithm and then reporting the fraction of correctly assigned cells. Geometry-based metrics quantify how well-separated the clus-ters are in the learned representation, independently of any external labels: silhouette score, Calinski–Harabasz index, and Davies–Bouldin index were computed on the latent embedding z (the encoder’s posterior mean μ for scDNM-VAE, the deterministic latent embedding z = fenc (x) for MLP-DEC, and the latent representation produced by get_latent_representation for scVI). For differential expression analysis, we used Scanpy’s rank_genes_groups 
+
+function with the Wilcoxon rank-sum test and Benjamini–Hochberg correc-tion for multiple testing. 
+
+Data availability 
+
+All four benchmark datasets are publicly available and were obtained programmatically. PBMC3k was loaded with scanpy.datasets.pbmc3k() 
+
+(10x Genomics), with cell-type labels taken from the matching scanpy.dat asets.pbmc3k_processed() object. Zeisel Cortex was obtained from the cortex expression matrix ( expression_mRNA_17-Aug-2014.loom ) mirrored for scvi-tools [43]; the primary data are those of Zeisel et al. [8]. The Human Heart Cell Atlas subsample was obtained via scvi.data.heart_cell_a tlas_subsampled() , which downloads the fixed subsample deposited at 
+
+https://ndownloader.figshare.com/files/24539942 . The full ∼486K-cell/nucleus atlas from which it was drawn is described by Litviňuková et al. [7]. Paul15 was loaded with scanpy.datasets.paul15() ; the primary data are those of Paul et al. [9]. Because the Heart benchmark uses this distributed subsample rather than the full atlas, the cell counts reported here (18,641) differ from those of the primary publication. 28 Code availability 
+
+The source code implementing scDNM-VAE and the scripts used to repro-duce the benchmarking and interpretability analyses will be made available in a public repository upon publication or earlier upon reasonable request for peer-review purposes. 
+
+Declaration of generative AI and AI-assisted technologies in the writing process 
+
+During the preparation of this work the authors used ChatGPT (OpenAI) in order to improve the readability and language of the manuscript. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the publication. 
+
+Declaration of competing interest 
+
+The authors declare that they have no known competing financial inter-ests or personal relationships that could have appeared to influence the work reported in this paper. 
+
+References 
+
+[1] Lopez, R., Regier, J., Cole, M. B., Jordan, M. I. & Yosef, N. Deep generative modeling for single-cell transcriptomics. Nat. Methods 15 ,1053–1058 (2018). [2] Todo, Y., Tamura, H., Yamashita, K. & Tang, Z. Unsupervised learnable neuron model with nonlinear interaction on dendrites. Neural Netw. 60 ,96–103 (2014). [3] Gao, S. et al. Dendritic neuron model with effective learning algorithms for classification, approximation, and prediction. IEEE Trans. Neural Netw. Learn. Syst. 30 , 601–614 (2019). [4] Xie, J., Girshick, R. & Farhadi, A. Unsupervised deep embedding for clustering analysis. ICML 478–487 (2016). [5] Tian, T., Wan, J., Song, Q. & Wei, Z. Clustering single-cell RNA-seq data with a model-based deep learning approach. Nat. Mach. Intell. 1,191–198 (2019). 29 [6] Wolf, F. A., Angerer, P. & Theis, F. J. SCANPY: large-scale single-cell gene expression data analysis. Genome Biol. 19 , 15 (2018). [7] Litviňuková, M. et al. Cells of the adult human heart. Nature 588 , 466– 472 (2020). [8] Zeisel, A. et al. Cell types in the mouse cortex and hippocampus revealed by single-cell RNA-seq. Science 347 , 1138–1142 (2015). [9] Paul, F. et al. Transcriptional heterogeneity and lineage commitment in myeloid progenitors. Cell 163 , 1663–1677 (2015). [10] Traag, V. A., Waltman, L. & Van Eck, N. J. From Louvain to Leiden: guaranteeing well-connected communities. Sci. Rep. 9, 5233 (2019). [11] Kingma, D. P. & Welling, M. Auto-encoding variational Bayes. ICLR 
+
+(2014). [12] Chen, E. Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14 , 128 (2013). [13] Ji, J. et al. A survey on dendritic neuron model. Neurocomputing 489 ,390–406 (2022). [14] Jia, D. et al. Validation of large-scale classification problem in dendritic neuron model. Electronics 9, 792 (2020). [15] Jia, D. et al. Verification of classification model and dendritic neu-ron model based on machine learning. Discrete Dyn. Nat. Soc. 2022 ,3259222 (2022). [16] Ji, J. et al. An approximate logic neuron model with a dendritic struc-ture. Neurocomputing 173 , 1775–1783 (2016). [17] Song, S. et al. Training an approximate logic dendritic neuron model using social learning PSO. IEEE Access 7, 141947–141959 (2019). [18] Song, S. et al. A neuron model with dendrite morphology for classifica-tion. Electronics 10 , 1062 (2021). [19] Wang, Z. et al. A dendritic neuron model with adaptive synapses trained by differential evolution algorithm. Comput. Intell. Neurosci. 2020 ,2710561 (2020). [20] Sha, Z. et al. A breast cancer classifier using a neuron model with den-dritic nonlinearity. IEICE Trans. Inf. Syst. 98 , 1365–1376 (2015). [21] Ağraz, M., Eğrioğlu, E., Baş, E. & Chen, M. Y. Diabetes development prediction using a hybrid model combining dendritic neuron model and logistic regression. Endocrinol. Res. Pract. 29 , 84–93 (2025). [22] Wani, S. A. et al. A comparative study of machine learning techniques for cell annotation of scRNA-seq data. Algorithms 18 , 232 (2025). [23] Cao, X. et al. Systematic evaluation of supervised machine learning algo-30 rithms for cell phenotype classification using single-cell RNA sequencing data. Front. Genet. 13 , 836798 (2022). [24] Erfanian, N. et al. Deep learning applications in single-cell genomics and transcriptomics data analysis. Biomed. Pharmacother. 165 , 115077 (2023). [25] Yin, Q. & Chen, L. CellTICS: an explainable neural network for cell-type identification and interpretation based on single-cell RNA-seq data. 
+
+Brief. Bioinform. 25 , bbad449 (2024). [26] Alquicira-Hernandez, J. et al. scPred: accurate supervised method for cell-type classification from single-cell RNA-seq data. Genome Biol. 20 ,264 (2019). [27] Eraslan, G. et al. Single-cell RNA-seq denoising using a deep count autoencoder. Nat. Commun. 10 , 390 (2019). [28] Eğrioğlu, E. & Baş, E. A new deep neural network for forecasting: deep dendritic artificial neural network. Artif. Intell. Rev. 57 , 171 (2024). [29] Ding, Y. et al. A multi-in and multi-out dendritic neuron model and its optimization. Knowl.-Based Syst. 286 , 111442 (2024). [30] Wen, X. et al. Improving the classification performance of dendritic neu-ron model through practical initialization. Sensors 24 , 1729 (2024). [31] Eğrioğlu, E., Baş, E. & Karahasan, O. Winsorized dendritic neuron model artificial neural network and a robust training algorithm. Granul. Comput. 8, 491–501 (2023). [32] Xie, B. et al. Automatic cell-type identification methods for single-cell RNA sequencing. Comput. Struct. Biotechnol. J. 19 , 5874–5887 (2021). [33] European Commission. Regulation (EU) 2024/1689 (Artificial Intelli-gence Act). Official Journal of the European Union , L 2024/1689 (2024). [34] National Institute of Standards and Technology. AI Risk Management Framework (AI RMF 1.0) . NIST (2023). https://doi.org/10.6028/ NIST.AI.100-1 
+
+[35] Rudin, C. Stop explaining black box machine learning models for high stakes decisions and use interpretable models instead. Nat. Mach. Intell. 
+
+1, 206–215 (2019). [36] Lotfollahi, M. et al. Biologically informed deep learning to query gene programs in single-cell atlases. Nat. Cell Biol. 25 , 337–350 (2023). [37] Seninge, L., Anastopoulos, I., Ding, H. & Stuart, J. VEGA is an in-terpretable generative model for inferring biological network activity in single-cell transcriptomics. Nat. Commun. 12 , 5684 (2021). [38] Svensson, V., Gayoso, A., Yosef, N. & Pachter, L. Interpretable factor 31 models of single-cell RNA-seq via variational autoencoders. Bioinfor-matics 36 , 3418–3421 (2020). [39] Zhao, Y. et al. Learning interpretable cellular and gene signature em-beddings from single-cell transcriptomic data. Nat. Commun. 12 , 5261 (2021). [40] Chen, V. et al. Applying interpretable machine learning in computa-tional biology pitfalls, recommendations and opportunities for new de-velopments. Nat. Methods 21 , 1454–1461 (2024). [41] Lundberg, S. M. & Lee, S.-I. A unified approach to interpreting model predictions. Advances in Neural Information Processing Systems 30 (NeurIPS 2017) , 4765–4774 (2017). [42] Ribeiro, M. T., Singh, S. & Guestrin, C. “Why should I trust you?”: Explaining the predictions of any classifier. Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD ’16) , 1135–1144 (2016). [43] Gayoso, A. et al. A Python library for probabilistic analysis of single-cell omics data. Nat. Biotechnol. 40 , 163–166 (2022). [44] Ağraz, M. Evaluating single multiplicative neuron models in physics-informed neural networks for differential equations. Sci. Rep. 14 , 19073 (2024). https://doi.org/10.1038/s41598-024-67483-y 
+
+32 Figure 1: The dendritic neuron model and the scDNM-VAE Stage-1 clustering head. (a) Computation flow of the classical DNM [2, 3]. Each input 
+
+xi reaches each branch j through its own synapse, gated by yij = σ k(wij xi − qij ),where k > 0 sets the gating sharpness. Gated outputs are combined multiplica-tively within a branch ( dj = Q 
+
+> i
+
+yij ), summed across branches ( u = P 
+
+> j
+
+dj ), and passed through a final sigmoid. The four synaptic regimes are defined jointly by wij 
+
+and qij relative to the observed range of xi, not by the sign of wij alone. (b) The Stage-1 clustering head. Each cluster k reads each latent dimension d through a signed gate Akd = σ ksharp (zdWkd −Qkd ), with ksharp = 2 .0 and thresholds capped at Qmax = 1 .5. Gate openings are aggregated into dist k = P
+
+> d
+
+(1 −Akd )2, converted to soft assignments qk, and each cell is assigned to arg max k qk. The sign of Wkd 
+
+determines the direction of the gate, |Wkd | its steepness, and Qkd /W kd the latent value at which it switches; these three quantities are components of the cluster-ing rule itself and are read directly from the trained parameters, without fitting a separate post-hoc explanation model. Stage 1 aggregates the per-dimension gates 
+
+additively ; the multiplicative branch aggregation of panel (a) is used only by the Stage-2 gene-module decoder (Methods, Complementary gene-module decoder). Because Akd ∈ (0 , 1) , dist k lies in (0 , D ) and never reaches zero; it is therefore an assignment score rather than a metric distance, and qk is correspondingly bounded away from 1. 
+
+33 Figure 2: scDNM-VAE two-stage architecture. (a) Stage 1: a variational encoder maps gene-expression profiles to a 10-dimensional latent space; a dendritic clustering head applies per-dimension sigmoid gating through learnable synaptic weights Wsyn and thresholds Qsyn . (b) Stage 2: frozen latents are fed through a DNMDecoder containing 20 masked dendritic branches, each interpreted branch aligned with the differential-expression signature genes of one populated Stage-1 cluster (mitochondrial genes excluded) and trained with a supervised activation term so that each module is active in its target cluster. The per-cell branch activa-tions ( Dact , N × 20 ) are averaged within each predicted cluster to form the K × 20 
+
+module-activation matrix used for interpretation (Methods, Complementary gene-module decoder). 
+
+34 Figure 3: Benchmark performance, label-based metrics. Best-seed ARI (a), NMI (b), and clustering accuracy (c) for scDNM-VAE (blue), MLP-DEC (red), and scVI+KMeans (green) across four datasets; for every metric the bar is the value of the seed with the highest ARI—not each metric’s own best seed—so panel (a) matches Table 1 and panels (b) and (c) report the NMI and ACC of that same partition. Seed-to-seed variability is reported separately in Table 2 and Figure 4. 
+
+35 Figure 4: Reproducibility across random seeds. Per-seed ARI for scDNM-VAE (blue) and MLP-DEC (red) across five random seeds (42, 7, 123, 256, 999) on (a) PBMC3k, (b) Zeisel Cortex, (c) Human Heart Cell Atlas, and (d) Paul15. The green dashed line marks the best-seed scVI+KMeans ARI and the blue dotted line the scDNM-VAE mean across the five seeds. Per-method seed standard deviations are annotated in each panel. The green dashed line represents only the best-seed scVI+KMeans ARI; per-seed scVI values are not displayed. 
+
+36 Figure 5: UMAP visualization of scDNM-VAE latent space. All embed-dings show scDNM-VAE only; no other method is displayed. Two-dimensional UMAP projections of the 10-dimensional Stage-1 latent space for each benchmark dataset, spanning four tissue types: PBMC3k (human peripheral blood immune cells), Zeisel Cortex (mouse brain/cortical cells), Human Heart Cell Atlas (cardiac tissue), and Paul15 (mouse hematopoietic progenitors). Top row (a–d): cells col-ored by expert-curated ground-truth cell-type labels. Bottom row (e–h): the same embeddings colored by scDNM-VAE predicted clusters. Concordance between the two rows reflects clustering quality: correspondence is cleanest on the Human Heart Cell Atlas and weakest on Paul15, consistent with the ARI rankings in Table 2. The displayed results were generated from the dataset-specific best-ARI scDNM-VAE runs described in Methods. 
+
+37 Figure 6: scDNM-VAE clusters versus ground-truth labels on the Hu-man Heart Cell Atlas. Row-normalized confusion matrix ( n = 18 ,641 cells); each row is a predicted cluster, each column an expert-curated cell type. Cell colour is the fraction of the cluster’s cells carrying that label (row-normalized) and the printed number is the raw cell count. Right margin: per-cluster purity (the fraction of the cluster’s cells in its dominant label). Clusters are ordered by dom-inant ground-truth type. Cardiomyocytes are resolved into separate ventricular (C2) and atrial (C8) clusters; the endothelial, macrophage and mural compart-ments are each split across two clusters (C0/C10, C4/C7 and C3/C6); C5 (purity 0.38) is the least resolved cluster and merges predominantly fibroblast, smooth-muscle, and endothelial cells, together with smaller contributions from several rare populations. The displayed results were generated from the dataset-specific best-ARI scDNM-VAE runs described in Methods. 
+
+38 Figure 7: Highest-magnitude synaptic-weight ablation. For each dataset, the cluster defection rate after ablating a cluster’s own three highest-|Wkd | latent dimensions (dark blue) versus ablating another cluster’s dimensions (grey) or ran-dom dimensions (light grey). Ablating a cluster’s own top dimensions reassigns more of its cells than the random control on every dataset and more than the other-cluster control on three of four (the two are indistinguishable on Zeisel), but the margin is modest ( 1.01 –1.39 × over the random control) and random ablation alone already reassigns a large fraction of cells, indicating that the clustering deci-sion is distributed across the latent space. 
+
+39
