@@ -1,0 +1,707 @@
+Title: CauseCollab: Causal Unified and Modality-Agnostic Network for Heterogeneous Collaborative Perception
+
+URL Source: https://arxiv.org/pdf/2609.03818v1
+
+Published Time: Fri, 04 Sep 2026 01:16:46 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# CauseCollab: Causal Unified and Modality-Agnostic Network for Heterogeneous Collaborative Perception 
+
+Weize Li * 1 Yang Li * 1 Quan Yuan 1 Xiaoyuan Fu 1 Guiyang Luo 1 Jinglin Li 1
+
+## Abstract 
+
+Collaborative perception enhances environment understanding through multi-agent information sharing, but its performance in real-world sce-narios is constrained by heterogeneous sensor modalities and model architectures. Recent protocol-based two-stage methods alleviate this problem by mapping heterogeneous features into a shared protocol space; however, independently trained modality-specific converters often gen-erate modality-specific pseudo-protocol distribu-tions, leading to semantic inconsistency and error accumulation, which is particularly pronounced in scenarios with large modality discrepancies. To address this issue, we propose CauseCol-lab, a causal unified and modality-agnostic net-work. CauseCollab formulates representation learning in the protocol space from a causal per-spective, explicitly disentangling semantic factors from modality-specific statistical confounders via causal metric learning. Meanwhile, CauseCol-lab adopts context-guided Unified Converter for heterogeneous modalities to ensure cross-modal semantic consistency. In addition, integrating new modalities only requires training adapters with minimal parameters. Extensive experiments on the OPV2V and DAIR-V2X datasets demonstrate that CauseCollab achieves state-of-the-art perfor-mance, with more significant gains in scenarios involving large modality gaps. 
+
+## 1. Introduction 
+
+Collaborative perception shares intermediate features among multiple agents through communication, enabling 
+
+> *
+
+Equal contribution 1State Key Laboratory of Networking and Switching Technology, Beijing University of Posts and Telecom-munications, Beijing, China. Correspondence to: Quan Yuan 
+
+<yuanquan@bupt.edu.cn >.
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). 
+
+them to complement each other’s perceptual blind spots, and is widely regarded as a key technique for improving the robustness of autonomous driving systems (Arnold et al., 2022; Han et al., 2023; Liu et al., 2023). In recent years, ex-tensive research has focused on enhancing the performance of homogeneous collaboration (Liu et al., 2020; Hu et al., 2022; Xu et al., 2022b). However, in real-world deploy-ments, collaborative agents often originate from different manufacturers and platforms, exhibiting substantial differ-ences in sensor types, voxel sizes, and network architectures. It makes intermediate features difficult to fuse and limits the practical effectiveness of collaborative perception. To address heterogeneity in collaborative perception, prior work has explored feature transformation modules that map heterogeneous modality features from neighboring agents into the local space of the ego agent (Zhao et al., 2023; Yin et al., 2024). Existing approaches can be broadly catego-rized into two classes. The first class (Xu et al., 2023; Lu et al., 2024) learns a dedicated mapping for each pair of heterogeneous modalities to achieve one-stage alignment, but suffers from poor scalability as the training cost grows rapidly with the number of modalities. The second (Luo et al., 2024; Gao et al., 2025) class introduces a unified protocol modality as an intermediate representation space, and trains a converter and a reconstructor for each modal-ity to map heterogeneous features into this protocol space, achieving improved scalability while maintaining strong performance. Although two-stage heterogeneous adaptation methods based on a protocol space exhibit favorable scalability, their performance is often constrained by error accumulation across stages. When the converters are trained indepen-dently for each modality, each modality tends to learn a locally self-consistent mapping between its local represen-tation and the protocol representation. This behavior leads to inconsistent pseudo-protocol distributions in the proto-col space. As a result, even after all features are projected into a unified protocol space, significant discrepancies in semantic responses and statistical distributions may persist across modalities, which weakens the effectiveness of local semantic reconstruction. This issue becomes particularly pronounced when the 1arXiv:2609.03818v1 [cs.AI] 3 Sep 2026 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+modality gap is large, where pseudo-protocol distributions often introduces noisy responses and spurious activations in background regions. The root cause is that existing methods typically model the protocol space merely as a distribution-alignment intermediary, failing to explicitly characterize which semantic factors should be shared across modalities and which modality-specific statistical confounders should be disentangled. To address this problem, we propose a unified two-stage framework from a causal perspective. Unlike previous meth-ods that treat the protocol space as a reversible intermedi-ate and emphasize distribution matching, our framework focuses on semantic extraction and modal factor disentan-glement in Stage-1, followed by modality-specific local semantic reconstruction in Stage-2. Specifically, in Stage-1, we adopt a unified converter com-posed of a semantic context extractor (SCE) and a context-guided dynamic refiner (CGDR) for multi-modality mixed training. By taking global semantics as an anchor to con-strain local feature refinement, we reduce background-induced misalignment. Meanwhile, we construct a structural causal model (SCM) (Sch¨ olkopf, 2022), depicted in Figure 2, to characterize the relationships among heterogeneous modalities in terms of semantic components. Through a counterfactual intervention strategy based on causal metric learning, we explicitly drive the protocol representations of each modality to approximate the weakly observed protocol modality. This suppresses pseudo-protocol shifts induced by residual modal biases and background noise, thus achiev-ing cross-modal unified semantic alignment. We design the Mask-Guided Intervention via SPD Feature Geometry (MGI-SPD) module to enforce causal interventions. Based on the semantically consistent protocol space, Stage-2 in-dependently trains a local semantic reconstructor for each modality to restore feature semantics to the local modality. When a new modality is introduced, we freeze the backbone of the unified converter and only train lightweight adapters to project the new modality into the semantically consis-tent protocol space, thus achieving expansion at the cost of minimal parameters. • We propose CauseCollab, a causal unified and modality-agnostic network for heterogeneous collaborative percep-tion(HCP). It disentangles modality-specific statistical confounders during the conversion, and realizes the learn-ing of a semantically consistent protocol space based on causal metric learning. For intermediate features, we de-sign a module called Mask-Guided Intervention via SPD Feature Geometry. • We design a unified converter composed of a semantic context extractor and a context-guided dynamic refiner to ensure cross-modal semantic consistency. A lightweight adapter is incorporated to enable the adaptation of new modalities at the cost of minimal parameters. • Extensive experiments on the OPV2V and DAIR-V2X datasets demonstrate that CauseCollab achieves state-of-the-art (SOTA) performance among existing heteroge-neous collaborative perception methods, with substantial improvements in perception accuracy in scenarios with larger modality gaps. 
+
+## 2. Related Work 
+
+2.1. Collaborative Perception 
+
+Collaborative perception allows multiple agents to share and fuse multi-view information, mitigating the inherent view limitations and occlusions of single-agent perception. Intermediate fusion (Li et al., 2021; Xu et al., 2022a) has become the dominant paradigm in collaborative perception, as it preserves rich intermediate semantics while avoiding the high bandwidth requirements and strict synchronization constraints of early fusion. Methods such as Where2comm (Hu et al., 2022) and CodeFilling (Hu et al., 2024) address communication bottlenecks through structured feature com-pression, while CoAlign (Lu et al., 2023), CoBEVFlow (Wei et al., 2023), and CoDiff (Huang et al., 2025) focus on mitigating feature misalignment caused by localization errors and temporal delays. Existing collaborative perception methods excel in homo-geneous multi-agent settings, yet real-world deployments inevitably require heterogeneous agents. Recently, several works (Xiang et al., 2023; Shao et al., 2024) have attempted to address heterogeneity in collaborative perception. MPDA (Xu et al., 2023) and PnPDA (Luo et al., 2024) employ one-stage and two-stage neighbor-to-ego translators to map features into the ego agent’s semantic space. HEAL (Lu et al., 2024) performs one-to-one mappings via backward alignment, while STAMP (Gao et al., 2025) introduces a protocol space with reversible mappings between local and protocol representations. NegoCollab (Shao et al., 2025) learns a general representation through knowledge distilla-tion. In contrast to prior approaches, our method aims to eliminate pseudo-protocol distributions induced by hetero-geneous modalities within the protocol space and to learn a semantically consistent unified protocol representation. 
+
+2.2. Causal Inference 
+
+Causal inference aims to distinguish true causal factors from spurious correlations, characterize causal relationships among variables, and estimate intervention effects that are free from confounding factors. In recent years, causal infer-ence has been introduced into computer vision tasks (Wang et al., 2024; Li et al., 2024) to improve model robustness. CIIM (Yan et al., 2024) explores causally invariant inter-actions to learn modality-consistent embeddings. CWNet 2CauseCollab: Causal Unified and Modality-Agnostic Network for HCP PROTOCOL          
+
+> 𝑓 !
+> 𝑓 "
+> 𝑓 #
+> 𝐿 !"#$%&' = 𝜆 "#() (') 𝐿 "#() ,+ 𝜆 -(% 𝐿 -(% + 𝜆 ./0( 𝐿 ./0(
+> 𝐿 !"#$%&1 = 𝜆 ./0 𝐿 ./0"2#(" + 𝜆 ."3 (𝐿 ."3&4456 + 𝐿 ."3&./( ) + 𝜆 ((7-𝐿 ((7-+ 𝜆 "#() (1) 𝐿 "#() 8
+> 𝑓 $
+
+# ⋮
+
+MGI-SPD 
+
+CGDR 
+
+SCE 
+
+> 𝑝 %
+> 𝑝 &
+> 𝐿 '()*+,-*
+> 𝐿 '*.&--#/
+> 𝑝 #
+> 𝑐 #
+> Adapter
+> Adapter
+
+Stage-1 Unified Converter Causal Intervention 
+
+CGDR 
+
+> Adapter
+
+CGDR 
+
+> Adapter
+> Mask Generator
+> 𝑚 #
+> 𝐿 '*.&'(-
+
+Stage-1 
+
+> 𝐿 --#/
+> 𝑝 #
+> Trainable in Generalization Frozen in Generalization Stage-1 Stage-2 and Inference
+
+𝑅 !
+
+> 𝐹𝑢𝑠𝑖𝑜𝑛 "
+> 𝐻𝑒𝑎𝑑 "
+> 𝐿 *,-0 "
+> 𝐹𝑢𝑠𝑖𝑜𝑛 !
+> 𝐻𝑒𝑎𝑑 !
+> 𝐿 *,-0 !
+> 𝐿 /-1 𝐿 '()-
+
+Stage-2 
+
+> 𝑓 0#
+
+Figure 1. The overall architecture of CauseCollab. CauseCollab consists of a modality-agnostic protocol semantics conversion stage via causal modeling (Stage-1) and a modality-specific local semantic reconstruction stage (Stage-2). Unified Converter incorporates SCE and CGDR modules to derive semantically consistent representations. 
+
+(Zhang et al., 2025) applies causal reasoning to low-light image enhancement, emphasizing semantic information dur-ing the enhancement process. MSFT (Qiao et al., 2025) incorporates causal intervention into time-series forecasting to address confounding effects induced by varying temporal scales. We introduce structural causal models into collab-orative perception and design a novel intervention module operating on intermediate features, enabling more robust cross-modal semantic alignment. 
+
+## 3. Method 
+
+3.1. Overview Pipeline 
+
+The overall architecture of CauseCollab is illustrated in Figure 1.We focus on the heterogeneous collaborative per-ception setting, where the ego agent ε receives observations from multiple collaborative agents V = {1, . . . , N } during perception. Since collaborative agents may belong to differ-ent sensor modalities, the modality set is denoted as M, and directly performing feature fusion suffers from significant modality discrepancies. For any collaborative agent i ∈ V , its raw observation is denoted as xmi 
+
+> i
+
+∈ X mi , where mi ∈ M indicates the sensor modality of agent i. The ego agent observation is denoted as xmε 
+
+> ε
+
+. For each modality m, we introduce a modality-specific encoder Em(·) to map raw inputs into feature representations: 
+
+fi = Emi (xmi 
+
+> i
+
+), fε = Emε (xmε 
+
+> ε
+
+), (1) where fi, f ε ∈ RC×H×W denote the modality features of collaborative agents and the ego agent, respectively. In Stage-1, we introduce a shared protocol space P and project collaborative agent features into this space to obtain unified semantic representations, where each collaborative feature is transformed into its protocol representation pi ∈P.In Stage-2, the ego agent employs a reconstructor Rmε (·)
+
+to map protocol features back to local space L, yielding reconstructed collaborative features ˜fi ∈ L . The ego feature 
+
+fε and all reconstructed collaborative features { ˜fi}Ni=1 are then fused by a pyramid fusion module Φε(·) to obtain multi-scale fused feature: 
+
+Fpyramid = Φ ε(fε, ˜f1, . . . , ˜fN ). (2) Finally, the fused feature are fed into the task head Hε(·) to produce the final detection output: 
+
+z = Hε(Fpyramid ). (3) 3CauseCollab: Causal Unified and Modality-Agnostic Network for HCP Fm→p→m 
+
+Fm
+
+Fm→p Nm
+
+PNp
+
+S  
+
+> Figure 2. Representation-level Structural Causal Model(SCM) for Two-Stage Heterogeneous Collaborative Perception. Black edges denote causal paths, while red edges denote spurious correlation paths. Solid edges represent direct effects, and dashed edges indicate indirect effects on the protocol-space representation.
+
+3.2. Stage-1: Protocol Semantic Conversion via Causal Modeling Structural Causal Modeling. To distinguish modality-invariant semantic factors from modality-specific statistical confounders that should be suppressed, we introduce Struc-tural Causal Modeling (SCM) in Stage-1 to explicitly char-acterize the causal generation process of representations. As illustrated in Figure 2, the variables include the protocol-modality representation P , the heterogeneous modality rep-resentation Fm, the protocol-space heterogeneous repre-sentation Fm→p, the locally reconstructed representation 
+
+Fm→p→m, the true semantic factor S, the protocol-modality statistical noise Np, and the heterogeneous-modality statis-tical noise Nm.Without proper constraints, the statistical noises Np and Nm
+
+can affect Fm and P through the encoder, thereby inducing spurious correlation paths in the protocol space that are irrelevant to the true semantics S. Consequently, the model may exploit modality-style differences as discriminative cues, leading to modality-specific spurious semantic clusters in Fm→p. To obtain a semantically consistent protocol space, we naturally regard S as the causal factor, while treating Np and Nm as confounders. Based on the above SCM, the learning objective of Stage-1 can be stated as follows: while maintaining high sensitivity of Fm→p to the semantic factor S, we reduce its dependence on modality statistical noises Np and Nm. Since S is not di-rectly observable, we use the protocol-modality representa-tion P as a weak observation during training, and introduce SPD mask-guided intervention together with causal metric learning to achieve the above causal objective. 
+
+Mask-Guided Intervention via SPD Feature Geometry. 
+
+After heterogeneous features are transformed into the pro-tocol space, they still retain significant modality-specific statistical shifts, which are mainly reflected in the discrepan-cies of first-order means and second-order correlation struc-tures of channel distributions (Huang & Belongie, 2017; Li et al., 2017). To address this issue, we design Mask-Guided Intervention via SPD Feature Geometry, and realize the separation of confounders through causal metric learning. Specifically, we regard Bird’s-Eye View (BEV) features as a collection of high-dimensional random vectors sampled from various spatial locations, and construct closed-form statistical mappings on the geometry of symmetric positive definite (SPD) covariance matrices (Huang & Gool, 2017); meanwhile, we introduce semantic mask-guided spatially adaptive strength modulation to perform differentiated statis-tical suppression and statistical injection on foreground and background regions, thereby implementing counterfactual intervention on Np and Nm without disrupting the feature semantic factor S.Given a protocol feature map pi ∈ RC×H×W , we reshape it into Xi ∈ RC×N with N = H × W , where each col-umn vector xn ∈ RC represents the channel feature at the corresponding spatial location. Under this representation, modality style is modeled by the first-order and second-order statistics (μ, Σ) of the feature set X.To characterize the discrepancy in semantic contributions between foreground and background regions, we introduce a semantic mask mi ∈ [0 , 1] 1×N generated by inputting heterogeneous features into a mask generator g(·), and con-struct non-negative weights w based on this mask to define weighted statistics: 
+
+μ =
+
+PNn=1 wnxn
+
+PNn=1 wn
+
+, (4) 
+
+Σ = 
+
+PNn=1 wn(xn − μ)( xn − μ)⊤
+
+PNn=1 wn
+
++ εI, (5) where Σ ∈ S C 
+
+> +
+
+lies on the SPD geometry, and εI is added to ensure numerical stability. On the SPD geometry, we adopt a whitening–coloring lin-ear mapping to realize a closed-form transformation from source statistics (μs, Σs) to target statistics (μt, Σt):
+
+Ts→t(X) = μt + Σ 12 
+
+> t
+
+Σ− 12 
+
+> s
+
+(X − μs), (6) where Σ1/2 and Σ−1/2 are computed via eigendecompo-sition of SPD matrices to ensure numerical stability and preserve positive definiteness. The mapping performs a lin-ear adjustment of the feature mean and correlation structure along the channel dimension only, without altering the spa-tial structure of the feature map, thereby guaranteeing that the BEV semantics are not compromised. 4CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+Under the above formulation, we apply counterfactual inter-vention to the protocol feature fp and construct a pair of pos-itive and negative samples for causal metric learning: the de-modalized protocol feature p+ 
+
+> i
+
+serves as the positive sample, and the confounded protocol feature p− 
+
+> i
+
+acts as the negative sample. Specifically, p+ 
+
+> i
+
+is obtained by mapping the chan-nel statistics (μc, Σc) of fp to a neutral target distribution 
+
+(μ0, Σ0) via whitening coloring transformation combined with semantic mask-guided spatial interpolation, thereby suppressing modality-specific statistics while preserving the spatial semantic structure; in contrast, after completing the aforementioned suppression, p− 
+
+> i
+
+is generated by introduc-ing controlled injection of heterogeneous modality statistics 
+
+(μh, Σh) through isomorphic statistical mapping and spatial modulation, such that modality-induced statistical perturba-tions are mixed in while maintaining semantic consistency. Through this intervention construction based on SPD statisti-cal geometry, p+ 
+
+> i
+
+provides a demodalized semantic positive sample, while p− 
+
+> i
+
+acts as a hard negative sample with con-trolled modality shifts introduced, jointly driving the unified converter to learn modality-agnostic protocol representa-tions. It is worth noting that MGI-SPD is used only during Stage-1 training to remove modality-specific confounding factors; it is not involved during inference. More details can be found in Appendix B.1. 
+
+Semantic Context Extractor. To learn representations with stronger semantic consistency in the protocol space, we design a semantic context extractor G(·) for extracting high-level semantic information. This module takes the modality feature fi ∈ RC×H×W generated by the heterogeneous modality encoders as input, and outputs the global semantic context feature ci ∈ RCg ×Hg ×Wg .
+
+G(·) adopts a hierarchical structure, and gradually enhances the global semantic modeling capability through two-stage downsampling and semantic extraction. Specifically, we construct two levels of semantic representations: 
+
+x(1) = B1(D1(fi)) , x(2) = B2(D2(x(1) )) , (7) and fuse the two-level features to obtain the context repre-sentation: 
+
+ci = Fuse( x(1) , x (2) ). (8) where D1, D2 denote downsampling convolutions, B1, B2
+
+are semantic extraction blocks, and Fuse( ·) is the feature fusion operator. Specifically, Fuse( ·) first aligns the chan-nel dimensions using 1 × 1 convolutions, performs spatial alignment via interpolation, and then applies weighted con-catenation followed by a depth-wise 3 × 3 convolution for spatial mixing. Finally, we apply channel recalibration, implemented by the classical Squeeze-and-Excitation mod-ule, and normalization to ci at the output stage to enhance task-relevant semantic responses and stabilize the feature distribution, thereby providing reliable global semantic con-text for subsequent dynamic refinement. 
+
+Context-Guided Dynamic Refiner. In Stage-1, we intro-duce the Context-Guided Dynamic Refiner T (·). This mod-ule performs layer-wise semantic correction on local modal-ity features under semantic context constraints, thereby gen-erating protocol-space representations with stronger seman-tic consistency. Given the local modality feature fi ∈ RC×H×W of the i-th agent and the semantic context feature ci extracted by the Semantic Context Extractor (SCE), we first align the context feature in both channel and spatial dimensions to obtain the conditional context representation: 
+
+ˆci = U  ϕ(ci), (9) where ϕ(·) denotes a 1 × 1 convolution and U (·) represents linear interpolation. Subsequently, the refiner takes (fi, ˆci)
+
+as joint input and progressively generates protocol-space features through a stack of context-conditioned transforma-tions: 
+
+pi = T (fi, ˆci). (10) In practice, the refiner is composed of multiple dynamic refinement blocks. For the ℓ-th layer, the update of local modality features is conditioned on the aligned context rep-resentation, which is formulated as: 
+
+f (ℓ+1)  
+
+> i
+
+= Tℓ
+
+ f (ℓ) 
+
+> i
+
+, ˆci
+
+. (11) Within each dynamic refinement block, local features are first modulated by FiLM-style multi-head feature modu-lation under the guidance of semantic context, and then filtered by a gating function gate( ·), implemented as a 1 × 1
+
+convolution followed by SiLU activation, to suppress non-informative regions and noise responses, thereby stabilizing the feature transformation process. By continuously enforcing semantic context constraints throughout the transformation, the resulting protocol repre-sentation pi not only preserves local discriminative details but also anchors to consistent global semantics, providing reliable inputs for local semantic reconstruction and task prediction in Stage-2. 
+
+Training Strategy. Stage-1 aims to learn semantically consistent protocol representations: this stage enhances the unified semantic factor S across modalities while suppress-ing the interference of modality-specific statistical noise 
+
+Np and Nm, thereby reducing pseudo-protocol shifts and erroneous activations in background regions. The overall objective function of Stage-1 is defined as fol-5CauseCollab: Causal Unified and Modality-Agnostic Network for HCP     
+
+> Table 1. Performance comparison on the OPV2V dataset using AP@30/AP@50, where the ego agent is Lpp4 .ALL denotes the scenario with all collaborative agents.
+
+Method AP@30 ↑ AP@50 ↑
+
++ CEff + Lsd 1 + CRes ALL + CEff + Lsd 1 + CRes ALL 
+
+MPDA 0.947 0.967 0.967 0.969 0.939 0.962 0.962 0.966 PnPDA 0.936 0.965 0.966 0.970 0.931 0.962 0.963 0.967 HEAL 0.941 0.958 0.959 0.963 0.935 0.954 0.955 0.960 STAMP 0.945 0.967 0.968 0.972 0.940 0.964 0.965 0.969 CauseCollab 0.952 0.972 0.973 0.978 0.944 0.968 0.969 0.975 
+
+lows: 
+
+LStage-1 = λcon Lcontrast + λctx 
+
+ Lctx-ssim + Lctx-cos 
+
+
+
++ λssim Lssim + λ(1) 
+
+> task
+
+Lp
+
+> task
+
+, (12) where λcon , λctx , λssim and λ(1)  
+
+> task
+
+are weighting coefficients. Among these loss terms, Lcontrast is an InfoNCE-style con-trastive loss (van den Oord et al., 2019) for causal met-ric learning, where pi is used as the anchor, the demodal-ized intervention feature p+ 
+
+> i
+
+serves as the positive sample, and the confounded intervention feature p− 
+
+> i
+
+serves as the negative sample; Lctx-ssim and Lctx-cos are semantic context consistency constraints applied between the semantic con-text feature ci and the downsampled positive intervention feature p+ 
+
+> i
+
+, aligning high-dimensional semantics from the perspectives of spatial structure and channel response, re-spectively; Lssim enforces semantic consistency between the protocol-modality feature fp and the converted proto-col representation pi, constraining dynamic refinement to achieve protocol mapping while preserving spatial semantic structure; Lp 
+
+> task
+
+is the protocol-head detection loss, imple-mented as the focal loss plus the smooth L1 loss, ensuring protocol representations have both semantic consistency and sufficient discriminability for downstream detection tasks. 
+
+3.3. Stage-2: Local Semantic Reconstruction 
+
+After Stage-1, features from different modalities are mapped into a semantically consistent protocol space. Since hetero-geneous modalities differ in resolution and representation characteristics, Stage-2 reconstructs protocol back to each modality-specific local space to fit modality-specific heads. With the unified converter in Stage-1 frozen, we train a modality-specific local reconstructor Rm(·) for each modal-ity m to map features back to the local feature space: 
+
+˜fi = Rm(pi), (13) where pi denotes the protocol-space feature produced by Stage-1. The reconstructor is designed following the Con-vNeXt (Liu et al., 2022) architecture to ensure stable opti-mization. For modality m, Stage-2 is optimized with task supervision and consistency constraints. The overall objective is: 
+
+LStage-2 = λ(2) 
+
+> task
+
+Lϵ 
+
+> task
+
++ λmse Lmse + λcons Lcons , (14) where λ(2) 
+
+> task
+
+, λmse , and λcons are weighting coefficients. Lϵ
+
+> task
+
+is the modality-specific task loss for downstream task su-pervision; Lmse is the MSE loss between reconstructed and original local features; Lcons is the consistency loss to stabilize the mapping between protocol and local feature spaces. 
+
+3.4. Generalization 
+
+The initial collaborative agents have learned modality-agnostic causal semantics with consistent representations in the protocol space. For a new modality, we freeze the backbone of the unified converter in Stage-1 and only em-ploy lightweight adapters to align the new modality to the established protocol-consistent space; in Stage-2, we further train a local semantic reconstructor to recover local space. The lightweight adaptation in Stage-1 is achieved by insert-ing a small number of bottleneck adapters at key locations in the unified converter, while keeping the backbone param-eters frozen. The adapters are placed after the downsam-pling operations in the SCE and between modules of the CGDR, so that the new modality is progressively aligned to modality-invariant semantics through scale transitions and fine-grained conversions. Each adapter follows a low-rank bottleneck residual design and is initialized with a scaling coefficient α = 0 , enabling effective compensation for the new modality with negligible parameter overhead while preserving the original protocol semantic consistency. 
+
+## 4. Experiments 
+
+4.1. Settings Datasets. We conduct experiments on OPV2V (Xu et al., 2022c) and DAIR-V2X (Yu et al., 2022). OPV2V is a 6CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+Table 2. Experiments of different methods on the OPV2V dataset under the setting of larger domain gap, along with the parameters required for new modality adaptation. The notation A + B indicates that the ego agent is configured with modality A, while all neighbor agents are configured with modality B. Model parameters are measured in megabytes (MB). 
+
+Method AP@30/AP@50 ↑ #Parmas (New Modality) 
+
+Lpp 4 + CEff CEff + CRes Lpp 4 + Lsd 2new Lsd 2new + CEffB1 new 
+
+MPDA 0.967 / 0.961 0.711 / 0.597 0.949 / 0.943 0.941 / 0.937 5.00 PnPDA 0.966 / 0.962 0.654 / 0.597 0.980 / 0.979 0.951 / 0.946 4.37 HEAL 0.960 / 0.956 0.627 / 0.550 0.980 / 0.978 0.936 / 0.932 17.10 STAMP 0.961 / 0.957 0.730 / 0.634 0.981 / 0.980 0.958 / 0.952 1.18 CauseCollab 0.971 / 0.966 0.772 / 0.670 0.983 / 0.980 0.966 / 0.959 0.68 
+
+Table 3. Performance comparison of heterogeneous collaboration on real-world datasets DAIR-V2X. 
+
+Method AP@30/AP@50 ↑
+
+Lpp4 + CEff CEff + Lpp4 
+
+MPDA 0.792 / 0.685 0.405 / 0.228 PnPDA 0.790 / 0.738 0.408 / 0.235 HEAL 0.738 / 0.692 0.410 / 0.253 STAMP 0.782 / 0.731 0.394 / 0.249 CauseCollab 0.795 / 0.733 0.647 / 0.464 
+
+simulator-collected multi-agent dataset tailored for heteroge-neous collaborative perception. DAIR-V2X is a real-world V2X dataset collected in traffic environments, consisting of both agent-side and roadside LiDAR and camera data. 
+
+Experimental Details. We adopt heterogeneous feature encoders spanning different sensor types and network archi-tectures. For LiDAR, we use PointPillar (Lang et al., 2019) and SECOND (Yan et al., 2018) as two representative en-coders. For cameras, we use an image encoder based on the Lift-Splat-Shoot (LSS) (Philion & Fidler, 2020) framework, which employs ResNet (He et al., 2015) and EfficientNet (Tan & Le, 2019) as the backbone networks. Specifically, we construct four heterogeneous modality configurations, denoted as Lpp4 , CEff , Lsd1 , and CRes . These configura-tions differ in sensor types, voxel size, and backbone design. Detailed settings are provided in Table 6. We employ a two-stage training scheme. In Stage-1, features extracted by the four heterogeneous encoders are mixed and fed into shared converter. The converter is trained with multi-modal mixed batches to align heterogeneous modal-ity spaces into a unified protocol space. In Stage-2, we train a modality-specific local semantic reconstructor for each modality to recover collaborator features in its local representation space. When integrating a new modality, we freeze the shared converter backbone and only perform lightweight adaptation, together with training the local re-0.0 0.2 0.4   
+
+> Pose Noise Std
+> 0.92 0.94 0.96 0.98
+> AP@0.3
+> MPDA PnPDA HEAL STAMP CauseCollab 0.0 0.2 0.4
+> Pose Noise Std
+> 0.86 0.88 0.90 0.92 0.94 0.96 0.98
+> AP@0.5
+> MPDA PnPDA HEAL STAMP CauseCollab
+
+Figure 3. Robustness comparison of different methods under pose noise. We evaluate the AP@0.3 and AP@0.5 performance as the pose noise standard deviation increases from 0.0 to 0.5. 
+
+constructor for the new modality. Notably, during adapta-tion, the encoders, fusion modules, and classification heads of previously deployed modalities remain frozen and inac-cessible, which satisfies practical deployment requirements on privacy preservation and non-modifiability of existing modalities. 
+
+4.2. Performance Comparison Collaboration on OPV2V. We evaluate our method on the 3D object detection task and compare it with prior ap-proaches. We select two one-stage methods, MPDA (Xu et al., 2023) and HEAL (Lu et al., 2024), and two two-stage methods, PnPDA (Luo et al., 2024) and STAMP (Gao et al., 2025). For a fair comparison, we adopt the same pyramid fusion strategy used in prior works (Lu et al., 2024; Gao et al., 2025). Table 1 reports the results on OPV2V under a general heterogeneous collaboration setting. We set the ego agent to the Lpp4 modality and progressively add three heterogeneous-modality neighbors for collabo-ration. CauseCollab achieves the best performance under both AP@0.3 and AP@0.5 metrics after each heterogeneous modality agent is progressively added. Furthermore, we evaluate the robustness of the model against localization errors by injecting Gaussian noise with standard deviation σ ranging from 0.0 to 0.5 into agent poses, and the experimental results are shown in Figure 3. The results demonstrate that the performance of CauseCol-7CauseCollab: Causal Unified and Modality-Agnostic Network for HCP        
+
+> Table 4. Ablation study: Evaluating the impact of individual components on the performance of CauseCollab. Experiments are conducted under the modality configuration of Lpp4 +CEff +
+> Lsd1 +CRes .
+
+AP@30 ↑ AP@50 ↑
+
+CauseCollab 0.978 0.975 -w/o Causal Intervention 0.969 0.965 -w/o Mask Generator 0.972 0.970 -w/o Semantic Context 0.837 0.834 -w/o CGDR 0.972 0.969 -w/o SCE + CGDR 0.968 0.966 -w/o Lightweight Adapters 0.909 0.904 lab is better than or comparable to that of other methods at most noise levels. To validate semantic consistency in the protocol space, we set the ego agent to one modality and neighbor agents to a single different modality, which emulates a larger modality gap for heterogeneous collaboration. We then evaluate the model’s robustness in this challenging scenario, with results provided in Table 2. When the ego is CEff and the neigh-bor is CRes , our method improves AP by 4.2% at IoU=0.3 and by 3.6% at IoU=0.5 compared to four other methods. Similarly, when the ego is Lpp4 and the neighbor is CEff , the AP gains are 0.5% and 0.4% under the two thresholds, with improvements even for the higher-performance combina-tion. These results confirm that our method preserves more semantically consistent information during collaboration. 
+
+Collaboration on DAIR-V2X. We further conduct perfor-mance comparisons on the real-world DAIR-V2X dataset. Since DAIR-V2X only provides two agent perspectives for the same scene, we set the Ego agent to the Lpp 4 and CEff 
+
+modalities respectively for collaboration. As shown in Ta-ble 3, our method still outperforms all previous methods overall. 
+
+Scalability. Heterogeneous collaboration methods should be scalable to incorporate novel modalities. Starting from a unified converter trained on the four heterogeneous modal-ities above, we adapt it to two novel modalities, Lsd2 and CEffB1 , via fine-tuning. We then use the novel modality as the neighbor agent for collaboration, as shown in Table 2. We observe that, for novel modalities, our method achieves higher average precision with fewer trainable parameters, indicating that the unified converter enables semantic con-sistency and parameter reuse. 
+
+4.3. Ablation Study 
+
+We conducted a comprehensive ablation study on the OPV2V dataset. In Stage-1, we ablate each component           
+
+> (a) Lpp4 Feature (b) CEff Feature
+> (c) CEff Feature in Protocol Space (STAMP)
+> (d) CEff Feature in Protocol Space (CauseCollab)
+> Figure 4. Visualization of intermediate features before and after conversion.
+
+of the model individually and evaluate the heterogeneous collaboration performance under the general collaboration setting. As shown in Table 4, removing any single compo-nent consistently leads to performance degradation. Specifically, after removing the causal intervention module, the AP metrics at IoU thresholds of 0.3 and 0.5 decrease sig-nificantly, respectively, highlighting the critical role of our causal intervention in improving the semantic consistency of the protocol space. In addition, removing the intervention mask also causes performance degradation, verifying the effectiveness of the mask-guided intervention mechanism. We directly remove the semantic context guidance, which results in a substantial performance drop, demonstrating the necessity of semantic context for the unified converter. Replacing CGDR and SCE + CGDR with a single-tower ConvNeXt of the same number of layers, respectively, leads to additional performance degradation, and this downward trend demonstrates the necessity of the coexistence of SCE and CGDR. Finally, removing the adapter for new modali-ties causes performance degradation, which demonstrates the value of adapters in incorporating new modalities. 
+
+4.4. Qualitative Evaluation 
+
+To provide more intuitive evidence that CauseCollab learns a semantically consistent protocol space for heterogeneous collaboration, we visualize the intermediate features of Li-DAR and camera modalities for the same scene in Figure 4, as well as the protocol space features converted from the camera modality by STAMP and our method, respectively. As shown in Figure 4(a) and (b), a significant semantic gap exists between the two modalities’ intermediate features. STAMP introduces semantically irrelevant noise in back-8CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+ground regions (Figure 4(c)), whereas our method achieves cleaner and more effective protocol semantics conversion, better preserving cross-modality semantic consistency (Fig-ure 4(d)). 
+
+## 5. Conclusion 
+
+In this paper, we propose a causal unified and modality-agnostic network called CauseCollab, to address the issues of semantic inconsistency and modality confounding in the protocol space of heterogeneous collaborative perception. CauseCollab achieves modality-agnostic consistent seman-tics via causal metric learning, and enables the extension of new modalities to the semantically consistent protocol space by training only lightweight adapters with minimal parame-ters. Extensive experiments demonstrate the effectiveness of our proposed method. 
+
+## Acknowledgements 
+
+This work was supported in part by the Natural Science Foundation of China under Grant 62272053 and Grant 62472048, in part by the Beijing Nova Program under Grant 20230484364, in part by Beijing Natural Science Founda-tion under Grant L242081, and in part by BUPT Excellent Ph.D. Students Foundation. 
+
+## Impact Statement 
+
+This work advances heterogeneous collaborative percep-tion by addressing semantic inconsistency and modality confounding through a causally unified, modality-agnostic framework. CauseCollab enables seamless integration of new sensing modalities with minimal computational over-head, accelerating the deployment of multi-modal collabo-rative systems in autonomous driving and intelligent trans-portation. Potential risks may arise from safety-critical deployment and privacy concerns in multi-agent perception systems. However, our framework mitigates these risks to some extent by improving cross-modal semantic consis-tency and enabling adaptation without accessing or modify-ing previously deployed modality-specific encoders, fusion modules, and detection heads. 
+
+## References 
+
+Arnold, E., Dianati, M., Temple, R. d., and Fallah, S. Cooperative perception for 3d object detection in driv-ing scenarios using infrastructure sensors. 23(3):1852– 1864, 2022. doi: 10.1109/TITS.2020.3028424. URL 
+
+http://arxiv.org/abs/1912.12147 .Dosovitskiy, A., Ros, G., Codevilla, F., Lopez, A., and Koltun, V. Carla: An open urban driving simulator, 2017. URL https://arxiv.org/abs/1711.03938 .Gao, X., Xu, R., Li, J., Wang, Z., Fan, Z., and Tu, Z. Stamp: Scalable task and model-agnostic collaborative perception. In Proceedings of the International Confer-ence on Learning Representations (ICLR) , 2025. URL 
+
+https://arxiv.org/abs/2501.18616 .Han, Y., Zhang, H., Li, H., Jin, Y., Lang, C., and Li, Y. Collaborative perception in autonomous driving: Meth-ods, datasets and challenges. IEEE Intelligent Trans-portation Systems Magazine , 15(6):131–151, Novem-ber 2023. doi: 10.1109/MITS.2023.3298534. URL 
+
+https://arxiv.org/abs/2301.06262 .He, K., Zhang, X., Ren, S., and Sun, J. Deep residual learning for image recognition, 2015. URL https:// arxiv.org/abs/1512.03385 .Hu, J., Shen, L., Albanie, S., Sun, G., and Wu, E. Squeeze-and-excitation networks, 2019. URL https://arxiv. org/abs/1709.01507 . CVPR 2019. Hu, Y., Fang, S., Lei, Z., Zhong, Y., and Chen, S. Where2comm: Communication-efficient collaborative perception via spatial confidence maps. In Advances in Neural Information Processing Systems (NeurIPS) , 2022. URL https://arxiv.org/abs/2209.12836 .Hu, Y., Peng, J., Liu, S., Ge, J., Liu, S., and Chen, S. Communication-efficient collaborative perception via in-formation filling with codebook. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. URL https://arxiv. org/abs/2405.04966 .Huang, X. and Belongie, S. Arbitrary style transfer in real-time with adaptive instance normalization. In Proceed-ings of the IEEE International Conference on Computer Vision (ICCV) , 2017. URL https://arxiv.org/ abs/1703.06868 .Huang, Z. and Gool, L. V. A riemannian network for spd matrix learning. In Proceedings of the 31st AAAI Con-ference on Artificial Intelligence (AAAI) , 2017. URL 
+
+https://arxiv.org/abs/1608.04233 .Huang, Z., Wang, S., Wang, Y., and Wang, L. Codiff: Conditional diffusion model for collaborative 3d object detection, 2025. URL https://arxiv.org/abs/ 2502.14891 .Lang, A. H., Vora, S., Caesar, H., Zhou, L., Yang, J., and Beijbom, O. Pointpillars: Fast encoders for object detec-tion from point clouds. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. URL https://arxiv.org/abs/ 1812.05784 .9CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+Li, M., Lin, H., Qiu, L., Liang, X., Chen, L., Elsaddik, A., and Chang, X. Contrastive learning with counter-factual explanations for radiology report generation. In 
+
+Proceedings of the European Conference on Computer Vision (ECCV) , 2024. URL https://arxiv.org/ abs/2407.14474 .Li, Y., Fang, C., Yang, J., Wang, Z., Lu, X., and Yang, M.-H. Universal style transfer via feature transforms. In Advances in Neural Information Processing Systems (NeurIPS) , 2017. URL https://arxiv.org/abs/ 1705.08086 .Li, Y., Ren, S., Wu, P., Chen, S., Feng, C., and Zhang, W. Learning distilled collaboration graph for multi-agent perception. In Advances in Neural Information Processing Systems (NeurIPS) , volume 34, 2021. URL 
+
+https://arxiv.org/abs/2111.00643 .Liu, S., Gao, C., Chen, Y., Peng, X., Kong, X., Wang, K., Xu, R., Jiang, W., Xiang, H., Ma, J., and Wang, M. Towards vehicle-to-everything autonomous driving: A survey on collaborative perception, 2023. URL https: //arxiv.org/abs/2308.16714 .Liu, Y.-C., Tian, J., Glaser, N., and Kira, Z. When2com: Multi-agent perception via communication graph group-ing. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. URL https://arxiv.org/abs/2006.00176 .Liu, Z., Mao, H., Wu, C.-Y., Feichtenhofer, C., Darrell, T., and Xie, S. A convnet for the 2020s, 2022. URL 
+
+https://arxiv.org/abs/2201.03545 . Pub-lished in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022. Lu, Y., Li, Q., Liu, B., Dianati, M., Feng, C., Chen, S., and Wang, Y. Robust collaborative 3d object detection in presence of pose errors. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2023. URL https://arxiv.org/abs/ 2211.07214 .Lu, Y., Hu, Y., Zhong, Y., Wang, D., Chen, S., and Wang, Y. An extensible framework for open heterogeneous collaborative perception. In International Conference on Learning Representations (ICLR) , 2024. Luo, T., Yuan, Q., Luo, G., Xia, Y., Yang, Y., and Li, J. Plug and Play: A representation enhanced domain adapter for collaborative perception. In Computer Vi-sion – ECCV 2024: 18th European Conference, Mi-lan, Italy, September 29–October 4, 2024, Proceed-ings, Part LXXXI , pp. 287–303, Berlin, Heidelberg, 2024. Springer-Verlag. ISBN 978-3-031-73003-0. doi: 10.1007/978-3-031-73004-7 17. URL https://doi. org/10.1007/978-3-031-73004-7_17 .Philion, J. and Fidler, S. Lift, splat, shoot: Encoding images from arbitrary camera rigs by implicitly unpro-jecting to 3d. In Proceedings of the European Confer-ence on Computer Vision (ECCV) , 2020. URL https: //arxiv.org/abs/2008.05711 .Qiao, Z., Liu, C., Zhang, Y., Jin, M., Pham, Q., Wen, Q., Suganthan, P. N., Jiang, X., and Ramasamy, S. Multi-scale finetuning for encoder-based time series foundation models. In Advances in Neural Information Process-ing Systems (NeurIPS) , 2025. URL https://arxiv. org/abs/2506.14087 .Sch¨ olkopf, B. Causality for Machine Learning , pp. 765–804. ACM, February 2022. ISBN 9781450395861. doi: 10.1145/3501714.3501755. URL http://dx.doi. org/10.1145/3501714.3501755 .Shao, C., Luo, G., Yuan, Q., Chen, Y., Liu, Y., Gong, K., and Li, J. Hetecooper: Feature collab-oration graph for heterogeneous collaborative percep-tion. In European Conference on Computer Vision ,2024. URL https://api.semanticscholar. org/CorpusID:272350894 .Shao, C., Yuan, Q., Luo, G., Hu, Y., Wang, D., Liu, Y., Pan, R., Chen, B., and Li, J. Negocollab: A com-mon representation negotiation approach for heteroge-neous collaborative perception. In Advances in Neural Information Processing Systems (NeurIPS) , 2025. URL 
+
+https://arxiv.org/abs/2510.27647 .Tan, M. and Le, Q. V. Efficientnet: Rethinking model scaling for convolutional neural networks. In Proceed-ings of the 36th International Conference on Machine Learning (ICML) , 2019. URL https://arxiv.org/ abs/1905.11946 .van den Oord, A., Li, Y., and Vinyals, O. Representation learning with contrastive predictive coding, 2019. URL 
+
+https://arxiv.org/abs/1807.03748 .Wang, L., He, Z., Dang, R., Shen, M., Liu, C., and Chen, Q. Vision-and-language navigation via causal learning, 2024. URL https://arxiv.org/abs/2404.10241 .Wei, S., Wei, Y., Hu, Y., Lu, Y., Zhong, Y., Chen, S., and Zhang, Y. Asynchrony-robust collaborative perception via bird’s eye view flow. In Advances in Neural In-formation Processing Systems (NeurIPS) , 2023. URL 
+
+https://arxiv.org/abs/2309.16940 .Xiang, H., Xu, R., and Ma, J. Hm-vit: Hetero-modal vehicle-to-vehicle cooperative perception with vision transformer, 2023. URL https://arxiv.org/ abs/2304.10628 .10 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+Xu, R., Guo, Y., Han, X., Xia, X., Xiang, H., and Ma, J. Opencda:an open cooperative driving automation framework integrated with co-simulation, 2021. URL 
+
+https://arxiv.org/abs/2107.06260 .Xu, R., Tu, Z., Xiang, H., Shao, W., Zhou, B., and Ma, J. Cobevt: Cooperative bird’s eye view semantic segmen-tation with sparse transformers. In Proceedings of the 6th Conference on Robot Learning (CoRL) , 2022a. URL 
+
+https://arxiv.org/abs/2207.02202 .Xu, R., Xiang, H., Tu, Z., Xia, X., Yang, M.-H., and Ma, J. V2x-vit: Vehicle-to-everything cooperative perception with vision transformer. In Avidan, S., Brostow, G., Ciss´ e, M., Farinella, G. M., and Hassner, T. (eds.), Computer Vision – ECCV 2022 , volume 13699 of Lecture Notes in Computer Science , pp. 107–124. Springer, Cham, 2022b. doi: 10.1007/978-3-031-19842-7 7. Xu, R., Xiang, H., Xia, X., Han, X., Li, J., and Ma, J. Opv2v: An open benchmark dataset and fusion pipeline for perception with vehicle-to-vehicle communication. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2022c. URL https: //arxiv.org/abs/2109.07644 .Xu, R., Li, J., Dong, X., Yu, H., and Ma, J. Bridging the domain gap for multi-agent perception. In Proceedings of the IEEE International Conference on Robotics and Au-tomation (ICRA) , 2023. URL https://arxiv.org/ abs/2210.08451 .Yan, J., Deng, C., Huang, H., and Liu, W. Causality-invariant interactive mining for cross-modal similarity learning. IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI) , 46(9):6216–6230, 2024. doi: 10.1109/TPAMI.2024.3379752. URL https:// doi.org/10.1109/TPAMI.2024.3379752 .Yan, Y., Mao, Y., and Li, B. Second: Sparsely embedded convolutional detection. Sensors , 18(10):3337, 2018. Yin, H., Tian, D., Lin, C., Duan, X., Zhou, J., Zhao, D., and Cao, D. V2vformer++: Multi-modal vehicle-to-vehicle cooperative perception via global-local transformer. IEEE Transactions on Intelligent Transportation Systems , 25 (2):2153–2166, 2024. doi: 10.1109/TITS.2023.3314919. Yu, H., Luo, Y., Shu, M., Huo, Y., Yang, Z., Shi, Y., Guo, Z., Li, H., Hu, X., Yuan, J., and Nie, Z. Dair-v2x: A large-scale dataset for vehicle-infrastructure cooperative 3d object detection. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2022. URL https://arxiv.org/abs/ 2204.05575 .Zhang, T., Liu, P., Lu, Y., Cai, M., Zhang, Z., Zhang, Z., and Zhou, Q. Cwnet: Causal wavelet network for low-light image enhancement. In Proceedings of the IEEE/CVF In-ternational Conference on Computer Vision (ICCV) , 2025. URL https://arxiv.org/abs/2507.10689 .Zhao, B., Zhang, W., and Zou, Z. Bm2cp: Efficient col-laborative perception with lidar-camera modalities. In 
+
+Proceedings of the 7th Conference on Robot Learning (CoRL) , 2023. URL https://arxiv.org/abs/ 2310.14702 .Zhou, Y. and Tuzel, O. Voxelnet: End-to-end learning for point cloud based 3d object detection, 2017. URL 
+
+https://arxiv.org/abs/1711.06396 .11 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+## A. Details of Experiment 
+
+A.1. Dataset OPV2V. OPV2V (Xu et al., 2022c) is a large-scale public dataset for multi-agent collaborative perception research. Generated by the CARLA (Dosovitskiy et al., 2017) simulation platform combined with the OpenCDA (Xu et al., 2021) co-simulation framework, it contains over 70 scenarios with a total of 11,464 frames, covering diverse urban scenarios and various road structures. Each agent is equipped with one 16-channel, one 32-channel, and one 64-channel LiDAR, along with 4 RGB cameras and 4 depth cameras. 
+
+DAIR-V2X. DAIR-V2X (Yu et al., 2022) is a real-world dataset dedicated to vehicle-infrastructure collaborative perception. The dataset scenarios consist of one vehicle and one Road Side Unit (RSU). The agent is equipped with a 40-channel LiDAR and a 1920×1080 resolution camera, while the RSU is equipped with a 300-channel LiDAR and a camera of the same specification. 
+
+A.2. Training Details 
+
+To ensure fair comparisons, we use identical encoder weights across different methods, such that the modality encoders achieve the same detection performance in homogeneous settings. All LiDAR encoders are trained with the perception range of [−102 .4, −51 .2, 102 .4, 51 .2] , while all camera encoders are trained with [−51 .2, −51 .2, 51 .2, 51 .2] . All heterogeneous cooperative perception networks are trained and evaluated within [−51 .2, −51 .2, 51 .2, 51 .2] . Our training is conducted on NVIDIA RTX 4090 GPUs. We use the Adam optimizer with an initial learning rate of 1 × 10 −3. The unified converter is trained for 10 epochs. Adapting to a new modality only requires 6 epochs to reach aligned semantics. Each modality-specific local semantic reconstructor is trained for 5 epochs. The hyperparameters used during training are shown in Table 5. 
+
+Table 5. Hyperparameters in experiments. 
+
+Stage-1 Stage-2 Loss Weight λcon λctx λssim λ(1) task λ(2) task λmse λcons 
+
+Value 2.0 0.5 1.0 0.5 1.0 5.0 5.0 
+
+A.3. Detailed Configuration of Agents 
+
+Our experiments involve eight agent modalities and a protocol modality, whose perception configurations and performance in homogeneous scenarios are shown in Table 6. Here, L denotes the LiDAR modality, and C denotes the Camera modality. In the supplementary experiments, Vvn 4 (Zhou & Tuzel, 2017) and CRes34 (He et al., 2015) are additionally included. 
+
+Table 6. Configuration and performance of agents 
+
+Agent Encoder Voxel Size Camera-Encoder AP@0.3 / AP@0.5 ↑
+
+Protocol PointPillar 0.4, 0.4, 4 - 0.982 / 0.980 
+
+Lpp 4 PointPillar 0.4, 0.4, 4 - 0.972 / 0.968 
+
+CEff Lift-Splat-Shoot - EfficientNet 0.790 / 0.706 
+
+Lsd 1 SECOND 0.1, 0.1, 0.1 - 0.975 / 0.971 
+
+CRes Lift-Splat-Shoot - ResNet101(Output Channel = 512) 0.729 / 0.625 
+
+Lsd 2 SECOND 0.2, 0.2, 0.2 - 0.973 / 0.968 
+
+CEffB1 Lift-Splat-Shoot - EfficientNetB1 0.652 / 0.579 
+
+Lvn 4 VoxelNet 0.4, 0.4, 0.4 - 0.960 / 0.958 
+
+CRes34 Lift-Splat-Shoot - ResNet34(Output Channel = 128) 0.619 / 0.546 
+
+12 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+## B. Implementation Details 
+
+B.1. Intervention via SPD Feature Geometry 
+
+All operations are performed on the reshaped protocol feature 
+
+p ∈ RC×H×W → X ∈ RC×N , N = H · W, 
+
+where the n-th column xn ∈ RC denotes the C-channel feature vector at spatial position n.We represent modality style using the weighted first- and second-order statistics (μ, Σ) computed from X, with Σ ∈ S C 
+
+> +
+
+.A semantic mask m ∈ [0 , 1] 1×N , produced by a mask generator g(·), is required to define spatially varying non-negative weights, thereby modulating foreground and background contributions. The Mask Generator applies the classification head from single-modality training to local features to produce a confidence map, which is filtered by a Gaussian kernel (k = 5 , σ = 1 .0), and thresholded at 0.01 to obtain a binary mask. 
+
+Notation and weighted statistics. Given X = [ x1, . . . , x N ] and non-negative weights w = [ w1, . . . , w N ], we compute 
+
+μ =
+
+PNn=1 wnxn
+
+PNn=1 wn
+
+, (15) 
+
+Σ = 
+
+PNn=1 wn(xn − μ)( xn − μ)⊤
+
+PNn=1 wn
+
++ εI, ε > 0, (16) where εI ensures numerical stability. In practice, the weights are parameterized using the semantic mask as 
+
+w = η + ρ m, η > 0, ρ ≥ 0, (17) which guarantees strictly positive weights and allows the mask to control contribution strength. 
+
+SPD and whitening–coloring transform. For any SPD matrix Σ, let Σ = U ΛU ⊤ be its eigendecomposition and define 
+
+Σ 12 = U Λ 12 U ⊤, Σ− 12 = U (Λ + εI )− 12 U ⊤,
+
+where Λ 12 is applied elementwise and ε is added to the eigenvalues for stability. Given source statistics (μs, Σs) and target statistics (μt, Σt), the closed-form whitening–coloring transform applied to X is 
+
+Ts→t(X) = μt + Σ  
+
+> 12
+> t
+
+Σ− 12 
+
+> s
+
+(X − μs). (18) This linear mapping preserves the spatial arrangement of columns in X while modifying only channel statistics. MASK -AWARE CANONICAL SUPPRESSION (MCS) The objective of MCS is to demodalize a protocol feature by mapping its channel statistics to a neutral canonical distribution 
+
+(μ0, Σ0), while preserving spatial semantics through a mask-guided residual update. 
+
+Algorithm 1 Mask-aware Canonical Suppression (MCS) 
+
+Require: X ∈ RC×N (protocol feature), confidence map M
+
+Ensure: X0 (modality-agnostic feature)  
+
+> 1:
+
+m ← g(M ) {semantic mask, 1 × N } 
+
+> 2:
+
+w ← η + ρ m {weights as in (17) } 
+
+> 3:
+
+Compute (μc, Σc) from X using (15)–(16)  
+
+> 4:
+
+Set the canonical target to (μ0, Σ0) = ( 0, I ) 
+
+> 5:
+
+˜X ← Tc→0(X) using (18)  
+
+> 6:
+
+Compute strength map β(m) ∈ [0 , 1] 1×N 
+
+> 7:
+
+X0 ← X + ( β(m) ⊙ 1C ) ⊙ ( ˜X − X) 
+
+> 8:
+
+Return: X0
+
+Note: All eigendecompositions apply a small eigenvalue regularizer to ensure Σ− 12 is well-defined. 13 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+CANONICAL SUPPRESS -T HEN -I NJECT (STI) To create hard negative samples and controlled modality perturbations, we first suppress modality bias via MCS and then inject heterogeneous modality statistics (μs, Σs) computed from a style feature Xs. The same semantic mask m (and associated weights w) is used so that injection respects the original spatial semantics. 
+
+Algorithm 2 Canonical Suppress-Then-Inject (STI) 
+
+Require: X (content protocol feature), Xs (heterogeneous style feature), confidence map M
+
+Ensure: X+ (modality-agnostic positive), X− (injected hard negative) 
+
+1: X0 ← MCS (X, M )
+
+2: m ← g(M ), w ← η + ρm 
+
+3: Compute (μ0, Σ0) from X0 and (μs, Σs) from Xs
+
+4: ˆX ← T0→s(X0)
+
+5: Compute injection strength map βinj (m)
+
+6: X− ← X0 + ( βinj (m) ⊙ 1C ) ⊙ ( ˆX − X0)
+
+7: X+ ← X0
+
+8: Return: X+, X −
+
+The positive sample p+ is obtained by reshaping X+ back to the original spatial layout and serves as the modality-agnostic anchor for metric learning. The negative sample p− is the injected feature X− , which is a hard negative created by re-introducing controlled heterogeneous modality statistics while preserving consistent semantics. 
+
+B.2. SCE Architecture 
+
+The architecture of the SCE is illustrated in Figure 5, which gradually enhances the global semantic modeling capability through two-step downsampling and ConvNeXt (Liu et al., 2022). Downsample Conv ConvNeXt Block Downsample Conv ConvNeXt Block MultiScale Fusion SE            
+
+> 𝐶 !" ×𝐻×𝑊 2C in ×H2×W24C in ×H4×W4C#$%
+> ×H4×W4
+
+Figure 5. Detailed structure of the Semantic Context Extractor 
+
+B.3. CGDR Architecture 
+
+The architecture of the CGDR is illustrated in Figure 6. This module takes the local modality feature fi ∈ RC×H×W
+
+and the context feature ˆci ∈ RCctx ×H×W as inputs. After the context feature is processed by a 1 × 1 Project Conv , it is concatenated with fi and fed into the Joint Fusion module, which consists of a depth-wise convolution and LayerNorm, for information integration. The fused feature is modulated by the Context Guide module (FiLM-style multi-head feature modulation) and recalibrated in channel dimension via the SE module (Hu et al., 2019), then filtered by the Gate module (1x1 convolution followed by SiLU) to suppress noise. Subsequently, a residual connection with Layer Scale stabilizes the gradient, followed by transformation through an MLP and another residual connection with Layer Scale 2 to preserve detailed features. Finally, the output is split into an updated local feature and a context feature for subsequent layers, which balances local discriminability and global semantic consistency. 14 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP Project Conv 
+
+> c
+> Joint Fusion Gate Context Guide SE
+
+⊙
+
+> MLP Layer Scale 1 Layer Scale 2
+
+⊕ ⊕
+
+> 𝐶×𝐻×𝑊 𝐶 !"# ×𝐻×𝑊 (𝐶 + 𝐶 !"# )×𝐻×𝑊 𝐶×𝐻×𝑊
+> S
+> (𝐶 + 𝐶 !"# )×𝐻×𝑊 𝐶 !"# ×𝐻×𝑊 (𝐶 + 𝐶 !"# )×𝐻×𝑊 (𝐶 + 𝐶 !"# )×𝐻×𝑊
+
+Figure 6. Detailed structure of the Context-Guided Dynamic Refiner 
+
+## C. More Experiments 
+
+C.1. Comparison between CauseCollab and Late Fusion 
+
+Late fusion directly integrates the 3D detection boxes perceived by each agent to enable information sharing.We compare the performance of our method with that of late fusion on the OPV2V dataset under different pose error σ values. As shown in Table 7, ALL denotes the collaboration of the four modalities. We additionally set two modality configurations for Ego-Neighbor pairs with large modality gaps. Our method significantly outperforms the late fusion method across all pose error levels and collaboration combinations, demonstrating the superiority of our method in real-world application scenarios. 
+
+Table 7. Performance comparison of CauseCollab and Late Fusion under varying pose error standard deviations 
+
+σ Method AP@30 AP@50 
+
+ALL Lpp 4 + CEff CEff + CRes ALL Lpp 4 + CEff CEff + CRes 
+
+0.0 Late Fusion 0.957 0.956 0.745 0.943 0.930 0.630 CauseCollab 0.978 0.971 0.772 0.975 0.966 0.670 0.2 Late Fusion 0.952 0.951 0.734 0.848 0.851 0.534 CauseCollab 0.976 0.970 0.762 0.968 0.960 0.625 0.4 Late Fusion 0.830 0.849 0.624 0.563 0.632 0.332 CauseCollab 0.964 0.960 0.698 0.916 0.922 0.487 0.6 Late Fusion 0.679 0.730 0.484 0.437 0.538 0.235 CauseCollab 0.928 0.932 0.590 0.859 0.882 0.381 
+
+C.2. Analysis of Different Protocol Modalities 
+
+The alignment effectiveness of protocol-based heterogeneous collaborative perception depends on the affinity between the protocol modality and heterogeneous modalities. To analyze this effect, we conduct supplementary experiments using either LiDAR ( Lpp 4) or Camera ( CEf f ) as the protocol modality. The results are shown in Table 8. 
+
+Table 8. Performance comparison under different protocol modalities. 
+
+Protocol Modality ALL Lpp4 + CEff CEff + Lpp4 
+
+LiDAR (PointPillar) 0.978 / 0.975 0.971 / 0.966 0.867 / 0.842 Camera (Lift-Splat-Shoot) 0.975 / 0.973 0.968 / 0.964 0.875 / 0.847 
+
+The results show that CauseCollab achieves comparable collaborative perception performance under both LiDAR-based and Camera-based protocol modalities. This indicates that the proposed causal intervention effectively reduces protocol-modality asymmetry and improves the robustness of the learned protocol space. 15 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+C.3. Comparison between CauseCollab and NegoCollab 
+
+NegoCollab (Shao et al., 2025) mitigates the domain gap by negotiating a common representation, whereas our method explicitly disentangles semantic factors from modal entanglement to learn a modality-agnostic protocol space. Experimental results demonstrate that our method outperforms NegoCollab in both general and novel-modality scenarios. ALL represents the general multi-agent collaboration scenarios under the same experimental settings as in Table 1, while Lsd 2new + CEffB1 new 
+
+verifies the performance on the new modality. 
+
+Table 9. Performance and parameter comparison of CauseCollab and NegoCollab 
+
+Method ALL Lsd 2new + CEffB1 new #Params (MB) 
+
+CauseCollab 0.978/0.975 0.966/0.959 0.68 NegoCollab 0.974/0.972 0.958/0.953 0.98 
+
+C.4. Robustness Evaluation on More Novel Modality Adaptation 
+
+To further validate the robustness of the CauseCollab protocol space for novel modality adaptation, we introduce two additional novel modalities: Lvn4 new and Cnew Res34 . Specifically, Lvn4 new denotes a LiDAR modality encoded by VoxelNet (Zhou & Tuzel, 2017), while CRes34 new denotes a Camera modality based on ResNet34 with a reduced output channel size of 128. Together with Lsd2 new and CEffB1 new , we evaluate a collaborative perception scenario involving four novel modalities: 
+
+Lvn4 new + CRes34 new + Lsd2 new + CEffB1 new . The results are reported in Table 10. 
+
+Table 10. Robustness evaluation under four novel modalities. 
+
+Method AP@30 AP@50 
+
+MPDA 0.970 0.968 PnPDA 0.968 0.965 HEAL 0.919 0.917 STAMP 0.963 0.961 CauseCollab 0.974 0.971 
+
+C.5. Additional qualitative experiments 
+
+Figure 7 presents additional visualization experiments. To highlight the visual differences, we specifically select CEff and 
+
+CRes for collaboration due to their larger modality gaps. The visualization intuitively demonstrates the robustness of our method even in such scenarios with larger domain gaps. 16 CauseCollab: Causal Unified and Modality-Agnostic Network for HCP 
+
+Scenario 1 Scenario 2 Scenario 3 Scenario 4 MPDA 
+
+PnPDA 
+
+HEAL 
+
+STAMP 
+
+CauseCollab 
+
+Figure 7. Visual comparison of detection results across different methods, using CEff and CRes .
+
+17

@@ -1,0 +1,906 @@
+Title: Beyond Stationarity in Time Series: Discovering Causal Structures and Latent Regimes via Markov Blankets
+
+URL Source: https://arxiv.org/pdf/2609.05150v1
+
+Published Time: Mon, 07 Sep 2026 01:15:06 GMT
+
+Number of Pages: 30
+
+Markdown Content:
+# Beyond Stationarity in Time Series: Discovering Causal Structures and Latent Regimes via Markov Blankets 
+
+Lei Zan 1, Charles K. Assaad 2, Emilie Devijver 1, and Eric Gaussier 1 
+
+> 1
+
+Univ. Grenoble Alpes, CNRS, Grenoble INP, LIG, Grenoble, France 
+
+xdzanlei@gmail.com, {emilie.devijver, eric.gaussier}@univ-grenoble-alpes.fr  
+
+> 2
+
+Sorbonne Université, INSERM, Institut Pierre Louis d’Epidémiologie et de Santé Publique, F75012, Paris, France charles.assaad@inserm.fr 
+
+Abstract. This paper introduces Regime-aware Constraint-Based and Noise-Based causal discovery with Markov Blankets (RCBNB-MB), a novel causal discovery algorithm for time series that relaxes the com-mon assumption of a single, time-consistent causal structure. Time series are typically observed at discrete time points and often exhibit regime changes that challenge the assumption of a static causal structure, a limitation in many real-world dynamic systems. To address this chal-lenge, RCBNB-MB identifies latent causal regimes, defined as subsets of time points within which a stable causal structure holds. The algo-rithm follows an iterative strategy that segments the time series into regimes and discovers the causal graph within each regime. By leverag-ing the Markov blanket rather than direct parents, RCBNB-MB gains robustness to errors in causal discovery and preserves predictive infor-mation. We provide theoretical guarantees for RCBNB-MB’s ability to recover both regime transitions and causal graphs under reasonable as-sumptions. Furthermore, we validate its effectiveness through extensive experiments on simulated datasets with known ground truth and real-world IT monitoring data, where taking into account regime shifts is critical. Empirical results show that RCBNB-MB systematically outper-forms baseline approaches in accurately detecting regime changes and their associated causal graphs, positioning it as a robust and versatile framework for non-stationary time series analysis. 
+
+Keywords: causal discovery · regime shift · non-stationarity. 
+
+## 1 Introduction 
+
+Causal discovery for time series is a fundamental problem in many domains, such as IT monitoring systems, climate science, economics, epidemiology, and neuroscience. Understanding causal relationships over time enables better pre-diction, diagnosis, and intervention in complex dynamic systems. However, most arXiv:2609.05150v1 [cs.LG] 4 Sep 2026 2 L. Zan et al. 
+
+causal discovery methods assume stationarity, i.e., that causal dependencies re-main constant. In practice, this assumption is often unrealistic: many systems undergo regime shifts, where causal influences change due to unobserved factors. To address this, we propose a method that automatically segments time series into distinct regimes, within which stationarity holds. By jointly learning the segmentation and the causal structure in each regime, our approach provides a more flexible and robust framework for causal discovery in heterogeneous time series. A key challenge in this setting is that regime assignment must be inferred from data. Standard methods typically rely on the causal parent set (PA) to group time points into regimes, but errors in causal graph estimation can lead to incorrect assignments. To mitigate this, we instead use the Markov blanket [21] (MB), a set comprising a variable’s parents, children, and spouses that renders the variable independent of all others when conditioned upon. As a theoretically optimal feature set for prediction and classification [33], the MB provides a more stable and informative representation for regime assignment. This is particularly relevant in applications where regime changes are implicit and unknown. For instance, in IT monitoring data [4], system behavior differs between normal and anomalous states, but the transition times are often unknown. Similar shifts can arise from hidden external factors in neuroscience, epidemiology, and climate science. Our method learns these regimes directly from data while recovering their causal structures. Our main contributions are: 
+
+– Identifying a key challenge in heterogeneous time series: when instantaneous effects exist (e.g., due to low sampling rates), standard causal discovery methods struggle to correctly assign timestamps to the right regime. 
+
+– Reframing the regime assignment problem as a prediction task, leveraging the Markov blanket to improve robustness against errors in graph estimation. 
+
+– Introducing RCBNB-MB, a novel method that simultaneously identifies regimes and reconstructs regime-specific causal graphs, including instantaneous con-nections. 
+
+– Demonstrating the effectiveness of our approach in uncovering regime-dependent causal structures through an empirical validation on synthetic and real-world IT monitoring data. The paper is organized as follows. Section 2 reviews existing causal discovery methods for heterogeneous time series and their limitations. Section 3 introduces our causal model. Section 4 presents our proposed method, RCBNB-MB. Sec-tion 5 provides experimental results on synthetic and real-world data. Finally, Section 6 concludes the paper. 
+
+## 2 Related work 
+
+Causal discovery for time series has been extensively reviewed, with a focus on consistency over time [2,10]. In this paper, we focus on cases where consistency Discovering Causal Structures and Latent Regimes via Markov Blankets 3
+
+Table 1: Comparison of causal discovery methods for non-stationary time series. PA and MB denote the parent set and Markov blanket, respectively.                                                
+
+> Method Regimes Temporal Contemp. Fixed Prediction Lags Effects Causal Order
+> CD-NOD [14] Segmentation ✓✓××J(oint)-PCMCI +[11] Input ✓✓××LoSST [16] Mahalanobis distance ××××SPACETIME [18] Learnt ✓✓✓PA SDCI [27] Learnt ✓××PA RPCMCI [32] Learnt ✓××PA CASTOR [25] Learnt ✓✓×PA
+> RCBNB-MB Learnt ✓✓×MB
+
+is violated, i.e., when causal relationships evolve over time or across regimes. We summarize the main characteristics in Table 1. Classically, methods for causal discovery in non-stationary time series as-sume the availability of predefined regime or context information. [13] intro-duced a causal discovery method for heterogeneous time series using nonlinear state-space models with linear causal modeling. [14] developed the CD-NOD framework, which models changes in causal mechanisms across regimes as be-ing confounded by an unobserved pseudo-confounder. This confounding is ad-dressed using a surrogate variable that captures these changes and reveals addi-tional causal directions through the Independent Causal Mechanisms principle. However, CD-NOD does not preserve temporal information, providing only a summarized causal graph. CD-NOTS [31] assumes causal stationarity in the conditional distribution, resulting in a common causal graph for the entire time series. Extensions by [7] recover temporal relationships, while [34] reconstructs the causal structure using copula entropy, assuming the surrogate variable in-fluences other variables at specific lags—a strong assumption that may not hold in many real-world scenarios. Similarly, J(oint)-PCMCI + [11] incorporates both observed and unobserved context variables, akin to surrogate variables, and pre-serves temporal relationships across regimes. JIT-LiNGAM [8] learns local, linear approximations for nonlinear, heterogeneous time series but does not account for temporal lags. More useful for real-world datasets is the ability to infer regimes and recover causal structures without assuming predefined context variables. Some methods operate directly on the time series. [16] introduced a real-time method for updat-ing causal graphs by identifying change points using the Mahalanobis distance. However, this approach assumes i.i.d. data, which is rarely true for time series. [18] introduced a method to detect regimes, contexts, and causal structures in multiple multivariate time series, but it assumes a fixed causal order and skeleton across contexts—a strong assumption that may not hold if causal relationships change direction between regimes. [9] addressed a special case of heterogeneity in time series, assuming that different causal mechanisms occur sequentially and periodically over time. This represents a strong assumption that may not hold in 4 L. Zan et al.                       
+
+> Xt−9Xt−8Xt−7
+> Yt−9Yt−8Yt−7
+> Zt−9Zt−8Zt−7
+> Xt−6
+> Yt−6
+> Zt−6
+> Ct−9= 1 Ct−8= 1 Ct−7= 1 Ct−6= 1
+> Xt−2Xt−1Xt
+> Yt−2Yt−1Yt
+> Zt−2Zt−1Zt
+> Xt+1
+> Yt+1
+> Zt+1
+> Ct−2= 2 Ct−1= 2 Ct= 2 Ct+1 = 2
+
+(a) Full time causal graph Gf from two distinct latent regimes.               
+
+> Xt−2Xt−1Xt
+> Yt−2Yt−1Yt
+> Zt−2Zt−1Zt
+> G1
+> w:
+> Xt−2Xt−1Xt
+> Yt−2Yt−1Yt
+> Zt−2Zt−1Zt
+> G2
+> w:
+
+(b) Window causal graphs G1 
+
+> w
+
+(left) and G2 
+
+> w
+
+(right) from two distinct regimes. Fig. 1: Two graphic causal relation representations for time series with two dis-tinct regimes: (a) full time causal graphs from two distinct regimes (b) window causal graphs from two distinct regimes. The variable Ct is latent and has to be inferred. many real-world scenarios. Another viewpoint is to construct regimes to improve forecasting. They are all (to our knowledge) based on forecasting with causal par-ents. [27,6] introduced a strategy to identify both causal relationships and states in state-dependent stationary time series. However, they do not account for in-stantaneous connections between observed time series. Similarly, [32] proposed RPCMCI, which detects regimes in heterogeneous time series and reconstructs causal graphs for each regime. However, this method focuses solely on time-lagged relationships, neglecting contemporaneous causal effects. [25] proposed CASTOR, which learns a DAG for each regime while determining the number of regimes and their sequential arrangement, based on an EM algorithm. If all those methods discover a causal graph per regime under different assumptions, they are discriminating regimes by using a forecasting model within the time series based on the causal parents. Our method, on the contrary, relies on the Markov blanket. 
+
+## 3 Causal modeling for heterogeneous time series 
+
+Consider a dynamic system represented by a multivariate time series of di-mension d, observed over T, and denoted as {Xt}t∈T = {Xjt }t∈T,j ∈{ 1,...,d }.These data exhibit complex causal dependencies, naturally modeled using a Discovering Causal Structures and Latent Regimes via Markov Blankets 5
+
+Directed Acyclic Graph (DAG), called the full-time causal graph, denoted as 
+
+Gf = ( Vf , Ef ). Here, Vf represents vertices corresponding to time-indexed vari-ables, and Ef captures directed causal relationships. A key aspect of our frame-work is the introduction of hidden context variables Ct, where Ct ∈ { 1, . . . , r }
+
+indicates the regime to which each time point t belongs. The number of distinct regimes is denoted as r. We do not assume regimes are known a priori. Instead, 
+
+Ct acts as an unobserved confounder, directly influencing all observed variables at time t and defining the regime-specific causal structure. 
+
+Assumption 1 (Semi-pseudo causal sufficiency) . All hidden confounding be-tween observed variables is captured by (Ct)t∈T.
+
+To infer the causal graph, we assume consistency throughout time [2] (also known as causal stationarity [28]) within each regime: causal relation-ships remain invariant over time, allowing us to sidestep the intractable full causal graph Gf and instead operate on window causal graphs Gkw = ( Vw, Ekw) for 
+
+k ∈ { 1, . . . , r }. While this assumption breaks down at regime boundaries (where structural shifts occur) it provides a principled way to balance model complexity and interpretability. These graphs capture causal dependencies within a finite window of length τmax which corresponds to the maximum lag between direct causes and effects. This leads to the following model. 
+
+Definition 1 (Regime-based multivariate time series). A multivariate time series, {Xt}t∈T, is called a regime-based multivariate time series if it can be partitioned into r > 1 disjoint regimes encoded by Ct ∈ { 1, . . . , r } for t ∈ T,with a specific window causal graph Gkw in regime k s.t. ∀k1, k 2 ∈ { 1, . . . , r },
+
+k1̸ = k2 ⇒ G k1
+
+> w
+
+̸ = Gk2 
+
+> w
+
+.
+
+The structural causal model (SCM) [20] for the jth variable in a heteroge-neous multivariate time series is given by: 
+
+Xjt =
+
+> r
+
+X
+
+> k=1
+
+1Ct=k × gj,C t (Pa (Xjt ; GCt 
+
+> w
+
+), ϵ jt ) for t ∈ T. (1) Here, 1Ct=k is an indicator function that equals 1 if and only if Ct = k. The response function gj,C t (·) is deterministic within each regime and depends only on Ct. Pa (Xjt ; GCt 
+
+> w
+
+) represents the causal parents of Xjt in GCt 
+
+> w
+
+, including lagged and instantaneous variables. The noise terms (ϵjt )t∈T,1≤j≤d are assumed to be independent. Note that we allow for instantaneous causal relations in the window causal graph of each regime, which is often forgotten in the literature (except in methods such as CASTOR [25]). A regime does not necessarily correspond to a single contiguous time segment and can span multiple non-adjacent intervals. Figure 1(a) provides an example of a full-time causal graph for a multivariate time series with two distinct regimes, while Figure 1(b) depicts the corresponding window causal graphs G1 
+
+> w
+
+and G2
+
+> w
+
+.6 L. Zan et al. Dataset  RCBNB-MB  Result: two regimes  
+
+> Step 1: causal discovery (CBNB)
+> 1. Skeleton by (conditional)
+> independence tests
+> 2. Causal order by a noise-based
+> method for instantaneous orientation
+> Repetitions until convergence:
+> Step 2: regime detection
+> For each t,
+> 1. Learn h j,k to forecast x tj
+> 2. Find k minimizing
+
+Fig. 2: Illustration of our method. Left: an example of a dataset with 6 time series, which violates the causal stationarity assumption. Middle: flowchart of our iterative method through the two steps: causal discovery and regime detection. Right: results of our method on this dataset: two regimes are considered, and we display the two causal graphs and the regime assignment. 
+
+## 4 Causal discovery from heterogeneous time series 
+
+The goal of causal discovery from heterogeneous, observational multivariate time series is twofold: 1. Reconstruct the causal graph (Gkw) within each regime k,2. Assign each timestamp to the correct regime. We propose to address those two problems by an alternating approach, de-noted as RCBNB-MB (Regime-aware Constraint-Based and Noise-Based causal discovery with Markov Blankets), which alternates between two steps by first constructing the window causal graph of each regime from given assignments of time instants to regimes, and second by re-assigning time instants to regimes according to the new window causal graphs. We detail these two steps below, and the full procedure is illustrated in Figure 2. In the following, we assume that the number of distinct regimes r is known. 
+
+4.1 Regime-Aware Window Causal Graph Discovery 
+
+RCBNB-MB begins by, given the regime index, discovering a causal graph, which reduces to time-series causal discovery within each regime. While any causal discovery algorithm could be integrated, we adopt CBNB [5], a hybrid method that prunes edges with a constraint-based approach and orients them with a noise-based one, thereby retaining the strengths of both families: the graph is fully oriented and the orientation search is restricted to the discovered skeleton, which improves its efficiency. More specifically, given the regime index for each time point, CBNB recovers the window causal graph Gw in two steps: 1. a constraint-based step, which infers the skeleton of the window causal graph using (conditional) independence tests and orients lagged edges using tem-poral ordering, Discovering Causal Structures and Latent Regimes via Markov Blankets 7
+
+2. a noise-based step that orients the remaining instantaneous edges: within each group of variables linked by undirected edges, a restricted noise-based algorithm estimates a causal order among the instantaneous variables, in-cluding the lagged variables as covariates in the regressions to control for confounding. CBNB’s advantages are threefold: it requires only adjacency faithfulness [26] (not full faithfulness), recovers the true causal graph (not just its Markov class), and outperforms pure constraint/noise-based methods in small-sample settings [17,4]. CBNB’s assumptions are formalized below. 
+
+Assumption 2 (Adjacency Faithfulness) . Let Gkw = ( Vw, Ekw) be the causal graph within any regime k. If two nodes X and Y in Vw are adjacent in Gkw,then they are dependent conditionally on any subset of Vw\{ X, Y }.
+
+Assumption 3 (Identifiable functional model) . Given a heterogeneous multi-variate time series satisfying the SCM in Equation (1) , each function gj,k (·) in regime k ∈ { 1, . . . , r } for a component j ∈ { 1, . . . , d } belongs to an identifiable functional model class, as defined in [23]. 
+
+By [5, Theorem 2], CBNB correctly recovers the causal graph Gkw for each regime k if regime indexes are correct, Assumptions 1, 2, Assumption 3, and consistency throughout time hold, and conditional independence tests are per-fect. While CBNB assumes consecutive time points, we extend its use to gapped regimes (Section 5.2). 
+
+4.2 Assigning Time Points to Regimes Using Markov-Blanket-based Prediction 
+
+Assuming the window causal graph for each regime is known, we assign each time point to the regime that minimizes the prediction error for all variables in 
+
+Xt = {Xt−τmax , . . . , Xt+τmax }. Predicting the value of a variable Xjt given the other variables, X−j 
+
+> −t
+
+= Xt \ Xjt , traditionally involves minimizing the expected squared error, and the set of potential covariates can be restricted to the Markov blanket of Xjt in the causal graph Gkw, where k ∈ { 1, . . . , r }, as established by [33]: for a class of functions H,
+
+argmin  
+
+> hj,C t∈H
+
+E
+
+h
+
+(Xjt − hj,C t (X−j 
+
+> −t
+
+)) 2i
+
+= argmin  
+
+> hj,C t∈H
+
+E
+
+h
+
+(Xjt − hj,C t (MB (Xjt ; GCt 
+
+> w
+
+))) 2i
+
+.
+
+(2) Since the Markov blanket is identical for all instances of Xj within a given regime, we leverage this structure to approximate the optimal predictor hj,k  
+
+> ∗
+
+,where 1 ≤ k ≤ r, using empirical risk minimization: 
+
+bhj,k  
+
+> T
+
+(MB (xjt ; Gkw)) = argmin  
+
+> hj,C t∈H
+
+X
+
+> t∈T
+
+1Ct=k
+
+
+
+xjt − hj,C t (MB (xjt ; GCt 
+
+> w
+
+)) 
+
+2
+
+. (3) Using consistency results similar to the ones developed in [12] then leads to the following theorem, the proof of which is given in Appendix A, which provides 8 L. Zan et al. 
+
+a theoretical criterion for deciding the regime for a given variable at a particular time instant. 
+
+Theorem 1. Suppose that Ct = k, that the function hj,k  
+
+> ∗
+
+(MB (xjt ; Gkw)) approx-imates xjt within a bounded error, i.e., ∃M > 0, ∀xjt , |xjt − hj,k  
+
+> ∗
+
+(MB (xjt ; Gkw)) | <M , and that the estimate bhj,k  
+
+> T
+
+converges to the ”best” function hj,k  
+
+> ∗
+
+in the follow-ing sense: 
+
+lim 
+
+> k(T)→+∞
+
+Z
+
+> S
+
+bhj,k  
+
+> T
+
+(S) − hj,k  
+
+> ∗
+
+(S)
+
+2
+
+dP (S) = 0 , (4) 
+
+where S is any subset of X. Then, for any other regime ℓ̸ = k:
+
+lim  
+
+> k(T)→+∞
+
+E
+
+h
+
+(Xjt − bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2i
+
+≤ lim  
+
+> k(T)→+∞
+
+E
+
+h
+
+(Xjt − bhj,ℓ  
+
+> T
+
+(MB (Xjt ; Gℓw))) 2i
+
+.
+
+Note that Eq. 4 typically holds for universal approximators under conditions on the class of functions considered [12]. Under the assumption of sufficient sample size in each regime and bounded prediction error, Theorem 1 implies that time t should be assigned to regime k
+
+if, for all ℓ̸ = k:
+
+E
+
+h
+
+(Xjt − bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2i
+
+< E
+
+h
+
+(Xjt − bhj,ℓ  
+
+> T
+
+(MB (Xjt ; Gℓw))) 2i
+
+. (5) Equality in Equation 5 can arise in three cases: (i) the Markov blankets are identical, (ii) one Markov blanket is a strict superset of the other, or (iii) alternative variable sets provide equivalent prediction accuracy. The following assumption 3 helps resolve such ambiguities: 
+
+Assumption 4. Given a multivariate heterogeneous time series {Xt}t∈T:
+
+(i) For any two distinct regimes k1, k 2 ∈ { 1, . . . , r }, there exists a variable Xjt
+
+such that MB (Xjt ; Gk1 
+
+> w
+
+)̸ = MB (Xjt ; Gk2 
+
+> w
+
+).
+
+(ii) For any regime k and variable Xjt , if a set of variables S is not a superset of the true Markov blanket, then the expectation in Theorem 1 using S differs from the one using MB (Xjt ; Gkw).
+
+Under Assumption 4, if multiple regimes yield the same prediction error, we break ties by selecting the regime with the smallest Markov blanket containing a variable satisfying (i). This leads to the final regime assignment criterion: 
+
+Criterion t2r (time to regime): Assign Ct to the regime that minimizes: 
+
+> d
+
+X
+
+> j=1
+
+(xjt − bhj,k  
+
+> T
+
+(MB (xjt ; bGkw))) 2. (6)  
+
+> 3
+
+This assumption is reasonable as it simply states that different regimes likely lead to different Markov blankets for at least some variables, and that if a set differs from the true Markov blanket without being a superset of it, it will likely yield a prediction different from the one of the true Markov blanket. Discovering Causal Structures and Latent Regimes via Markov Blankets 9
+
+If multiple regimes minimize this criterion, select the one with the smallest Markov blanket over all variables satisfying Assumption 4(i). 
+
+The procedure we propose can be summarized as follows: for each regime k
+
+and each dimension j, a predictor is learned using the Markov blanket of Xjt .Then, a sample {xjt }j∈{ 1,...,d } is assigned to the regime whose predictors yield the lowest overall prediction error. In the case of ties, the regime with the smallest Markov blanket is selected. 
+
+4.3 RCBNB-MB: an algorithm for causal discovery from multiple regimes 
+
+Finally, the overall problem can be framed as the following optimization task: determine the assignment vector C = [ Ct1 , . . . , C t2 ]T , where each coordinate belongs to {1, . . . , r }, the regime-specific window causal graphs {G kw}1≤k≤r and the functions H = {bhj,k  
+
+> T
+
+} for 1 ≤ j ≤ d and 1 ≤ k ≤ r that minimize: 
+
+Lemp (xt; C, H, {G kw}1≤k≤r ) = 
+
+> d
+
+X
+
+> j=1
+
+X
+
+> t∈T
+
+xjt −
+
+> r
+
+X
+
+> k=1
+
+1Ct=kbhj,k  
+
+> T
+
+(MB (xjt ; Gkw)) 
+
+!2
+
+.
+
+(7) To ensure meaningful regime assignments, we furthermore impose the follow-ing constraints: 1. Each time point belongs to exactly one regime, 2. Each regime contains at least Nℓ observations over the entire time span, with 
+
+Nℓ ≥ (2 τmax + 1) d, so as to be able to infer it using Markov blankets, and at most Nc transitions to prevent overly fragmented assignments. To solve the optimization problem in Equation (7) under those constraints, RCBNB-MB proceeds as follows: first, it assigns time points randomly to regimes with C[0] , ensuring that each regime spans at least Nℓ timestamps. Then, it alternates between the two steps: Step 1 Given the current assignment C[ite ], estimate the causal graph Gkw for each regime k using CBNB [5]. Then, for each variable Xjt , determine its Markov blanket MB (Xjt ; Gkw) and update the function set H[ite ] by minimizing Equa-tion (7). Step 2 Keeping H[ite ] fixed, update the assignment vector C[ite+1 ] using Criterion 
+
+t2r, subject to constraints. This is a standard optimization problem with linear constraints that can be efficiently solved using existing solvers. To avoid poor convergence, RCBNB-MB runs Ni random initializations and selects the solution with the lowest empirical risk after No iterations. Assignments near regime transitions may be less accurate due to limited past data, but their impact is negligible when regime changes are sparse. If regime assignments are correct, Step 1 recovers the true window causal graphs (and Markov blankets) as k(T) → +∞ (Theorem 1, Assumption 4(ii)). 10 L. Zan et al. 
+
+Step 2 reduces the squared error in Lemp if observed values are close to their expectations. While there is no theoretical guarantee that RCBNB-MB consistently con-verges to the ground truth, empirical results in Section 5 show that its outputs are often close to the ground truth in the majority of cases. The pseudocode of the algorithm is presented in Appendix B, with the corresponding code available in the supplementary materials. 
+
+## 5 Experiments 
+
+We designed the following experiments to evaluate our method’s accuracy in regime assignment and causal graph reconstruction. 
+
+Baselines Our framework, denoted RCBNB-MB, combines CBNB for causal dis-covery with the Markov blanket (MB) for regime detection. To assess the impact of these choices, we benchmark against alternative causal discovery methods, in-cluding VarLiNGAM [15], Dynotears [19], PCMCI [30], and PCMCI + [29], each paired with either the Markov blanket (MB) or direct parents (PA) as the pre-dictive variable set, following the naming convention R{method}-{variable set}. Notably, RPCMCI-PA corresponds to the method in [32], while RPCMCI-MB is its MB-based variant. We also include CASTOR [25], the random baseline Neg-Control [24], CD-NOD [14], and J-PCMCI + [11] for comparison, while SPACE-TIME [18] is excluded due to its high computational cost. Since NegControl, CD-NOD, and J-PCMCI + cannot detect regimes within the time series, their MER values are not reported. All methods were implemented based on publicly available Python libraries, as described in Appendix E. 
+
+Evaluation metrics We evaluate two aspects of performance: (1) the accuracy of regime assignment and (2) the quality of causal graph reconstruction. Regime assignment accuracy is measured using the Mean Error Rate (MER), which quantifies the proportion of incorrectly assigned timestamps, up to regime label mismatch. Formally, given the one-hot encoded assignment matrices Cbina 
+
+(predicted) and C∗ 
+
+> bina
+
+(ground truth), MER is defined as MER = min π |π(Cbina )−
+
+C∗
+
+> bina
+
+|r×| T|/(2 |T|), where | · | r×| T| denotes the element-wise L1 norm and π is a permutation over rows. Causal graph reconstruction is evaluated using two complementary metrics: the oriented F1-score, which compares the estimated window causal graphs with the ground-truth graphs within each regime (higher is better), and the nor-malized Structural Hamming Distance (lower is better), defined as nSHD =
+
+> 1
+> r
+
+Prk=1 SHD ( bGkw, Gkw)/|Ekw|, where SHD (·, ·) counts missing, spurious, and re-versed instantaneous edges, and |Ekw| is the number of edges in the ground-truth graph Gkw, nSHD can thus exceed 1. We compare with a random graph to get a negative control, as suggested in [24]. Discovering Causal Structures and Latent Regimes via Markov Blankets 11 
+
+5.1 Simulated data 
+
+Simulation setup We consider linear causal relationships among six variables over a time series of length 600 (results for length 1,200 are provided in Appendix C.2, and results for a scenario with 15 variables in Appendix C.5), with 2 and 3 regimes. Each regime consists of consecutive time points, evenly dividing the time series (results for unequal regime sizes are provided in Appendix C.4). Time points at regime boundaries are independent, with the first point of each regime sampled from noise. For each time series length, we generate 50 datasets. We set τmax = 1 , allowing for contemporaneous dependencies. For each regime, the window causal graph is generated from the Erdos-Renyi [22] model: each variable has a self-causal link at lag 1, and all other edges appear with probability 0.3. To enforce regime differences, we constrain the number of shared edges between the causal graphs of two regimes to at most 7 and guarantee that at least one variable has a different Markov blanket across regimes. Within each regime, the data follow the structural causal model below: 
+
+Xjt = X  
+
+> Xit−τ∈Pa (Xjt)
+
+bi,j,τ Xit−τ + ϵjt , (8) where the coefficients are sampled as bi,j,τ ∼ U(( −0.9, −0.5) ∪ (0 .5, 0.9)) and the noise term follows ϵjt ∼ U(−0.1, 0.1) . To prevent extreme values, if any observation within a regime exceeds 100, the dataset is regenerated. 
+
+Method configuration The regime assignment is initialized by randomly assigning each timestep to a regime with a probability of 0.95, initially creating overlaps. However, our constraints ensure that the final assignment is unique for each timestep. We set the number of initialization points to Ni = 50 , the maximum optimization iterations to No = 20 , the number of regimes to r = 2 , and the minimum regime size to Nℓ = 18 ((2 τmax +1) d), ensuring estimator identifiability (see Appendix C.1 for a parameter robustness analysis of RCBNB-MB). Each regime allows up to Nc = 3 transitions. The function class H is chosen as linear. 
+
+τmin is set to 0 and τmax to 1. For CBNB, PCMCI + is used in the constraint-based part and VarLiNGAM in the noise-based part. The significance threshold α is set to 0.1 for all (conditional) independence tests. VarLiNGAM and Dynotears are run with their default parameters. For CASTOR, CD-NOD, and J-PCMCI +,the default parameters for the linear setting are adopted. For NegControl, the true number of nodes and edges for each dataset are provided as inputs. 
+
+Results The results are summarized in Table 2. First, we analyze the Mean Error Rate (MER), which remains low for most methods. For instance, our method, RCBNB-MB, achieves a MER of 1.27% in the 2 regimes scenario, meaning that, on average, only about 8 out of 600 timestamps are misclassified. In the 3 regimes 
+
+scenario, this rate further decreases to 0.81%, demonstrating the method’s relia-bility in correctly assigning timestamps to the appropriate regimes. In contrast, some methods, such as CASTOR, exhibit significantly higher MER values, ex-ceeding 20%, indicating difficulties in detecting regime changes. 12 L. Zan et al. 
+
+Table 2: Results on generated data. The Mean Error Rate (MER), the mean F1-score, and the mean normalized Structural Hamming Distance (nSHD) across two scenarios: 2 regimes and 3 regimes . The F1-score is evaluated under three conditions: T otal (all edges considered), Lagged (only lagged edges considered), and Instant (only instantaneous edges considered). Reported values are means over 50 repetitions, with time series of length 600.                                                                                                                                                    
+
+> 2 regimes 3 regimes
+> MER T otal Lagged Instant nSHD MER T otal Lagged Instant nSHD
+> RCBNB-MB 1.27 %0.73 0.77 0.67 0.52 0.81 %0.66 0.71 0.58 0.55
+> RCBNB-PA 1.27 %0.69 0.73 0.62 0.54 2.93 %0.65 0.69 0.57 0.57 RPCMCI-MB 0.24 %0.57 0.65 ×1.03 0.39 %0.54 0.62 ×1.07 RPCMCI-PA [32] 1.26 %0.57 0.66 ×1.00 0.35 %0.55 0.63 ×1.04 RPCMCI +-MB 1.27 %0.64 0.70 0.46 0.60 2.95 %0.55 0.62 0.39 0.56 RPCMCI +-PA 10.23 %0.55 0.61 0.36 0.66 7.79 %0.46 0.52 0.28 0.73 RVarLiNGAM-MB 0.28 %0.43 0.56 0.09 0.93 0.37 %0.42 0.55 0.08 0.93 RVarLiNGAM-PA 0.48 %0.43 0.53 0.17 0.96 1.78 %0.41 0.51 0.16 0.96 RDynotears-MB 16.91 %0.19 0.23 0.07 1.01 16.25 %0.19 0.23 0.09 1.02 RDynotears-PA 15.58 %0.18 0.23 0.07 0.99 15.03 %0.21 0.25 0.11 1.02 NegControl [24] ×0.29 0.32 0.22 1.36 ×0.28 0.32 0.21 1.37 CD-NOD [14] ×0.34 0.40 0.22 0.87 ×0.31 0.35 0.21 0.86 J-PCMCI +[11] ×0.41 0.48 0.19 1.13 ×0.37 0.44 0.15 1.27 CASTOR [25] 20.07 %0.12 0.15 0.05 0.99 14.17 %0.11 0.13 0.06 1.00
+
+Regarding the F1-score, RCBNB-MB achieves the highest overall perfor-mance, reaching 0.73 in the 2 regimes scenario and 0.66 in the 3 regimes scenario. This confirms its effectiveness in recovering causal structures under different con-ditions. The other variants of RCBNB also perform well, particularly RCBNB-PA, which maintains competitive scores. PCMCI-based methods show moderate performance, with RPCMCI-MB achieving scores around 0.64 . The difference between the two PCMCI-based methods is significantly smaller than the differ-ence between the two PCMCI +-based methods. This can be attributed to the fact that, when the inferred graph does not include instantaneous relations, the estimated set of parents and the estimated Markov blanket are more similar to each other than the corresponding true sets of parents and Markov blanket in the ground-truth graph, which does contain instantaneous relations. The nSHD results further confirm this trend. RCBNB-MB achieves the low-est nSHD in both scenarios, with values of 0.52 and 0.55, closely followed by RCBNB-PA. This indicates that both variants recover graph structures closest to the ground truth. In contrast, most competing methods obtain nSHD values close to or above 1, reflecting larger structural discrepancies. VarLiNGAM-based methods exhibit performance comparable to J-PCMCI +,while CD-NOD performs slightly better than the random baseline NegControl. In contrast, CASTOR and RDynotears-based methods fall below random base-line performance, highlighting their limitations in reconstructing causal graphs accurately. Additionally, methods using the Markov blanket outperform in general those using only parents. This can be attributed to the fact that the Markov blanket offers a more robust set of variables for prediction, as it includes not only parents Discovering Causal Structures and Latent Regimes via Markov Blankets 13 
+
+but also children and spouses. This representation provides MB-based methods with sufficient information to improve predictive accuracy and reduce sign errors, thereby enhancing the reliability of the subsequent causal discovery step. The variances of the F1-scores are reported in Appendix C.3. They are gen-erally small, around 0.01, except for RCBNB-PA, where they range between 0.02 and 0.04, and RPCMCI +, which exhibits higher variance, reaching up to 0.09 for PA and 0.05 for MB. These results suggest that while most methods yield stable performance, some, particularly RPCMCI +, show more variability across repetitions. 
+
+5.2 Real data 
+
+Data description For the real-world experiment, we use eight time series from an IT monitoring system provided by EasyVista 4, sampled at one-minute intervals, as introduced in [3]. These time series describe different system activities and are detailed in Appendix D. According to a system expert [3], an anomaly occurs between timesteps 46,683 and 46,783. To construct our dataset, we include an additional 1,000 timesteps before and after this interval, resulting in a total of 2,100 timesteps for analysis. In [3], only a summary representation of the window causal graph for the normal regime was provided by the system expert. Therefore, to assess the per-formance of our method in this scenario, we first convert the obtained window causal graph into a summary graph [1] and then compute the F1-score. Fur-thermore, since we have access only to the ground truth causal structure of the normal regime, our evaluation is limited to the inferred causal graphs within the regimes that overlap with the true normal regime. 
+
+Method configuration Based on the method’s performance in Section 5.1, RCBNB-MB stands out, so we focus on this method here. Due to the increased number of variables, we set the minimum regime size to Nℓ = 24 ((2 τmax + 1) d) with 
+
+τmax = 1 . Additionally, we set the number of initialization points to Ni = 200 ,the number of regimes to r = 2 and 3, and allow up to Nc = 4 transitions per regime. Other parameters remain the same as those in Section 5.1. 
+
+Results In this experiment, the final value of the objective function, correspond-ing to Equation 7, is 3.56 when assuming two regimes and 3.02 when assuming three regimes. Figure 3 illustrates the detected change points and the correspond-ing regimes identified by RCBNB-MB when provided with prior knowledge of either two or three regimes. According to the system expert, the ground truth consists of only two regimes: normal and abnormal. The figure clearly demon-strates that RCBNB-MB effectively detects the regimes in both cases. Even when the number of regimes is set to three, the algorithm accurately identifies the normal and abnormal regimes, with only minor deviations. Additionally, it detects a third regime at the boundary between the two true regimes, suggesting   
+
+> 4https://www.easyvista.com/fr/produit/supervision-it/ 14 L. Zan et al.
+
+Fig. 3: RCBNB-MB assignments assuming 3 regimes (top) and 2 regimes (bot-tom). Blue denotes normal regime, while rose and green denote abnormal regimes. The circle ( ◦) and cross ( ×) mark the expert identified anomaly start and end at timestamps 46,683 and 46,783, respectively. Table 3: Results on real data. The F1-score for each regime is computed for our method RCBNB-MB, with 2 and 3 regimes.   
+
+> loss F1-score in normal regimes 2 regimes 3.56 0.53 3 regimes 3.02 0.53
+
+a possible transitional phase between them. Table 3 presents the F1-scores for detecting a summary representation of the window causal graph in the normal regime. Compared to previous studies, such as [4], where classical causal discov-ery methods were used to infer the graph, our method demonstrates superior performance. 
+
+## 6 Conclusion and Perspective 
+
+Understanding causal relationships in complex dynamic systems is important across many fields. Growing data availability creates opportunities but also challenges, particularly for heterogeneous time series with multiple regimes and changing causal mechanisms. We propose a method that identifies these regimes and recovers their causal structures by treating regime assignment as a predic-tion task based on Markov blankets. The use of Markov blankets in this setting is supported by both theoretical and experimental arguments. Lastly, we demon-strated the effectiveness of our approach in uncovering regime-dependent causal structures through an empirical validation on synthetic and real-world IT mon-itoring data. There are several interesting aspects to explore in future work. In our exper-iments, we only considered linear relationships among variables and time series containing two or three distinct regimes. More complex scenarios involving non-linear relationships and more than three distinct regimes need to be tested. Additionally, timestamps at the boundaries of two distinct regimes are difficult to assign correctly due to the loss of information about the Markov blanket. Further research is needed to improve the assignment of these boundary times-tamps. Lastly, we would also like to explore its potential for root cause analysis and anomaly detection. Discovering Causal Structures and Latent Regimes via Markov Blankets 15 
+
+## References 
+
+1. Assaad, C.K., Devijver, E., Gaussier, E.: Discovery of extended summary graphs in time series. In: Uncertainty in Artificial Intelligence. pp. 96–106. PMLR (2022) 2. Assaad, C.K., Devijver, E., Gaussier, E.: Survey and evaluation of causal discovery methods for time series. Journal of Artificial Intelligence Research 73 , 767–819 (2022) 3. Assaad, C.K., Ez-Zejjari, I., Zan, L.: Root cause identification for collective anoma-lies in time series given an acyclic summary causal graph with loops. In: Ruiz, F., Dy, J., van de Meent, J.W. (eds.) Proceedings of The 26th International Conference on Artificial Intelligence and Statistics. Proceedings of Machine Learning Research, vol. 206, pp. 8395–8404. PMLR (25–27 Apr 2023) 4. Aït-Bachir, A., Assaad, C.K., de Bignicourt, C., Devijver, E., Ferreira, S., Gaussier, E., Mohanna, H., Zan, L.: Case studies of causal discovery from it monitoring time series (2023) 5. Bystrova, D., Assaad, C.K., Arbel, J., Devijver, E., Gaussier, E., Thuiller, W.: Causal discovery from time series with hybrids of constraint-based and noise-based algorithms. Transactions on Machine Learning Research (2024) 6. Cai, R., Huang, L., Chen, W., Qiao, J., Hao, Z.: Learning dynamic causal mecha-nisms from non-stationary data. Applied Intelligence 53 (5), 5437–5448 (Jun 2022) 7. Ferdous, M.H., Hasan, U., Gani, M.O.: Cdans: Temporal causal discovery from au-tocorrelated and non-stationary time series data. In: Machine Learning for Health-care Conference. pp. 186–207. PMLR (2023) 8. Fujiwara, D., Koyama, K., Kiritoshi, K., Okawachi, T., Izumitani, T., Shimizu, S.: Causal discovery for non-stationary non-linear time series data using just-in-time modeling. In: Conference on Causal Learning and Reasoning. pp. 880–894. PMLR (2023) 9. Gao, S., Addanki, R., Yu, T., Rossi, R., Kocaoglu, M.: Causal discovery in semi-stationary time series. Advances in Neural Information Processing Systems 36 
+
+(2024) 10. Gong, C., Zhang, C., Yao, D., Bi, J., Li, W., Xu, Y.: Causal discovery from temporal data: An overview and new perspectives. ACM Comput. Surv. 57 (4) (Dec 2024) 11. Günther, W., Ninad, U., Runge, J.: Causal discovery for time series from multiple datasets with latent contexts. In: Evans, R.J., Shpitser, I. (eds.) Proceedings of the Thirty-Ninth Conference on Uncertainty in Artificial Intelligence. Proceedings of Machine Learning Research, vol. 216, pp. 766–776. PMLR (31 Jul–04 Aug 2023) 12. Györfi, L., Kohler, M., Krzyzak, A., Walk, H., et al.: A distribution-free theory of nonparametric regression, vol. 1. Springer (2002) 13. Huang, B., Zhang, K., Gong, M., Glymour, C.: Causal discovery and forecasting in nonstationary environments with state-space models. In: International conference on machine learning. pp. 2901–2910. PMLR (2019) 14. Huang, B., Zhang, K., Zhang, J., Ramsey, J.D., Sanchez-Romero, R., Glymour, C., Schölkopf, B.: Causal discovery from heterogeneous/nonstationary data. J. Mach. Learn. Res. 21 (89), 1–53 (2020) 15. Hyvärinen, A., Zhang, K., Shimizu, S., Hoyer, P.O.: Estimation of a structural vector autoregression model using non-gaussianity. JMLR 11 (5) (2010) 16. Kummerfeld, E., Danks, D.: Tracking time-varying graphical structure. Advances in neural information processing systems 26 (2013) 17. Malinsky, D., Danks, D.: Causal discovery algorithms: A practical guide. Philoso-phy Compass 13 (1), e12470 (2018) 16 L. Zan et al. 18. Mameche, S., Cornanguer, L., Ninad, U., Vreeken, J.: Spacetime: Causal discovery from non-stationary time series (2025) 19. Pamfil, R., Sriwattanaworachai, N., Desai, S., Pilgerstorfer, P., Georgatzis, K., Beaumont, P., Aragam, B.: Dynotears: Structure learning from time-series data. In: International Conference on Artificial Intelligence and Statistics. pp. 1595–1605. PMLR (2020) 20. Pearl, J.: Causality. Cambridge university press (2009) 21. Pellet, J.P., Elisseeff, A.: Using markov blankets for causal structure learning. JMLR 9(7) (2008) 22. P.Erdos, A.Renyi: On random graphs i. Publ. math. debrecen 6(290-297), 18 (1959) 23. Peters, J., Mooij, J.M., Janzing, D., Schölkopf, B.: Identifiability of causal graphs using functional models. In: Proceedings of the Twenty-Seventh Conference on Uncertainty in Artificial Intelligence. p. 589–598. UAI’11, AUAI Press, Arlington, Virginia, USA (2011) 24. Petersen, A.H.: Are you doing better than random guessing? a call for using neg-ative controls when evaluating causal discovery algorithms. In: Proceedings of the Forty-First Conference on Uncertainty in Artificial Intelligence. UAI ’25 (2025) 25. Rahmani, A., Frossard, P.: Causal temporal regime structure learning. In: Li, Y., Mandt, S., Agrawal, S., Khan, M.E. (eds.) International Conference on Artificial Intelligence and Statistics, AISTATS 2025, Mai Khao, Thailand, 3-5 May 2025. Proceedings of Machine Learning Research, vol. 258, pp. 4546–4554. PMLR (2025) 26. Ramsey, J., Spirtes, P., Zhang, J.: Adjacency-faithfulness and conservative causal inference. In: Proceedings of the Twenty-Second Conference on Uncertainty in Ar-tificial Intelligence. p. 401–408. UAI’06, AUAI Press, Arlington, Virginia, USA (2006) 27. Rodas, C.B., Tu, R., Li, Y., Kjellstrom, H.: Causal discovery from conditionally stationary time series. In: UAI 2022 Workshop on Causal Representation Learning (2022) 28. Runge, J.: Causal network reconstruction from time series: From theoretical as-sumptions to practical estimation. Chaos: An Interdisciplinary Journal of Nonlin-ear Science 28 (7), 075310 (2018) 29. Runge, J.: Discovering contemporaneous and lagged causal relations in autocor-related nonlinear time series datasets. In: Conference on Uncertainty in Artificial Intelligence. pp. 1388–1397. PMLR (2020) 30. Runge, J., Nowack, P., Kretschmer, M., Flaxman, S., Sejdinovic, D.: Detecting and quantifying causal associations in large nonlinear time series datasets. Science advances 5(11), eaau4996 (2019) 31. Sadeghi, A., Gopal, A., Fesanghary, M.: Causal discovery from nonstationary time series. International Journal of Data Science and Analytics (2025) 32. Saggioro, E., de Wiljes, J., Kretschmer, M., Runge, J.: Reconstructing regime-dependent causal relationships from observational time series. Chaos: An Interdis-ciplinary Journal of Nonlinear Science 30 (11), 113115 (2020) 33. Tsamardinos, I., Aliferis, C.F.: Towards principled feature selection: Relevancy, filters and wrappers. In: Proceedings of the Ninth International Workshop on Ar-tificial Intelligence and Statistics. pp. 300–307. PMLR (03–06 Jan 2003) 34. Yang, J., Rao, X.: Copula entropy based causal network discovery from non-stationary time series. In: Antonacopoulos, A., Chaudhuri, S., Chellappa, R., Liu, C.L., Bhattacharya, S., Pal, U. (eds.) Pattern Recognition. pp. 115–131. Springer Nature Switzerland, Cham (2025) Discovering Causal Structures and Latent Regimes via Markov Blankets 17 
+
+## A Proof of Theorem 1 
+
+Theorem 1. Suppose that Ct = k, that the function hj,k  
+
+> ∗
+
+(MB (xjt ; Gkw)) approx-imates xjt within a bounded error, i.e., ∃M > 0, ∀xjt , |xjt − hj,k  
+
+> ∗
+
+(MB (xjt ; Gkw)) | <M , and that the estimate bhj,k  
+
+> T
+
+converges to the ”best” function hj,k  
+
+> ∗
+
+in the follow-ing sense: 
+
+lim 
+
+> k(T)→+∞
+
+Z
+
+> S
+
+bhj,k  
+
+> T
+
+(S) − hj,k  
+
+> ∗
+
+(S)
+
+2
+
+dP (S) = 0 , (9) 
+
+where S is any subset of X. Then, for any other regime ℓ̸ = k:
+
+lim  
+
+> k(T)→+∞
+
+E
+
+h
+
+(Xjt − bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2i
+
+≤ lim  
+
+> k(T)→+∞
+
+E
+
+h
+
+(Xjt − bhj,ℓ  
+
+> T
+
+(MB (Xjt ; Gℓw))) 2i
+
+.
+
+Proof. Let ϵ > 0. Equation 9 implies that ∀ϵ′ > 0, ∃T0 s.t. ∀k(T) ≥ k(T0), ∀MB (xjk; Gkw),
+
+bhj,k  
+
+> T
+
+(MB (xjk; Gkw)) − hj,k  
+
+> ∗
+
+(MB (xjk; Gkw)) 
+
+2
+
+< ϵ ′2,
+
+which implies, by developing (xjt −bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2 as (xjt −hj,k  
+
+> ∗
+
+(MB (xjk; Gkw))+ 
+
+hj,k  
+
+> ∗
+
+(MB (xjk; Gkw)) − bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2, that ∀xjt :
+
+(xjt − bhj,k  
+
+> T
+
+(MB (xjt ; Gkw))) 2 < (xjt − hj,k  
+
+> ∗
+
+(MB (xjt ; Gkw))) 2 + ϵ′2 + 2 M ϵ ′.
+
+Choosing ϵ′ such that ϵ′2 + 2 M ϵ ′ < ϵ and taking the expectation leads to: 
+
+E
+
+h
+
+(Xjt − bhj,k  
+
+> T
+
+(MB (Xjt ; Gkw))) 2i
+
+< E
+
+h
+
+(Xjt − hj,k  
+
+> ∗
+
+(MB (Xjt ; Gkw))) 2i
+
++ ϵ. (10) As Ct = k, one has (Equation 2): 
+
+E
+
+h
+
+(Xjt − hj,k  
+
+> ∗
+
+(MB (Xjt ; Gkw))) 2i
+
+≤ E
+
+h
+
+(Xjt − bhj,ℓ  
+
+> T
+
+(MB (Xjt ; Gℓw))) 2i
+
+. (11) Combining the inequalities 10 and 11 concludes the proof. 18 L. Zan et al. 
+
+## B Pseudo-code of RCBNB-MB 
+
+Algorithm 1 presents the pseudo-code of RCBNB-MB, which iteratively par-titions the time series into regimes and infers regime-specific window causal graphs using the CBNB method. The algorithm initializes multiple segmenta-tions and alternates between estimating causal structures and updating regime assignments by minimizing the empirical risk function (Equation (7)) subject to Constraints 1 and 2 in Section 4.3. Within each regime, it determines the Markov Blanket of each variable to enhance segmentation accuracy. After multi-ple iterations, the segmentation and window causal graphs corresponding to the lowest empirical risk are selected. 
+
+Algorithm 1 RCBNB-MB 
+
+1: Input: Heterogeneous time series data {xt}t∈T, number of initialization points Ni,maximal number of optimization iterations No, number of regimes r, minimum size per regime Nℓ, maximum transition points per regime Nc, the family of H.2: for a = 0 to Ni do 
+
+3: Initialize C by C[0] ensuring each regime index lasts at least (2 τmax + 1) × d
+
+consecutive timestamps. 4: for ite = 0 to No do 
+
+5: Step 1: Estimate the window causal graph and estimating functions for each regime 
+
+6: Determine {Υ k }k∈{ 1,...,r } based on C[ite ].7: for k = 1 to r do 
+
+8: Use CBNB on {xt}t∈Υ k to estimate Gkw .9: For each dimension j ∈ { 1, . . . , d }, deduce MB (Xjt ; Gkw ), the smallest set of variables that renders Xjt conditionally independent from all others within 
+
+Gkw .10: Update H[ite ] for each dimension j ∈ { 1, . . . , d } within regime k using 
+
+{xt}t∈Υk and the corresponding MB (Xjt ; Gkw ).11: Step 2: Update regime assignments 
+
+12: Update C[ite+1 ] by solving the minimization problem in Equation (7) subject to Constraints 1 and 2 in Section 4.3. Save the resulting value of Equation (7) as L[ite ].13: Save List L[a] = L[No], List C[a] = C[No+1] , and List G[a] = {G kw }[No]
+
+> k∈{ 1,...,r }
+
+.14: Index = arg min a List L[a].15: C = List C[Index ], {G kw }k∈{ 1,...,r } = List G[Index ].16: Output: Regime assignments C and window causal graphs {G kw }k∈{ 1,...,r }.Discovering Causal Structures and Latent Regimes via Markov Blankets 19 
+
+## C Supplementary Experiments 
+
+C.1 Parameter Robustness 
+
+In this section, we investigate the sensitivity of RCBNB-MB to three key hy-perparameters: the number of initialization points Ni, the maximum number of optimization iterations No, and the minimum size per regime Nℓ. We use the simulated datasets from Section 5.1, which consist of 50 datasets, each containing 6 variables with time series of length 600. We set Ni = 50 , No = 20 , and Nℓ = 18 
+
+as the default configuration, and vary each hyperparameter independently while keeping the others fixed. 
+
+Effect of Ni. We vary Ni ∈ { 10 , 30 , 50 , 70 , 90 } while fixing No and Nℓ. Fig-ures 4a and 4b show the mean F1-score (with standard deviation) and the MER as functions of Ni, respectively. The mean F1-score increases gradually with Ni,while the standard deviation remains approximately constant. Correspondingly, MER exhibits a declining trend as Ni grows. This behavior is expected, as a larger number of initialization points increases the probability that the opti-mization procedure finds an assignment close to the true regime segmentation, thereby improving causal graph reconstruction within each regime. Importantly, the performance remains relatively stable across the evaluated range of Ni.
+
+Effect of No. We vary No ∈ { 5, 10 , 20 , 30 , 40 } while fixing Ni and Nℓ. Figures 4c and 4d report the corresponding F1-score and MER. The F1-score shows a mod-est increasing trend with No, while the standard deviation remains stable, and MER generally decreases as No grows, despite a transient peak at No = 10 . This is consistent with the intuition that allowing more optimization iterations per run increases the likelihood of converging to a more accurate regime assignment and causal structure. 
+
+Effect of Nℓ. We vary Nℓ ∈ { 6, 12 , 18 , 24 , 30 } while fixing Ni and No. Figures 4e and 4f show the corresponding results. Both the F1-score and MER remain flat across the evaluated range, confirming that RCBNB-MB is largely insensitive to this parameter. This is consistent with its role as a safeguard, as Nℓ enforces a minimum number of time steps per regime to ensure that the regression and causal discovery steps within the optimization are statistically well-posed. When the optimization proceeds normally, this constraint is rarely binding, and its value has little effect on the final outcome. Its primary function is to prevent degenerate cases in which no time steps are assigned to a given regime. 20 L. Zan et al. 10 30 50 70 90  
+
+> Ni
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> F1
+> F1 vs. Ni
+> Mean F1 ± std
+
+(a) F1-score vs. Ni.10 30 50 70 90   
+
+> Ni
+> 0.0% 0.5% 1.0% 1.5% 2.0%
+> MER
+> MER vs. Ni
+> Mean MER
+
+(b) MER vs. Ni.5 10 20 30 40  
+
+> No
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> F1
+> F1 vs. No
+> Mean F1 ± std
+
+(c) F1-score vs. No.5 10 20 30 40   
+
+> No
+> 0.0% 1.0% 2.0% 3.0% 4.0% 5.0%
+> MER
+> MER vs. No
+> Mean MER
+
+(d) MER vs. No.6 12 18 24 30  
+
+> N
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> F1
+> F1 vs. N
+> Mean F1 ± std
+
+(e) F1-score vs. Nℓ.6 12 18 24 30   
+
+> N
+> 0.0% 0.5% 1.0% 1.5% 2.0%
+> MER
+> MER vs. N
+> Mean MER
+
+(f) MER vs. Nℓ.
+
+Fig. 4: Sensitivity analysis of RCBNB-MB with respect to three hyperparame-ters: the number of initialization points Ni (top row), the maximum number of optimization iterations No (middle row), and the minimum size per regime Nℓ
+
+(bottom row). The left and right columns report the mean F1-score with stan-dard deviation and the mean MER, respectively, evaluated over 50 simulated datasets with a time series length of 600. Discovering Causal Structures and Latent Regimes via Markov Blankets 21 
+
+C.2 Simulated Data with a Length of 1,200 
+
+The results of each method are presented in Table 4a. We first analyze the Mean Error Rate (MER), which remains low for most methods. Compared to the case where the length of the time series is 600, most methods exhibit a lower MER. Notably, RCBNB-MB achieves a MER of 0.14% in the 2 regimes scenario and 0.64% in the 3 regimes scenario. In contrast, certain methods, such as CASTOR, display significantly higher MER values, exceeding 23%, indicating difficulties in detecting regime changes. Regarding the F1-score, RCBNB-MB maintains strong performance, achiev-ing 0.71 in both the 2 regimes and 3 regimes scenarios. RCBNB-PA demonstrates comparable performance and even outperforms RCBNB-MB in the 2 regimes 
+
+scenario with an F1-score of 0.72. PCMCI-based methods show moderate per-formance, with RPCMCI-PA achieving scores around 0.58. The performance gap between the PCMCI-based methods is notably smaller than that observed between the PCMCI +-based methods. CASTOR and RDynotears-based meth-ods exhibit the lowest F1-scores, highlighting their limitations in reconstructing causal graphs accurately. Similar to the case where the time series length is 600, methods incorporating the Markov Blanket perform at least as well as those relying solely on parents. The nSHD results show a similar trend. RCBNB-MB achieves the lowest nSHD in both scenarios, with 0.48 for 2 regimes and 0.55 for 3 regimes , fol-lowed closely by RCBNB-PA. This indicates that RCBNB-based methods re-cover graph structures closest to the ground truth. RPCMCI +-MB also obtains competitive nSHD values, whereas most competing methods have values close to or above 1, reflecting larger structural discrepancies. Table 4b reports the variance of the F1-scores and the normalized Structural Hamming Distance (nSHD). In general, the variances are small, around 0.01. RPCMCI + is an exception, which exhibits a higher variance, reaching up to 0.09. These findings suggest that while most methods demonstrate stable performance, some, particularly RPCMCI +, exhibit greater variability across repetitions. 22 L. Zan et al. 
+
+Table 4: The Mean Error Rate (MER), the F1-score, and the normalized Struc-tural Hamming Distance (nSHD) across two scenarios: 2 regimes and 3 regimes .The F1-score is evaluated under three conditions: T otal (all edges considered), 
+
+Lagged (only lagged edges considered), and Instant (only instantaneous edges considered). The reported values are based on 50 repetitions, with each time series having a length of 1,200. 
+
+Equal Regime Sizes 2 regimes 3 regimes 
+
+MER T otal Lagged Instant nSHD MER T otal Lagged Instant nSHD RCBNB-MB 0.14 % 0.71 0.76 0.61 0.48 0.64 % 0.71 0.78 0.58 0.55 
+
+RCBNB-PA 2.12 % 0.72 0.75 0.66 0.51 1.05 % 0.71 0.75 0.62 0.57 RPCMCI-MB 0.14 % 0.57 0.65 × 1.03 0.18 % 0.56 0.64 × 1.07 RPCMCI-PA 0.14 % 0.58 0.67 × 0.97 0.17 % 0.57 0.65 × 1.04 RPCMCI +-MB 0.15 % 0.68 0.75 0.49 0.58 1.06 % 0.67 0.73 0.48 0.56 RPCMCI +-PA 9.11 % 0.56 0.62 0.40 0.66 5.92 % 0.51 0.57 0.32 0.73 RVarLiNGAM-MB 0.12 % 0.42 0.56 0.09 0.92 0.19 % 0.44 0.56 0.12 0.93 RVarLiNGAM-PA 1.18 % 0.42 0.52 0.16 0.98 2.89 % 0.43 0.53 0.18 0.96 RDynotears-MB 15.49 % 0.15 0.19 0.06 1.00 15.12 % 0.14 0.17 0.06 1.02 RDynotears-PA 8.73 % 0.14 0.18 0.05 0.98 13.89 % 0.16 0.20 0.08 1.02 NegControl × 0.30 0.33 0.23 1.34 × 0.28 0.32 0.21 1.37 CD-NOD × 0.38 0.43 0.23 0.86 × 0.36 0.41 0.22 0.86 J-PCMCI + × 0.43 0.52 0.20 1.16 × 0.39 0.47 0.15 1.27 CASTOR 23.11 % 0.12 0.15 0.06 0.99 23.46 % 0.08 0.10 0.03 1.00 
+
+(a) Mean over 50 repetitions. 
+
+Equal Regime Sizes 2 regimes 3 regimes 
+
+T otal Lagged Instant nSHD T otal Lagged Instant nSHD RCBNB-MB 0.01 0.01 0.04 0.03 0.01 0.01 0.02 0.02 RCBNB-PA 0.02 0.02 0.04 0.03 0.02 0.03 0.03 0.03 RPCMCI-MB <0.01 <0.01 × 0.03 <0.01 <0.01 × 0.02 RPCMCI-PA <0.01 <0.01 × 0.04 <0.01 <0.01 × 0.02 RPCMCI +-MB 0.01 0.01 0.03 0.03 0.02 0.03 0.02 0.02 RPCMCI +-PA 0.07 0.08 0.05 0.05 0.08 0.09 0.04 0.03 RVarLiNGAM-MB <0.01 <0.01 0.01 0.01 <0.01 <0.01 0.01 0.01 RVarLiNGAM-PA <0.01 0.01 0.01 0.01 <0.01 <0.01 0.01 0.01 RDynotears-MB 0.01 0.02 0.01 <0.01 0.01 0.02 0.01 0.01 RDynotears-PA 0.01 0.01 0.01 <0.01 0.01 0.01 0.01 0.01 NegControl <0.01 0.01 0.01 0.02 <0.01 <0.01 0.01 0.01 CD-NOD 0.01 0.01 0.02 0.01 0.01 0.01 0.01 0.01 J-PCMCI + <0.01 <0.01 0.01 0.02 <0.01 <0.01 <0.01 0.02 CASTOR 0.01 0.01 0.01 <0.01 <0.01 0.01 <0.01 <0.01 
+
+(b) Variance over 50 repetitions. Discovering Causal Structures and Latent Regimes via Markov Blankets 23 
+
+C.3 Variance of the F1-score and the normalized Structural Hamming Distance (nSHD)for Simulated Data with a Length of 600 
+
+Table 5 presents the variances of the F1-scores for simulated data with a length of 600. The variances are generally small, around 0.01, except for RCBNB-PA, where they range between 0.02 and 0.04, and RPCMCI +, which exhibits higher variance, reaching up to 0.09 for PA and 0.05 for MB. These results suggest that while most methods yield stable performance, some, particularly RPCMCI +,show more variability across repetitions. The nSHD variances are also generally small, indicating stable structural per-formance across repetitions. For RCBNB-based methods, the variance remains low, ranging from 0.01 to 0.04. Most competing methods show similarly limited variability, although RPCMCI-based methods in the 2 regimes scenario exhibit slightly higher nSHD variance, reaching 0.06 for MB and 0.07 for PA. Table 5: Variance of the F1-score and the normalized Structural Hamming Dis-tance (nSHD) across two scenarios: 2 regimes and 3 regimes . For each scenario, the F1-score is evaluated under three conditions: T otal (all edges considered), 
+
+Lagged (only lagged edges considered), and Instant (only instantaneous edges considered). Additionally, only oriented edges are considered. The reported val-ues are based on 50 repetitions. Each time series has a length of 600, with the disturbance term distributed as ϵjt ∼ U(−0.1, 0.1) .                                                                                                                  
+
+> Equal Regime Sizes 2 regimes 3 regimes
+> T otal Lagged Instant nSHD T otal Lagged Instant nSHD RCBNB-MB 0.01 0.01 0.02 0.04 0.01 0.01 0.03 0.01 RCBNB-PA 0.03 0.03 0.04 0.04 0.02 0.02 0.03 0.04 RPCMCI-MB <0.01 0.01 ×0.06 <0.01 <0.01 ×0.02 RPCMCI-PA 0.01 0.01 ×0.07 <0.01 <0.01 ×0.02 RPCMCI +-MB 0.02 0.02 0.03 0.04 0.04 0.05 0.03 0.02 RPCMCI +-PA 0.07 0.08 0.05 0.05 0.07 0.09 0.03 0.03 RVarLiNGAM-MB <0.01 0.01 0.01 0.01 <0.01 <0.01 0.01 0.01 RVarLiNGAM-PA <0.01 <0.01 0.02 0.02 <0.01 <0.01 0.01 0.01 RDynotears-MB 0.01 0.02 0.01 0.02 0.01 0.01 0.01 0.02 RDynotears-PA 0.01 0.02 0.01 0.01 0.01 0.01 0.01 0.02 NegControl <0.01 0.01 0.01 0.02 <0.01 <0.01 0.01 0.01 CD-NOD 0.02 0.03 0.02 0.02 0.01 0.01 0.01 0.01 J-PCMCI +0.01 0.01 0.01 0.03 <0.01 0.01 0.01 0.03 CASTOR 0.01 0.01 0.01 <0.01 <0.01 0.01 <0.01 <0.01 24 L. Zan et al.
+
+C.4 Simulated Data with Unequal Regime Sizes 
+
+In this section, we evaluate the methods in a scenario with unequal regime sizes. The data generation process follows Equation 8, using the same parameter distributions as in Section 5.1. The simulated system contains six variables with linear relationships. The main difference from the previous setting is that the size of each regime is randomly determined, subject to the constraint that each regime occupies at least 10% of the time series and remains contiguous ( i.e. ,without interruptions). The length of the time series varies between 600 and 1,200, and the number of regimes ranges from 2 to 3. Table 6a reports the Mean Error Rate (MER) and the mean F1-score for the 
+
+2 regimes and 3 regimes scenarios when the time series length is 600. In terms of MER, when the number of regimes is two, RCBNB-MB achieves a MER of 0.61%, which remains competitive with RPCMCI-MB (0.48%), RPCMCI-PA (0.49%), and RVarLiNGAM-MB (0.57%). When the number of regimes increases to three, these methods continue to maintain relatively low MER values. Compared with the equal regime size scenario, MER generally increases across most methods, reflecting the additional difficulty of detecting regime changes when regime sizes vary. Nevertheless, RPCMCI-MB and RPCMCI-PA achieve slightly lower MER values when the number of regimes is two, indicating strong performance in regime assignment. In contrast, CASTOR and RDynotears-based methods still show relatively poor performance on this task. Regarding the F1-score, RCBNB-MB achieves the best performance in both the 2 regimes and 3 regimes scenarios with total F1-scores of 0.63 and 0.59, re-spectively. PCMCI-based and PCMCI +-based methods follow closely behind. As expected, the F1-scores slightly decrease in the 3 regimes scenario due to the in-creased complexity of the task. Compared with the equal regime size setting, the F1-score of RCBNB-MB decreases slightly but still remains the highest among the evaluated methods, demonstrating robustness in causal graph reconstruction even when regime sizes are unequal. Overall, methods using the Markov blan-ket generally outperform those relying only on parent sets, while J-PCMCI +
+
+and CD-NOD show performance only slightly better than the random baseline NegControl. The nSHD results show a similar trend. For time series of length 600, RCBNB-MB achieves the lowest nSHD in both scenarios, with values of 0.61 for 2 regimes 
+
+and 0.67 for 3 regimes . RCBNB-PA and RPCMCI +-MB also obtain relatively competitive nSHD values, while most competing methods have nSHD values close to or above 1. This indicates that RCBNB-MB remains the most accurate method in terms of structural recovery under unequal regime sizes. Table 6b presents the results when the time series length is 1,200. The MER generally decreases compared to the case where the time series length is 600, suggesting that longer time series provide more information for accurate regime assignment. Although the MER of RCBNB-MB increases slightly to 0.63%, it remains very low. The corresponding F1-scores remain competitive, reaching 0.66 in the 2 regimes scenario and 0.65 in the 3 regimes scenario. Similar trends are observed across methods: PCMCI-based and PCMCI +-based approaches achieve Discovering Causal Structures and Latent Regimes via Markov Blankets 25 
+
+moderate performance, with RPCMCI +-MB also reaching F1-scores of 0.67 in the 2 regimes scenario and 0.65 in the 3 regimes scenario. In contrast, CASTOR, NegControl, CD-NOD, J-PCMCI +, VarLiNGAM-based, and Dynotears-based methods show weaker performance. For time series of length 1,200, the nSHD results further confirm the advan-tage of RCBNB-based methods. RCBNB-MB obtains the lowest nSHD in the 3regimes scenario, with a value of 0.58, and is tied with RPCMCI +-MB in the 2regimes scenario, with a value of 0.56. Compared with the length-600 setting, the nSHD of RCBNB-MB decreases, suggesting that longer time series help improve the accuracy of graph reconstruction. Finally, Table 7a and Table 7b present the variances of the F1-scores for time series lengths of 600 and 1,200. Overall, the variances remain small, typ-ically around 0.01, indicating stable performance across repetitions. Consistent with the equal regime size scenario, RPCMCI +-based methods show higher vari-ance, particularly for the PA variant, where the variance reaches approximately 0.11. In contrast, RCBNB-MB maintains low variance across all settings, further demonstrating its stability when regime sizes are unequal. The nSHD variances are also generally small across both time series lengths. For RCBNB-MB, the nSHD variance remains between 0.02 and 0.03, indicating stable structural recovery across repetitions. Although RPCMCI +-based meth-ods show higher variance in terms of F1-score, their nSHD variance remains mod-erate, reaching at most 0.05. Overall, these results suggest that the structural differences observed in the mean nSHD values are consistent across repetitions. 26 L. Zan et al. 
+
+Table 6: Unequal Regime Sizes. The Mean Error Rate (MER), the F1-score, and the normalized Structural Hamming Distance (nSHD) across two scenarios: 
+
+2 regimes and 3 regimes . The F1-score is evaluated under three conditions: T otal 
+
+(all edges considered), Lagged (only lagged edges considered), and Instant (only instantaneous edges considered). The reported values are based on 50 repetitions. The data generation process follows Equation 8. The only difference compared to Section 5.1 is that the regime sizes are randomly determined, with the constraint that each regime occupies at least 10 % of the time series and remains contiguous (i.e., without interruptions). 
+
+2 regimes 3 regimes 
+
+MER T otal Lagged Instant nSHD MER T otal Lagged Instant nSHD RCBNB-MB 0.61 % 0.63 0.70 0.49 0.61 3.05 % 0.59 0.68 0.41 0.67 
+
+RCBNB-PA 4.57 % 0.60 0.69 0.42 0.66 7.00 % 0.54 0.64 0.33 0.77 RPCMCI-MB 0.48 % 0.57 0.65 × 1.03 1.47 % 0.53 0.61 × 1.13 RPCMCI-PA 0.49 % 0.58 0.66 × 0.99 1.42 % 0.53 0.61 × 1.11 RPCMCI +-MB 3.07 % 0.59 0.66 0.40 0.67 4.85 % 0.52 0.59 0.34 0.72 RPCMCI +-PA 15.52 % 0.46 0.53 0.29 0.75 18.42 % 0.32 0.37 0.17 0.85 RVarLiNGAM-MB 0.57 % 0.42 0.55 0.11 0.96 1.32 % 0.42 0.54 0.11 1.01 RVarLiNGAM-PA 3.05 % 0.42 0.52 0.17 0.97 6.31 % 0.41 0.50 0.19 1.05 RDynotears-MB 21.72 % 0.20 0.24 0.10 1.02 28.18 % 0.21 0.27 0.08 1.11 RDynotears-PA 15.49 % 0.20 0.25 0.09 1.01 23.29 % 0.21 0.27 0.09 1.03 NegControl × 0.30 0.33 0.22 1.34 × 0.28 0.31 0.21 1.39 CD-NOD × 0.33 0.37 0.22 0.88 × 0.31 0.35 0.19 0.91 J-PCMCI + × 0.41 0.49 0.17 1.14 × 0.38 0.46 0.16 1.22 CASTOR 26.63 % 0.14 0.16 0.07 0.99 23.10 % 0.12 0.15 0.05 0.99 
+
+(a) Each time series has a length of 600. 
+
+2 regimes 3 regimes 
+
+MER T otal Lagged Instant nSHD MER T otal Lagged Instant nSHD RCBNB-MB 0.63 % 0.66 0.76 0.44 0.56 0.74 % 0.65 0.75 0.44 0.58 
+
+RCBNB-PA 3.00 % 0.63 0.72 0.44 0.63 3.23 % 0.62 0.72 0.42 0.65 RPCMCI-MB 0.28 % 0.57 0.65 × 1.02 0.67 % 0.56 0.64 × 1.08 RPCMCI-PA 0.26 % 0.58 0.66 × 0.99 0.63 % 0.57 0.65 × 1.05 RPCMCI +-MB 0.71 % 0.67 0.73 0.51 0.56 0.78 % 0.65 0.72 0.45 0.62 RPCMCI +-PA 8.32 % 0.58 0.63 0.40 0.66 9.09 % 0.53 0.59 0.34 0.71 RVarLiNGAM-MB 0.25 % 0.42 0.55 0.10 0.93 0.69 % 0.43 0.56 0.11 0.94 RVarLiNGAM-PA 0.47 % 0.43 0.55 0.14 0.93 3.58 % 0.42 0.52 0.15 0.98 RDynotears-MB 19.83 % 0.14 0.17 0.07 1.00 33.82 % 0.17 0.21 0.08 1.03 RDynotears-PA 20.40 % 0.14 0.18 0.06 1.00 30.83 % 0.17 0.22 0.07 1.04 NegControl × 0.30 0.33 0.24 1.34 × 0.29 0.33 0.22 1.36 CD-NOD × 0.34 0.38 0.21 0.88 × 0.35 0.40 0.23 0.86 J-PCMCI + × 0.42 0.51 0.19 1.14 × 0.39 0.47 0.17 1.26 CASTOR 33.86 % 0.11 0.13 0.05 1.00 28.35 % 0.08 0.10 0.03 1.00 
+
+(b) Each time series has a length of 1200. Discovering Causal Structures and Latent Regimes via Markov Blankets 27 
+
+Table 7: Unequal regime sizes. Variance of the F1-score and the normal-ized Structural Hamming Distance (nSHD) across two scenarios: 2 regimes and 
+
+3 regimes . The variance is evaluated under three conditions: T otal (all edges considered), Lagged (only lagged edges considered), and Instant (only instan-taneous edges considered). The reported values are based on 50 repetitions. The data generation process follows Equation 8. The only difference compared to Sec-tion 5.1 is that the regime sizes are randomly determined, with the constraint that each regime occupies at least 10 % of the time series and remains contiguous (i.e., without interruptions). 
+
+2 regimes 3 regimes 
+
+T otal Lagged Instant nSHD T otal Lagged Instant nSHD RCBNB-MB 0.01 0.01 0.02 0.02 0.01 0.01 0.02 0.03 RCBNB-PA 0.02 0.02 0.03 0.05 0.01 0.02 0.02 0.03 RPCMCI-MB <0.01 <0.01 × 0.04 <0.01 <0.01 × 0.02 RPCMCI-PA <0.01 <0.01 × 0.04 <0.01 <0.01 × 0.03 RPCMCI +-MB 0.02 0.03 0.03 0.03 0.05 0.06 0.04 0.03 RPCMCI +-PA 0.07 0.09 0.05 0.05 0.08 0.11 0.04 0.03 RVarLiNGAM-MB <0.01 0.01 0.01 0.02 <0.01 <0.01 <0.01 0.02 RVarLiNGAM-PA 0.01 0.01 0.02 0.02 <0.01 0.01 0.01 0.02 RDynotears-MB 0.01 0.02 0.01 0.02 0.01 0.01 <0.01 0.03 RDynotears-PA 0.01 0.01 0.01 0.02 0.01 0.01 0.01 0.01 NegControl <0.01 0.01 0.01 0.01 <0.01 <0.01 0.01 0.01 CD-NOD 0.01 0.01 0.02 0.01 0.01 0.01 0.01 0.01 J-PCMCI + 0.01 0.01 0.01 0.02 <0.01 0.01 0.01 0.02 CASTOR 0.01 0.01 0.01 <0.01 0.01 0.01 <0.01 <0.01 
+
+(a) Each time series has a length of 600. 
+
+2 regimes 3 regimes 
+
+T otal Lagged Instant nSHD T otal Lagged Instant nSHD RCBNB-MB 0.01 0.01 0.03 0.03 0.01 0.01 0.02 0.02 RCBNB-PA 0.01 0.01 0.02 0.04 0.01 0.01 0.02 0.03 RPCMCI-MB <0.01 <0.01 × 0.03 <0.01 <0.01 × 0.03 RPCMCI-PA <0.01 <0.01 × 0.04 <0.01 <0.01 × 0.03 RPCMCI +-MB 0.02 0.02 0.03 0.02 0.01 0.01 0.02 0.02 RPCMCI +-PA 0.06 0.06 0.05 0.05 0.06 0.07 0.04 0.03 RVarLiNGAM-MB <0.01 0.01 0.01 0.01 <0.01 <0.01 0.01 0.01 RVarLiNGAM-PA <0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 RDynotears-MB 0.01 0.02 0.01 0.01 0.01 0.01 0.01 0.01 RDynotears-PA 0.01 0.02 0.01 0.01 0.01 0.01 0.01 0.02 NegControl <0.01 0.01 0.01 0.02 <0.01 <0.01 0.01 0.01 CD-NOD 0.01 0.02 0.03 0.01 0.01 0.01 0.01 0.01 J-PCMCI + <0.01 0.01 0.01 0.02 <0.01 0.01 0.01 0.02 CASTOR 0.01 0.01 0.01 <0.01 0.01 0.01 <0.01 <0.01 
+
+(b) Each time series has a length of 1200. 28 L. Zan et al. 
+
+C.5 Simulated Data with 15 Variables 
+
+In this section, we evaluate the methods in a scenario with a larger number of variables. The data generation process follows Equation 8, using the same param-eter distributions as in Section 5.1, with 15 variables and a time series of length 2,000 containing 2 contiguous regimes of unequal sizes, each occupying at least 10% of the time series. In this setting, we do not impose the constraint on the number of shared edges, since two random graphs with this density necessarily share a larger number of edges. Table 8a reports the results. In terms of MER, RCBNB-MB (0.07%), RPCMCI-MB (0.04%), RPCMCI-PA (0.19%), and RVarLiNGAM-MB (0.10%) assign al-most all timestamps to the correct regime, whereas RPCMCI +-PA (39.16%) and CASTOR (54.44%) struggle considerably. Within each family of methods, the variant using the Markov blanket attains an error lower than or equal to that of the variant using only parents, confirming that the Markov blanket pro-vides a more robust representation for regime assignment in higher dimensions. Regarding the F1 score, RCBNB-MB achieves the best performance under all three conditions (0.49 in total, 0.56 for lagged edges, and 0.45 for instantaneous edges), followed by RPCMCI-MB and RPCMCI-PA (0.43) and RPCMCI +-MB (0.34). The absolute F1 levels are lower than in the setting with six variables, reflecting the increased difficulty of the task. Strikingly, the methods relying on VarLiNGAM, Dynotears, CASTOR, and CD-NOD fall below the random base-line NegControl (0.25), while J-PCMCI + (0.27) remains only marginally above it, showing that increasing the dimensionality is far more damaging to these baselines than to RCBNB-MB. The nSHD results further confirm this trend. RCBNB-MB achieves the low-est nSHD, with a value of 0.77, followed closely by RCBNB-PA with 0.79 and RPCMCI +-MB with 0.83. This indicates that RCBNB-based methods recover graph structures closest to the ground truth even in the higher-dimensional set-ting. In contrast, most competing methods obtain nSHD values close to or above 1, reflecting larger structural discrepancies. Finally, Table 8b shows that the variances of the F1 scores remain small, typically below 0.01. Consistent with the other scenarios, the methods based on RPCMCI + exhibit the highest variability (up to 0.03), while RCBNB-MB maintains a variance of at most 0.01 under all conditions, further demonstrating its stability as the dimensionality increases. The nSHD variances are also very small, with most values below or around 0.01. In particular, RCBNB-MB has an nSHD variance below 0.01, showing that its structural recovery remains stable across repetitions. However, the low variance of weaker baselines should be interpreted together with their mean nSHD values, since it may also indicate consistently poor structural recovery rather than accurate reconstruction. Discovering Causal Structures and Latent Regimes via Markov Blankets 29 
+
+Table 8: The Mean Error Rate (MER), the F1-score and the normalized Struc-tural Hamming Distance (nSHD) in the 2 regimes scenario with 15 variables and unequal regime sizes. The F1-score is evaluated under three conditions: T otal (all edges considered), Lagged (only lagged edges considered), and Instant (only in-stantaneous edges considered). The reported values are based on 50 repetitions, with each time series having a length of 2,000. 
+
+Unequal Regime Sizes, 15 Variables 2 regimes 
+
+MER T otal Lagged Instant nSHD RCBNB-MB 0.07 % 0.49 0.56 0.45 0.77 
+
+RCBNB-PA 3.08 % 0.42 0.40 0.44 0.79 RPCMCI-MB 0.04 % 0.43 0.41 × 1.19 RPCMCI-PA 0.19 % 0.43 0.41 × 1.20 RPCMCI +-MB 9.99 % 0.34 0.35 0.30 0.83 RPCMCI +-PA 39.16 % 0.21 0.23 0.15 0.94 RVarLiNGAM-MB 0.10 % 0.02 0.03 0.01 1.01 RVarLiNGAM-PA 7.55 % 0.05 0.05 0.06 1.03 RDynotears-MB 7.39 % 0.06 0.07 0.04 1.03 RDynotears-PA 9.95 % 0.06 0.07 0.04 1.03 NegControl × 0.25 0.29 0.19 1.44 CD-NOD × 0.16 0.13 0.21 0.96 J-PCMCI + × 0.27 0.33 0.08 1.06 CASTOR 54.44 % 0.05 0.06 0.04 1.02 
+
+(a) Mean over 50 repetitions. 
+
+Unequal Regime Sizes, 15 Variables 2 regimes 
+
+T otal Lagged Instant nSHD RCBNB-MB <0.01 0.01 0.01 <0.01 RCBNB-PA <0.01 0.01 0.01 0.01 RPCMCI-MB <0.01 <0.01 × 0.01 RPCMCI-PA <0.01 <0.01 × 0.01 RPCMCI +-MB 0.02 0.02 0.02 0.01 RPCMCI +-PA 0.03 0.03 0.02 0.01 RVarLiNGAM-MB <0.01 <0.01 <0.01 <0.01 RVarLiNGAM-PA <0.01 <0.01 <0.01 <0.01 RDynotears-MB <0.01 <0.01 <0.01 <0.01 RDynotears-PA <0.01 <0.01 <0.01 <0.01 NegControl <0.01 <0.01 <0.01 <0.01 CD-NOD <0.01 <0.01 0.01 <0.01 J-PCMCI + <0.01 <0.01 <0.01 <0.01 CASTOR <0.01 <0.01 <0.01 <0.01 
+
+(b) Variance over 50 repetitions. 30 L. Zan et al. 
+
+## D Real data: some details 
+
+We analyze eight time series collected from an IT monitoring system with a one-minute sampling rate, provided by EasyVista. These time series capture various activities within the system. PMDB represents the extraction of some informa-tion about the messages received by the Storm ingestion system; MDB refers to an activity of a process that orients messages to other processes with respect to different types of messages; CMB represents the activity of extraction of metrics from messages; MB represents the activity of insertion of data in a database; LMB reflects the updates of the last values of metrics in Cassandra; RTMB rep-resents the activity of searching to merge data with information coming from the check message bolt; GSIB represents the activity of insertion of historical status in database; ESB represents the activity of writing data in Elasticsearch. 
+
+## E Source Code Information 
+
+All methods used in Section 5 were implemented using publicly available Python libraries: 
+
+– CBNB : https://github.com/ckassaad/Hybrids_of_CB_and_NB_for_Time_ Series 
+
+– VarLiNGAM / CD-NOD (Causal-learn package): https://github.com/ py-why/causal-learn/tree/main 
+
+– Dynotears (CausalNex package): https://github.com/mckinsey/causalnex 
+
+– J-PCMCI + / PCMCI / PCMCI + (Tigramite package): https://github. com/jakobrunge/tigramite/ 
+
+– NegControl : https://github.com/annennenne/negcontrol-disco 
+
+– CASTOR : https://github.com/arahmani1/CASTOR
