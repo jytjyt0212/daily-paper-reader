@@ -1,0 +1,688 @@
+Title: Certified Topological Interaction in Neural Representations: Class Disentanglement Is Mostly Pairwise
+
+URL Source: https://arxiv.org/pdf/2609.08561v1
+
+Published Time: Wed, 09 Sep 2026 03:33:10 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+# Certified Topological Interaction in Neural Representations: Class Disentanglement Is Mostly Pairwise 
+
+Sushovan Majhi ∗
+
+Abstract 
+
+Class disentanglement—the separation of a representation’s class-conditional point clouds along depth and over training—is usually read off descriptive curves. We measure it as certified 
+
+topological interaction between labeled point clouds, using the recently introduced Intersection Euler Characteristic Profile : the Euler characteristic of the overlap of the clouds’ ball unions as a function of scale, computed by one Alpha-complex sweep with no boundary-matrix reduction. Every number carries a test: exact permutation tests in both directions, a guarded separation certificate, and a paired test for the comparative claims applications make. Across 111 trained networks and 52 ,650 certified measurements, disentanglement is depth-graded and concentrated in the first epochs, and interaction quotients rank class pairs by confusability (Spearman 𝜌 = 0.83), on par with cheap separability statistics. In a 96-model factorial population, augmentation is the one training choice that separates classes relative to chance; weight decay compresses the overlap without separating, and depth and width do nothing. The structural finding is one only a 𝑘 -fold statistic can pose: the joint entanglement of a class triple sits below that of its strongest pair in 97% of triple–layer cells and 99 .5% of deep cells, far below a measured null floor, in vision encoders and frozen language models alike. This pairwise dominance is a regularity, not a law: expected from the nesting of overlaps but not forced by geometry, present at initialization and in raw pixels, and manufactured in the last stage alone when a network memorizes random labels. The unnormalized profile mass predicts test accuracy ( 𝑅 2 = 0.94), the quotient does not, and neither beats a linear probe. One lesson is reported in full: the paired test must use a scale-free statistic, or it certifies feature-norm dynamics as disentanglement. 
+
+# 1 Introduction 
+
+A trained image classifier is, up to its last layer, a map from images to points in a feature space, and the images of two classes—cats and dogs, say—trace out two point clouds there. At the input these clouds are hopelessly intermixed, since a cat and a dog differ mainly in pose and background; at the output they are cleanly apart, since the classifier’s last step is a linear cut. Somewhere in between, the network pulls them apart. Figure 1 shows this for one pair through the stages of a residual network: at the stem the clouds interpenetrate everywhere, two stages later they are still mixed, and at the third stage they have separated. This paper is about measuring that separation—how much two, or more, classes still overlap at a given layer and at which scales, and whether an observed change between two layers, or two epochs, is more than chance. 
+
+1.1 Class separation, and how it has been measured 
+
+The geometric reading is by now standard. Each class 𝑐 induces a point cloud 𝑋 (ℓ) 
+
+> 𝑐
+
+= { 𝑓 ℓ (𝑥 ) :label (𝑥 ) = 𝑐 } in the representation at layer ℓ, and learning can be read as these clouds becoming 
+
+> ∗
+
+Data Science Program, George Washington University, Washington, D.C., USA. Email: s.majhi@gwu.edu .
+
+1arXiv:2609.08561v1 [cs.LG] 8 Sep 2026 E = 0.96, p = 0.190          
+
+> stem
+> E= 1.07, p= 0.875
+> stage 1
+> E= 0.90, p= 0.020
+> stage 2
+> E= 0.53, p= 0.005
+> stage 3
+
+Figure 1: What the paper measures. Cat (blue) against dog (orange) through the stages of the CIFAR-10 ResNet-56: a two-dimensional shadow of each stage’s 𝑑 0 = 5 clouds ( 𝑚 = 200 per class), with the interaction quotient and separation 𝑝 -value ( 𝐵 = 199) under each panel. The pair is exchangeable with a random relabeling through stage 1, first certified separated at stage 2, and at quotient 0 .53 at stage 3, the penultimate representation. Definitions in Sections 2–3. progressively disentangled —topologically separated—with depth and with training. We use “disen-tanglement” throughout in this sense of class separation in feature space, following Wagner et al. (2026). It is distinct from the factorized-latent sense of 𝛽 -VAE (Higgins et al., 2017) and of the DCI and mutual-information-gap metrics (Chen et al., 2018; Eastwood and Williams, 2018), in which in-dividual coordinates track independent generative factors; neither sense implies the other, and we make no claim about factorized structure. We do take one lesson from that literature: Locatello et al. (2019) showed that its conclusions had been driven by metric choice and random seed, a fact visible only in a sweep over thousands of models, and that descriptive scores without a null distribution have no way to be wrong. That classes separate has been established repeatedly, in four largely disjoint vocabularies. Probes :a linear classifier trained on each layer’s features grows more accurate monotonically with depth (Alain and Bengio, 2017). Manifold capacity : in the statistical-mechanics account, per-class object manifolds shrink and decorrelate along the hierarchy and the capacity of a downstream perceptron grows ac-cordingly (Cohen et al., 2020). Terminal geometry : neural collapse (Papyan et al., 2020) describes the late-training limit in which class means form a simplex and within-class variability vanishes, the endpoint of disentanglement; its within-class collapse statistic has since been measured layer by layer (Rangamani et al., 2023), and the generalized discrimination value of Schilling et al. (2021) is a per-layer class-separability score in the same spirit. Global similarity : CKA (Kornblith et al., 2019) compares whole representations across layers and models, and intrinsic dimension falls through the final layers, with the last hidden layer’s dimension predicting test accuracy (Ansuini et al., 2019); neither is class-conditional. Closest to our object, Naitzat et al. (2020) track the Betti numbers of class regions through depth and show that networks simplify topology layer by layer; their object is the topology of one region at a time, ours the interaction between several. Each of these is a real measurement, and none of them is a measurement of overlap . Probes and capacity are linear-separability notions and answer a question about a decision boundary rather than about the geometry of the clouds: two classes can be perfectly linearly separable while their thickened supports interpenetrate at every scale below the margin, and conversely. CKA and intrinsic dimension are not defined for a specified class subset, so they cannot say which classes are still entangled. Collapse statistics and discrimination values are descriptive scores without a null distribution. And none is defined for a set of 𝑘 > 2 classes jointly, so none can pose the question of whether three classes remain 2jointly entangled when no pair does. Quantifying the overlap itself gives a label for representation quality, a diagnostic for training dynamics, and, potentially, a predictor of generalization. 
+
+1.2 Topological interaction, and the inference it lacks 
+
+Wagner et al. (2026) measure pairwise class entanglement with the mixup barcode ,1 summarized by a scalar “total mixup,” and show that it tracks how a network disentangles its classes through depth and training. The construction has four limitations that matter precisely for this application. It is pairwise ,defined for an inclusion 𝐿 ↩ → 𝐾 of two clouds, and asymmetric , since a foreground cloud is privileged; it is descriptive , in that no hypothesis test certifies that an observed change exceeds chance; and it is 
+
+expensive , because image-persistence reduction costs 𝑂 (𝑁 3) in the simplex count, which limits how many layers, epochs, and seeds can be swept. Chromatic topological data analysis (Cultrera di Mon-tesano et al., 2024) also studies several colored clouds, through a six-pack of persistence diagrams built on chromatic Delaunay complexes; it is richer but costlier, likewise untested, and not specialized to representation analysis. Elsewhere, topological data analysis has been applied to network weights (Rieck et al., 2019), as a differentiable regularizer on latent spaces (Moor et al., 2020) and on class separation at decision boundaries (Chen et al., 2019), to the persistent homology of labeled complexes that characterize decision boundaries (Ramamurthy et al., 2019), to neuron correlations as a predictor of test error without a test set (Corneanu et al., 2020), and to the fractal geometry of optimization trajectories, where persistent-homology dimension predicts generalization (Birdal et al., 2021). Euler characteristic curves and profiles as a stable, reduction-free shape summary are due to Dłotko and Gurnari (2023), are by now an established cheap alternative to persistence in learning pipelines (Hac-quard and Lebovici, 2024), and have been made differentiable as transforms (Röell and Rieck, 2024); we apply them to the interaction of class clouds rather than to a single dataset. The third limitation is not peculiar to the mixup barcode. Probe accuracy, manifold capacity, CKA, intrinsic dimension, and collapse statistics are all reported in practice as descriptive numbers, so the sentence a representation-analysis paper actually wants to write—“layer ℓ + 1 is more disentangled than layer ℓ,” “this epoch is where the classes separate”—is usually an eyeball judgment about a curve, with no null distribution behind it and no control of the error rate incurred by reading hundreds of such curves. The inferential tools exist and are textbook: a label-permutation test of exchangeability and a sign-flip test on paired differences (Lehmann and Romano, 2005). Permutation-calibrated two-sample tests of the same exchangeable null are standard in machine learning—kernel MMD (Gretton et al., 2012), energy distance (Székely and Rizzo, 2013), classifier two-sample tests (Lopez-Paz and Oquab, 2017)—and any of the descriptive separability scores above can be calibrated the same way, as we do for four of them (Experiment E3). In topological data analysis, confidence sets for persis-tence diagrams separate signal from noise in a single sample (Fasy et al., 2014), permutation tests for collections of diagrams are due to Robinson and Turner (2017), topological goodness-of-fit tests to Dłotko et al. (2024), and a universal null distribution for persistence-based statistics to Bobrowski and Skraba (2023). The object tested there is the shape of one sample or a comparison of diagrams, not the interaction of two labeled samples, and we are not aware of a paired test for topological sum-maries. What is missing, then, is not an inferential layer for the field but the routine application of these tools to comparative claims about representations. Doing that for a topological measure of class overlap—together with the guard and the scale-free paired statistic that this particular measure turns out to need—is the main business of this paper.   
+
+> 1The name “mixup” is shared with the augmentation of Zhang et al. (2018), with which the barcode has nothing technical in common. The invariant used here is named for the intersection of ball unions it measures, following Kawamura et al. (2026).
+
+31.3 Our contributions 
+
+We measure class disentanglement with the Intersection Euler Characteristic Profile (Intersection ECP) of Kawamura et al. (2026): the Euler characteristic of the region where the thickened class clouds overlap, as a function of the thickening scale (Section 2). It removes each of the four limitations. It is symmetric; it is defined for every 𝑘 , so that it measures joint, multi-class entanglement and not only pairs; it is computed by a single sorted Alpha-complex sweep with no matrix reduction; and it admits an exact, distribution-free permutation test. Section 3 turns it into a measurement protocol with a certificate attached to every number: exact one-sided tests in both directions, the guarded 
+
+separation certificate that the Euler characteristic specifically needs, a paired sign-flip test on a scale-free statistic for the comparative claims that trajectory analyses actually make, and an interaction quotient comparable across layers, epochs and models. The guarantees are elementary and are proved in Appendix A. “Certified” here means a hypothesis test with an exact level, not the margin certificate that landmark-based persistence vectorizations now carry (Majhi et al., 2026b,c). The campaign of Section 4 covers 111 trained networks and 52 ,650 certified measurements. Its findings are four. • Disentanglement is certified, depth-graded and early. The interaction quotient ranks MNIST pairs by confusability (Spearman 𝜌 = 0.83; E1); deep layers do almost all of the separating (E2), and most certified changes fall within the first eight epochs (E3); a from-scratch ViT disentangles non-monotonically, an artifact that pretraining removes (E2). The tests are calibrated (E4), and every conclusion survives the choice of projection dimension (E8). • Pairwise dominance , the finding only a 𝑘 -fold statistic can pose. The joint entanglement of a class triple sits below that of its strongest pair in 97% of triple–layer cells and 99 .5% of deep cells, far below a measured null floor, with the exceptions listed (E2) and the interaction spectrum decaying in order (E7). It is a regularity, not a law: expected from the nesting of overlaps but not forced by geometry, present at initialization and in raw pixels, manufactured in the last stage alone when a network memorizes random labels (E9), and reproduced on two frozen language models (E10). • What the measure is for. In a 96-model factorial population, augmentation is the one training choice that separates classes relative to chance; weight decay compresses the overlap without separating; depth and width do nothing (E11). The unnormalized profile mass predicts test accuracy ( 𝑅 2 = 0.94), the quotient does not, and neither beats a linear probe (E5). • Two negatives, reported in full. Differentiable surrogates for the quotient steer training the wrong way, each for an identifiable reason (E6); and the paired test certifies feature-norm dynamics as disentanglement unless its statistic is scale-free (E3). Following Turkeš et al. (2022), we ask on which tasks the topological statistic beats the alternatives and say where it does not: for ranking pairwise confusability and for timing disentanglement over training, a nearest-neighbour cross-class rate on the same clouds does as well (E1, E3). Its value lies in the certificate, the 𝑘 -fold terms, and the scale resolution, which the cheap statistics do not offer. 
+
+# 2 The Intersection ECP 
+
+We recall only what is needed; all constructions, proofs, stability, and complexity are in Kawamura et al. (2026). 4r = 0.08 < r : offsets disjoint r = 0.16: overlap is two arcs r = 0.32: overlap is one band 0.0 0.1 0.2 0.3 0.4 0.5 0.6 scale r         
+
+> 020 40 60 80 100 (r) =  ( (A; r) (B; r))
+> r
+> = 2 = 1
+> interaction quotient E= 0.17, separation p= 0.005, excess p= 1.00 ( B= 199)
+> random relabelings (90% band) relabeling mean observed (r)
+
+Figure 2: The measurement, on two interlocking clouds. Top: the offsets at three scales with the intersection shaded—disjoint below 𝑟 ∗, then two arcs ( 𝜒 = 2), then one band ( 𝜒 = 1). Bottom: the profile Δ𝜒 (𝑟 ) against random relabelings of the pooled points (mean and 90% band): quotient 0 .17, separation certified at 𝑝 ↓ = 0.005, no excess. 
+
+2.1 The invariant and its properties 
+
+Write U ( 𝑆 ; 𝑟 ) = Ð𝑝 ∈𝑆 𝐵 ( 𝑝, 𝑟 ) for the 𝑟 -offset of a set 𝑆 ⊆ ℝ𝑑 ; following Kawamura et al. (2026) we use the same notation whether 𝑆 is a finite cloud or a compact support, so that sample and population offsets read alike. For finite clouds 𝑋 1, . . . , 𝑋 𝑘 ⊂ ℝ𝑑 and scales t = (𝑡 1, . . . , 𝑡 𝑘 ), the Intersection ECP is 
+
+Δ𝜒 (t; 𝑋 1, . . . , 𝑋 𝑘 ) = 𝜒 
+
+ Ñ𝑘 𝑖 =1 U ( 𝑋 𝑖 ; 𝑡 𝑖 )
+
+
+
+,
+
+the Euler characteristic of the overlap of the thickened clouds. On the diagonal t = (𝑟, . . . , 𝑟 ) we write 
+
+Δ𝜒 (𝑟 ); for 𝑘 = 2 it is the inclusion–exclusion defect 𝜒 𝑋 (𝑟 ) + 𝜒 𝑌 (𝑟 ) − 𝜒 𝑋 ∪𝑌 (𝑟 ). It is a piecewise-constant integer curve in 𝑟 , identically zero below first contact (Kawamura et al., 2026, Lem. 3.1), equal to the number of contact points at first contact (Kawamura et al., 2026, Lem. 3.2), and thereafter zero exactly when the overlap’s Betti numbers cancel (Section 2.2). Figure 2 shows the construction and the test on two clouds in the plane. Four properties carry the paper. Three are established in Kawamura et al. (2026); the remaining one, the inferential layer (P3), is what the present paper supplies—Kawamura et al. develop the invariant, its stability, and its sampling theory, and leave hypothesis testing to future work. 
+
+P1 Symmetry and 𝑘 -naturality. Δ𝜒 treats the clouds symmetrically and is defined for every 𝑘 by intersecting 𝑘 ball unions; no foreground class, no choice of order. 
+
+P2 Cheap computation. Δ𝜒 (· ; 𝑋, 𝑌 ) is computed from the Euler characteristic curves of the Alpha complexes of 𝑋 , 𝑌 , 𝑋 ∪ 𝑌 by a single sorted sweep of signed simplex counts, in 𝑂 (𝑛 ⌈𝑑 /2⌉ log 𝑛 )
+
+5r = 0.024 < r : disjoint r = 0.12: annulus, = 0 r = 0.30: annulus, = 0               
+
+> 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 scale r
+> 0100 200 (r) =  ( (A; r) (B; r))
+> r
+> guard window: overlap nonempty, 0 after the contact transient
+> certificate withheld
+> unguarded test: p= 0.005 would certify separation of two clouds that meet at every rr= 0.040
+> random relabelings (90% band) relabeling mean observed (r)
+
+Figure 3: The blind spot, and the guard. Two concentric rings meet from 𝑟 ∗ = 0.04 on, their overlap is an annulus, and 𝜒 vanishes on it at every larger scale, so the unguarded test would certify separation (𝑝 ↓ = 0.005; Theorem 1). The guard sees a nonempty overlap with Δ𝜒 ≡ 0 after the contact transient (shaded) and withholds the certificate. time with no boundary-matrix reduction (Kawamura et al., 2026, Thm. 6.5)—asymptotically below the 𝑂 (𝑁 3) of image persistence. 
+
+P3 Hypothesis test. An exact, distribution-free permutation test (label shuffling) certifies at level 𝛼 
+
+that two clouds interact more—or, in the opposite tail, less —than chance, for any sample size. This is developed in Section 3.2. 
+
+P4 Stability. under a Hausdorff perturbation of size 𝜖 the intersection filtrations are 𝜖 -interleaved, their diagrams are within bottleneck distance 𝜖 , and the profiles satisfy 𝑑 𝐿 1 (Δ𝜒, Δ𝜒 ′) ≤ 2𝜖 (𝑁 +
+
+𝑁 ′) with 𝑁, 𝑁 ′ the bar counts (Kawamura et al., 2026, Thm. 2.12, Prop. 3.12); the finite-sample guarantee proper is the recovery theorem (Section 3.4). 
+
+2.2 What Δ𝜒 cannot see 
+
+Because 𝜒 is an alternating sum, an overlap region with balanced Betti numbers is invisible: an annulus- or torus-shell-shaped intersection has 𝜒 = 0 across an entire scale plateau, bit-identical to 
+
+no overlap at all—a structural, scale-stable cancellation that the profile provably cannot detect (Kawa-mura et al., 2026, §4 and the saturation experiment therein). For disentanglement measurement this is a live failure mode, not a corner case: two class clouds arranged around a shared loop would register as perfectly separated (Figure 3). The quantity that disambiguates is the first interaction scale 
+
+𝑟 ∗ = inf {𝑟 ≥ 0 : U ( 𝑋 ; 𝑟 ) ∩ U ( 𝑌 ; 𝑟 ) ≠ ∅} ,
+
+6which is half the smallest cross-class distance, the diagonal boundary of the dead zone of Kawamura et al. (2026, Lem. 3.2); it falls out of the same Alpha-complex sweep at no extra cost and separates “zero because empty” from “zero because cancelling.” Section 3.2 builds it into the separation certifi-cate. When Δ𝜒 ≈ 0 on a range where 𝑟 ∗ certifies a nonempty overlap, the escalation is to the Betti curves of the overlap filtration—the overlap-homology comparison of their saturation experiment—or to the relative-homology refinement of Kawamura et al. (2026, §4) itself; either separates the two cases outright, at the cost of a persistence computation on the overlap alone. 
+
+# 3 Certified measurement of disentanglement 
+
+Every number reported below carries a test. This section fixes the measurement—class clouds, projec-tion, grid, and the interaction quotient—and then the tests: what each certifies, in which direction, and how multiplicity is controlled. The guarantees are elementary and are proved in Appendix A; sharper procedures—structured multiplicity control along the spectrum’s floors, and an analytic null that would calibrate without permutations—are left to future work. 
+
+3.1 Class clouds, projection, and the interaction quotient 
+
+Fix a trained (or mid-training) network and a layer ℓ with feature map 𝑓 ℓ. For classes 𝑐 1, . . . , 𝑐 𝑘 draw 
+
+𝑚 examples each and form 𝑋 (ℓ) 
+
+> 𝑖
+
+= { 𝑓 ℓ (𝑥 ) : label (𝑥 ) = 𝑐 𝑖 }. Because the Alpha complex scales as 𝑛 ⌈𝑑 /2⌉ ,we project to a low dimension 𝑑 0 by PCA before computing (E8 and Appendix D study sensitivity to 
+
+𝑑 0); this matches the protocol of Wagner et al. (2026). The projection is fitted once per layer on the 
+
+pooled features of all classes under test (the ten classes of a network; the pair itself in E1) and never sees the labels, and the scale grid below is likewise a function of the pooled cloud, so both are invariant under the relabelings of Section 3.2 and the permutation tests remain exact. Concretely, features are those of the held-out images (the test split; for the CIFAR-100 subset, whose test split has only 100 images per class, the unaugmented training split of 500 per class), the headline clouds are the first 
+
+𝑚 = 200 images of each class, and the paired tests of Section 3.3 use 𝐹 = 8 disjoint folds of 100 images per class (62 for the CIFAR-100 subset) cut from the same projection. The scale grid has 200 points from 0 to half the median pairwise distance of the pooled pair, and every functional below is evaluated on it. The grid is a convenience, not a necessity: the profile is a step function whose breakpoints are the critical values of the three Alpha filtrations (some 7 × 10 4 per pair at 𝑚 = 200, 𝑑 0 = 5), so its mass could be summed exactly; on the 45 MNIST pairs of E1 the grid mass is within ±2% of the exact one, and the permutation tests are exact for either statistic. What the grid does fix is the range of scales, its upper end. Projection is also conservative in the direction we certify: 
+
+Proposition 1 (Projection is conservative for separation) . Let 𝑃 : ℝ𝐷 → ℝ𝑑 0 be an orthogonal projec-tion and let 𝑋, 𝑌 ⊂ ℝ𝐷 be finite. Writing 𝑟 ∗ (𝑋, 𝑌 ) = 12 min 𝑥 ∈𝑋,𝑦 ∈𝑌 ∥𝑥 − 𝑦 ∥ for the first interaction scale of Section 2.2, 
+
+𝑟 ∗ (𝑃𝑋, 𝑃𝑌 ) ≤ 𝑟 ∗ (𝑋, 𝑌 ).
+
+Consequently, if the projected offsets are disjoint at scale 𝑟 —that is, 𝑟 < 𝑟 ∗ (𝑃𝑋, 𝑃𝑌 )—then U ( 𝑋 ; 𝑟 ) ∩ U ( 𝑌 ; 𝑟 ) = ∅ in the ambient representation as well. Proof. 𝑃 has operator norm 1, so ∥𝑃𝑥 − 𝑃 𝑦 ∥ = ∥𝑃 (𝑥 − 𝑦 )∥ ≤ ∥ 𝑥 − 𝑦 ∥ for all 𝑥, 𝑦 ; taking the minimum over 𝑥 ∈ 𝑋 , 𝑦 ∈ 𝑌 gives the inequality. If 𝑟 < 𝑟 ∗ (𝑃𝑋, 𝑃𝑌 ) then 𝑟 < 𝑟 ∗ (𝑋, 𝑌 ), and U ( 𝑋 ; 𝑟 ) ∩ U ( 𝑌 ; 𝑟 ) ≠ ∅
+
+would force some ∥𝑥 − 𝑦 ∥ < 2𝑟 , a contradiction. □
+
+7Projection can therefore only make classes look more entangled, never more separated: every first-contact scale, and hence every guard decision of the form ˆ 𝑟 ∗ > 𝑟 , transfers from the 𝑑 0-dimensional shadow to the full-dimensional representation; the permutation certificate itself is a statement about the projected clouds. The converse fails—apparent entanglement in the projection may be an artifact of it—which is one more reason the claims we certify are the separation claims (Section 3.2), and why “remains entangled” is only ever a magnitude comparison here. The entanglement of classes (𝑐 1, . . . , 𝑐 𝑘 ) at layer ℓ is a functional of the Intersection ECP of their class clouds, 
+
+𝐸 ℓ (𝑐 1, . . . , 𝑐 𝑘 ) = Φ  Δ𝜒 (· ; 𝑋 (ℓ) 
+
+> 1
+
+, . . . , 𝑋 (ℓ) 
+
+> 𝑘
+
+), Φ ∈
+
+n
+
+max  
+
+> 𝑟
+
+|Δ𝜒 (𝑟 )| , ∫ |Δ𝜒 (𝑟 )| 𝑑𝑟 
+
+o
+
+.
+
+Both functionals vanish for separated clouds and grow with entanglement. The 𝐿 1 bound of P4 controls the change of the integrated mass, which is the functional used for every certified claim below; it does not control the peak statistic (Kawamura et al., 2026, §3.5), which we report only descriptively. Raw values of Φ carry the layer’s density, dimension and feature scale, so we normalize to the interaction quotient 
+
+b𝐸 ℓ = Φ  Δ𝜒 (· ; 𝑋 (ℓ) 
+
+> 1
+
+, . . . , 𝑋 (ℓ) 
+
+> 𝑘
+
+)
+
+𝔼 𝐻 0
+
+Φ ,
+
+where the denominator is the expected value of the same functional under the exchangeable null— estimated at no extra cost as the mean of the 𝐵 permutation replicates already computed for the test of Section 3.2. The quotient is dimensionless, is centred at 1 when the classes are exchangeable (nu-merator and denominator are then evaluations of one statistic on exchangeable splits), and tends to 0 under separation; because numerator and denominator share the layer’s density, dimension 𝑑 0, sam-ple size and grid, it is comparable across layers, epochs, and models, which raw Δ𝜒 values are not. 
+
+Disentanglement is a decrease of b𝐸 ℓ along depth ( ℓ increasing) or training (epoch increasing). Through-out, the head statistic is the raw mass ∫ |Δ𝜒 | 𝑑𝑟 and its quotient; the paired tests use a dimensionless form of the mass (Section 3.3). 
+
+3.2 Two one-sided tests, and the guarded certificate 
+
+Let 𝐻 0 be that 𝑋 and 𝑌 are i.i.d. from a common distribution. Under 𝐻 0 the labels are exchangeable, so for a profile functional 𝑇 = Φ(Δ𝜒 ) and 𝐵 random relabelings, 
+
+𝑝 ↑ = 1 + #{𝑏 : 𝑇 𝜎 𝑏 ≥ 𝑇 obs }
+
+1 + 𝐵 , 𝑝 ↓ = 1 + #{𝑏 : 𝑇 𝜎 𝑏 ≤ 𝑇 obs }
+
+1 + 𝐵 
+
+are both exact at any sample size and any 𝐵 (Proposition 2). The distinction matters and conflating the two costs all power against one of them: 𝑝 ↑ detects excess interaction, while 𝑝 ↓ detects separation —the overlap topology is poorer than a random relabeling predicts. For class clouds the permuted splits interpenetrate maximally, so a layer that separates its classes drives 𝑇 obs into the lower tail. It is 𝑝 ↓, not 
+
+𝑝 ↑, that certifies disentanglement. The low-tail permutation test on this invariant was introduced for regime detection in dynamical systems by Majhi et al. (2026a), where a transition is declared when the overlap of two time-series windows is unusually low; here the same test certifies the separation of class clouds, and the paired form of Section 3.3 is new. The right tail is retained as a directional sanity check but, empirically, never fires on labeled class clouds—no class split interpenetrates more 
+
+than a random relabeling (E1: 0 /45 MNIST pairs)—so claims below that a pair “remains entangled” are statements about the magnitude of its interaction quotient relative to other pairs and conditions, not about 𝑝 ↑.8The separation certificate must be guarded. On a configuration that is 𝜒 -blind in the sense of Section 2.2, the separation test does not merely lose power: it rejects with probability tending to one, certifying separation exactly where the clouds meet (Theorem 1). The repair is the first interaction scale 𝑟 ∗, which falls out of the same sweep at no cost and is a consistent estimate of the population first-contact scale (Lemma 1): the guarded certificate withholds a separation claim whenever the profile is silent on the scales immediately beyond ˆ 𝑟 ∗, where the sampled offsets provably meet (Corollary 1). Every separation claim in this paper is of the guarded kind, and Experiment E4 reports how often the guard fired. Operationally, a pair is certified separated in a cell when its 𝑝 ↓ survives Benjamini– Hochberg within that cell’s family of 45 pairs and the guard is silent, the guard being evaluated on the quarter of the grid immediately beyond ˆ 𝑟 ∗. A sampled pair first meets in isolated contact points, a transient of a few grid points with Δ𝜒 > 0, so the released code also implements a plateau form of the guard: it waits for the profile’s first return to zero after contact and fires only if that return comes within the quarter-window and the profile then stays at zero on at least 90% of the following quarter, the signature of an annular overlap and not of a blob (Figure 3). Both forms were evaluated on the campaign (E4). The certificate says that the overlap topology of the pair is significantly poorer, over the whole scale range, than a random relabeling produces; it does not say the offsets are disjoint. What remains of the interaction is what the quotient reports, and certified pairs carry quotients anywhere from 0 .05 to 0 .9. 
+
+3.3 Comparative claims: the paired test 
+
+Rejecting 𝐻 0 is rarely the interesting event here: distinct classes are essentially never exchangeable at 
+
+any layer of a trained network, so the one-sided tests answer only the absolute question. The claims that carry the application are comparative— layer ℓ + 1 is more disentangled than layer ℓ, entanglement dropped between epochs 𝑒 and 𝑒 ′—and need a two-condition inference. We use a paired subsampled design (Appendix A.2): split the inputs into 𝐹 disjoint folds, pass each fold through both conditions to obtain paired replicates and their differences 𝐷 𝑠 , and calibrate by the sign-flip test, which is exact at finite 𝐹 for the symmetric null; its smallest attainable two-sided 𝑝 -value is 2 /2𝐹 , so it can reject at level 𝛼 whenever 2 𝐹 −1 ≥ 1/𝛼 (𝐹 ≥ 6 at 𝛼 = 0.05). We take 𝐹 = 8, so the floor is 2 /256 ≈ 0.008. The sign of ¯ 𝐷 is read off after the two-sided test. The fold statistic must be scale-free . The raw profile mass ∫ |Δ𝜒 | 𝑑𝑟 has units of feature length on the data-adaptive grid of Section 3.1, so a paired test on it across epochs certifies changes of feature norm as changes of interaction; we therefore pair the dimensionless mass ∫ |Δ𝜒 | 𝑑𝑟 /𝑟 max , with 𝑟 max the top of the grid (dividing by the pair’s permutation-null mean at that checkpoint instead gives the same picture). Experiment E3 reports what the raw statistic certified instead, as a cautionary contrast. 
+
+3.4 Estimation and multiplicity 
+
+At scales regular for both the population and the sample filtration, the sample profile equals the popu-lation one once the samples are 𝜖 -dense, with a sample complexity of order 𝜖 −𝑘 (log (1/𝜖 ) + log (1/𝛿 )) 
+
+in the intrinsic dimension 𝑘 of the class supports rather than the ambient or projected feature dimen-sion (Proposition 4, restated from the foundations paper). This is what licenses reading the measured profile as a property of the representation rather than of the sample. Across the layers × pairs × epochs sweep we control the false discovery rate by Benjamini– Hochberg at 𝑞 = 0.05, applied separately within each claim family; for the trajectory tests of E3 a family is the 45 class pairs of one seed, layer, and epoch step. Those 45 statistics share the fold split and the pooled clouds, so they are dependent; we assume they satisfy positive regression dependence on the true nulls, under which Benjamini–Hochberg controls the false discovery rate at 𝑞 (Benjamini 9Algorithm 1: Layerwise disentanglement profile 
+
+Input: network 𝑓 ; classes 𝑐 1, . . . , 𝑐 𝑘 ; 𝑚 samples/class; PCA dim 𝑑 0; functional Φ
+
+Output: 𝐸 ℓ and 𝑝 -value for each layer ℓ (and class subset) 
+
+foreach layer ℓ do 
+
+collect class clouds 𝑋 (ℓ) 
+
+> 𝑖
+
+= { 𝑓 ℓ (𝑥 ) : label (𝑥 ) = 𝑐 𝑖 }; PCA to ℝ𝑑 0 ;compute Δ𝜒 (·) by Algorithm 1 of Kawamura et al. (2026) (Alpha-complex sweep, no reduction); 
+
+𝐸 ℓ ← Φ(Δ𝜒 );permutation test: shuffle labels 𝐵 times, recompute Φ, report 𝑝 -value (P3); 
+
+return {( 𝐸 ℓ, 𝑝 ℓ)} ℓ and the multi-class tensor {𝐸 ℓ (𝑐 𝑆 )} ;and Yekutieli, 2001, Thm. 1.2), we do not prove it, and we check its cost with the dependence-agnostic correction (Benjamini and Yekutieli, 2001, Thm. 1.3): the dependence-agnostic Benjamini–Yekutieli correction has threshold 𝑖𝑞 /( 45 𝐻 45 ) at rank 𝑖 , with 𝐻 45 ≈ 4.40, so at 𝐹 = 8 it can reject only when at least 31 of the 45 paired 𝑝 -values sit at the floor 2 /256. Run over the E3 families it retains 254 of the 2,707 BH rejections, all of them at the first epoch step: the early-training conclusion of E3 survives the stricter correction, the late learning-rate wave does not, and we say so where each is reported. Procedures that exploit the structure BH ignores (the spectrum’s floors form a descending chain, so their occupancy hypotheses admit fixed-sequence testing) need permutation replicates aligned across the family, which this campaign did not retain. 
+
+3.5 Multi-class structure 
+
+Unlike total mixup, 𝐸 ℓ is defined for 𝑘 > 2, in three informative regimes: (i) the pairwise matrix 
+
+𝐸 ℓ (𝑐, 𝑐 ′) over all class pairs, a representation-geometry analogue of a confusion matrix; (ii) the higher-order terms 𝐸 ℓ (𝑐, 𝑐 ′, 𝑐 ′′ ) and beyond, which detect class triples (or larger groups) that remain jointly 
+
+entangled when no pair is; and (iii) the interaction spectrum (Kawamura et al., 2026, Def. 2.19), the floors 𝜒 (𝐶 𝑗 ), 𝐶 𝑗 (𝑟 ) = Ð|𝑆 |=𝑗 
+
+Ñ𝑖 ∈𝑆 U ( 𝑋 𝑖 ; 𝑟 ) (“at least 𝑗 classes meet”), of which Δ𝜒 is the top floor, exactly computable from pooled Euler curves by Jordan’s sieve (Comtet, 1974, Ch. IV) applied to the Euler integral of Kawamura et al. (2026, Def. 2.19), 𝜒 (𝐶 𝑗 ) = Í𝑚 ≥ 𝑗 (− 1)𝑚 − 𝑗  𝑚 −1
+
+> 𝑗 −1
+
+ Í |𝑆 |=𝑚 Δ𝜒 𝑆 (the case 
+
+𝑗 = 1 is their Lemma A.1). Each floor inherits the permutation tests and the interaction quotient verbatim, with the 𝑘 -cloud null of Proposition 2. Since every floor is linear in the subset profiles, the spectrum adds no information beyond the subset family; its value is as a graded summary—the decay of b𝐸 (𝐶 𝑗 ) in 𝑗 is the quantitative form of pairwise dominance, and the onset delays 𝑟 ∗ (𝐶 𝑗 )− 𝑟 ∗ (𝐶 2) record how much later deep multi-class overlap begins than first pairwise contact (Experiments E2, E7). The second floor is also the natural single summary of a layer: one number, one test, no multiplicity across pairs. On the five-class families of E7 it tracks the mean pairwise quotient of the same ten pairs at every layer of every model, a little above it because the union of overlaps is normalized by its own null (Appendix C); we report the pairwise mean in the experiments because the questions asked there are about particular pairs. Algorithm 1 summarizes the protocol. 
+
+# 4 Experiments 
+
+The campaign comprises 111 trained networks (104 in the main suite: the five E3 seeds, the three E2 models and the 96-model population of E5; plus a follow-up suite: two SimCLR encoders, a pretrained 10 0 1 2 3 4 5 6 7 8 9digit 0123456789digit    
+
+> 0.29 0.29 0.25 0.25 0.40 0.40 0.61 0.61
+> MNIST pairwise Intersection ECP (conf = 0.83)
+> 0.1 0.2 0.3 0.4 0.5 0.6 interaction quotient  E
+
+Figure 4: Pairwise interaction quotients over the ten MNIST digits ( 𝑚 = 200/class, 𝑑 0 = 5). All 45 pairs are certified separated; the residual quotient ranks pairs by confusability (Spearman 𝜌 = 0.83 with a classifier’s confusion matrix). Annotated cells are the most entangled pairs. ViT-B/16 finetune, and a 4-model learning-rate ablation), 1 ,170 (network, layer, checkpoint) cells, and 52 ,650 certified pairwise measurements—42 ,570 distinct clouds, since the stage-3 and penultimate rows of a ResNet are the same clouds measured twice—(the control arms of E6 and E9 add 17 further trained networks, and the initialization and language-model cells of E9–E10 lie outside these counts), computed by the GUDHI implementation of the Alpha-complex sweep (Kawamura et al., 2026) on CPU nodes with no persistence reduction anywhere. Protocol constants throughout: 𝑚 = 200 points/class, 
+
+𝑑 0 = 5 (PCA), 𝐵 = 199 permutations per test ( 𝐵 = 999 for escalations), 𝐹 = 8 folds for paired tests, BH at 𝑞 = 0.05 within claim families. Datasets are MNIST (LeCun et al., 1998) and CIFAR-10/100 (Krizhevsky, 2009); architectures are MLPs, residual networks (He et al., 2016), vision transform-ers (Dosovitskiy et al., 2021), and, for the label-free regime, SimCLR encoders (Chen et al., 2020). Training recipes: CIFAR ResNets use SGD with momentum 0 .9, learning rate 0 .1, batch size 128, cosine decay over 80 epochs, weight decay 5 · 10 −4 and random-crop/flip augmentation unless an experiment says otherwise (the E5 population crosses weight decay {0, 5 · 10 −4} with augmentation on/off); the from-scratch ViT uses AdamW at learning rate 10 −3, weight decay 0 .05, 100 epochs; the ViT-B/16 finetune AdamW at 10 −4, weight decay 10 −4, 8 epochs, batch size 64; SimCLR learning rate 0 .5, weight decay 10 −4, 200 epochs, batch size 256; the random-label control weight decay 0, no augmentation, 150 epochs. E5’s regressions are ridge with the penalty chosen by cross-validation over 10 −3–10 3. Code, configuration files, every measurement record, and the scripts that regenerate each number and figure accompany the paper. 
+
+Experiment (E1 — reproduce Wagner, at scale). Correlate the pairwise matrix of Figure 4 b𝐸 (𝑐, 𝑐 ′)
+
+(interaction quotient, Φ = ∫ |Δ𝜒 |) entrywise with the confusion matrix of a trained classifier (Spear-man rank correlation over the 45 pairs), and verify the ranking is stable across 𝑑 0 ∈ { 3, 4, 5, 6}, points per class 𝑚 ∈ { 50 , 100 , 200 , 400 }, and 5 independent resamples ( 𝑑 0 > 6 is out of reach for Alpha complexes: a 7-dimensional complex on 400 points already exceeds 10 7 simplices). The representation is the raw 28 × 28 pixel vector in [0, 1] (no network), and the clouds are 
+
+𝑚 = 200 training images per class projected by a PCA fitted on the pooled pair; the confusion matrix 11 is that of a multinomial logistic classifier on the top 50 pixel principal components, evaluated on the MNIST test set and symmetrized. On the identical 𝑑 0 = 5 clouds we also compute four cheap separability statistics—the Fisher ratio ∥𝜇 1 − 𝜇 2 ∥2 over the mean within-class variance, the energy distance, the 5-nearest-neighbour cross-class rate, and the cross-validated error of a logistic probe— and rank the pairs by each. 
+
+Result (𝑚 = 200, 𝑑 0 = 5, 𝐵 = 199). All 45 pairs are certified separated at 𝑝 ↓ ≤ 0.05, and the residual interaction quotient ranks pairs by confusability: Spearman 𝜌 = 0.83 against the classifier’s symmetrized confusion matrix ( 𝑝 = 2.4 × 10 −12 ). The cheap statistics rank it comparably: 5-NN cross-class rate 𝜌 = 0.86, probe error 0 .83, energy distance 0 .77, Fisher ratio 0 .74; the quotient correlates 0.87 with the neighbour rate itself. For ranking pairwise confusability, then, the topological statistic adds nothing over a nearest-neighbour count, and we do not claim otherwise; its value lies in the certificate, the 𝑘 -fold terms and the scale resolution that the cheap statistics do not offer. The most entangled pairs are (4, 9) (b𝐸 = 0.61), (3, 8) (0 .40), (2, 8) (0 .29); the least, (0, 1) (0 .05), (6, 9) and 
+
+(0, 7) (0 .09). The ranking is stable across the full protocol sweep (Spearman vs. reference: median 0.87, minimum 0 .73 over 80 sweep cells). No pair triggers 𝑝 ↑ ≤ 0.05, confirming that the certifiable direction on class data is separation (Section 3.2). See Figure 4. 
+
+Experiment (E2 — multi-class disentanglement vs depth). On CIFAR-10 (ResNet-56 and ViT-Tiny) and a 10-class subset of CIFAR-100 (ResNet-56), compute b𝐸 ℓ through depth at every residual stage / transformer block: the full pairwise matrix, and a scan over all  10 3
+
+ = 120 class triples reporting the joint statistic b𝐸 ℓ (𝑐, 𝑐 ′, 𝑐 ′′ ) against the maximum of its three pairwise restrictions (the 𝑘 = 3 inclusion– exclusion has 7 Alpha-complex terms per evaluation, so the full-depth triple scan runs at 𝑑 0 = 4, with the deep layers rescanned at 𝑑 0 = 5; E8 covers the 𝑑 0 sensitivity of the pairwise results). One bookkeeping note applies to every ResNet cell in the paper: the penultimate representation is the globally pooled output of the last residual stage, so the “stage 3” and “penultimate” rows of a ResNet are the same point clouds measured twice, with independent permutation draws. Counts of measurements below include both rows; where a count is itself a claim (the dominance rate here) we report the deduplicated number. 
+
+Result: depth. Disentanglement is certified layer-by-layer and is strongly depth-graded (Figure 5). The CIFAR-10 ResNet-56’s mean pairwise quotient falls 0 .72 → 0.63 → 0.57 → 0.18 from stem to stage 3 (45 /45 pairs certified at the deep stages); on the CIFAR-100 subset the deep-layer drop is sharper still (0 .79 → 0.06). The quotient tracks linear-probe accuracy inversely at every layer. The ViT is a contrast of standard recipes as much as of architectures (it is trained with AdamW at weight decay 0.05, the ResNets with SGD at 5 · 10 −4): it disentangles less at every depth, and non-monotonically —its mean quotient falls to 0 .31 at block 6 and rises again to 0 .39 at the penultimate representation, with individual pairs remaining at quotients up to 0 .88; consistently, it is the weakest generalizer of the three models. The cheap statistics of E1 computed on the same clouds give the same depth ordering for the ResNets—on CIFAR-10 the 5-NN cross-class rate falls 0 .36 → 0.03 and the Fisher ratio rises 0 .5 → 10 from stem to stage 3—and disagree with the quotient in exactly one place, this ViT’s head, where they keep improving from block 6 to the penultimate representation (0 .13 → 0.09; 2.6 → 4.2) while the quotient rises 0 .31 → 0.39: the overlap topology re-entangles even as nearest-neighbour purity and mean separation improve. The non-monotonicity is a from-scratch artifact , not an architectural signature: finetuning a pretrained ViT-B/16 on the same data yields a monotone depth profile at every finetuning epoch, up to ±0.01 permutation noise among the deepest blocks—mean quotient 0 .68 → 0.53 → 0.14 → 0.13 → 0.13 from block 3 to the penultimate representation at epoch 6, with 45 /45 pairs certified from block 9 down—and the profile is already monotone at epoch 0, i.e. before any finetuning. Sufficient (pre-)training data, not the attention architecture, determines whether a ViT disentangles monotonically. 12 Result: higher-order scan. Across all 120 triples at every layer of the three architectures ( 𝑑 0 = 4; 1,560 distinct triple–layer cells after removing the stage-3/penultimate duplicates), the joint quotient sits at or below the largest of its three pairwise quotients in 1 ,509 cells (96 .7%), at an overall median ratio b𝐸 triple /max pairs b𝐸 of 0 .63 (Figure 6). The exceptions are reported in full: 44 on the CIFAR-100-subset ResNet-56, spread over all four stages (ratios up to 1 .11 in the stem and 1 .22 in stage 3, on a model whose early-layer pairs sit near the null), and 7 on the ViT—six in block 6, the block at which its depth profile turns, the largest at 1 .41, and one in block 2 at 1 .04; the CIFAR-10 ResNet-56 has none. A dimension-matched rescan of the deep layers at 𝑑 0 = 5 (600 distinct cells: the deep stage of each ResNet-56 and ViT blocks 6, 8 and the penultimate representation; also rerun at mid-training checkpoints of the E3 ResNet-20 with the same outcome) gives 597 /600 (99 .5%), median 0.47, maximum 1 .07, the three exceedances all on the CIFAR-100 subset. The pattern that would falsify pairwise dominance outright—all three pairs certified separated with quotients ≤ 0.15 while the joint quotient is ≥ 0.2 and at least double the pairwise maximum—returns zero candidates at every layer, under both the screening and the escalated 𝐵 = 999 tests. Dominance carries a test against the null floor measured in E9: an unstructured family registers as dominated 66 times in 80, with per-seed median ratios of 0 .85–1 .03, whereas the 13 distinct cells of the full-depth scan have medians of 0 .44–0 .89 and the five deep cells of the rescan 0 .43–0 .52; a one-sided exact Mann–Whitney test of cell medians against the 20 null-seed medians gives 𝑝 = 3.3 × 10 −8 for the full-depth scan and 
+
+𝑝 = 1.9 × 10 −5 for the deep rescan (every Mann–Whitney test in this paper is exact and one-sided, on cell medians over all 120 triples). The regularity also survives the most plausible counterexample generator we could construct: two SimCLR encoders (ResNet-20, trained without labels , hence free of the cross-entropy pressure toward neural collapse) develop strong certified pairwise separation in their deep layers—mean quotient ≈ 0.30 at the penultimate stage, 45 /45 pairs certified, remarkable for a label-free objective—yet their triple scans likewise return zero candidates: the largest joint-vs-pairwise excess in either seed is +0.04 (seed 0, stage 1) and +0.03 (seed 1, stem), both within permutation noise of the pairwise level and neither in a deep layer, and in the deep layers every triple sits below its pairwise maximum (largest excess −0.07 and −0.08). Where joint quotients are large (early layers), they match the pairwise levels—triples inherit their pairs’ entanglement. Only a 𝑘 -fold statistic could have asked the question; the answer is that for these trained classifiers the pairwise entanglement matrix carries almost all of the class-overlap structure the intersection invariant can see, with exceptions that are small, mostly in early and middle layers, and listed. 
+
+Why dominance is the default, and why it is not a theorem. By witness-region nesting, Ñ𝑖 ∈𝑇 U ( 𝑋 𝑖 ; 𝑟 ) ⊆ Ñ𝑖 ∈𝑆 U ( 𝑋 𝑖 ; 𝑟 ) for 𝑆 ⊆ 𝑇 : the triple overlap lives inside each pairwise overlap, so a triple can be active only at scales where all three pairwise overlaps are nonempty, and a triple entangled while its pairs test null would require sustained Euler cancellation in all three—the failure mode the guard monitors, which occurred 0 times in 52 ,650 measurements (E4). Nesting also explains where the exceptions sit: at ratios of 1 .0–1 .4, either in early layers whose pairwise quotients are near the null, where the triple’s null is smallest relative to its signal, or in the deep stage of the CIFAR-100 subset, where the ratio divides one near-zero quotient by another. It does not make dominance a theorem, and we checked: 𝜒 is not monotone under inclusion, so cutting a pairwise overlap by a third ball union can 
+
+create components, and the permutation null of a triple is far smaller than a pair’s, which inflates triple quotients. An adversarial search over anisotropic Gaussian triples in ℝ3 (𝑛 = 30 per class, 
+
+𝐵 = 99), constrained to the guard-certified regime, finds b𝐸 triple /max pairs b𝐸 = 1.98 at the optimum and a median of 1 .24 over 20 fresh draws of the same geometry (above 1 in 85%). Dominance is therefore a property of these representations, not of the geometry; and because an unstructured family is scored “dominated” 83% of the time (E9), the distance of the ratio distribution from the null floor, not the rate, is the finding. Experiment E9 asks whether training induces it and finds it already present at initialization, deepened by training on the true labels, and manufactured from an 13 stem / block 2 stage 1 / block 4 stage 2 / block 6 stage 3 / block 8 penultimate  
+
+> depth (ResNet stage / ViT block)
+> 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 mean pairwise  E
+> ResNet-56, CIFAR-10 ResNet-56, CIFAR-100 (10-class subset) ViT-Tiny, CIFAR-10
+
+Figure 5: Depth-wise disentanglement at the final epoch: mean pairwise quotient per stage for ResNet-56 on CIFAR-10 and on the CIFAR-100 subset, and for the ViT on CIFAR-10. The ResNets drop sharply at the deep stage (their penultimate point repeats stage 3); the ViT is weaker and non-monotone. exchangeable start by random-label memorization. The converse lesson stands: genuine higher-order entanglement, if it exists in representations, is structurally invisible to intersection -based invariants and must be sought in complement or linking invariants, whose complete 𝑘 -cloud form Kawamura et al. (2026) leave open. 
+
+Experiment (E3 — training-dynamics trajectories at scale). Train ResNet-20 on CIFAR-10 for 5 seeds, checkpointing at epochs 0 , 1, 2, 4, 8, 16 , 32 and every 10 epochs from 40 to 80; track b𝐸 ℓ at every residual stage for every checkpoint, exploiting the no-reduction cost (P2) to a scale impractical for mixup barcodes. Report paired-test significance (Section 3.3) for each epoch-to-epoch step. 
+
+Result. Across 12 ,375 paired epoch-to-epoch tests (5 seeds × 5 stages × 45 pairs × 11 checkpoint steps) on the scale-free fold statistic of Section 3.3, 2 ,707 steps are BH-significant, 2 ,026 of them decreases: training disentangles, and the claim is certified stepwise rather than read off a curve (Fig-ure 7). The significance sits at the start and in the deep stage: 687 significant steps at epoch 0 → 1and 1 ,728 within the first eight epochs, and over the whole run the deep stage carries 873 certified decreases against 42 at the stem. The 681 significant increases are of two kinds: at epoch 0 → 1 about a fifth of the pairs in every stage re-entangle as the random features are overwritten (202), and in the middle stages individual pairs re-entangle transiently between epochs 1 and 4 (130 and 80) while the stage means keep falling. A smaller late wave exists and follows the learning-rate schedule, at BH level only: under the cosine schedule, 136 certified decreases at epochs 50 → 60 and 98 at 60 → 70, every one of them in the deep stage; under a step schedule with drops at epochs 40 and 60 (2 seeds, iden-tical protocol) the wave moves to 40 → 50 (166 decreases, 160 in the deep stage); under a constant learning rate no step after epoch 32 carries more than 49 decreases, and the two late steps carry 18 and 32 against 36 and 16 increases. Learning-rate decay, not training time, triggers a late reorganiza-tion of the deep stage, but the effect is an order of magnitude smaller than the initial separation and does not survive the Benjamini–Yekutieli correction (Section 3.4). Disentanglement is depth-graded exactly as in E2: over training, the mean quotient at the penultimate stage falls 0 .78 → 0.16 while the stem barely moves (0 .76 → 0.73)—early layers never disentangle; deep layers do almost all the work. 
+
+What the raw statistic certified instead. The same 12 ,375 tests on the raw profile mass ∫ |Δ𝜒 | 𝑑𝑟 —the fold statistic of our first campaign—return 5 ,633 significant steps, and 1 ,125 of them, every signif-14 stem stage 1 stage 2 stage 3 stem stage 1 stage 2 stage 3 block 2 block 4 block 6 block 8 penult. 
+
+0.2 0.4 0.6 0.8 1.0 1.2 1.4   
+
+> Etriple  / max
+> pairs
+> E null-floor medians
+> ResNet-56 / CIFAR-100 subset ResNet-56 / CIFAR-10 ViT-Tiny / CIFAR-10
+
+Figure 6: The higher-order scan: b𝐸 triple /max pairs b𝐸 for all 120 triples in every layer of the three ar-chitectures ( 𝑑 0 = 4), one strip per distinct cell, bar at the median. Dotted line: ratio 1; grey band: per-seed medians of the null floor (E9). Exceedances sit in all four stages of the CIFAR-100 ResNet, mostly the early ones, and in block 6 of the ViT. icant step at epoch 0 → 1, are increases , at the very step where every quotient falls. The permutation-null mean of the mass grows twentyfold at that step in the deep stage (the features spread out), and the raw mass follows the scale rather than the interaction. The late ‘wave’ it certified sat in the stem —225 of 225 pair–seed tests at 50 → 60—exactly where the quotient is flat at 0 .74 and the feature norm is shrinking under weight decay. The quotient and the certificates of E1–E2, which divide by the same-grid null, were never affected; the paired comparisons were, and the statistic is dimensionless throughout this paper. We report the episode because it is the failure mode that any trajectory analysis on an unnormalized geometric statistic will meet. 
+
+The same test on cheap statistics, same folds. We ran the identical paired analysis on the Fisher ratio, the mean-distance ratio, the energy distance and the 5-nearest-neighbour cross-class rate of E1 on the same fold clouds. The neighbour rate tells the ECP’s story: 3 ,456 significant steps, 2 ,933 of them disentangling, 2 ,356 within the first eight epochs, the cosine wave at 50 → 60 (173 decreases, 146 in the deep stage) and the step-schedule wave at 40 → 50 (202, 170 deep), and no localized late wave at constant learning rate. The late wave is therefore a property of the representation, not of the measure. The three mean-based statistics behave differently: they certify changes at almost every step in both directions (9 ,448 significant under the cosine schedule, 6 ,017 disentangling and 3 ,431 entangling; 468 against 389 even at 70 → 80, in every stage including the stem, where neither the quotient nor the neighbour rate moves), because a drift of the class means registers as a change whether or not the overlap changes. For timing when classes separate, the overlap statistics—topological or nearest-neighbour—resolve it and the mean-based ones do not. 
+
+Result: cost, on identical clouds. On the final-epoch representations of the 104 main-suite net-works we ran the mixup barcode—the authors’ reference implementation, vendored unmodified—on exactly the clouds the ECP measures ( 𝑚 = 200, 𝑑 0 = 5, both inclusion directions since the barcode is asymmetric, degrees 0–1): 31 .7 s per pair against 3 .7 s for the full ECP profile (three Alpha-complex 15 0 1 2 4 8 1632 80    
+
+> epoch 0.2 0.3 0.4 0.5 0.6 0.7 0.8 mean pairwise  E
+> stem
+> 01 2 4 8 1632 80
+> epoch
+> stage1
+> 01 2 4 8 1632 80
+> epoch
+> stage2
+> 01 2 4 8 1632 80
+> epoch
+> stage3
+
+Figure 7: Training dynamics, certified: mean pairwise quotient per stage for ResNet-20 on CIFAR-10, one curve per seed (stage 3 is the penultimate representation). Vertical marks are epochs receiving BH-significant paired steps on the scale-free statistic—red decreases, grey increases, weighted by count. Deep stages disentangle; the stem does not. sweeps), a mean 8 .5× per layer (range 3 .9–15 .2×), 206 vs. 24 CPU-hours in total; the gap is the image-persistence matrix reduction against the reduction-free sweep, and it compounds with 𝐵 under permutation testing—which the barcode does not support. At the barcode’s cost, the 12 ,375 paired tests of this experiment alone would be infeasible. 
+
+Experiment (E4 — calibration, and the guard). Apply both one-sided tests to every layer/pair and the paired test to every trajectory step; Verify Type-I calibration empirically: on label-shuffled (null) data, the rejection rate at level 𝛼 must match 𝛼 across 500 null replicates, for both tails and for the sign-flip test. Report the cancellation-guard firing rate ( 𝑟 ∗ vs. Δ𝜒 , Section 3.2) across all measured clouds. 
+
+Result (calibration). All three tests are calibrated. Over 500 null replicates, empirical rejection rates at 𝛼 ∈ { 0.01 , 0.05 , 0.10 }: 𝑝 ↑ gives (0.010 , 0.044 , 0.090 ), 𝑝 ↓ gives (0.014 , 0.064 , 0.092 ), and the sign-flip paired test gives (0.006 , 0.052 , 0.100 )—each within binomial error of nominal (Figure 8). 
+
+Result (guard). Across all 52 ,650 pairwise measurements of the campaign (38 ,475 in the main suite, audited by this experiment’s pipeline, plus 14 ,175 in the follow-up suite, audited post hoc from the archived measurement records) the cancellation guard fired zero times (42 ,570 distinct clouds, the stage-3 and penultimate rows of each ResNet being the same clouds measured twice). The guard monitors one failure pattern—silence of Δ𝜒 on the quarter of the scale range immediately past first contact while ˆ 𝑟 ∗ certifies that the offsets already meet—so a zero firing rate says that this pattern never occurred, not that Euler cancellation is impossible elsewhere in the range, and on pairs whose quotient is far from zero the pattern is unlikely to begin with. What the count establishes is narrower and still useful: no separation certificate in the campaign was issued on a pair whose profile was silent at the scales where the clouds provably interact, which is exactly the false certificate of Theorem 1, and the check costs nothing beyond the sweep already run. Because the campaign window begins at the contact scale, where a sampled annulus is still a set of contact points, we re-evaluated every cell whose features remained cached (45 ,225 of the 52 ,650; the 34 population, SimCLR and finetuned-ViT files whose cached features had been purged are covered by the archived window only) under three criteria: the campaign window, the same window shifted one grid point past contact, and the plateau form of Section 3.2. None fired on any cell, and the recomputation reproduced every archived guard decision. The profiles say why: on class clouds the overlap is a set of blobs, and Δ𝜒 first returns to 16 0.00 0.05 0.10 0.15 0.20 0.25 nominal level 
+
+> 0.00 0.05 0.10 0.15 0.20 0.25 empirical rejection rate (null)
+> guard fired 0/38475 (0.00%)
+> p
+> p
+> sign-flip
+
+Figure 8: Type-I calibration: empirical null rejection rate against the nominal level for both one-sided tests and the sign-flip test (500 null replicates). All three track the diagonal. zero a median of 78 grid points after contact, on a live range of 181; 1 ,797 cells return to zero within the first quarter, and in none of them does the zero persist. 
+
+Experiment (E5 — predicting generalization (exploratory)). Train a population of 96 CIFAR-10 models crossing depth {20 , 32 , 44 , 56 } × width {1×, 2×} × weight decay {0, 5·10 −4} × augmentation 
+
+{on, off } × 3 seeds; regress held-out test accuracy on disentanglement features (final-epoch b𝐸 ℓ per stage, trajectory summaries, triple-entanglement counts) and report predictive 𝑅 2/rank correlation against total mixup, CKA, linear probes, and neural collapse. 
+
+Result (two-sided). Over the 96-model population the null-normalized quotient features are in-formative but weak (leave-one-out 𝑅 2 = 0.34, Spearman 𝜌 = 0.65 for test accuracy, and similarly for the generalization gap), while the baselines are near-ceiling ( 𝑅 2 = 0.99, 𝜌 = 0.99), dominated by linear-probe accuracy, which is nearly the prediction target itself; total mixup—the authors’ ven-dored reference implementation on identical clouds, direction-symmetrized, degrees 0–1—predicts far better than the quotient ( 𝑅 2 = 0.84, 𝜌 = 0.91). The explanation is normalization. The quotient divides out the density and the feature scale (the raw mass has units of feature length, Section 3.3), and that scale is what a predictor of accuracy uses: the unnormalized ECP features (per-layer mean and maximum profile mass ∫ |Δ𝜒 | and mean first-interaction scale 𝑟 ∗, all from the same sweep) reach 
+
+𝑅 2 = 0.94, 𝜌 = 0.96 for test accuracy and 𝑅 2 = 0.92 for the gap, above total mixup (Table 1). None of it survives the probes: adding either ECP family, or total mixup, to the baselines leaves them un-changed ( 𝑅 2 = 0.985–0 .988 against 0 .987). For raw prediction on this population, no topological interaction summary—certified or descriptive, ours or theirs—carries information beyond what triv-ially cheap probes already provide; the measurement’s value lies in the certified structural claims of E1–E4 and E9–E10, not in generalization prediction. 
+
+Result: the quotient’s departure from the cheap statistics. Scoring each (model, layer) cell by how far the quotient departs from what the neighbour rate or the Fisher ratio of E1 predicts, and regress-ing test accuracy, generalization gap, expected calibration error, negative log-likelihood, and accuracy under four on-the-fly corruptions on those departures, alone and on top of the baselines, changes no leave-one-out 𝑅 2 by more than 0 .03. The departure predicts nothing the cheap statistics do not; the deep-stage neighbour rate is itself the strongest calibration predictor in the population (Spearman 0 .94 with calibration error, above probe accuracy), and corruption robustness, which clean accuracy barely 17 target features 𝑛 feat LOO 𝑅 2 Spearman test_acc ecp 16 0.337 0.655 test_acc baselines 15 0.987 0.993 test_acc ecp+baselines 31 0.985 0.993 test_acc ecp-raw 15 0.935 0.963 test_acc ecp+ecp-raw 31 0.925 0.956 test_acc baselines+ecp-raw 30 0.988 0.994 test_acc total-mixup 10 0.841 0.908 test_acc baselines+total-mixup 25 0.987 0.993 gen_gap ecp 16 0.340 0.662 gen_gap baselines 15 0.981 0.990 gen_gap ecp+baselines 31 0.979 0.989 gen_gap ecp-raw 15 0.918 0.955 gen_gap ecp+ecp-raw 31 0.906 0.946 gen_gap baselines+ecp-raw 30 0.979 0.987 gen_gap total-mixup 10 0.818 0.899 gen_gap baselines+total-mixup 25 0.981 0.990 Table 1: E5 exploratory generalization prediction over 96 models: leave-one-out 𝑅 2 and Spearman correlation of ridge regression by feature family. predicts (Spearman 0 .30), is predicted weakly by mid-stage entanglement ( 𝑅 2 = 0.34) whichever statistic measures it. The outcome sits comfortably in a literature that has repeatedly found complex-ity measures to correlate weakly or unstably with generalization once models are swept systematically (Jiang et al., 2020); the topological entrant with the strongest claim measures the optimizer’s trajec-tory rather than the representation (Birdal et al., 2021). 
+
+Experiment (E6 — steering disentanglement with a differentiable surrogate (summary; Ap-pendix B)). Can the measure be turned around to steer training? Since Δ𝜒 is integer-valued, we optimize a smooth surrogate: on a mini-batch, the mean over cross-class pairs C of a multi-scale Gaussian kernel of their feature distance, 
+
+Ldis = 1
+
+|C| ∑︁ (𝑥,𝑦 ) ∈ C 
+
+1
+
+|S| ∑︁ 𝑠 ∈ S 
+
+exp 
+
+
+
+− ∥ 𝑓 (𝑥 ) − 𝑓 ( 𝑦 )∥ 2
+
+2 𝑠 𝜎 2
+
+
+
+,
+
+where 𝜎 2 is the median within -class squared distance in the batch, so that the value of Ldis is scale-invariant like Δ𝜒 and cannot be reduced by inflating feature norms; invariance of the gradient addi-tionally requires 𝜎 2 to stay in the computational graph. We train ResNet-20 on CIFAR-10 at the E3 recipe with L = LCE + 𝜆 Ldis for 𝜆 ∈ { 0, 0.5, 2, 8} and judge the surrogate by whether the certified 
+
+penultimate quotient, measured afterwards by the non-differentiable ECP, moves in 𝜆 . Both implemen-tations of the surrogate—with the bandwidth 𝜎 2 detached from the graph and with it inside— lower 
+
+the surrogate while raising the certified entanglement, monotonically in 𝜆 (0 .159 → 0.344 detached; 0.167 → 0.488 attached, at 𝜆 ≤ 2), each for an identifiable reason: the detached surrogate is gamed by feature-norm inflation, the attached one by within-class dispersion. E6 is therefore a measure-ment result rather than a regularizer: a differentiable surrogate for the interaction quotient is not yet available, and the certificate is what exposes the failure. Appendix B reports the full campaign, with accuracies and robustness. 18 Experiment (E7 — the interaction spectrum (summary; Appendix C)). On the final-epoch E2 models and ResNet-20 we compute the full spectrum of floors b𝐸 (𝐶 𝑗 ), 𝑗 = 2, . . . , 5 (“at least 𝑗 classes meet”), the top floors 𝑗 ∈ { 8, 9, 10 } of all ten classes, and the onset vector 𝑟 ∗ 
+
+> 2
+
+≤ · · · ≤ 𝑟 ∗ 
+
+> 10
+
+per layer. The spectrum decays monotonically in 𝑗 in every layer of every model, at a depth-graded rate (mean step ratio ≈ 0.88 at the stem, ≈ 0.61 at the deepest stage); the top floors are negligible in the deepest ResNet stages (quotients 0 .015–0 .07 against 0 .44–0 .73 at the stem; 𝐵 = 19, so magnitudes rather than sharp certifications); and the onsets stretch with order, the ten-fold overlap beginning at twenty times the pairwise scale in the deep stage. This is the graded, scale-domain form of E2’s dominance; Appendix C gives the full spectra and onset curves. 
+
+Experiment (E8 — robustness to the projection dimension (summary; Appendix D)). Re-measuring the depth conclusions of E2 at 𝑑 0 ∈ { 3, 4, 6} on all three E2 models and the pretrained ViT-B/16 leaves every qualitative conclusion unchanged: the depth grading, the ViT’s non-monotone profile and the pretrained ViT’s monotone one persist at every 𝑑 0, deep layers stay fully certified separated, and the pair ranking against the 𝑑 0 = 5 reference has median Spearman 0 .91, 0 .96, 0.97 at 𝑑 0 = 3, 4, 6, the few lower values (0 .56–0 .69) occurring only at 𝑑 0 = 3 among pairs already indistinguishable from zero. Appendix D gives the numbers. 
+
+Experiment (E9 — is pairwise dominance present at initialization?). Is dominance a property of PCA-projected class clouds of natural images that training merely preserves, or something training produces? We rebuild the initializations of the E3 ResNet-20 and the E2 ResNet-56 and ViT exactly as the training script does (seeded construction, before the first optimizer step), push the CIFAR-10 test set through them, and run the full pairwise matrix and the  10 3
+
+ triple scan at the same 𝑑 0 on every stage boundary and on the raw normalized input ( 𝑚 = 200, 𝐵 = 49 for both orders, so the ratio is not biased by unequal precision), scored exactly as in E2 and compared against the dimension-matched trained cells. As a control in the opposite direction we train the same ResNet-20 to memorize a fixed random relabeling of CIFAR-10 (Zhang et al., 2017) (no augmentation, no weight decay, 150 epochs; train accuracy 0 .9999, chance 0 .0995 on the true test labels) and measure it on the training images with the labels it fitted, where the ten “classes” are exchangeable by construction until the network makes them otherwise. 
+
+Result: present at initialization, deepened by training. At the initialized penultimate layer ( 𝑑 0 = 5) every triple of every architecture is dominated: b𝐸 triple ≤ max pairs b𝐸 in 120 /120 for ResNet-20, ResNet-56 and the ViT alike, with median ratios 0 .76, 0 .76 and 0 .78, 90th percentiles 0 .87–0 .89, and maxima below 1 (0 .95–0 .98). The same holds at every stage boundary of the ResNet-20 at 𝑑 0 = 4 (120 /120 at the stem and both middle stages, medians 0 .74–0 .76). The pairwise quotients are themselves al-ready off the null before training (means 0 .74–0 .80; 34–40 of 45 pairs certified separated), and the raw normalized pixels give the same pairwise level as the random ResNet-20 (0 .742 against 0 .744) and the same dominance (119 /120, median ratio 0 .73, one exceedance at 1 .04): CIFAR pixels carry the pairwise structure already, and a random network passes it through essentially unchanged. Train-ing does not create the pairwise structure; it deepens it, the median ratio falling from 0 .76–0 .78 at initialization to 0 .47 at the trained deep layers of E2. 
+
+The bias floor. The dominance score compares one quotient against the maximum of three. Under exchangeable labels every quotient sits near 1 with permutation noise, so the maximum is biased upward and the ratio below 1, and an unstructured triple family will register as “dominated” much of the time. We measured that floor on two nulls at the same 𝐵 , ten seeds of four clouds each: four clouds drawn from one isotropic Gaussian in ℝ5 give median ratio 0 .93 (33 /40 dominated, maximum 1 .09; per-seed medians 0 .88–1 .03), and the initialized features with labels permuted give 0 .97 (33 /40, maximum 1 .05; per-seed medians 0 .85–1 .01). Every initialization cell and every trained deep cell sits 19 well below this floor (exact one-sided Mann–Whitney test (Mann and Whitney, 1947) of cell medians against the 20 null-seed medians: 𝑝 = 3.3 × 10 −8 for the ten initialization cells, 𝑝 = 1.9 × 10 −5 for the five trained deep cells of E2; the cells are layers of a few networks and the null family has four triples per seed, so we read these as descriptive comparisons of location rather than as independent replicates), so the dominance reported here and in E2 is signal rather than the artifact, and the null rate of 83% is what a genuinely unstructured family produces, against 100% at initialization and 99 .5% trained. 
+
+Result: memorization manufactures it, in the last stage only. The random classes are exchangeable at initialization and remain so through the stem and the first two stages of the trained network: mean quotients 1 .02, 1 .01, 0 .99, with 0, 1 and 1 of 45 pairs certified separated—the false-positive rate at 𝛼 = 0.05—and 𝑝 ↑ firing on 5, 3 and 0. The last stage separates all of them: mean quotient 0 .26, 45 /45 pairs certified, and every one of the 120 triples dominated at median ratio 0 .34 (90th percentile 0.46, maximum 0 .59; pairs at 𝐵 = 199, triples screened at 𝐵 = 49 with the ten largest escalated to  
+
+> 𝐵
+
+= 999; the pairs’ larger 𝐵 only sharpens the denominator, which biases the ratio upward, so the comparison is conservative), stricter than the trained natural classes of E2 (0 .47) and far below the null floor. Two things follow. Fitting arbitrary labels creates pairwise structure where none existed, so training can manufacture the dominance as well as deepen it; and it does so in the deepest stage alone, every earlier layer staying exchangeable with respect to the memorized labels. The second is a certified form of the observation that memorization is concentrated in the later layers (Stephenson et al., 2021), made here with a test per layer rather than a capacity curve. 
+
+Reading. Pairwise dominance is not a fact about learning natural classes and not forced by geom-etry: it is present in the pixels and at initialization, sharpened by training on the true labels, manu-factured outright when the network memorizes arbitrary ones, and reproduced on frozen language models (E10). Within this invariant, whatever a network does to a labeled cloud family, it does mostly pairwise. 
+
+Experiment (E10 — outside vision: two frozen language models). Every representation above comes from vision: networks we trained or finetuned, their initializations, and raw pixels. Our con-centration diagnostic found that language-model features, unlike deep vision features, keep a usable scale window at every depth (Appendix A.5), which makes them the one wide representation on which the full certified protocol should run unmodified. We take BERT-base (Devlin et al., 2019) and GPT-2 (Radford et al., 2019), frozen, mean-pooled over real tokens, on ten classes of 20 Newsgroups (test split, headers, footers and quotes stripped, posts under 20 words dropped, duplicate posts removed; 3,358 and 3 ,363 documents, at least 279 per class), and run the E9 protocol: the 45-pair matrix and all 120 triples at 𝑑 0 = 5, 𝑚 = 200, 𝐵 = 49, on the final layer of each and on BERT’s middle block; and repeat it on a second corpus, ten DBpedia ontology classes (4 ,000 Wikipedia abstracts, 400 per class). 
+
+Result. The pipeline runs end to end on both, and the same pairwise dominance holds in both (Table 2). BERT’s final layer lands on the trained deep-vision median ratio of E2 (0 .46 against 0 .47) on an encoder that never saw these labels, and its middle block is less separated and less strictly pairwise than its final layer—the depth gradient of E2 in a language model. GPT-2 separates the newsgroup topics far less (its mean-pooled final states have an effective rank below 6, Table 4), yet its triples still sit well below the null floor of E9 (median 0 .68 against null-seed medians of 0 .85–1 .03), its two exceedances at 1 .01 and 1 .02. Across the six language-model cells every median sits below every null-seed median (exact Mann–Whitney 𝑝 = 4.3 × 10 −6). On DBpedia, BERT certifies every pair at both depths with mean quotients of 0 .15–0 .16 and dominates every triple at median ratios of 0 .36 and 0 .42, and even GPT-2 certifies 44 of 45 pairs and dominates every triple (median 0 .39). Two models on two corpora is what we claim: the first certified interaction measurement outside vision, with every cell landing on the same pairwise structure and the amount of separation tracking how 20 Table 2: E10: two frozen language models on two corpora ( 𝑑 0 = 5, 𝑚 = 200, 𝐵 = 49). “Pairs certified” is the number of the 45 class pairs certified separated; “dominated” the number of the 120 triples whose joint quotient is at or below their largest pairwise quotient; “median ratio” the median of b𝐸 triple /max pairs b𝐸 (null floor: per-seed medians 0 .85–1 .03). 
+
+model corpus layer pairs certified mean pair b𝐸 dominated median ratio BERT-base 20 Newsgroups block 6 of 12 43 /45 0.55 120 /120 0.57 BERT-base 20 Newsgroups final 43 /45 0.46 120 /120 0.46 GPT-2 20 Newsgroups final 33 /45 0.73 118 /120 0.68 BERT-base DBpedia block 6 of 12 45 /45 0.15 120 /120 0.36 BERT-base DBpedia final 45 /45 0.16 120 /120 0.42 GPT-2 DBpedia final 44 /45 0.46 120 /120 0.39                                                                                            
+
+> contrast pairs Δacc stem stage 1 stage 2 stage 3 mass ↓ /↑ b𝐸 ↓ /↑ mass ↓ /↑ b𝐸 ↓ /↑ mass ↓ /↑ b𝐸 ↓ /↑ mass ↓ /↑ b𝐸 ↓ /↑
+> depth 20 →32 24 +0.005 0/0 0/0 38/39 0/0 0/18 0/2 25/16 0/0 depth 32 →44 24 -0.003 0/18 0/0 72/57 0/0 11/146 0/12 1/30 0/0 depth 44 →56 24 -0.002 10/21 0/0 52/71 0/0 106/54 0/0 26/25 0/0 depth 20 →56 24 -0.000 15/29 0/3 88/53 0/0 11/134 0/25 39/36 0/11 width 1 →248 +0.014 2/126 0/0 302/19 0/0 114/89 0/6 297/26 1/0 weight decay 0.0 →0.0005 48 +0.033 133/2 3/11 40/344 0/0 60/119 9/6 1743/12 2/32 augmentation False →True 48 +0.055 19/5 0/2 127/263 11/2 110/162 24/1 1307/46 44/0
+
+Table 3: E11. For each factor contrast (low → high) and stage: certified decreases /increases of the scale-free overlap mass among the 1 ,080 or 2 ,160 paired tests ( mass ), and the number of the 45 class pairs whose interaction quotient is certified to decrease /increase across the matched models ( b𝐸 ); the mean quotient changes are in the text. Δacc is the mean change in test accuracy across the matched pairs. much class signal the representation carries. 
+
+Experiment (E11 — what changes certified disentanglement: depth, width, weight decay, aug-mentation). The E5 population is a factorial design: ResNet depth {20 , 32 , 44 , 56 } × width {1, 2} × 
+
+weight decay {0, 5 · 10 −4} × augmentation {off , on } × three seeds, all measured at every stage of the final epoch. Two models that differ in exactly one factor share the same test images in the same folds, so the paired test of Section 3.3 applies to a matched pair of models exactly as it does to two check-points. For each factor contrast we run two tests. On the scale-free fold mass: within every matched pair and stage, the sign-flip test per class pair, BH within the 45-pair family ( mass in Table 3; 24 or 48 matched pairs, 1 ,080 or 2 ,160 tests per stage). On the interaction quotient: for each class pair and stage, the 24 or 48 matched-model differences of b𝐸 are exchangeable in sign under the factor’s null within each matched pair, so a sign-flip test over them (Monte Carlo, 19 ,999 flips, with the +1convention of Proposition 2) with BH within the 45-pair family certifies whether the factor moves the quotient of that pair ( quotient in the table). The first test asks whether the overlap got smaller; the second whether it got smaller relative to chance .
+
+Result: augmentation is the factor that disentangles. Turning augmentation on lowers the deep-stage quotient of 44 of the 45 class pairs (mean 0 .230 → 0.171), of 24 pairs at stage 2 and 11 at stage 1, and of none at the stem; the overlap mass falls in 1 ,307 of 2 ,160 paired tests at stage 3. It is also the largest accuracy gain in the design ( +0.055). 
+
+Result: weight decay compresses without separating. Weight decay produces the largest mass effect 21 in the table—the stage-3 overlap mass falls in 1 ,743 of 2 ,160 tests—and yet the quotient rises for 32 of 45 pairs ( +0.02): the relabeled null shrinks as much as the overlap does. Weight decay simplifies the geometry of the whole representation, overlap included, and leaves the classes no more separated rel-ative to chance; it raises accuracy by 0 .033 all the same. Relative topological separation and accuracy are different quantities, and this is the contrast that shows it. 
+
+Result: depth and width do not disentangle. From depth 20 to 56 the quotient rises for 25 pairs at stage 2 and 11 at stage 3, by 0 .02–0 .04, with no change in accuracy; the adjacent contrasts are null except 32 → 44 at stage 2 (12 pairs). The depth grading of E2 is a property of a stage’s position in the network, not of how many stages there are. Doubling the width moves the quotient of at most 6 pairs at any stage, while shrinking the mass at stages 1 and 3 (302 and 297 of 2 ,160). At the stem no factor lowers the quotient of more than 3 pairs, and only weight decay raises it, for 11. 
+
+Reading. The measure separates two things regularization does. Augmentation pulls the classes apart relative to what a random relabeling of the same clouds would show; weight decay and width simplify the clouds and their overlap together, which the mass sees and the quotient, correctly, does not. And in a residual network the amount of separation a stage achieves is set by where the stage sits, not by the depth of the network around it. 
+
+Code and records. The measurement pipeline, the cluster job scripts, and every measurement record behind the numbers above (893 files) are released at https://github.com/sushovan4/ disentanglement ; checkpoints and cached features regenerate from the seeded configurations. Every figure and table rebuilds from the records alone. 
+
+# 5 Conclusion and limitations 
+
+The Intersection ECP turns class disentanglement into a symmetric, multi-class, cheap, and statisti-cally certified measurement: guarded one-sided tests certify separation, the paired test supports the comparative claims that trajectory analyses actually make, and the interaction quotient makes the numbers comparable across layers, epochs, and models. The campaign’s headline is structural: in trained image classifiers, class disentanglement is a certified, depth-graded, early-training phenomenon, and its interaction structure is pairwise almost everywhere we looked . It is confusability-ranked at the input side ( 𝜌 = 0.83 with confusion, on par with a nearest-neighbour rate), concentrated in deep layers (0 .78 → 0.16 at the penultimate stage against 0 .76 → 0.73 at the stem), and significant mostly within the first eight epochs, with a smaller, BH-level late wave in the deep stage that follows the learning-rate schedule; it is weaker and non-monotone in a from-scratch ViT, a data-starvation artifact that pretraining removes. Joint entanglement of a triple sits below its strongest pair in 97% of triple–layer cells and 99 .5% of deep cells, at median ratios far below the null floor, with the interaction spectrum decaying in order (E7) and the exceptions listed (E2); the structure is already present at initialization, deepened by training on the true labels, manufactured outright in the last stage alone when a network memorizes random ones (E9), and reproduced on two frozen language models (E10). Of the design choices in a 96-model population, augmentation is the one that separates classes relative to chance, weight decay compresses the overlap without separating, and depth and width do nothing (E11); the unnormalized mass predicts generalization, though not beyond linear probes (E5). Every certified clause of that summary carries a 𝑝 -value or a test against a measured null floor, and the graded summaries (the spectrum at 𝐵 = 19, the language-model dominance rows) are reported as magnitudes, which is the point: the topology of representations can be measured with the same statistical hygiene as any other 22 quantity in the empirical sciences—provided the statistic is scale-free, as E3 shows the hard way. The open theory is an analytic null for the profile, which would calibrate the tests without permutations, and a hypothesis on labeled clouds under which pairwise dominance becomes a theorem; the guard-certified regime alone does not suffice (E2). Six limitations bound these claims. 
+
+Dimensionality. The Alpha complex costs 𝑂 (𝑛 ⌈𝑑 /2⌉ ), so every measurement is made on a PCA shadow of dimension 𝑑 0 ≤ 6, as in Wagner et al. (2026). Proposition 1 carries every first-contact scale and guard decision to the ambient representation (the permutation certificates are statements about the shadow), E8 finds every depth conclusion invariant to 𝑑 0 ∈ { 3, 4, 6}, and entanglement enters our claims only as a magnitude comparison, since an overlap in the shadow may be an artifact of it. Two caveats remain. Whether the class supports are well approximated in the projection, which the estimation guarantee assumes, we do not verify; and the triple scan of E2 could in principle miss an ambient triple whose constituent pairs the projection renders apparently entangled, although its mechanism, witness-region nesting, is dimension-free. 
+
+Reach. The certificate is valid at any width, but its reach degrades in wide representations of high effective rank. On frozen ImageNet features the scale window —the fractional gap between the first-percentile cross-class distance and the closest cross pair—narrows along the depth axis of every vision backbone tested (3 .4–3 .6× from ResNet-50 stage 1 to stage 4), a projected certificate retains only 8– 26% of the ambient interaction scale, and projection, ambient Δ𝜒 , and an ambient branch-and-bound for the onset vector all fail on the narrowest layers for one reason, concentration of measure (Ap-pendix A.5). Across 55 vision layer–model cells the window tracks effective rank (Spearman −0.71) rather than depth or width as such; language-model features show no such gradient, which is why the full protocol runs unmodified in E10. The claims of this paper therefore concern small trained vision classifiers, their initializations, and two frozen language models. The window is cheap and should be computed before the measurement is interpreted on anything wider. 
+
+Hypotheses of the estimation guarantee. Proposition 4 assumes class supports of positive reach and an 𝜖 -dense sample of each; class clouds of a trained network are not known to satisfy the first, and we do not verify the second in the projection. The guarantee licenses reading the sample profile as a population property only under those assumptions; the certificates and the paired comparisons, which are exact for the sample, do not depend on them. 
+
+What the cheap alternatives already give. Where the question is a pairwise ranking or the timing of separation, a nearest-neighbour cross-class rate on the same clouds does as well as the quotient (E1, E3), and the quotient’s departures from the cheap statistics predict nothing about accuracy, calibration, or robustness on the E5 population (E5). The case for the topological statistic rests on what those alternatives do not offer—the certificate with a null, the 𝑘 -fold terms, scale resolution—and on the one depth profile where they disagree, the from-scratch ViT’s head (E2). 
+
+Sampling and scale. Results depend on the points per class 𝑚 and the scale range; stability (P4) bounds the effect in theory, and the E1 sweep over 𝑚 ∈ { 50 , 100 , 200 , 400 } and 𝑑 0 leaves the confus-ability ranking stable (Spearman median 0 .87, minimum 0 .73 against the reference). Radii are equal across clouds, the one slice a single sweep yields, so a compact class and a diffuse one are thickened alike; a density-offset variant, in which each cloud’s balls carry a fixed head start equal to its excess median nearest-neighbour spacing (a weighted Alpha complex on the pooled points, with the offsets recomputed under every relabeling so the test stays exact), moves no E1 quotient by more than 0 .04, ranks the pairs as the diagonal does (Spearman 0 .97), and certifies the same 45 /45. We did not vary the resolution of the 200-point grid; the integrated functional is insensitive to it in a way the peak statistic is not. 
+
+What 𝜒 discards, and what Δ𝜒 cannot steer. Structurally cancelling overlaps are invisible to Δ𝜒 
+
+(Section 2.2); neither the campaign guard nor its plateau form fired on any of the 52 ,650 measured 23 pairs (E4), so the escalation path was never needed here, but the blind spot is real and the guard is not optional. Δ𝜒 is integer-valued, and both differentiable surrogates we tried were optimized away from what the certificate measures (E6), so training-time control remains open. A paired test of the profile across a grokking transition, finally, found the right sign at a magnitude we do not consider a finding (Appendix E). 
+
+# A The inference used, with sources 
+
+This appendix states the guarantees invoked in Section 3 with their sources. The tests are textbook and are cited rather than re-proved; the recovery statement is restated from the foundations paper; what is proved here is what is specific to the Intersection ECP, the blind spot of Theorem 1 and the consistency of the guard. Throughout, 𝑋 = {𝑥 1, . . . , 𝑥 𝑚 } and 𝑌 = { 𝑦 1, . . . , 𝑦 𝑛 } are finite clouds in 
+
+ℝ𝑑 , 𝑇 = Φ(Δ𝜒 (· ; 𝑋, 𝑌 )) for a functional Φ of the profile, and 𝑀 𝑟 = U ( 𝑋 ; 𝑟 ) ∩ U ( 𝑌 ; 𝑟 ). We write 
+
+𝑟 ∗ ( 𝐴, 𝐵 ) = inf {𝑟 : U ( 𝐴 ; 𝑟 ) ∩ U ( 𝐵 ; 𝑟 ) ≠ ∅} for any two sets; for finite clouds and closed balls the infimum is attained and 𝑀 𝑟 ≠ ∅ iff 𝑟 ≥ 𝑟 ∗.
+
+A.1 Exact tests in both directions 
+
+Proposition 2 (Exactness of the two one-sided tests) . Let 𝐻 0 be that the labels of the pooled sample 𝑍 =
+
+𝑋 ∪𝑌 are exchangeable (in particular, that 𝑋 and 𝑌 are i.i.d. from a common distribution). Let 𝜎 1, . . . , 𝜎 𝐵 
+
+be drawn uniformly and independently from the splits of 𝑍 into parts of sizes 𝑚, 𝑛 , independently of the data. Then for every statistic 𝑇 , every 𝛼 ∈ ( 0, 1), every 𝑚, 𝑛 and every 𝐵 , the 𝑝 -values of Section 3.2 satisfy Pr 𝐻 0 [ 𝑝 ↑ ≤ 𝛼 ] ≤ 𝛼 and Pr 𝐻 0 [ 𝑝 ↓ ≤ 𝛼 ] ≤ 𝛼 . The same holds for 𝑘 clouds with splits into parts of sizes 𝑚 1, . . . , 𝑚 𝑘 .
+
+This is the Monte Carlo permutation test: conditionally on 𝑍 , the values 𝑇 obs , 𝑇 𝜎 1 , . . . , 𝑇 𝜎 𝐵 are exchangeable, and the rank 𝑝 -value with the +1 in numerator and denominator is valid at every 𝐵 
+
+(Dwass, 1957; Phipson and Smyth, 2010); the full-group version is the randomization test of Lehmann and Romano (2005, Thm. 15.2.1). Ties are handled by the weak inequalities in the definitions. The PCA projection and the scale grid of Section 3.1 are functions of 𝑍 alone, so the statement applies verbatim to the projected clouds on their grid. 
+
+A.2 The paired test 
+
+Let two conditions (two layers, two epochs, two models) be evaluated on 𝐹 disjoint folds of the same inputs, and let 𝐷 𝑠 = 𝑇 (𝑠 ) 
+
+> 1
+
+−𝑇 (𝑠 ) 
+
+> 2
+
+be the difference of their statistics on fold 𝑠 . The comparative null 𝐻 sym 0
+
+is that the law of (𝐷 1, . . . , 𝐷 𝐹 ) is invariant under coordinatewise sign changes; it holds when the two conditions are exchangeable within each fold given the shared preprocessing, which is the natural null of a paired design. Independence across folds is not required. 
+
+Proposition 3 (Exactness of the sign-flip test) . Under 𝐻 sym 0 the two-sided 𝑝 -value 𝑝 = 2−𝐹 #{𝜀 ∈{± 1}𝐹 : |𝐹 −1 Í𝑠 𝜀 𝑠 𝐷 𝑠 | ≥ | ¯𝐷 |} satisfies Pr [ 𝑝 ≤ 𝛼 ] ≤ 𝛼 for every 𝐹 . Since 𝜀 and −𝜀 give the same value, 
+
+𝑝 ≥ 2/2𝐹 , so the test can reject at level 𝛼 only if 2𝐹 −1 ≥ 1/𝛼 .
+
+This is the randomization test for the group {± 1}𝐹 (Lehmann and Romano, 2005, Thm. 15.2.1), Fisher’s sign-flip test (Fisher, 1935, Ch. III). We take 𝐹 = 8, so the floor is 2 /256; the sign of ¯ 𝐷 is read off after the two-sided test (E3, E11). 24 A.3 Estimation 
+
+Proposition 4 (Recovery of the population profile; restated from Kawamura et al. (2026)) . Let 𝐴, 𝐵 ⊂
+
+ℝ𝑑 be compact with reach at least 𝜏 > 0 and Hausdorff dimensions 𝑘 𝐴 , 𝑘 𝐵 with finite, positive Hausdorff measure, sampled i.i.d. from distributions with densities bounded below with respect to the corresponding Hausdorff measures, and suppose the population overlap filtration 𝜌 ↦ → U ( 𝐴 ; 𝜌 ) ∩ U ( 𝐵 ; 𝜌 ) has finitely many homological critical values and finite-dimensional homology. Then for 𝜖, 𝛿 > 0, samples of size 
+
+𝑂  𝜖 −𝑘 (log (1/𝜖 )+ log (1/𝛿 ))  from each, 𝑘 = max (𝑘 𝐴 , 𝑘 𝐵 ), are 𝜖 -dense in 𝐴 and 𝐵 with probability at least 
+
+1−2𝛿 , and given 𝜖 -density, Δ𝜒 (𝑟 ; 𝑋, 𝑌 ) = 𝜒 (U ( 𝐴 ; 𝑟 )∩U ( 𝐵 ; 𝑟 )) for every 𝑟 in a band [𝑟 min , 𝑟 max ] ⊂ ( 0, 𝜏 )
+
+with 𝜖 < min (𝑟 min , 𝜏 − 𝑟 max )/ 2, outside an exceptional set 𝐸 𝑇 ∪ 𝐸 𝑀 of scales: 𝐸 𝑇 , an 𝑂 (𝜖 )-neighbourhood of the population critical values, and 𝐸 𝑀 , the sample-artifact scales (Kawamura et al., 2026, Thm. 5.6, Cor. 5.8, Rem. 5.9). The rate is in the intrinsic dimension (Kawamura et al., 2026, Rem. 5.7), by the covering argument of Niyogi et al. (2008, Prop. 3.2). 
+
+Uniform control of |𝐸 𝑀 | in the sample size is left open in the foundations paper (their Remark 5.9); Theorem 1 below carries it as a hypothesis. 
+
+A.4 The blind spot and the guard 
+
+Definition 1. Under the hypotheses of Proposition 4, ( 𝐴, 𝐵 ) is 𝜒 -blind on 𝑊 ⊂ ( 0, 𝜏 ) if U ( 𝐴 ; 𝑟 )∩U ( 𝐵 ; 𝑟 )
+
+is nonempty and has Euler characteristic 0 for every 𝑟 ∈ 𝑊 .
+
+Because Betti numbers are locally constant away from the critical scales, blindness holds on whole intervals of regular scales, not at isolated ones; annular and torus-shell overlaps are blind over an interval. On a blind pair the population profile vanishes both below first contact (Lemma 3.1 of the foundations paper) and on 𝑊 : the profile of a blind pair is indistinguishable from that of a separated one. 
+
+Theorem 1 (The unguarded separation certificate fails on the blind set) . Let ( 𝐴, 𝐵 ) satisfy the hy-potheses of Proposition 4 and be 𝜒 -blind at every scale of a grid range 𝐺 = [0, 𝑟 max ] at which the offsets meet, so that the population profile vanishes on all of 𝐺 . Let Φ𝐺 (Δ𝜒 ) = ∫ 
+
+> 𝐺
+
+|Δ𝜒 (𝑟 )| 𝑑𝑟 , and let 𝑚, 𝑛 → ∞ 
+
+with 𝑚 /( 𝑚 + 𝑛 ) → 𝜋 ∈ ( 0, 1) and 𝐵 ≥ 1/𝛼 − 1 fixed. Assume (i) |𝐸 𝑀 ∩ 𝐺 | → 0 in probability and sup 𝐺 |Δ𝜒 (· ; 𝑋, 𝑌 )| is stochastically bounded; (ii) the null statistic is bounded away from zero: for a uniformly random split (𝑋 𝜎 , 𝑌 𝜎 ) of the pooled sample, Pr [Φ𝐺 (Δ𝜒 (· ; 𝑋 𝜎 , 𝑌 𝜎 )) ≥ 𝑐 ] → 1 for some 𝑐 > 0.Then Φ𝐺 (Δ𝜒 (· ; 𝑋, 𝑌 )) → 0 in probability, 𝑝 ↓ → 1/( 1 + 𝐵 ) ≤ 𝛼 , and the unguarded separation test rejects with probability tending to one, although U ( 𝐴 ; 𝑟 ) ∩ U ( 𝐵 ; 𝑟 ) ≠ ∅ for every 𝑟 ≥ 𝑟 ∗ ( 𝐴, 𝐵 ) in 𝐺 .Proof. By Proposition 4, off 𝐸 𝑇 ∪ 𝐸 𝑀 the sample profile equals the population profile on 𝐺 , which is 0 on 𝐺 : below first contact by Lemma 3.1 of the foundations paper, and beyond it by blindness. Since 
+
+|𝐸 𝑇 ∩ 𝐺 | = 𝑂 (𝜖 ) and |𝐸 𝑀 ∩ 𝐺 | → 0 by (i), the bound on sup 𝐺 |Δ𝜒 | in (i) gives Φ𝐺 (Δ𝜒 (· ; 𝑋, 𝑌 )) → 0in probability. By (ii), with probability tending to one every one of the 𝐵 null replicates exceeds the observed statistic, so # {𝑏 : 𝑇 𝜎 𝑏 ≤ 𝑇 obs } → 0 and 𝑝 ↓ → 1/( 1 + 𝐵 ). □
+
+Hypothesis (ii) is the one that must be checked per configuration, and it has two sufficient con-ditions. Asymptotically, if the pooled support 𝐴 ∪ 𝐵 itself satisfies the hypotheses of Proposition 4 (positive reach fails when 𝐴 and 𝐵 cross, but holds for disjoint supports such as two concentric circles) and 𝜒 (U ( 𝐴 ∪ 𝐵 ; 𝑟 )) ≠ 0 on a subset of 𝐺 of positive measure, then both halves of a random split 25 are dense samples of 𝐴 ∪ 𝐵 from the mixture density, and the proposition applied to ( 𝐴 ∪ 𝐵, 𝐴 ∪ 𝐵 )
+
+gives 𝑐 = ∫ 
+
+> 𝐺
+
+|𝜒 (U ( 𝐴 ∪ 𝐵 ; 𝑟 ))| 𝑑𝑟 > 0. At finite sample sizes, (ii) also holds whenever the first-contact scale 𝑟 ∗ ( 𝐴, 𝐵 ) exceeds the connectivity scale of the pooled sample, since the two halves of a random split then meet, in many components, at scales where the labeled offsets are still disjoint; this is the regime of Figure 3, where 𝑝 ↓ = 0.005 on two rings whose population profile is zero everywhere. The mechanism the theorem isolates is that Δ𝜒 conflates “empty overlap” with “overlap with cancelling Betti numbers”, while the permutation null only ever produces the fat, non-cancelling overlap of a random split. 
+
+Lemma 1 (Consistency of the first-contact scale) . Let ˆ𝑟 ∗ = 12 min 𝑖, 𝑗 ∥𝑥 𝑖 − 𝑦 𝑗 ∥ and suppose the samples are 𝜖 -dense in 𝐴 and 𝐵 . Then 𝑟 ∗ ( 𝐴, 𝐵 ) ≤ ˆ𝑟 ∗ ≤ 𝑟 ∗ ( 𝐴, 𝐵 ) + 𝜖 .Proof. The lower bound holds because 𝑋 ⊂ 𝐴 and 𝑌 ⊂ 𝐵 . For the upper bound take 𝑎 ∈ 𝐴 , 𝑏 ∈ 𝐵 
+
+attaining 𝑟 ∗ (compactness); by 𝜖 -density there are 𝑥 𝑖 , 𝑦 𝑗 within 𝜖 of them, and ∥𝑥 𝑖 − 𝑦 𝑗 ∥ ≤ ∥ 𝑎 − 𝑏 ∥ + 
+
+2𝜖 . □
+
+Corollary 1 (The guard on the blind set) . Let ( 𝐴, 𝐵 ) be 𝜒 -blind on an interval 𝑊 = [𝑟 ∗ ( 𝐴, 𝐵 ) + 
+
+𝜂, 𝑟 ∗ ( 𝐴, 𝐵 ) + 𝜂 ′] and let the guard fire when Δ𝜒 (· ; 𝑋, 𝑌 ) vanishes on a window [ˆ𝑟 ∗ + 𝜂 0, ˆ𝑟 ∗ + 𝜂 1] with 
+
+𝜂 ≤ 𝜂 0 < 𝜂 1 ≤ 𝜂 ′ − 𝜖 . Under the sampling of Proposition 4 and hypothesis (i) of Theorem 1 on 𝑊 , the window lies inside 𝑊 and the guard fires with probability tending to one. Proof. By Lemma 1, ˆ 𝑟 ∗ ∈ [ 𝑟 ∗, 𝑟 ∗+𝜖 ] with probability tending to one, so the window lies in 𝑊 , where the population profile is zero; off 𝐸 𝑇 ∪ 𝐸 𝑀 the sample profile agrees with it, and |( 𝐸 𝑇 ∪ 𝐸 𝑀 ) ∩ 𝑊 | → 0. □
+
+The corollary covers the campaign’s guard, whose window is the quarter of the grid immediately beyond ˆ 𝑟 ∗, once that quarter lies inside the blind interval; the plateau form of Section 3.2 additionally waits out the contact transient, which the corollary’s 𝜂 0 > 0 models. Neither form has a finite-sample guarantee beyond this mechanism, and Experiment E4 reports both firing on none of the campaign’s cells. ˆ 𝑟 ∗ decides whether the clouds interact; Δ𝜒 describes how ; only the second is subject to cancella-tion. Projection is compatible with the rule ˆ 𝑟 ∗ > 𝑟 by Proposition 1, which can only lower ˆ 𝑟 ∗; it changes the profile beyond contact, so the silence-based forms are statements about the shadow. 
+
+A.5 The concentration measurements 
+
+Table 4 reports, for the frozen representations of Section 5, the ambient dimension, the participation-ratio effective rank, the scale window —the fractional gap between the first-percentile cross-class dis-tance and the closest cross pair, at 100 points per class—and, for the two ImageNet backbones on which the projected certificate was attempted, the realized tightness 𝑟 ∗ (𝑃𝑋, 𝑃𝑌 )/ 𝑟 ∗ (𝑋, 𝑌 ) of the 𝑑 0 = 5 cer-tificate. For the vision transformers the window is given for the class token and for the mean-pooled patch tokens of the same forward pass. The window divides by a minimum, an extreme order statistic, so its absolute value is specific to the sample cap; ratios between layers of one model are stable across caps (3 .4× at 100 and 3 .6× at 200 points per class for ResNet-50 stage 1 to stage 4) and are what the text compares. GPT-2’s final layer has effective rank near 1 and its window is not interpretable. 26 model layer 𝐷 eff. rank window window (mean-pool) tightness ResNet-50 stage 1 256 6 0.61 – 0.26 stage 2 512 13 0.37 – 0.19 stage 3 1024 33 0.24 – 0.14 stage 4 2048 43 0.18 – 0.13 ViT-B/16 block 3 768 9 0.44 0.47 0.22 block 6 768 27 0.24 0.24 0.11 block 9 768 95 0.15 0.20 0.08 block 12 768 46 0.14 0.28 0.10 final 768 56 0.14 0.28 0.12 ViT-L/16 block 6 1024 15 0.28 0.33 –block 12 1024 91 0.13 0.22 –block 18 1024 95 0.13 0.28 –block 24 1024 26 0.12 0.19 –final 1024 81 0.10 0.12 –CLIP ViT-B/32 block 3 768 7 0.44 – –block 6 768 22 0.25 – –block 9 768 25 0.21 – –final 768 40 0.23 – –DINOv2 ViT-S/14 final 384 66 0.24 – –BERT-base block 3 768 20 0.16 – –block 6 768 20 0.19 – –block 9 768 25 0.20 – –final 768 34 0.19 – –GPT-2 block 3 768 2 0.22 – –block 6 768 2 0.19 – –block 9 768 6 0.22 – –final 768 1 0.60 – –
+
+Table 4: Scale window, effective rank, and certificate tightness on frozen representations (CIFAR-10 test images through the vision models; ten classes of 20 Newsgroups through the language models). 
+
+# B Experiment E6 in full: the differentiable surrogate 
+
+This appendix gives the E6 campaign of Section 4 in full. We test whether the surrogate Ldis of Experiment E6 can control disentanglement, not merely mea-sure it. We train ResNet-20 on CIFAR-10 at the E3 recipe with L = LCE + 𝜆 Ldis for 𝜆 ∈ { 0, 0.5, 2, 8}
+
+(𝜆 = 0 the matched control), 2 seeds each, and evaluate three quantities per model: clean test accu-racy, a robustness proxy (mean accuracy under additive Gaussian input noise at 𝜎 ∈ { 0.05 , 0.1, 0.2}), and—closing the loop—the penultimate-layer mean interaction quotient measured post hoc by the ex-act ECP permutation test (the same certified, non-differentiable protocol as E1–E5, 𝑚 = 200, 𝑑 0 = 5, 
+
+𝐵 = 199). 
+
+Result (the first campaign steered the wrong way). With 𝜎 2 detached from the graph—the natural implementation, and the one we ran first—the certified penultimate quotient rose monotonically in 𝜆 :0.159 → 0.212 → 0.278 → 0.344 at 𝜆 = 0, 0.5, 2, 8, the two seeds tight at every level and all 45 pairs certified separated in every model, while test accuracy fell 92 .0% → 86 .5% and the robustness proxy 78 .9% → 72 .6%. The surrogate made the classes more entangled, as measured by the exact test. The cause is instructive. Detaching 𝜎 2 leaves the loss value scale-invariant (verified: identical under every rescaling of the features) but not its gradient : backpropagation sees a fixed bandwidth, so the radial component of the gradient is negative and descent inflates feature norms—with the bandwidth frozen, 27 scaling the features by 20 drives the loss to machine zero. The ECP is genuinely scale-equivariant, so the inflation bought nothing there, and the capacity spent on it appears as the accuracy cost. A scale-invariant loss whose gradient is not scale-invariant is an easy trap, and the certified measurement is what caught it. Keeping 𝜎 2 in the graph makes the radial gradient vanish identically, so scaling is no longer a descent direction. That closes one exploit; the corrected campaign shows it opens another. 
+
+Result (the corrected campaign steers the wrong way too). With 𝜎 2 in the graph, the certified penul-timate quotient still rises monotonically in 𝜆 : 0 .167 → 0.250 → 0.488 at 𝜆 = 0, 0.5, 2 (means of two seeds, which agree within 0 .03 at every level; all 45 pairs certified separated in every model), while test accuracy falls 92 .1% → 91 .0% → 65 .7% and the robustness proxy 79 .8% → 79 .7% → 62 .9%. At 
+
+𝜆 = 8 training fails outright: test accuracy averages 16% (10% and 22% for the two seeds), one seed’s penultimate representation collapsed to a single feature vector (recorded as degenerate; no quotient is defined), and the other sits at quotient 0 .88, statistically indistinguishable from a random relabeling. The second failure has a second mechanism. Once the radial direction is closed, the cheapest way to shrink a within-class-normalized cross-class kernel is to grow the within-class radius: dispersing each class lowers every ∥ 𝑓 (𝑥 ) − 𝑓 ( 𝑦 )∥ 2/𝜎 2 without moving the classes apart, and as 𝜎 2 approaches the cross-class scale the classes interpenetrate, which is exactly what the exact ECP measures. The surrogate’s value goes down; the certified entanglement goes up. 
+
+What E6 establishes is therefore not a regularizer but a measurement result. Two natural imple-mentations of a differentiable surrogate for the interaction quotient—one gamed through scale, one through dispersion—both decrease the surrogate while increasing the certified entanglement, and only the exact, non-differentiable test sees it. A surrogate that provably tracks Δ𝜒 under optimization is open, and we would not trust one without the certificate behind it. 
+
+# C Experiment E7 in full: the interaction spectrum 
+
+This appendix gives the E7 campaign of Section 4 in full. On the final-epoch representations of the E2 models and ResNet-20, compute the full spectrum b𝐸 (𝐶 𝑗 ), 𝑗 = 2, . . . , 5, on three fixed 5-class subsets (2 5 − 1 pooled Euler curves per evaluation, permutation quotients per floor), the top floors 
+
+𝑗 ∈ { 8, 9, 10 } of all ten classes, and the onset vector 𝑟 ∗ 
+
+> 2
+
+≤ · · · ≤ 𝑟 ∗ 
+
+> 10
+
+per layer. Deliverables: the decay rate of b𝐸 (𝐶 𝑗 ) in 𝑗 (the quantitative form of pairwise dominance), whether any deep many-class overlap survives at the top floors, and depth profiles of the onset delays. 
+
+Result: decay. The spectrum decays monotonically in 𝑗 in every layer of every model, and the decay rate is itself depth-graded: the mean step ratio b𝐸 (𝐶 𝑗 +1)/ b𝐸 (𝐶 𝑗 ) over 𝑗 = 2, . . . , 4 is ≈ 0.88 at the stem but ≈ 0.61 at the deepest stage (range 0 .40–0 .83 across deep layers vs. 0 .80–0 .93 shallow)— pairwise dominance is strongest exactly where disentanglement happens. At 𝑘 = 10, the top floors 
+
+𝑗 ∈ { 8, 9, 10 } are negligible in the deepest stage of every ResNet (quotients 0 .015–0 .07, against 0 .44– 0.73 at the stem) and small in the ViT (0 .09–0 .23 at the penultimate block); these ran at 𝐵 = 19, where 𝑝 ↓ = 0.05 is the smallest attainable value, so we report them as magnitude statements rather than sharp certifications. 
+
+Result: the second floor as a layer summary. The second floor b𝐸 (𝐶 2) of a five-class family is one num-ber per layer with one permutation test, and on the three fixed subsets it certifies separation ( 𝑝 ↓ = 0.01 at 𝐵 = 99) in every layer of every model except two shallow cells, while ranking the layers exactly as the mean of the ten pairwise quotients does: for the CIFAR-10 ResNet-56, 0 .93 /0.78 /0.90 at the stem against pairwise means 0 .86 /0.67 /0.82, falling to 0 .41 /0.28 /0.38 against 0 .30 /0.15 /0.21 at stage 3; for the CIFAR-100 subset, 0 .09 /0.19 /0.09 against 0 .04 /0.10 /0.06 at stage 3. The floor sits above the pairwise mean throughout, as it must: it is the union of the pairwise overlaps normalized by that union’s own null. It also sees the ViT head, rising from 0 .71 /0.31 /0.38 at block 8 to 0 .67 /0.60 /0.70 28 at the penultimate block. A layer-level claim with a single test is therefore available from the same sweep whenever the multiplicity of a pairwise family is unwelcome. 
+
+Result: onsets. The onset vectors tell the same story in the scale domain. At the CIFAR-10 ResNet-56 penultimate stage the 10-fold overlap onsets at 𝑟 ∗ 
+
+> 10
+
+≈ 1.85, twenty times the pairwise onset 𝑟 ∗ 
+
+> 2
+
+≈ 0.09, and the delays stretch monotonically through the vector (0 .09 , 0.34 , 0.64 , 0.91 , . . . ); at the stem the entire vector is compressed into [0.007 , 0.069 ]. Deep representations do not merely separate pairs— they push every higher-order overlap out to scales far beyond the pairwise interaction range, which is the geometric mechanism behind the dominance of E2, now quantified floor-by-floor (Figure 9). 29 10 1
+
+10 0
+
+> quotient  E(Cj)
+
+ResNet-56 / C100s 
+
+> stem stage1 stage2 stage3 penult
+
+ResNet-56 / C10 
+
+> stem stage1 stage2 stage3 penult
+
+2 4 6 8 10 floor order j
+
+10 1
+
+10 0
+
+> quotient  E(Cj)
+
+ViT-8 / C10 
+
+> block2 block4 block6 block8 penult
+
+2 4 6 8 10 floor order j
+
+ResNet-20 / C10 
+
+> stem stage1 stage2 stage3 penult
+
+E7: the interaction spectrum decays geometrically in j, fastest in deep layers 0510 15 20 25 30 onset delay  r *
+
+> j /r *2
+
+ResNet-56 / C100s 
+
+> stem stage1 stage2 stage3 penult
+
+ResNet-56 / C10 
+
+> stem stage1 stage2 stage3 penult
+
+2 4 6 8 10 floor order j
+
+0510 15 20 25 30 onset delay  r *
+
+> j /r *2
+
+ViT-8 / C10 
+
+> block2 block4 block6 block8 penult
+
+2 4 6 8 10 floor order j
+
+ResNet-20 / C10 
+
+> stem stage1 stage2 stage3 penult
+
+E7: higher-order overlaps onset at ever larger scales relative to the pairwise onset Figure 9: The interaction spectrum (E7). Top: the floor quotients b𝐸 (𝐶 𝑗 ) decay geometrically in 𝑗 (solid: 
+
+𝑗 ≤ 5 on five-class subsets; open: the top floors of all ten classes, 𝐵 = 19), steepest in deep layers. 
+
+Bottom: the onset delays 𝑟 ∗
+
+𝑗 /𝑟 ∗
+
+2 grow with 𝑗 .30 D Experiment E8 in full: the projection dimension 
+
+This appendix gives the E8 campaign of Section 4 in full. The whole campaign measures on a 𝑑 0 = 5PCA shadow; E1 already sweeps 𝑑 0 on MNIST, and here we re-measure the depth conclusions of E2 at 
+
+𝑑 0 ∈ { 3, 4, 6} on all three E2 models and the pretrained ViT-B/16, final epochs, full pairwise matrices (𝐵 = 199), comparing each layer’s 45-pair quotient vector against the 𝑑 0 = 5 reference. 
+
+Result. Every qualitative conclusion is invariant to 𝑑 0. The depth grading is unchanged at every projection dimension—the mean quotient falls monotonically from stem to deep stages in both ResNets (e.g. CIFAR-10 ResNet-56 0 .75 → 0.22, 0 .72 → 0.18, 0 .72 → 0.16 at 𝑑 0 = 3, 4, 6) and the ViT’s non-monotone rise into the penultimate block persists at all 𝑑 0, while the pretrained ViT stays monotone throughout—and deep layers are fully certified separated (45 /45) at every 𝑑 0. The pair ranking is stable and tightens as 𝑑 0 grows: Spearman against the 𝑑 0 = 5 reference has median 0 .91 ( 𝑑 0 =
+
+3), 0 .96 ( 𝑑 0 = 4), 0 .97 ( 𝑑 0 = 6). The few lower correlations ( 𝜌 = 0.56–0 .69) occur only at the coarsest 𝑑 0 = 3 and only where they cannot change a conclusion: on deep layers whose pairs are all certified separated with near-null quotients (rank noise among indistinguishable-from-zero values) or on the harder CIFAR-100 subset’s shallow layers, where the absolute quotients barely move. The measured shadow is low-dimensional, but the disentanglement structure we report is not an artifact of the particular 𝑑 0.
+
+# E A coupling we do not claim: grokking 
+
+Grokking (Power et al., 2022) offered a test of whether the measure tracks generalization as it hap-pens: a two-layer transformer on (𝑎 + 𝑏 ) mod 97 at a 40% train fraction, three seeds at weight decay 1.0 and a non-generalizing control at 0, checkpointed every 100 steps across the transition and com-pared checkpoint to checkpoint with the paired test of Section 3.3, the fold statistic averaged over the ten residue-class pairs. On the raw profile mass the certified change and the change in validation accuracy were anticorrelated at 𝑟 = −0.80; that was the feature-norm shrinkage that weight decay produces across the transition, the artifact of E3 in another guise. On the scale-free statistic the con-temporaneous coupling is 𝑟 = −0.33 ( 𝑝 = 0.03 over 42 pooled and autocorrelated intervals; −0.57, 
+
+−0.34, −0.43 per seed), shuffled class groupings reverse its sign ( +0.42 to +0.45), the control shows none, and no lag is significant. That is the right sign and the right specificity at a magnitude we do not consider a finding, and we report it here rather than in the results. 
+
+# References 
+
+Guillaume Alain and Yoshua Bengio. Understanding intermediate layers using linear classifier probes. In International Conference on Learning Representations (ICLR), Workshop Track , 2017. arXiv:1610.01644. Alessio Ansuini, Alessandro Laio, Jakob H. Macke, and Davide Zoccolan. Intrinsic dimension of data representations in deep neural networks. In Advances in Neural Information Processing Systems (NeurIPS) , volume 32, pages 6109–6119, 2019. Yoav Benjamini and Daniel Yekutieli. The control of the false discovery rate in multiple testing under dependency. The Annals of Statistics , 29(4):1165–1188, 2001. 31 Tolga Birdal, Aaron Lou, Leonidas J. Guibas, and Umut Simsekli. Intrinsic dimension, persistent ho-mology and generalization in neural networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2021. Omer Bobrowski and Primoz Skraba. A universal null-distribution for topological data analysis. Sci-entific Reports , 13:12274, 2023. doi: 10.1038/s41598-023-37842-2. Chao Chen, Xiuyan Ni, Qinxun Bai, and Yusu Wang. A topological regularizer for classifiers via per-sistent homology. In Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS) , volume 89, pages 2573–2582, 2019. Ricky T. Q. Chen, Xuechen Li, Roger B. Grosse, and David K. Duvenaud. Isolating sources of dis-entanglement in variational autoencoders. In Advances in Neural Information Processing Systems (NeurIPS) , 2018. Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton. A simple framework for con-trastive learning of visual representations. In International Conference on Machine Learning (ICML) ,volume 119 of Proceedings of Machine Learning Research , pages 1597–1607, 2020. Uri Cohen, SueYeon Chung, Daniel D. Lee, and Haim Sompolinsky. Separability and geometry of object manifolds in deep neural networks. Nature Communications , 11(1):746, 2020. Louis Comtet. Advanced Combinatorics: The Art of Finite and Infinite Expansions . Reidel, Dordrecht, 1974. Ciprian A. Corneanu, Meysam Madadi, Sergio Escalera, and Aleix M. Martinez. Computing the testing error without a testing set. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 2674–2682, 2020. Sebastiano Cultrera di Montesano, Ondrej Draganov, Herbert Edelsbrunner, and Morteza Saghafian. Chromatic topological data analysis. arXiv preprint arXiv:2406.04102 , 2024. Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Proceedings of NAACL-HLT , pages 4171– 4186, 2019. Paweł Dłotko and Davide Gurnari. Euler characteristic curves and profiles: a stable shape invariant for big data problems. GigaScience , 12:giad094, 2023. Paweł Dłotko, Niklas Hellmer, Łukasz Stettner, and Rafał Topolnicki. Topology-driven goodness-of-fit tests in arbitrary dimensions. Statistics and Computing , 34(1):34, 2024. Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Un-terthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: Transformers for image recognition at scale. In 
+
+International Conference on Learning Representations (ICLR) , 2021. Meyer Dwass. Modified randomization tests for nonparametric hypotheses. The Annals of Mathematical Statistics , 28(1):181–187, 1957. Cian Eastwood and Christopher K. I. Williams. A framework for the quantitative evaluation of disen-tangled representations. In International Conference on Learning Representations (ICLR) , 2018. 32 Brittany Terese Fasy, Fabrizio Lecci, Alessandro Rinaldo, Larry Wasserman, Sivaraman Balakrishnan, and Aarti Singh. Confidence sets for persistence diagrams. The Annals of Statistics , 42(6):2301– 2339, 2014. Ronald A. Fisher. The Design of Experiments . Oliver and Boyd, Edinburgh, 1935. Arthur Gretton, Karsten M. Borgwardt, Malte J. Rasch, Bernhard Schölkopf, and Alexander Smola. A kernel two-sample test. Journal of Machine Learning Research , 13:723–773, 2012. Olympio Hacquard and Vadim Lebovici. Euler characteristic tools for topological data analysis. Journal of Machine Learning Research , 25(240):1–39, 2024. Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recogni-tion. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , pages 770–778, 2016. Irina Higgins, Loic Matthey, Arka Pal, Christopher Burgess, Xavier Glorot, Matthew Botvinick, Shakir Mohamed, and Alexander Lerchner. beta-vae: Learning basic visual concepts with a constrained variational framework. In International Conference on Learning Representations (ICLR) , 2017. Yiding Jiang, Behnam Neyshabur, Hossein Mobahi, Dilip Krishnan, and Samy Bengio. Fantastic gener-alization measures and where to find them. In International Conference on Learning Representations (ICLR) , 2020. Kazuhiro Kawamura, Sushovan Majhi, and Atish Mitra. The Intersection Euler Characteristic Profile: Euler calculus and stability for topological interaction of ball unions, 2026. arXiv:2608.06180. Simon Kornblith, Mohammad Norouzi, Honglak Lee, and Geoffrey Hinton. Similarity of neural net-work representations revisited. In International Conference on Machine Learning (ICML) , 2019. Alex Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009. Yann LeCun, Léon Bottou, Yoshua Bengio, and Patrick Haffner. Gradient-based learning applied to document recognition. Proceedings of the IEEE , 86(11):2278–2324, 1998. Erich L. Lehmann and Joseph P. Romano. Testing Statistical Hypotheses . Springer, 3 edition, 2005. Francesco Locatello, Stefan Bauer, Mario Lucic, Gunnar Rätsch, Sylvain Gelly, Bernhard Schölkopf, and Olivier Bachem. Challenging common assumptions in the unsupervised learning of disentangled representations. In International Conference on Machine Learning (ICML) , 2019. David Lopez-Paz and Maxime Oquab. Revisiting classifier two-sample tests. In International Conference on Learning Representations (ICLR) , 2017. Sushovan Majhi, Atish Mitra, Santanu Nandi, Md Nurujjaman, and Buddha Nath Sharma. De-tecting regime transitions in dynamical systems via the mixup Euler characteristic profile. arXiv:2604.15262, 2026a. Sushovan Majhi, Atish Mitra, Žiga Virk, and Pramita Bagchi. A closed-form adaptive-landmark kernel for certified point-cloud and graph classification. arXiv:2605.04046, 2026b. Sushovan Majhi, Atish Mitra, Žiga Virk, and Pramita Bagchi. A closed-form persistence-landmark pipeline for certified point-cloud and graph classification. Transactions on Machine Learning Re-search , 2026c. https://openreview.net/forum?id=4kZxNlE5Ve .33 Henry B. Mann and Donald R. Whitney. On a test of whether one of two random variables is stochas-tically larger than the other. The Annals of Mathematical Statistics , 18(1):50–60, 1947. Michael Moor, Max Horn, Bastian Rieck, and Karsten Borgwardt. Topological autoencoders. In In-ternational Conference on Machine Learning (ICML) , volume 119 of Proceedings of Machine Learning Research , pages 7045–7054, 2020. Gregory Naitzat, Andrey Zhitnikov, and Lek-Heng Lim. Topology of deep neural networks. Journal of Machine Learning Research , 21(184):1–40, 2020. Partha Niyogi, Stephen Smale, and Shmuel Weinberger. Finding the homology of submanifolds with high confidence from random samples. Discrete & Computational Geometry , 39(1–3):419–441, 2008. Vardan Papyan, X. Y. Han, and David L. Donoho. Prevalence of neural collapse during the terminal phase of deep learning training. Proceedings of the National Academy of Sciences , 117(40):24652– 24663, 2020. Belinda Phipson and Gordon K. Smyth. Permutation 𝑝 -values should never be zero: calculating exact 
+
+> 𝑝
+
+-values when permutations are randomly drawn. Statistical Applications in Genetics and Molecular Biology , 9(1):Article 39, 2010. Alethea Power, Yuri Burda, Harri Edwards, Igor Babuschkin, and Vedant Misra. Grokking: General-ization beyond overfitting on small algorithmic datasets. arXiv preprint arXiv:2201.02177 , 2022. Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. Language models are unsupervised multitask learners. Technical report, OpenAI, 2019. Karthikeyan Natesan Ramamurthy, Kush R. Varshney, and Krishnan Mody. Topological data analysis of decision boundaries with application to model selection. In Proceedings of the 36th International Conference on Machine Learning (ICML) , volume 97, pages 5351–5360, 2019. Akshay Rangamani, Marius Lindegaard, Tomer Galanti, and Tomaso A. Poggio. Feature learning in deep classifiers through intermediate neural collapse. In Proceedings of the 40th International Conference on Machine Learning (ICML) , volume 202, pages 28729–28745, 2023. Bastian Rieck, Matteo Togninalli, Christian Bock, Michael Moor, Max Horn, Thomas Gumbsch, and Karsten Borgwardt. Neural persistence: A complexity measure for deep neural networks using algebraic topology. In International Conference on Learning Representations (ICLR) , 2019. Andrew Robinson and Katharine Turner. Hypothesis testing for topological data analysis. Journal of Applied and Computational Topology , 1(2):241–261, 2017. Ernst Röell and Bastian Rieck. Differentiable euler characteristic transforms for shape classification. In International Conference on Learning Representations (ICLR) , 2024. Achim Schilling, Andreas Maier, Richard Gerum, Claus Metzner, and Patrick Krauss. Quantifying the separability of data classes in neural networks. Neural Networks , 139:278–293, 2021. Cory Stephenson, Suchismita Padhy, Abhinav Ganesh, Yue Hui, Hanlin Tang, and SueYeon Chung. On the geometry of generalization and memorization in deep neural networks. In International Conference on Learning Representations , 2021. 34 Gábor J. Székely and Maria L. Rizzo. Energy statistics: A class of statistics based on distances. Journal of Statistical Planning and Inference , 143(8):1249–1272, 2013. Renata Turkeš, Guido Montúfar, and Nina Otter. On the effectiveness of persistent homology. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) , volume 35, pages 35432–35448, 2022. Hubert Wagner, Nickolas Arustamyan, Matthew Wheeler, and Peter Bubenik. Mixup barcodes: quan-tifying geometric-topological interactions between point clouds. In 42nd International Symposium on Computational Geometry (SoCG 2026) , LIPIcs, pages 94:1–94:19, 2026. arXiv:2402.15058. Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, and Oriol Vinyals. Understanding deep learning requires rethinking generalization. In International Conference on Learning Representations ,2017. Hongyi Zhang, Moustapha Cisse, Yann N. Dauphin, and David Lopez-Paz. mixup: Beyond empirical risk minimization. In International Conference on Learning Representations (ICLR) , 2018. 35

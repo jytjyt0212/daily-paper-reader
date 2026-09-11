@@ -1,0 +1,6917 @@
+Title: Nonparametric heterogeneous causal mediation with orthogonal machine learning
+
+URL Source: https://arxiv.org/pdf/2609.08097v1
+
+Published Time: Wed, 09 Sep 2026 03:13:28 GMT
+
+Number of Pages: 115
+
+Markdown Content:
+# Nonparametric heterogeneous causal mediation with orthogonal machine learning 
+
+Jiaqi Tong 1, Yi Zhao 2, Bhramar Mukherjee 1, and Fan Li 1,∗
+
+1Department of Biostatistics, Yale School of Public Health, New Haven, CT, USA 
+
+2Department of Biostatistics and Health Data Science, Indiana University School of Medicine 
+
+∗email : fan.f.li@yale.edu September 9, 2026 
+
+Abstract 
+
+Causal mediation analysis decomposes the total effect of an intervention on an outcome into a direct pathway and an indirect pathway transmitted through a me-diator, but standard methods typically summarize these pathways using population average effects. In many applications, however, the indirect effect may vary sub-stantially across individual profiles. We propose an orthogonal statistical learning framework for estimating heterogeneous causal mediation effects conditional on indi-vidual characteristics. The method constructs a class of weighted Neyman orthogonal losses motivated by influence function representations of weighted population average effects. These losses directly target conditional mediation estimands whose minimiz-ers are locally insensitive to nuisance estimation errors. We implement the resulting learners under a two-stage meta-learning framework with regularized linear sieves as second-stage smoothers, and introduce a combination of targeted learning and orthog-onal learning designed to improve stability when mediator density ratios are unstable. We establish L2 and uniform limit theory and develop pointwise and uniform confi-dence bands. Simulation studies show that the proposed orthogonal learners reduce the mean integrated squared error by more than 50% compared with existing model-based methods and provide computationally efficient inference in nonlinear settings. The CARDIA, PSACR, and STAR analyses reveal heterogeneous mediated effects across cardiometabolic, psychological, and educational settings. 
+
+Keywords: Causal mediation, conditional natural indirect effect, precision medicine, tar-geted learning, overlap weights, weighted orthogonal learning 1arXiv:2609.08097v1 [stat.ME] 8 Sep 2026 1 Introduction 
+
+1.1 Background and related literature 
+
+Causal mediation analysis decomposes the total effect of an intervention on an outcome into an indirect effect transmitted through an intermediate variable, or mediator , and a direct effect operating through pathways that bypass the mediator. It is widely used in applied studies to assess, for example, whether an exposure affects a later health outcome partly through an intermediate biomarker, such as whether cigarette smoking influences subsequent systolic blood pressure through abdominal intermuscular adipose tissue volume. The counterfactual outcomes framework has provided estimand definitions, identification formulas, and semiparametric efficiency theory for direct and indirect mediation effects (Imai et al., 2010; Tchetgen Tchetgen and Shpitser, 2012). Much of this literature targets population average mediation effects. In many scientific applications, however, the medi-ated pathway itself may vary across individual profiles. Across different research contexts, exploring such variation can help identify which individuals are most affected through a particular mechanism and inform the design of more personalized and targeted interven-tions. For estimating treatment effect heterogeneity without mediators, debiased machine learning and orthogonal statistical learning provide flexible two-stage meta-learning proce-dures for conditional average treatment effects by constructing Neyman orthogonal losses that directly target the causal contrast while reducing sensitivity to first-stage nuisance estimation error (Nie and Wager, 2021; Kennedy, 2023; Foster and Syrgkanis, 2023). In contrast, optimal estimators for heterogeneous mediation analysis remain less developed. Existing work has primarily adopted model-based or Bayesian approaches. Among model-based methods, Zhao et al. (2025) and Xue et al. (2022) proposed LASSO-regularized ordi-nary least squares estimators and fused-LASSO-regularized estimators, respectively, based 2on linear structural equation models (LSEMs), with an emphasis on high-dimensional co-variates. In addition, Wang et al. (2021) considered mixture models with parameters estimated using EM algorithms, whereas Li et al. (2026) considered a Cox proportional hazards model for survival outcomes. Within the Bayesian framework, Ting and Linero (2025) and Liu et al. (2026) employed Bayesian additive regression trees to estimate con-ditional mediation effects. Other related methods consider either a simpler heterogeneous mediation estimand conditional on a single categorical variable (Qin and Hong, 2017) or a plug-in approach with specific nuisance estimation methods (Huan et al., 2024). How-ever, the performance of model-based and simple plug-in approaches may depend heavily on model assumptions and the quality of nuisance estimation, and can deteriorate when nuisance functions are misspecified or too complex to estimate efficiently. This issue is espe-cially pronounced in mediation analysis because the estimands depend on several nuisance components, including the treatment propensity score, the conditional mediator densities, and the conditional outcome regressions. Moreover, Bayesian methods may lack strong asymptotic guarantees, and computationally efficient pointwise and simultaneous inference procedures without strong model assumptions generally remain unavailable. 
+
+1.2 Our contributions 
+
+We develop a flexible two-stage causal machine learning framework for estimating het-erogeneous causal mediation effects conditional on baseline characteristics. Our primary contributions are threefold. First, we propose a class of weighted orthogonal learners for conditional mediation effects, formulated as minimizers of Neyman orthogonal loss functions whose directional derivatives with respect to the target estimand are locally in-sensitive to perturbations of the nuisance functions around their true values (Foster and Syrgkanis, 2023). Consequently, the orthogonal learners avoid linear error propagation and depend only on second-order first-stage nuisance estimation errors. We exemplify this 3class through three interpretable choices of the weight function—inverse probability weight, treated weight and overlap weight; the latter two choices can improve stability when pos-itivity is empirically weak. Second, to improve the stability of inverse mediator density weighting, we propose combining targeted learning with the orthogonal learners, which can be viewed as a nonparametric extension of commonly used stabilization techniques for studying population average mediation effects. Third, we establish the asymptotic theory and computationally efficient statistical inference procedures for the more complex media-tion estimands. Leveraging regularized least squares sieves (Chen, 2007), we establish L2
+
+and uniform limit theory for the proposed class of orthogonal learners and show that they can achieve oracle efficiency, as if the nuisance functions were known. Moreover, we show that the empirical loss tailored to nonparametric targeted learning converges uniformly to the orthogonal loss; therefore, targeted learning improves stability without breaking insensitivity to first-stage nuisance function estimation. To quantify uncertainty, we fur-ther construct pointwise and uniform confidence bands, where the former are based on a closed-form calculation and the latter are based on a computationally efficient Gaussian bootstrap. Our simulation studies demonstrate that the proposed orthogonal learners are sub-stantially less sensitive to nuisance model complexity and more robust to working model misspecification than existing model-based learners. In nonlinear settings, they reduce mean integrated squared error by more than 50% and deliver reliable pointwise and uni-form coverage. The primary CARDIA application examines heterogeneity in the pathway from cigarette smoking through intermuscular adipose tissue volume to later systolic blood pressure, while supplementary PSACR-002 and Tennessee STAR applications extend the analysis to psychological and educational settings. The remainder of this article is organized as follows. Section 2 introduces the estimands and identification results and provides a review of a simple plug-in T-learner. Section 3 de-4velops the proposed weighted orthogonal learning framework. Section 4 introduces targeted orthogonal learners designed to improve finite-sample stability. Section 5 summarizes rep-resentative learners induced by different weighting choices. Section 6 establishes asymptotic theory and develops pointwise and uniform inference. Sections 7 and 8 present simulation studies and an empirical application, respectively. Section 9 concludes. 
+
+# 2 Notation, assumptions, and identification 
+
+We consider a study with n individuals and denote the treatment indicator as A, where 
+
+A = 1 represents the treated condition and A = 0 represents the control condition. Let 
+
+X ∈ X ⊆ Rp denote the vector of measured pre-treatment covariates. Suppose a scalar outcome Y ∈ R is observed, and a scalar mediator M ∈ M ⊆ R is measured prior to the final outcome. Thus, the analyst collects n i.i.d. copies of the observed data vector 
+
+O = ( X⊤, A, M, Y )⊤. Let M (a) denote the counterfactual mediator that would have been observed under treatment value A = a, and let Y (a, m ) denote the counterfactual outcome that would have been observed under mediator value M = m and treatment value A = a.The observed mediator and outcome satisfy the consistency assumption: M (a) = M if 
+
+A = a and Y (a, m ) = Y if A = a and M = m. We invoke the composition assumption such that Y (a) := Y (a, M (a)); that is, the counterfactual outcome under treatment value A = a
+
+coincides with the potential outcome that would have been observed under treatment value 
+
+A = a and the mediator taking the natural value it would have been observed to take under the same treatment value. Causal mediation analysis studies the decomposition of the total effect (TE) as the sum of the natural direct effect (NDE) that bypasses the mediator and the natural indirect effect (NIE) that operates through the mediator (Imai et al., 2010). Formally, we define TE = E{Y (1) − Y (0) }, NDE = E{Y (1 , M (0)) − Y (0 , M (0)) }, NIE = 
+
+E{Y (1 , M (1)) −Y (1 , M (0)) }, and obtain the canonical decomposition as TE = NDE+NIE. 5To quantify treatment effect heterogeneity in causal mediation analysis, we focus on the following conditional analogues: CTE( X) = E{Y (1) −Y (0) |X}, CNDE( X) = E{Y (1 , M (0)) −
+
+Y (0 , M (0)) |X}, and CNIE( X) = E{Y (1 , M (1)) − Y (1 , M (0)) |X}. Here, CTE represents the conditional total effect and is of central interest in treatment effect heterogeneity esti-mation (Kennedy, 2023); CNDE represents the conditional natural direct effect, quantifying the personalized natural direct effect conditional on individual profiles X; and CNIE rep-resents the conditional natural indirect effect, quantifying the personalized natural indirect effect that operates through the mediator. Finally, the canonical decomposition carries over as CTE( X) = CNDE( X) + CNIE( X). To point-identify the conditional causal mediation effects defined above, we invoke the following set of standard assumptions. 
+
+Assumption 1 (Sequential Ignorability ). For all a, a ′ ∈ { 0, 1} and all m ∈ M , (i) 
+
+{Y (a′, m ), M (a)} ⊥ A|X and (ii) Y (a′, m ) ⊥ M (a)|A = a, X hold. 
+
+Assumption 2. For every x ∈ X , 0 < π (x) := Pr( A = 1 |x) < 1. Moreover, the condi-tional distribution of the mediator under control is absolutely continuous with respect to its conditional distribution under treatment: PM |A=0 ,X=x ≪ PM |A=1 ,X=x.
+
+Sequential ignorability (SI) consists of two parts. SI(i) assumes that treatment is as if randomized given measured baseline covariates, and SI(ii) rules out post-treatment mediator-outcome confounding, including that induced by treatment. Assumption 2 re-quires (i) treatment positivity, ensuring treatment overlap, and (ii) absolute continuity of the control mediator distribution with respect to the treated distribution, permitting a change of measure from treatment to control. The following proposition shows that, under Assumptions 1-2, the conditional causal mediation effects are point-identifiable. 
+
+Proposition 1. Under Assumptions 1-2, the structural parameters θa1a2 (X) := E{Y (a1, M (a2)) |X}
+
+with (a1, a 2) ∈ { (0 , 0) , (1 , 0) , (1 , 1) } are identified by θa1a2 (X) = R μa1 (m, X)f (m|a2, X)dm ,where μa(M, X) = E{Y |A = a, M, X} is the conditional outcome mean and f (m|a, X)6is the conditional density of the mediator given treatment and baseline covariates. The conditional causal mediation effects are additive combinations of these parameters. 
+
+For simplicity but with a slight abuse of notation, we use g and g(X) to denote the aver-age and conditional causal mediation effects, respectively, where g ∈ { TE (CTE) , NDE (CNDE) ,
+
+NIE (CNIE) }.
+
+2.1 Some technical notation 
+
+To proceed, the following technical notation is defined for subsequent use. Let [ n] = 
+
+{1, . . . , n } denote the set of positive integers up to n. Let •c denote the set complement, and let A\B = A ∩ Bc denote the set difference. Let ∥v∥q = ( PLl=1 |vl|q)1/q denote the usual ℓq norm. Let ∥ • ∥ op denote the matrix operator or spectral norm and ∥f ∥P,q =
+
+ R |f |qdP1/q the Lq(P) norm. In particular, ∥f ∥P,∞ = sup x |f (x)| is the uniform norm. Let du(•) = max 1≤q≤Q ∥b•q − •∥ P,u denote the nuisance estimation error in the Lu(P) norm. Let ψk(•) be the kth eigenvalue of a generic matrix • ∈ RK×K such that ψ1 ≤ . . . ≤ ψK .We write an ≲ bn if an ≤ cb n for some constant c independent of n, and an ≍ bn if 
+
+an ≲ bn and bn ≲ an. We use X =d Y to denote that two random variables X and Y
+
+have the same distribution, and write X =d Y + oP(an) if ( X − Y )/a n converges to zero in probability. We also use an ≲P bn to denote that the stochastic sequence an is of order at most bn in probability, i.e., an = OP(bn). The notations an ≲P bn and an = OP(bn) are used interchangeably for convenience. Let Pn(V ) = n−1 Pni=1 Vi denote the empirical mean of a generic random object V , and let Gn{f (V )} = n−1/2 Pni=1 [f (Vi) − E{f (Vi)}] denote the empirical process indexed by a generic function f . Let diam( X ) := sup x1,x2∈X ∥x1 − x2∥2
+
+denote the diameter of the covariate support X . Let a∧b := min( a, b ) and a∨b := max( a, b ). 72.2 A simple nonorthogonal learner: the T-learner 
+
+Following K¨ unzel et al. (2019), the g-computation identification formulas in Proposition 1 suggest a simple T-learner that estimates g(X) by taking the difference between two estimated nuisance components. Define ηa1a2 (X) = R μa1 (m, X)f (m|a2, X)dm , and, in particular, ηa1a1 (X) = E(Y |A = a1, X). Formally, the T-learner is given by [CTE( X) = 
+
+bη11 (X) − bη00 (X), \CNDE( X) = bη10 (X) − bη00 (X), and \CNIE( X) = bη11 (X) − bη10 (X), where, for a1, a 2 ∈ { 0, 1}, bηa1a2 (X) = R bμa1 (m, X) bf (m|a2, X) dm , with the integral evaluated by either Monte Carlo simulation or Gaussian quadrature for continuous mediators. Zhao et al. (2025) proposed a parametric T-learner under the LSEM assumptions that μa(M, X)is linear in ( M, X⊤)⊤ given a ∈ { 0, 1}, and that M = μa(X) + error with mean-zero er-ror, where μa(X) = E(M | A = a, X) is also linear in X given a. Zhao et al. (2025) recommended estimation and inference based on OLS with model-based standard errors for low-dimensional X, and LASSO for high-dimensional X. In contrast, Liu et al. (2026) considered a Bayesian analogue of the T-learner using flexible BART models for the me-diators and outcomes that incorporate clever covariates. Although the calculation of the T-learner is straightforward, it has several potential disadvantages. First, the T-learner does not directly target g(X) but instead focuses on learning the building blocks θa1a2 (X). That is, the T-learner may achieve an optimal bias-variance trade-off for θa1a2 (X), but not for g(X) itself, which may worsen performance when the contrast g(X) is much simpler than the building blocks θa1a2 (X). Second, the T-learner is not Neyman orthogonal in the sense of Foster and Syrgkanis (2023), with the precise meaning given later in Section 3. As a result, low-quality nuisance estimation may carry over to the T-learner and lead to a slower convergence rate. In addition, for the parametric T-learner, when the linear out-come and mediator mean models are misspecified, the nuisance estimates, and hence the corresponding parametric T-learner, are not consistent. Third, computationally efficient 8pointwise and uniform confidence bands for the T-learner are generally unavailable with-out imposing strong model assumptions; neither Zhao et al. (2025) nor Liu et al. (2026) provided methods to construct uniform confidence bands for their estimators. 
+
+# 3 Introducing a class of weighted orthogonal learners 
+
+For illustration, we focus mainly on the optimal learning procedures for the CNIE, because the primary scientific question in the motivating data example concerns the indirect path-way. Alternatively, if the primary interest lies in the direct pathway, a similar procedure can be constructed for optimally learning the CNDE; details are provided in Supplemen-tary Material Section S4. Of note, the separate optimal learners for CTE, CNDE, and CNIE may not numerically satisfy the effect decomposition, because naive addition or sub-traction of the optimal learners for any two of these estimands does not necessarily yield the optimal bias-variance trade-off for the remaining one. We leave the joint learning of CTE, CNDE, and CNIE under the effect-decomposition constraint for future research. To aid interpretation when the effect decomposition is of scientific interest, we recommend a simpler strategy by optimally estimating any two of these estimands and obtaining the remaining one by addition or subtraction. To improve upon the T-learner, we propose a weighted orthogonal statistical learning framework for constructing optimal learners for heterogeneous causal mediation effects. To proceed, we first focus on a family of weighted population average causal mediation effects, which can be formally defined as ˇ gw = E{w(X)Yg}/E{w(X)}, where w denotes the weight function and Yg represents the corresponding potential outcome contrast for the estimand g. Specifically, (i) for g = TE, Yg = Y (1) − Y (0) and ˇ gw represents the weighted TE; (ii) for g = NDE, Yg = Y (1 , M (0)) − Y (0 , M (0)) and ˇ gw represents the weighted NDE; and likewise (iii) for g = NIE, Yg = Y (1 , M (1)) − Y (1 , M (0)) and ˇ gw represents the 9weighted NIE. Following the balancing weight framework of Li et al. (2018), (i) the target population is the combined population when w = 1; (ii) the target population is the treated population when w = π(X); and (iii) the target population is the overlap population when 
+
+w∗ 
+
+> TE
+
+= π(X){1 − π(X)}.Morzywolek et al. (2025) constructed a class of weighted orthogonal learners for the CTE that includes the R-learner (Nie and Wager, 2021) and the DR-learner (Kennedy, 2023) as special cases. We generalize their methods to the optimal learning of CNIE; in what follows, g denotes the CNIE or NIE. We first consider the following family of weighted least squares loss functions: 
+
+L(w) = E[w(X){Y (1 , M (1)) − Y (1 , M (0)) − g(X)}2]. (1) We assume that the weight function w(X) is almost surely positive with Pr {w(X)̸ = 0 } = 1 and can depend on the propensity score π(X) only through w(X) = ω{π(X)}, where 
+
+ω : [0 , 1] → R≥0 is a twice continuously differentiable function. Consequently, under Assumptions 1–2, the minimizer of the loss function defined in Equation (1), denoted by 
+
+gmin (X; w), is CNIE( X); that is, gmin (X; w) = CNIE( X) = κ(X), where κ(X) = η11 (X) −
+
+η10 (X). Interestingly, the choice of weighting function does not alter the minimizer but can motivate a class of orthogonal learners, which is the core idea of Morzywolek et al. (2025) for studying CTE. To construct an orthogonal learner, we leverage the heuristic correspondence between the uncentered efficient influence function (EIF) under the nonparametric model for the chosen finite-dimensional smoothed parameter ˇ gw and the orthogonal learner, a connection recognized in the literature for estimating CTE (e.g., Semenova and Chernozhukov, 2021; Kennedy, 2023; Morzywolek et al., 2025). To facilitate the derivation of the nonparametric EIF for ˇ gw, we define, for a ∈ { 0, 1}, ϕ10 (O) = π(X)−1Ar (M, X){Y − μ1(M, X)} + {1 −
+
+π(X)}−1(1 −A){μ1(M, X)−η10 (X)}+η10 (X) and ϕaa (O) = π(X)−a{1−π(X)}a−1I(A = a){Y −
+
+10 ηaa (X)} + ηaa (X), where r(M, X) = f (M |0, X)/f (M |1, X) and I(•) denotes the indicator function. Here, ζ(O) := ϕ11 (O) − ϕ10 (O) and ϕ10 (O) − ϕ00 (O) are the uncentered non-parametric EIFs for NIE and NDE, respectively (Tchetgen Tchetgen and Shpitser, 2012). Theorem 1 below derives the nonparametric EIF for ˇ gw when g = CNIE. 
+
+Theorem 1. Under Assumptions 1-2, the nonparametric EIF for ˇgw can be written as 
+
+φNIE = E {w(X)}−1 (ϕNIE  
+
+> n
+
+− ˇgwϕNIE  
+
+> d
+
+), where ϕNIE  
+
+> d
+
+= w(X) + ω′{π(X)} { A − π(X)} and 
+
+ϕNIE  
+
+> n
+
+= κ(X) ϕNIE  
+
+> d
+
+− w(X) + w(X)ζ(O).
+
+Theorem 1 motivates the following orthogonal loss function for learning CNIE: eL(w) = 
+
+E{lw(O; Γ, g )}, where 
+
+lw(O; Γ, g ) = ϕNIE  
+
+> d
+
+{κ(X) − g(X)}2 − 2w(X) {ζ(O) − κ(X)} g(X). (2) Several remarks are in order based on the orthogonal loss function. First, one can verify that the minimizers of L(w) and eL(w) are both CNIE( X). Second, eL(w) is Neyman orthogonal in the sense of Foster and Syrgkanis (2023), whereas the original weighted least squares loss L(w) is not. In other words, the learner constructed by minimizing the orthogonal loss 
+
+eL(w) is locally insensitive to nuisance function error propagation and has the mixed-bias property in the sense of Rotnitzky et al. (2021) and Cheng and Li (2025). To see this, one can verify that ∂l w/∂g ∝ φNIE by treating g = ˇ gw as a scalar. Finally, our construction of the loss function refines the work of Morzywolek et al. (2025); see Remark 1 below. 
+
+Remark 1. Our proposed loss function in Equation (2) refines the intuitive construction in Morzywolek et al. (2025), namely, setting lw = ϕNIE  
+
+> d
+
+{ϕNIE  
+
+> n
+
+/ϕ NIE  
+
+> d
+
+−g(X)}2. The intuitive loss 
+
+lw can be interpreted as a weighted least squares loss with weight ϕNIE  
+
+> d
+
+and pseudo-outcome 
+
+ϕNIE  
+
+> n
+
+/ϕ NIE  
+
+> d
+
+. However, it requires special care when ϕNIE  
+
+> d
+
+can equal zero. In contrast, our refinement avoids division by the potentially zero ϕNIE  
+
+> d
+
+by adding a shift term independent of the target function g while preserving the Neyman orthogonal property with ∂l w/∂g ∝ φNIE ,
+
+11 and therefore does not change the minimizer of the loss. Such a refinement also applies to the CTE estimation considered in Morzywolek et al. (2025). This refinement is useful because ϕNIE  
+
+> d
+
+can equal zero, for example, when w(X) = π(X) and ϕNIE  
+
+> d
+
+= A.
+
+Although the orthogonal loss function eL(w) can in theory motivate many different nonparametric estimators, we proceed with the regularized linear sieve method (Chen, 2007) because it is computationally efficient, enables feasible pointwise and uniform in-ference, and nests many familiar parametric submodels. Using a lower-case x ∈ X , the expression g(x) denotes the CNIE evaluated at a fixed point x, distinguishing it from the random function g(X). Suppose that the function g belongs to a specified function class 
+
+G, such as a H¨ older class of smoothness order s, denoted by Hs, or a Sobolev space. The sieve method uses a sequence of approximating spaces Gn such that Gn becomes asymp-totically dense in G as the sample size n → ∞ , in the sense that functions in Gn can approximate any function in G arbitrarily well (Chen, 2007). Linear sieves typically re-fer to sieve spaces constructed as the linear span of a set of basis functions, that is, 
+
+Gn = {b(x)⊤β : b(x) = ( b1(x), . . . , b K (x)) ⊤, β = ( β1, . . . , β K )⊤, K = Kn}, where the di-mension Kn grows slowly with the sample size (Belloni et al., 2015). Common well-studied choices of basis functions include polynomials, splines, and wavelets. The approximation quality of the sieve space Gn is controlled by ξK := sup x∈X ∥b(x)∥2, and the optimal rate 
+
+ξK ≍ √K is attained by many basis functions, including spline, wavelet, and Fourier series. Finally, the proposed class of weighted orthogonal learners for estimating the CNIE is con-structed through a two-stage procedure with sample cross-fitting, as shown in Algorithm 1. Specifically, let Γ = {π, f 0, f 1, μ 1, η 11 } denote the collection of nuisance functions. In Stage 1, the full sample is randomly partitioned into Q folds of approximately equal size, up to rounding. Let Fq ⊆ [n], q ∈ [Q], denote the set of indices in the qth fold. For each individual 
+
+i ∈ F q, the predicted values bϕNIE  
+
+> d
+
+(Ai, Xi) = ϕNIE  
+
+> d
+
+(Ai, Xi; bΓq) and bϕNIE  
+
+> n
+
+(Oi) = ϕNIE  
+
+> n
+
+(Oi; bΓq)are obtained using the estimated nuisance functions bΓq trained on the disjoint training 12 sample Fcq = [ n]\F q. In Stage 2, the proposed class of weighted orthogonal learners is defined as the empirical minimizer of the orthogonal loss eL(w) under a generalized ridge penalty over the linear sieve Gn. That is, it can be expressed as bg(x) = b(x)⊤ bβ, where 
+
+bβ = arg min 
+
+> β
+
+12
+
+h
+
+Pn
+
+n
+
+lw(O; bΓ, b(X)⊤β)
+
+o
+
++ λβ⊤Pβ
+
+i
+
+. (3) Moreover, it is computationally efficient because bβ admits the closed-form solution bβ =( bH + λP)−1 bh, where bH = Pn{bϕNIE  
+
+> d
+
+b(X)b(X)⊤} and bh = Pn{b(X)bϕNIE  
+
+> n
+
+}.
+
+Algorithm 1 Weighted orthogonal learning under sample cross-fitting 
+
+Require: Observed data {O i}ni=1 and Q folds 
+
+Ensure: Weighted orthogonal learner for the CNIE  
+
+> 1:
+
+Randomly partition the full sample into Q disjoint folds Fq, q ∈ [Q].  
+
+> 2:
+
+Stage 1: Nuisance function estimation  
+
+> 3:
+
+for q = 1 to Q do  
+
+> 4:
+
+Obtain the estimated nuisance functions bΓq using the training sample Fcq = [ n] \ F q. 
+
+> 5:
+
+Compute predicted values bϕNIE  
+
+> d,i
+
+= ϕNIE  
+
+> d
+
+(Oi, bΓq) and bϕNIE  
+
+> n,i
+
+= ϕNIE  
+
+> n
+
+(Oi; bΓq) for all i ∈ F q. 
+
+> 6:
+
+end for  
+
+> 7:
+
+Stage 2: Orthogonal loss minimization  
+
+> 8:
+
+Empirically minimize the penalized loss eL(w) over the pooled sample. 
+
+# 4 Fusing targeted learning with orthogonal learning 
+
+Although choosing appropriate weights, such as w(X) = π(X) or w(X) = π(X){1 − π(X)},can remove the explicit division by the propensity score in the orthogonal loss function in (2), and thus reduce vulnerability to practical instability in the propensity score, for example, when bπ(X) is near 0 or 1, the loss function may still be affected by practical violations of the boundedness of f (M |1, X) (see the term r(M, X) in ϕ10 ). To further alleviate this issue, we generalize the idea of combining targeted learning and orthogonal learning, in the spirit of the EP learner in van der Laan et al. (2024) and the i-learner in Vansteelandt and Morzywo lek (2025). We do not restrict attention to the penalized least squares series estimator defined in Equation (3); the following discussion accommodates 13 arbitrary approximation methods beyond the linear sieves Gn, such as nonlinear artificial neural networks, local regression, and kernel methods. The primary objective is to carry out empirical minimization of the following tar-geted loss function: ˇlw(O; Γ, g ) = lw(O; Γ, g ) − 2∆( O; Γ, g ), where the debiasing drift term ∆( O; Γ, g ) is defined by ∆( O; Γ, g ) = w(X) Aπ(X)r(M, X){Y − μ1(M, X)}g(X).
+
+Here, the debiasing drift term ∆( O; Γ, g ), despite having mean zero, may not be sufficiently close to zero empirically when r(M, X) is numerically unstable. In this case, the targeted loss function ˇlw completely removes dependence on the potentially unstable density ratio term r(M, X). However, the targeted loss ˇlw is not exactly Neyman orthogonal. To render ˇlw approximately orthogonal asymptotically, we seek to make empirical minimization of 
+
+Pn{lw(O; bΓ, g )} as close as possible to empirical minimization of Pn{ˇlw(O; bΓ, g )}. Because the debiasing drift term ∆( O; Γ, g ) depends on an infinite-dimensional function g(X), it is generally not possible to establish an exact equivalence between the two empirical min-imization problems over g(X) based on lw and ˇlw. To ensure the learners minimizing 
+
+Pn{ˇlw(O; bΓ, g )} are approximately orthogonal, we follow van der Laan et al. (2024) and apply infinite-dimensional targeted learning using the method of sieves. This sieve method differs from the previous one in Equation (3) and serves solely to ensure that the empiri-cal loss Pn{ˇlw(O; bΓ, g )} closely approximates the empirical orthogonal loss Pn{lw(O; bΓ, g )}.For simplicity, we still refer to the resulting targeted and approximately orthogonal learners as orthogonal learners. To proceed, we propose a refined nuisance estimator for μ1, denoted by bμ∗
+
+> 1
+
+, obtained by updating the initial estimator bμ1 using an asymptotically dense linear sieve ˇGn = {ˇb(X)⊤ ˇϵ :dim(ˇ ϵ) = ˇKn}. As noted earlier, ˇGn need not coincide with Gn. We summarize the targeted learning procedure with ˇGn in Algorithm 2. We then formalize the preceding claim that 14 empirical minimization of the targeted loss provides a close approximation to empirical minimization of the orthogonal loss. To proceed, let N (ρ, G, ∥ • ∥ P,∞) be the ρ-covering number for G equipped with the uniform norm, i.e., the smallest number of balls of L∞-radius ρ needed to cover G, and J(δ, G, ∥ • ∥ P,∞) := R δ
+
+> 0
+
+plog N (ρ, G, ∥ • ∥ P,∞)dρ be the induced entropy integral. Provided that the complexity of G is properly controlled through the entropy integral, Theorem 2 below shows that the sample average debiasing drift term 
+
+Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g )} converges to zero uniformly over g ∈ G , and derives its uniform convergence rate. In other words, the empirical targeted loss converges uniformly to the empirical orthogonal loss, indicating that minimization over either loss is asymptotically equivalent and therefore preserves Neyman orthogonality. 
+
+Algorithm 2 Targeted learning with linear sieves 
+
+Require: Observed data {O i}ni=1 and initial cross-fitted predictions {bμ1(Mi, Xi), bπ(Xi), br(Mi, Xi)}ni=1 
+
+Ensure: Refined predictions {bμ∗
+
+> 1
+
+(Mi, Xi)}ni=1 for μ1
+
+1: Conditional on Ai = 1, fit a weighted ordinary least squares regression of the outcome Yi on the regressors ˇb(Xi), with an offset of bμ1(Mi, Xi) and weights ω{bπ(Xi)}br(Mi, Xi)/bπ(Xi). Obtain bϵ as the estimated coefficients. 2: Obtain the refined predictions as bμ∗
+
+> 1
+
+(Mi, Xi) = bμ1(Mi, Xi) + bϵ⊤ ˇb(Xi). 3: Output the final learner by minimizing Pn{ˇlw(O)} based on the updated predictions. 
+
+Theorem 2. Assume that (i) there exists a stable linear projection Π( g) onto ˇGn, with the stability constant Λ ˇK := sup ∥g∥P,∞̸ =0 ∥Π( g)∥P,∞/∥g∥P,∞; (ii) there exist finite constants 
+
+c ˇK and l ˇK satisfying, for all g ∈ G , ∥g − Π( g)∥P,2 ≤ c ˇK and ∥g − Π( g)∥P,∞ ≤ l ˇK c ˇK ; (iii) 
+
+J(δ, G, ∥ • ∥ P,∞) ≲ δ1−1/(2 τ ) for some τ > 1/2; (iv) d2(f0) ∨ d2(f1) ∨ d2(π) = oP(1) ; (v) Assumptions 3(a) and 3(d) hold, with b(X) and Kn replaced by ˇb(X) and ˇKn, respectively, and with the additional uniform boundedness of bμ∗
+
+> 1
+
+; (vi) ξ2ˇK log( ˇK ∨ 2) /n = o(1) ; and (vii) 
+
+∥A{Y − μ1(M, X)}∥ P,∞ ≤ ϵ3 for some constant ϵ3 > 0. Then ∥bμ∗ 
+
+> 1
+
+− μ1∥P,2 ≲P r1n := 15 q ˇK/n + (1 + ξ ˇK /√n)d2(μ1) and 
+
+sup 
+
+> g∈G
+
+|Pn{lw(O; bμ∗
+
+> 1
+
+, g )} − Pn{ˇlw(O; bμ∗
+
+> 1
+
+, g )}| = 2 sup 
+
+> g∈G
+
+Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g )} ≲P c ˇK r1n + n− 12 ×{(c ˇK + n− 12 )1− 12τ (1 + r 12τ 
+
+> 1n
+
+) + d†∞ 
+
+> 12τ
+
+(r2n + n− 12 )1− 12τ }(1 + Λ ˇK ) 12τ + l ˇK c ˇK
+
+s
+
+ˇK log nn
+
+r1n ∨
+
+s
+
+ˇK log nn
+
+ ,
+
+where r2n := ( d†∞c ˇK ) ∧ (d†
+
+> 2
+
+l ˇK c ˇK ) and d† 
+
+> q
+
+:= dq(π) + P 
+
+> a=0 ,1
+
+dq(fa).
+
+Several additional remarks are in order based on Theorem 2. First, the uniform con-vergence rate for the empirical loss function is general, in the sense that it is expressed in terms of high-level quantities. This rate can be made more explicit when one restricts attention to specific choices of the basis functions ˇb(X) and the function class G. For ex-ample, under the more specific additional regularity conditions listed in van der Laan et al. (2024), the rate can be oP(n−1/2). Second, Theorem 2 also provides an upper bound for the 
+
+L2 estimation error of the refined nuisance bμ∗ 
+
+> 1
+
+in terms of the first-stage nuisance estimation errors through r1n. This helps clarify how the targeting step affects nuisance estimation quality. Finally, because the targeting step is implemented on the pooled sample and the fluctuation parameter ϵ has dimension ˇKn growing with the sample size, this step may sometimes practically overfit bμ∗
+
+> 1
+
+, since it is no longer cross-fitted. To mitigate this issue, one may follow Vansteelandt and Morzywo lek (2025) by adding a LASSO penalty to the weighted least squares regression model in Algorithm 2. 
+
+# 5 Six representative orthogonal learners 
+
+In this section, we illustrate the class of weighted orthogonal learners introduced in Section 3 by presenting six orthogonal learners defined by three explicit choices of weight function and whether a targeting step is incorporated, as summarized in Table 1. For illustration, Examples 1–3 detail three orthogonal learners without a targeting step. Of note, the choice 16 of weighting function is not limited to the three considered below. For example, one may also use w(X) = 1 − π(X), which corresponds to the control weight.  
+
+> Table 1: Summary of the six representative orthogonal learners presented in Examples 1–3, their corresponding weight functions, and whether a targeting step is incorporated.
+
+TR TW OW TTR TTW TOW Weight w(X) 1 π(X) π(X){1 − π(X)} 1 π(X) π(X){1 − π(X)}
+
+Population Combined Treated Overlap Combined Treated Overlap Targeted × × × ✓ ✓ ✓
+
+Example 1 (TR learner ). We begin by setting the weight function to unity. The resulting learner directly generalizes the DR-learner, or two-stage pseudo-outcome regression method. To see this, note that the proposed TR learner can alternatively be viewed as regressing the pseudo-outcome bϕNIE  
+
+> n
+
+on X using the penalized least squares sieve method in Stage 2. We refer to this learner as the triply robust (TR) learner because the corresponding semipara-metric one-step estimator for the natural indirect effect is triply robust (Tchetgen Tchetgen and Shpitser, 2012). Under w = 1 , ˇgw is the natural indirect effect and its nonparametric EIF is given by φNIE = ζ(O) − ˇgw. Moreover, we have that bH = Pn{b(X)b(X)⊤} and 
+
+bh = Pn{b(X)bζ(O)}. Notably, the Gram matrix bH for the TR learner does not depend on the estimated nuisance functions. 
+
+Example 2 (TW learner ). Following Tchetgen Tchetgen and Shpitser (2012), the finite-sample performance of the TR learner can be sensitive to instability in the inverse propensity score weights. To mitigate this issue, a natural choice is w = π(X), since only the treated population is weighted for estimating NIE. We refer to the orthogonal learner with w =
+
+π(X) as the treatment weighted (TW) learner. Under w = π(X), the EIF components for 
+
+ˇgw simplify to ϕNIE  
+
+> d
+
+= A and ϕNIE  
+
+> n
+
+= κ(X){A − π(X)} + π(X)ζ(O). Moreover, we have that 
+
+bH = Pn{Ab(X)b(X)⊤} and bh = Pn[b(X)[ bκ(X){A − bπ(X)} + bπ(X)bζ(O)]] . Of note, the 
+
+17 Gram matrix bH for the TW learner still does not depend on the nuisance functions, but is averaged only over the treated individuals. 
+
+Example 3 (OW learner ). Although the weighting estimator for the NIE weights only the treated population, the semiparametrically efficient one-step estimator in Tchetgen Tchet-gen and Shpitser (2012) also includes a correction term for control individuals weighted by {1 − π(X)}−1; see the form of ϕ10 . Therefore, one may also consider using overlap weights with w = π(X){1 − π(X)}, which we refer to as the overlap weighted (OW) learner. In this case, the EIF components for ˇgw simplify to ϕNIE  
+
+> d
+
+= {A − π(X)}2 and 
+
+ϕNIE  
+
+> n
+
+= κ(X)[ {A − π(X)}2 − π(X){1 − π(X)}] + π(X){1 − π(X)}ζ(O). Of note, the Gram matrix bH for the OW learner depends on the unknown propensity score. Interestingly, un-der overlap weights, ϕNIE  
+
+> d
+
+= {A − π(X)}2 corresponds to residualizing the treatment and has a similar flavor to the R-learner for CTE estimation (Nie and Wager, 2021). 
+
+For ease of reference, we denote the six representative learners for the CNIE in Table 1 by bgTR (X), bgTW (X), bgOW (X), bgTTR (X), bgTTW (X), and bgTOW (X), respectively. 
+
+# 6 Asymptotic theory and statistical inference 
+
+In this section, we derive the L2 and uniform limit theory for the proposed class of orthog-onal learners. Specifically, we (i) establish rates of convergence showing that our estimator can be oracle efficient, achieving the fast rate as if the first-stage nuisance functions were known; and (ii) construct computationally efficient and asymptotically honest pointwise and uniform confidence bands for statistical inference. For ease of exposition, we assume that the nuisance functions are cross-fitted, as for the weighted orthogonal learners in Sec-tion 3. However, the refined nuisance estimator bμ∗ 
+
+> 1
+
+used by the targeted learners in Section 4 does not preserve cross-fitting because the weighted least squares procedure in Algorithm 2 computes bμ∗ 
+
+> 1
+
+using the pooled sample. The confidence band construction is adjusted for 18 the targeted learners and performs well in the simulation studies, although its asymptotic analysis may yield weaker guarantees and require additional technical arguments under stronger entropy conditions. We return to a discussion of this point in Section 9. 
+
+6.1 L2 convergence 
+
+We first study the L2 limit theory. Let g∗(x) = b(x)⊤β∗ denote the weighted L2 projection of the truth g onto the sieve space Gn, that is, β∗ = arg 
+
+> β
+
+min 2 −1E w(X) {α(X; g, β)}2,where α(X; g, β) = g(X) − b(X)⊤β denotes the approximation error for a given true function g and sieve coefficients β. Then the total error bg − g can be decomposed into 
+
+bg − g∗, which captures the estimation and regularization errors, and g∗ − g, which captures the approximation error from approximating G by asymptotically dense Gn. To facilitate the asymptotic analysis, we introduce the regularity conditions commonly used in the debiased machine learning literature (Chernozhukov et al., 2018) and the least squares series literature (Chen, 2007). 
+
+Assumption 3. (a) The eigenvalues of the unweighted Gram matrix G = E{b(X)b(X)⊤}
+
+are uniformly bounded above and away from zero. (b) For all n and K, there exist fi-nite constants cK and lK such that ∥α(X; g, β∗)∥P,2 ≤ cK and ∥α(X; g, β∗)∥P,∞ ≤ lK cK .Moreover, E{g(X)4} < ∞. (c) The complexity of the basis functions satisfies mH 
+
+> n
+
+:= 
+
+pξ2 
+
+> K
+
+log K/n + ξ2 
+
+> K
+
+d2(π)2 ∧ ξK d4(π)2 ∧ d∞(π)2 = oP(1) . (d) There exist strictly positive con-stants ϵ1 ∈ (0 , 1/2] and ϵ2 > 0 such that for all a ∈ { 0, 1}, q ∈ [Q], X ∈ X , and M ∈ M ,
+
+sup x∈[0 ,1] ω(x) ∨ | ω′(x)| ∨ | ω′′ (x)| ≤ ϵ2, inf X w(X) ≥ ϵ1, −ω(t)/(1 − t) ≤ ω′(t) ≤ ω(t)/t 
+
+for all t ∈ [ϵ1, 1 − ϵ1], ϵ1 ≤ { π(X), bπq(X)} ≤ 1 − ϵ1, ϵ1 ≤ { f (M |a, X), bf q(M |a, X)} ≤ ϵ2,
+
+|μ1(M, X)| ∨ | bμq
+
+> 1
+
+(M, X)| ≤ ϵ2, E[{Y − μ1(M, X)}2|1, M, X] ≤ ϵ2, E(Ω 2|X) ≤ ϵ2, E( ˇΩ2|X) <ϵ2, and sup k sup X |bk(X)| ≤ ϵ2, where Ω := ϕNIE  
+
+> n
+
+− w(X)g(X) and ˇΩ := ϕNIE  
+
+> d
+
+− w(X).
+
+Assumption 3(a) ensures that the basis regressors are not overly collinear by assuming 19 the condition number of G is bounded. Assumption 3(b) provides the L2 approximation error rate cK for approximating G by Gn and the modulus of continuity lK , which relates the uniform approximation error rate to the L2 rate. In addition, we assume that the true CNIE is fourth-order integrable. Assumption 3(c) restricts the growth rate of the basis complexity K and ensures that the weighted Gram matrix is consistent, satisfying 
+
+∥ bH − H∥op ≲P mH 
+
+> n
+
+= oP(1), where H = E{ϕNIE  
+
+> d
+
+b(X)b(X)⊤} = E{w(X)b(X)b(X)⊤}
+
+denotes the population analogue of bH. Further discussion of the rate mH 
+
+> n
+
+is provided in Remark 2. Finally, Assumption 3(d) imposes a set of boundedness conditions commonly invoked in the literature for estimating CTE (Belloni et al., 2015; Chernozhukov et al., 2018). Under these regularity conditions, Theorem 3 below establishes the L2 error bounds for the proposed weighted orthogonal learners. 
+
+Remark 2. Importantly, when the weight function w(X) is constant, the unweighted Gram matrix bG = Pn{b(X)b(X)⊤} converges to G at the rate mG 
+
+> n
+
+:= pξ2 
+
+> K
+
+log K/n , which is the standard rate in the sieve literature (Chen, 2007). The same oracle rate holds for the TW and TTW learners because bϕNIE  
+
+> d
+
+= A, so their Gram matrices do not depend on estimated nuisance functions. However, for other general propensity-score-dependent weights, we derive a new convergence rate for the weighted Gram matrix bH, which additionally depends on the fastest one of the following three rates: the squared L2 convergence rate of the propensity score estimator multiplied by ξ2 
+
+> K
+
+, the squared L4 convergence rate multiplied by 
+
+ξK , or the squared uniform convergence rate. This rate exploits the Neyman orthogonality of ϕd when bounding ∥ bH − H∥op ≲P mH 
+
+> n
+
+; see Theorem S1 in the Supplementary Material and its proof based on the matrix Bernstein inequality. Finally, the convergence rate for the weighted Gram matrix attains the oracle rate pξ2 
+
+> K
+
+log K/n when ξK d2(π)2 = oP(n−1/2),
+
+d4(π) = oP(n−1/4), or d∞(π)2 = oP(ξK /√n), which is similar to the rate conditions in the debiased machine learning literature. 
+
+20 Theorem 3. Under Assumptions 1–3, the error of the weighted orthogonal learner in the 
+
+L2(P) norm is bounded by 
+
+∥bg − g∥P,2 ≲P
+
+2
+
+ϵ1 + 2 λψ min 
+
+ξK
+
+√n +
+
+rKn +
+
+> 3
+
+X
+
+> j=0
+
+mjn + λψ max 
+
+!
+
++ cK ,
+
+where ψmin = ψ1(P), ψmax = ψK (P), m0n = ( lK cK
+
+pK/n ) ∧ (ξK cK /√n), dΣ 
+
+> q
+
+:= dq(π) + 
+
+dq(μ1)+ P1 
+
+> a=0
+
+dq(fa), m1n = √K{d2(π)dΣ2 +d2(μ1) P1 
+
+> a=0
+
+d2(fa)}∧{ d4(π)dΣ4 +d4(μ1) P1 
+
+> a=0
+
+d4(fa)},
+
+m2n = ξK /√n{dΣ2 + d4(π)}, and m3n = √Kd 4(π)2.
+
+The L2 convergence rate in Theorem 3 can be interpreted as follows. First, pK/n + cK
+
+is the oracle convergence rate, attained when cK = o(1), ξK ≍ √K, λψ max = O(n−1/2), and 
+
+P3 
+
+> j=1
+
+mjn = O(m0n). For the H¨ older class with smoothness order s, i.e., when G = Hs,the oracle convergence rate is minimax optimal when K ≍ np/ (p+2 s). Second, the term 
+
+P3 
+
+> j=1
+
+mjn accounts for first-stage nuisance estimation errors and has a structure similar to error analyses in the debiased machine learning literature (Kennedy, 2024), where the variance term m2n is typically dominated by the bias terms m1n + m3n. Importantly, Neyman orthogonality induced by the EIF ensures that the bias term has a second-order product error rate, and hence can be of the same order as the variance term. Third, the regularization bias is controlled by requiring the eigenvalues of the scaled penalty matrix λP, namely λψ min and λψ max , to converge to zero at appropriate rates. Here, the regularization bias shrinks independently of the other components. Therefore, under the optimal bias-variance tradeoff, it does not affect the best achievable rate and only needs to shrink faster than the slower one of the approximation and estimation errors. Finally, we typically require cK = o(1), which requires the basis to be carefully constructed. In some settings, the chosen basis may be too restrictive for the approximation error to vanish, for example when the basis consists only of separately additive functions but the true function contains higher-order interactions (Belloni et al., 2015). 21 6.2 Uniform convergence 
+
+We then derive uniform convergence rates for the proposed weighted orthogonal learn-ers. As expected, these results require stronger assumptions than those required for L2
+
+convergence. We summarize the additional assumptions below. 
+
+Assumption 4. Suppose that diam (X ) is bounded above uniformly over n. Define eΩ := 
+
+ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g(X). For some ν ≥ 3, E{| g∗(X)|ν } = O(1) , sup x E(|Ω|ν |X = x) ∨ E(| ˇΩ|ν |X =
+
+x) ∨ E(|eΩ|ν |X = x) = O(1) , ξ2ν/ (ν−2)  
+
+> K
+
+log K/n = O(1) , log ξLK = O(log K), and log ξK =
+
+O(log K), where eb(x) := b(x)/∥b(x)∥2 denotes the normalized basis functions, and the corresponding Lipschitz constant is defined as ξLK := sup x̸=x′ ∥eb(x) − eb(x′)∥2/∥x − x′∥2.
+
+Assumption 4 imposes additional uniform boundedness conditions on the conditional 
+
+νth moments of the regression errors, requires the projection to be νth-integrable, and further restricts the growth rate of the basis functions. Under this additional assumption, Theorem 4 establishes the uniform convergence rate for the proposed orthogonal learners. 
+
+Theorem 4. Under Assumptions 1–4, the error of the weighted orthogonal learner in the uniform norm is bounded by 
+
+∥bg − g∥P,∞ ≲P
+
+ξK
+
+√n
+
+"√n P3 
+
+> j=1
+
+mjn + λψ max (√n + √K + √nm 0n)
+
+ϵ1 + λψ min 
+
++
+
+mH
+
+> n
+
+n√n P3 
+
+> j=0
+
+mjn + m4n + √nλψ max 
+
+o
+
+{ϵ1 + λψ min } { ϵ1/2 + λψ min } + plog K(1 + lK cK )
+
+#
+
++ lK cK ,
+
+where m4n = n1/ν √log K + √Kl K cK .
+
+Several remarks on the uniform convergence rate are in order. First, unlike its in-dependent role in the L2 error bound in Theorem 3, the regularization bias enters the uniform error bound through λψ max (√n + √K + √nm 0n + √nm H 
+
+> n
+
+), which must be con-trolled by choosing λψ max at an appropriate rate. Second, the oracle uniform conver-gence rate, ξK /√n{mG 
+
+> n
+
+m4n + √log K(1 + lK cK )} + lK cK , is attainable when the conditions 22 in Remark 2 hold, cK = o(1), ξK ≍ √K, √n P3 
+
+> j=0
+
+mjn = O(mG 
+
+> n
+
+m4n), λψ max = o(1), 
+
+√nλψ max = O(mG 
+
+> n
+
+m4n), and λψ max 
+
+√K = O(√n P3 
+
+> j=1
+
+mjn ). This oracle uniform rate is minimax optimal, with order (log n/n )s/ (2 s+p) for G = Hs when K ≍ (log n/n )−p/ (2 s+p)
+
+(Belloni et al., 2015). 
+
+6.3 Pointwise and uniform confidence bands 
+
+To facilitate statistical inference, we construct computationally efficient pointwise and uni-form confidence bands based on linear sieves. To motivate our results, Supplementary Ma-terial Propositions S1 and S2 show that bβ is asymptotically linear up to some vanishing re-mainder terms. That is, for any unit vector eb, √neb⊤( bβ−β∗) = eb⊤H−1Gn[b(X) ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g∗(X) ]+ Rem. Using the above limiting linear representation, we define the following t-statistic, with covariance matrix V = H−1E[ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g∗(X) 2 b(X)b(X)⊤]H−1: for x ∈ X ,
+
+Tn(x) = √n{bg(x) − g(x)}/∥V1/2b(x)∥2. The following theorem establishes the pointwise asymptotic normality of the t-statistic. 
+
+Theorem 5. Suppose Assumptions 1-3 and the conditions in Remark 2 hold. Further-more, assume (i) cK = o(1) , ξK ≍ √K, λψ max = o(n−1/2), P3 
+
+> j=1
+
+mjn = O(m0n), pK/n =
+
+o(1) , √nm 0n = o(1) , and mG 
+
+> n
+
+(ξK + √nm 0n) = o(1) ; (ii) the Lindeberg condition holds such that sup x E{eΩ2I(|eΩ| > ι )|X = x} → 0 as ι → ∞ ; (iii) 1 ≲ inf x E(eΩ2|X = x);and (iv) √nα (x; g, β∗) = o(∥V1/2b(x)∥2). Then for any given design point x ∈ X ,
+
+lim n→∞ sup t∈R | Pr( Tn(x) < t ) − Φ( t)| = 0 , where Φ is the standard normal cumulative distribution function. 
+
+Of note, Theorem 5 typically requires the undersmoothing condition in (iv), which is well known in the nonparametric statistics literature (Belloni et al., 2015) and essentially requires the approximation error (bias) to be of smaller order than the standard error. Therefore, it is natural to construct the following pointwise confidence bands at significance 23 level γ ∈ (0 , 1): for any x ∈ X , [ Ln, Un] := [ bg(x) − cn(1 − γ)∥bV1/2b(x)∥2/√n, bg(x) + cn(1 −
+
+γ)∥bV1/2b(x)∥2/√n], where the covariance matrix estimator is given by bV = bH−1Pn[{bϕNIE  
+
+> n
+
+−
+
+bϕNIE  
+
+> d
+
+bg(X)}2b(X)b(X)⊤] bH−1 and cn(1 − γ) is the (1 − γ/ 2)-quantile of the standard nor-mal distribution. For the targeted learners, the covariance matrix estimator is adjusted as bVtar = bH−1Pn[ bUprof (O) bUprof (O)⊤] bH−1, where bUprof (O) is defined in Section S3 of the Supplementary Material and denotes the profiled score accounting for the estimating equa-tion in Algorithm 2. Moreover, to enable simultaneous inference, we can set the threshold 
+
+cn(1 − γ) to the (1 − γ)-quantile of the supremum of the t-statistic, sup x |Tn(x)|. How-ever, the exact distribution of sup x |Tn(x)| is not analytically tractable, so we follow Cher-nozhukov et al. (2014) and use the Gaussian bootstrap to approximate it. To proceed, we first show in Theorem 6 that the t-statistic can be well approximated by a limiting Gaus-sian process, up to an error of order oP(a−1 
+
+> n
+
+), and then use the derived limiting Gaussian process to approximate the threshold cn(1 − γ) via the Gaussian bootstrap in Algorithm S1 of the Supplementary Material. 
+
+Theorem 6. Suppose Assumptions 1–4 and the conditions in Remark 2 hold. Further-more, assume (i) cK = o(1) , ξK ≍ √K, √n P3 
+
+> j=0
+
+mjn = O(mG 
+
+> n
+
+m4n), λψ max = o(1) ,
+
+√nλψ max = o(a−1 
+
+> n
+
+), and λψ max 
+
+√K = O(√n P3 
+
+> j=1
+
+mjn ); (ii) mG 
+
+> n
+
+m4n = oP(a−1 
+
+> n
+
+); (iii) 1 ≲
+
+inf x E{eΩ2|X = x}; (iv) a6
+
+> n
+
+K4ξ2 
+
+> K
+
+(1 + l3 
+
+> K
+
+c3 
+
+> K
+
+)2(log n)2/n = o(1) ; and (v) sup x
+
+√n|α(x; g, β∗)|
+
+/∥V1/2b(x)∥2 = o(a−1 
+
+> n
+
+). Then the following strong Gaussian process approximation holds in the L∞ norm: Tn(x) = d b(x)⊤V1/2/∥V1/2b(x)∥2N (0 , IK ) + oP(a−1 
+
+> n
+
+).
+
+Similar to pointwise normality, the strong Gaussian process approximation also requires the undersmoothing condition in (v), which ensures that the approximation error (bias) shrinks faster than the standard error. Finally, Theorem 7 shows that the proposed uniform confidence bands are asymptotically honest, achieving exact simultaneous (1 − γ)-coverage under appropriate conditions. 24 Theorem 7. Suppose that all the conditions in Theorem 6 hold, with some ν ≥ 4 and 
+
+an ≍ √log K. In addition, assume that ∥g∥P,∞ ≲ 1, dΣ 
+
+> ∞
+
+= oP(1) , mG 
+
+> n
+
+m4n + √log Kl K cK ≲
+
+√log K, (mG 
+
+> n
+
++ dΣ
+
+> ∞
+
+)n1/ν = oP(1) , and ξK (log K)2/n 1/2−1/ν = o(1) . Then Pr {g(x) ∈
+
+[Ln, Un] for all x ∈ X } → 1 − γ.
+
+# 7 Simulation experiments 
+
+To demonstrate the performance of the proposed methods, we consider a sample of n =3000 individuals and simulate p = 3 uniformly distributed covariates. For illustration, we assume an additive mediator model with an unspecified mean and Gaussian error, and consider a scenario with highly nonlinear mediator and outcome mean models. Due to space limitations, the complete setup is provided in Supplementary Material Section S7. We use the parametric T-learner in Zhao et al. (2025) under the LSEM, denoted by bgpT (X), as a benchmark comparator, and compare it with the nonparametric meta-learners proposed in this manuscript, including (i) the nonorthogonal T-learner, denoted by bgT(X), and (ii) the six representative orthogonal learners presented in Section 5. For the nonparametric meta-learners, the nuisance functions are estimated using SuperLearner (Luedtke and van der Laan, 2016) with an ensemble consisting of "SL.glm" , "SL.earth" ,
+
+"SL.glmnet" , "SL.nnet" , and "SL.rpart" . For each orthogonal learner, we consider six Stage 2 sieve smoothers implemented using the mgcv package (Wood, 2017). These methods are defined by penalized spline bases using the full factorial combination of three choices of (K1, K 2), with ( K1, K 2) ∈ { (4 , 3) , (5 , 3) , (7 , 3) }, where K1 is the univariate basis complexity and K2 is the basis complexity for two-way interactions, and two penalty specifications: a penalty selected by minimizing the generalized cross-validation (GCV) score and no penalty. We use the same sieve smoothers for the targeting step in Algorithm 2; that is, we set ˇGn = Gn. To ensure a fair comparison, we simulate an independent test sample of size 25 nout = 10 4 to evaluate out-of-sample performance across 10 3 Monte Carlo replications. The performance metrics include (i) the integrated squared error (ISE), defined as R {bg(X) −
+
+g(X)}2dP(X) ≈ n−1out 
+
+Pnout  
+
+> i=1
+
+{bg(Xi) − g(Xi)}2; (ii) the pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage probability at four randomly chosen representative points; and (iii) the empirical uniform confidence band coverage probability based on a 25 3 equally spaced grid in the cube [ −1, 1] 3. Notably, uniform inference is generally not available for the T-learner, and pointwise inference for the T-learner is available when a working model is specified for the nuisance functions, such as the linear models in Zhao et al. (2025). 0.0 0.1 0.2 0.3 TpT TR TW OW TTR TTW TOW Method ISE Penalty GCV Unpenalized 
+
+Figure 1: Simulation results presenting box plots of the integrated squared error (ISE) across 10 3 iterations for the parametric T-learner in Zhao et al. (2025), the nonparametric T-learner, and the six orthogonal learners in Section 5. Each orthogonal learner is implemented using (K1, K 2) = (4 , 3) and two penalty strategies. 
+
+Several findings are worth noting. First, Figure 2 and Supplementary Material Figures S1–S2 show box plots of the ISE using basis complexities ( K1, K 2) = (4 , 3) , (5 , 3) , (7 , 3), respectively. Across all basis complexities, the parametric T-learner has the largest ISE, and the nonparametric T-learner has smaller ISE than the parametric T-learner. However, 26 all nonorthogonal T-learners generally perform substantially worse than the orthogonal learners. This demonstrates that the T-learner is more sensitive to nuisance estimation quality. With misspecified parametric nuisance models, the T-learner is generally not consistent, whereas the nonparametric T-learner based on SuperLearner still suffers from the difficulty of learning complex nuisance functions. In contrast, the orthogonal learners remain locally insensitive to nuisance estimation errors, and among them, the TTW learner appears to have the smallest ISE. The targeted orthogonal learners have more concentrated ISE distributions, with fewer outliers, compared with their nontargeted variants. Second, Table 3 and Tables S3–S7 in the Supplementary Material report pointwise in-ferential performance at four randomly selected representative points for the TTW, TR, TW, OW, TTR, and TOW learners, respectively. The pointwise inference procedures for all proposed orthogonal learners show satisfactory performance across all smoothers. This is reflected in the negligible pointwise bias and empirical coverage probabilities close to the nominal 95% level. Moreover, the penalized smoother is generally more efficient than the unpenalized variant. Penalization selected by GCV does not appear to induce over-smoothing and therefore maintains at least conservative pointwise coverage. In contrast, the model-based pointwise inference for the parametric T-learner based on Zhao et al. (2025) is provided in Supplementary Material Table S2, which exhibits the highest bias and zero empirical coverage probabilities throughout. This is because the nuisance models are highly nonlinear but are misspecified as linear for the parametric T-learner. Finally, Supplementary Material Table S8 shows the empirical performance of the uni-form inference procedures for the orthogonal learners. Overall, the GCV penalty tuning strategy provides conservative uniform coverage, whereas the unpenalized variant can lead to slight undercoverage. It is worth noting that empirical uniform confidence band coverage is sensitive to localized bias, compared with the generally nominal pointwise coverage. For example, although some unpenalized variants have empirical uniform coverage slightly be-27 low 90%, the average grid noncoverage is generally close to zero ( < 0.1%), indicating that localized spikes at a small number of points can substantially reduce empirical coverage.  
+
+> Table 2: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TTW learner at four representative points.
+
+GCV Unpenalized (K1, K 2) x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.03 0.15 0.24 99.7 -0.00 0.28 0.24 92.0 
+
+x2 -0.00 0.15 0.21 99.3 0.02 0.20 0.21 96.6 
+
+x3 -0.04 0.06 0.12 99.3 0.02 0.12 0.12 95.3 
+
+x4 0.02 0.11 0.18 99.8 0.01 0.19 0.18 93.4 (5 , 3) 
+
+x1 -0.04 0.15 0.27 99.8 -0.00 0.30 0.27 92.4 
+
+x2 0.00 0.15 0.22 99.4 0.01 0.21 0.22 96.3 
+
+x3 -0.04 0.06 0.13 99.6 0.01 0.13 0.13 95.2 
+
+x4 0.01 0.11 0.19 99.9 0.01 0.20 0.19 93.6 (7 , 3) 
+
+x1 -0.04 0.15 0.32 100.0 0.03 0.36 0.32 92.2 
+
+x2 0.00 0.15 0.24 99.8 0.02 0.23 0.24 96.2 
+
+x3 -0.04 0.06 0.16 99.9 -0.00 0.16 0.15 94.8 
+
+x4 0.01 0.11 0.21 100.0 0.01 0.22 0.21 95.1 To demonstrate the performance of the proposed methods, we consider a sample of 
+
+n = 3000 individuals and simulate p = 3 uniformly distributed covariates. For illus-tration, we assume an additive mediator model with an unspecified mean and Gaussian error, and consider a scenario with highly nonlinear mediator and outcome mean mod-els. Due to space limitations, the complete setup is provided in Supplementary Material Section S7. We use the parametric T-learner in Zhao et al. (2025) under the LSEM, de-noted by bgpT (X), as a benchmark comparator, and compare it with the nonparametric meta-learners proposed in this manuscript, including (i) the nonorthogonal T-learner, de-noted by bgT(X), and (ii) the six representative orthogonal learners presented in Section 5. For the nonparametric meta-learners, the nuisance functions are estimated using Su-perLearner (Luedtke and van der Laan, 2016) with an ensemble consisting of "SL.glm" ,
+
+"SL.earth" , "SL.glmnet" , "SL.nnet" , and "SL.rpart" . For each orthogonal learner, we consider six Stage 2 sieve smoothers implemented using the mgcv package (Wood, 2017). 28 These methods are defined by penalized spline bases using the full factorial combination of three choices of ( K1, K 2), with ( K1, K 2) ∈ { (7 , 3) , (11 , 4) , (14 , 5) }, where K1 is the uni-variate basis complexity and K2 is the basis complexity for two-way interactions, and two penalty specifications: a penalty selected by minimizing the generalized cross-validation (GCV) score and no penalty. We use the same sieve smoothers for the targeting step in Algorithm 2; that is, we set ˇGn = Gn. To ensure a fair comparison, we simulate an indepen-dent test sample of size nout = 10 4 to evaluate out-of-sample performance across 10 3 Monte Carlo replications. The performance metrics include (i) the integrated squared error (ISE), defined as R {bg(X) − g(X)}2dP(X) ≈ n−1out 
+
+Pnout  
+
+> i=1
+
+{bg(Xi) − g(Xi)}2; (ii) the pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage probability at four randomly chosen representative points; and (iii) the empirical uniform confidence band coverage probability based on a 25 3 equally spaced grid in the cube [ −1, 1] 3. Notably, uniform inference is generally not available for the T-learner, and pointwise inference for the T-learner is available when a working model is specified for the nuisance functions, such as the linear models in Zhao et al. (2025). Several findings are worth noting. First, Figure 2 and Supplementary Material Figures S1–S2 show box plots of the ISE using basis complexities ( K1, K 2) = (7 , 3) , (11 , 4) , (14 , 5), respectively. Across all basis complexities, the parametric T-learner has the largest ISE, and the nonparametric T-learner has smaller ISE than the parametric T-learner. However, all nonorthogonal T-learners generally perform substantially worse than the orthogonal learners. This demonstrates that the T-learner is more sensitive to nuisance estimation quality. With misspecified parametric nuisance models, the T-learner is generally not consistent, whereas the nonparametric T-learner based on SuperLearner still suffers from the difficulty of learning complex nuisance functions. In contrast, the orthogonal learners remain locally insensitive to nuisance estimation errors, and among them, the TTW learner appears to have the smallest ISE. The targeted orthogonal learners have more concentrated 29 0.0 0.1 0.2 0.3 TpT TR TW OW TTR TTW TOW Method ISE Penalty GCV Unpenalized Figure 2: Simulation results presenting box plots of the integrated squared error (ISE) across 10 3 iterations for the parametric T-learner in Zhao et al. (2025), the nonparametric T-learner, and the six orthogonal learners in Section 5. Each orthogonal learner is implemented using (K1, K 2) = (7 , 3) and two penalty strategies. 
+
+ISE distributions, with fewer outliers, compared with their nontargeted variants. Second, Table 3 and Tables S3–S7 in the Supplementary Material report pointwise inferential performance at four randomly selected representative points for the TTW, TR, TW, OW, TTR, and TOW learners, respectively. The pointwise inference procedures for all proposed orthogonal learners show satisfactory performance across all smoothers. This is reflected in the negligible pointwise bias and empirical coverage probabilities close to the nominal 95% level. Moreover, the penalized smoother is generally more efficient than the unpenalized variant. Penalization based on GCV does not lead to oversmoothing and therefore maintains at least conservative pointwise coverage. In contrast, the model-based pointwise inference for the parametric T-learner based on Zhao et al. (2025) is provided in Supplementary Material Table S2, which exhibits the highest bias and zero empirical coverage probabilities throughout. This is because the nuisance models are highly nonlinear but are misspecified as linear for the parametric T-learner. 30 Finally, Supplementary Material Table S8 shows the empirical performance of the uni-form inference procedures for the orthogonal learners. Overall, the GCV penalty tuning strategy provides conservative uniform coverage, whereas the unpenalized variant can lead to slight undercoverage. It is worth noting that empirical uniform confidence band coverage is sensitive to localized bias, compared with the generally nominal pointwise coverage. For example, although some unpenalized variants have empirical uniform coverage slightly be-low 90%, the average grid noncoverage is generally close to zero ( < 0.1%), indicating that localized spikes at a small number of points can substantially reduce empirical coverage.  
+
+> Table 3: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TTW learner at four representative points.
+
+GCV Unpenalized (K1, K 2) x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (7 , 3) 
+
+x1 -0.04 0.15 0.32 100.0 0.03 0.36 0.32 92.2 
+
+x2 0.00 0.15 0.24 99.8 0.02 0.23 0.24 96.2 
+
+x3 -0.04 0.06 0.16 99.9 -0.00 0.16 0.15 94.8 
+
+x4 0.01 0.11 0.21 100.0 0.01 0.22 0.21 95.1 (11 , 4) 
+
+x1 -0.03 0.14 0.43 100.0 0.04 0.49 0.43 90.7 
+
+x2 -0.01 0.15 0.35 100.0 0.01 0.34 0.35 95.4 
+
+x3 -0.04 0.06 0.22 100.0 -0.00 0.22 0.22 95.7 
+
+x4 0.03 0.10 0.28 100.0 0.02 0.29 0.27 94.2 (14 , 5) 
+
+x1 -0.02 0.13 0.62 100.0 0.06 0.69 0.62 92.0 
+
+x2 -0.02 0.14 0.42 100.0 0.01 0.40 0.41 94.9 
+
+x3 -0.04 0.06 0.25 100.0 -0.00 0.24 0.25 95.9 
+
+x4 0.03 0.10 0.35 100.0 0.02 0.37 0.35 93.3 
+
+# 8 Empirical application 
+
+We illustrate the proposed method using data from the Coronary Artery Risk Development in Young Adults (CARDIA) study (Friedman et al., 1988). The supplementary analyses of the PSACR and STAR experiments, presented in Sections S8.2–S8.3 of the Supplementary Material, further illustrate the application of the framework in distinct psychological and 31 educational settings. For illustration, we analyze n = 2 ,396 participants who met the eli-gibility criteria and passed prespecified plausibility screening. The treatment A is current cigarette smoking at Year 20, with former or never smoking as the control condition. The mediator M is the natural logarithm of abdominal intermuscular adipose tissue (IMAT) vol-ume at Year 25. The outcome Y is calibrated systolic blood pressure at Year 30, measured in mm Hg. We consider Year-15 demographic, socioeconomic, smoking history, inflam-matory, cardiometabolic, and physical activity characteristics as plausible effect modifiers and mediator–outcome confounders. Treatment overlap is weak, with 68.3% of the cross-fitted propensity score estimates below 0.05, as shown in Figure S3 of the Supplementary Material. Using debiased machine learning based on the triply robust estimator of Tchetgen Tch-etgen and Shpitser (2012), we estimate a population average TE of 0 .774 mm Hg (SE, 2.112; 95% CI, [ −3.365 , 4.913]) and an NIE through IMAT of 0 .544 mm Hg (SE, 0 .383; 95% CI, [ −0.207 , 1.295]). The estimated mediation proportion is 70.3%. Clinically, these estimates imply a modest 0 .77 mm Hg increase in Year-30 systolic blood pressure under cur-rent versus former or never smoking, with 0 .54 mm Hg mediated through smoking-induced changes in Year-25 IMAT. This pattern is consistent with existing evidence that smoking may increase IMAT and that greater IMAT, reflecting greater intermuscular adiposity, is associated with higher blood pressure and hypertension. Because the population average NIE may mask variation across individuals in both the magnitude and direction of the mediated pathway, estimating the CNIE surface is of interest. For illustration, we implement all six orthogonal learners with sieve smoothers satisfy-ing ˇGn = Gn. The nuisance functions are estimated using 10-fold cross-fitting and Super Learner with a library comprising SL.mean , SL.glm , SL.glmnet , SL.earth , and SL.gam .The second-stage sieve models the 11 standardized continuous covariates using thin plate regression splines of dimension three and includes main effects for the eight categorical co-32 variates. To capture plausible heterogeneity while limiting overfitting, it includes a tensor product interaction between baseline BMI and systolic blood pressure and an interaction between sex and baseline waist circumference. We emphasize the TTW learner because it has the smallest average ISE and the most concentrated ISE distribution in the simulation study, and its treatment weighting aligns with the one-sided lack of overlap in CARDIA: 68.3% of the estimated propensity scores are below 0.05. Supplementary Section S8.1 further compares all six learners. −10 −5 0510 15 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE     
+
+> (a) 95% pointwise confidence band
+> −20 −10 010 20 30 0500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE
+> (b) 95% uniform confidence band Estimated CNIE using TTW learner
+
+Figure 3: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the TTW learner, along with 95% pointwise and uniform confidence bands. 
+
+Figure 3 and Supplementary Figures S4–S8 display the ordered estimated CNIEs, to-gether with pointwise and uniform confidence bands over the 2,396 observed profiles, for the TTW, TR, TW, OW, TTR, and TOW learners. The Gaussian supremum critical value widens the uniform bands relative to the pointwise bands but does not affect their smooth-ness. For the TTW learner, the estimated CNIEs have a mean of 0 .562, a median of 0 .623, and an interquartile range of [ −0.855 , 1.945], with 61.6% being positive. Targeting reduces mean pointwise band widths by 45.8% to 60.9% and mean uniform band widths by 43.9% to 59.9% relative to the corresponding untargeted learners. 33 To interpret the fitted heterogeneity, Figure 4 presents a shallow regression tree, or fit-the-fit summary, of the TTW-estimated CNIE surface. The first split separates former or current smokers at Year 15 from never smokers, indicating prior smoking status as a promi-nent modifier. Among former or current smokers, the tree further separates former smokers, with a mean estimated CNIE of −1.351 mm Hg, from current smokers, with a mean near zero (0 .031 mm Hg). Among never smokers, household income below versus above $35,000 yields mean estimated CNIEs of 0 .214 and 1 .504 mm Hg, respectively. Supplementary Fig-ures S9–S13 present corresponding summaries for the other learners, identifying baseline hypertension history, household income, age, BMI, high-density lipoprotein cholesterol, and prior smoking as additional descriptive modifiers. Overall, the CARDIA analysis illustrates the value of estimating heterogeneous medi-ation effects. The population average NIE estimate suggests a modest positive mediated pathway from current smoking through IMAT to later systolic blood pressure. The indi-vidual estimates reveal a more nuanced pattern: the fitted pathway is most negative among participants who were former smokers at Year 15 and most positive among those who had never smoked at Year 15 and had household incomes of at least $35,000. 
+
+# 9 Concluding remarks 
+
+We highlight several directions for future work. First, the targeting step in Algorithm 2 is implemented using the pooled sample and therefore does not preserve cross-fitting. The asymptotic analysis must account for the resulting dependence using suitable empirical process arguments and maximal inequalities, which typically require stronger conditions and may yield weaker guarantees. An alternative procedure following Vansteelandt and Morzywo lek (2025) performs targeting only on the training sample, thereby preserving cross-fitting. This approach may reduce the risk of overfitting but provide less finite-34 Prior smoking = Former,Current Prior smoking = Former Income group = Less than $35,000    
+
+> yes no Prior smoking = Former,Current Prior smoking = Former Income group = Less than $35,000
+> 0.56 n=2396 100% −0.65 n=875 37% −1.4 n=434 18% 0.031 n=441 18% 1.3 n=1521 63% 0.21 n=286 12% 1.5 n=1235 52%
+> yes no
+
+Figure 4: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TTW learner in the CARDIA application. 
+
+sample stabilization. Further investigation of both the targeted learners and this alternative targeting strategy is of interest. Second, the proposed methods rely on the untestable sequential ignorability assumption, which may remain questionable even in randomized experiments. Further sensitivity analysis could therefore be developed. 
+
+# Data Availability Statement 
+
+CARDIA data are available from NHLBI BioLINCC ( https://biolincc.nhlbi.nih.gov/ studies/cardia/ ), subject to approval and a data-use agreement. PSACR-002 data are openly available on the Open Science Framework at https://osf.io/jeu73/ . STAR data are openly available in Harvard Dataverse at https://doi.org/10.7910/DVN/SIWH9F .
+
+# References 
+
+Belloni, A., V. Chernozhukov, D. Chetverikov, and K. Kato (2015). Some new asymptotic theory for least squares series: pointwise and uniform results. Journal of Economet-
+
+35 rics 186 (2), 345–366. Chen, X. (2007). Large sample sieve estimation of semi-nonparametric models. Handbook of Econometrics 6 , 5549–5632. Cheng, C. and F. Li (2025). Inverting estimating equations for causal inference on quantiles. 
+
+Biometrika 112 (1), asae058. Chernozhukov, V., D. Chetverikov, M. Demirer, E. Duflo, C. Hansen, W. Newey, and J. Robins (2018, 01). Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal 21 (1), C1–C68. Chernozhukov, V., D. Chetverikov, and K. Kato (2014). Gaussian approximation of suprema of empirical processes. The Annals of Statistics .Foster, D. J. and V. Syrgkanis (2023). Orthogonal statistical learning. The Annals of Statistics 51 (3), 879–908. Friedman, G. D., G. R. Cutter, R. P. Donahue, G. H. Hughes, S. B. Hulley, J. Jacobs, David R., K. Liu, and P. J. Savage (1988). CARDIA: Study design, recruitment, and some characteristics of the examined subjects. Journal of Clinical Epidemiology 41 (11), 1105–1116. Huan, C., X. Song, and H. Yuan (2024). Individualized causal mediation analysis with continuous treatment using conditional generative adversarial networks. Statistics and Computing 34 (5), 170. Imai, K., L. Keele, and T. Yamamoto (2010). Identification, inference and sensitivity analysis for causal mediation effects. Kennedy, E. H. (2023). Towards optimal doubly robust estimation of heterogeneous causal effects. Electronic Journal of Statistics 17 (2), 3008–3049. 36 Kennedy, E. H. (2024). Semiparametric doubly robust targeted double machine learning: a review. Handbook of Statistical Methods for Precision Medicine , 207–236. Krueger, A. B. (1999). Experimental estimates of education production functions. The Quarterly Journal of Economics 114 (2), 497–532. K¨ unzel, S. R., J. S. Sekhon, P. J. Bickel, and B. Yu (2019). Metalearners for estimating heterogeneous treatment effects using machine learning. Proceedings of the National Academy of Sciences 116 (10), 4156–4165. Li, F., K. L. Morgan, and A. M. Zaslavsky (2018). Balancing covariates via propensity score weighting. Journal of the American Statistical Association 113 (521), 390–400. Li, X., Q. Liu, X. Jiang, H. A. Xia, B. P. Hobbs, and P. Wei (2026). Modeling heterogeneous mediation effects in survival analysis via an interpretable m-learner framework. arXiv preprint arXiv:2603.13464 .Liu, C., X. Qin, V. B. Talisa, and J. Wang (2026). Heterogeneous causal mediation analysis using bayesian additive regression trees. Biometrics 82 (2), ujag079. Luedtke, A. R. and M. J. van der Laan (2016). Super-learning of an optimal dynamic treatment rule. The International Journal of Biostatistics 12 (1), 305–332. Morzywolek, P., J. Decruyenaere, and S. Vansteelandt (2025). On weighted orthogonal learners for heterogeneous treatment effects. Statistical Science .Newey, W. K. (1997). Convergence rates and asymptotic normality for series estimators. 
+
+Journal of Econometrics 79 (1), 147–168. Nie, X. and S. Wager (2021). Quasi-oracle estimation of heterogeneous treatment effects. 
+
+Biometrika 108 (2), 299–319. 37 Qin, X. and G. Hong (2017). A weighting method for assessing between-site heterogeneity in causal mediation mechanism. Journal of Educational and Behavioral Statistics 42 (3), 308–340. Rotnitzky, A., E. Smucler, and J. M. Robins (2021). Characterization of parameters with a mixed bias property. Biometrika 108 (1), 231–238. Semenova, V. and V. Chernozhukov (2021). Debiased machine learning of conditional average treatment effects and other causal functions. The Econometrics Journal 24 (2), 264–289. Tchetgen Tchetgen, E. J. and I. Shpitser (2012). Semiparametric theory for causal media-tion analysis: efficiency bounds, multiple robustness, and sensitivity analysis. Annals of Statistics 40 (3), 1816. Ting, A. and A. R. Linero (2025). Estimating heterogeneous causal mediation effects with bayesian decision tree ensembles. Journal of the American Statistical Association (just-accepted), 1–20. Tropp, J. A. (2015). An introduction to matrix concentration inequalities. Tsiatis, A. A. (2006). Semiparametric theory and missing data . Springer Series in Statistics. New York, NY: Springer. van der Laan, L., M. Carone, and A. Luedtke (2024). Combining t-learning and dr-learning: a framework for oracle-efficient estimation of causal contrasts. arXiv preprint arXiv:2402.01972 .Van Der Vaart, A. and J. A. Wellner (2011). A local maximal inequality under uniform entropy. Electronic Journal of Statistics 5 (2011), 192. 38 van der Vaart, A. W. and J. A. Wellner (1996). Weak Convergence and Empirical Processes .New York: Springer. Vansteelandt, S. and P. Morzywo lek (2025). Orthogonal prediction of counterfactual out-comes. Journal of Causal Inference 13 (1), 20240051. Wang, K., A. Goldenberg, C. A. Dorison, J. K. Miller, A. Uusberg, J. S. Lerner, J. J. Gross, et al. (2021). A multi-country test of brief reappraisal interventions on emotions during the COVID-19 pandemic. Nature Human Behaviour 5 (8), 1089–1110. Wang, W., J. Xu, J. Schwartz, A. Baccarelli, and Z. Liu (2021). Causal mediation analysis with latent subgroups. Statistics in Medicine 40 (25), 5628–5641. Wood, S. N. (2017). Generalized additive models: an introduction with R . chapman and hall/CRC. Xue, F., X. Tang, G. Kim, K. C. Koenen, C. L. Martin, S. Galea, D. Wildman, M. Uddin, and A. Qu (2022). Heterogeneous mediation analysis on epigenomic ptsd and traumatic stress in a predominantly african american cohort. Journal of the American Statistical Association 117 (540), 1669–1683. Zhao, Y., C. Li, and W. Tu (2025). Estimation of heterogeneous causal mediation effects in a hypertension treatment trial. arXiv preprint arXiv:2512.12043 .39 Supplementary Material for “Nonparametric heterogeneous causal mediation with orthogonal machine learning” by Tong et al. 
+
+Jiaqi Tong 1, Yi Zhao 2, Bhramar Mukherjee 1, and Fan Li 1,∗
+
+> 1
+
+Department of Biostatistics, Yale School of Public Health, New Haven, CT, USA 
+
+> 2
+
+Department of Biostatistics and Health Data Science, Indiana University School of Medicine 
+
+# Contents 
+
+S1 Summary S3 S2 Some technical notation S3 S3 Confidence band construction for targeted learners S4 S4 A class of weighted orthogonal learners for the conditional natural direct effect S5 S5 Some useful lemmas and additional technical results S6 S6 Proofs for all technical results S13 
+
+S6.1 Proof of Proposition 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S13 S6.2 Proof of Theorem 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S14 S6.3 Proof of Theorem 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S17 S6.4 Proof of Theorem 3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S25 S6.5 Proof of Proposition S1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S33 S6.6 Proof of Proposition S2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S36 S6.7 Proof of Theorem 4 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S41 S6.8 Proof of Theorem 5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S42 S6.9 Proof of Theorem 6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S43 S6.10 Proof of Theorem 7 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S44 
+
+S7 Supporting information for simulation studies S46 S8 Supporting information for the CARDIA analysis and two additional empirical appli-cations S48 
+
+S8.1 Additional information for the CARDIA application . . . . . . . . . . . . . . . . . . . . . S48 S8.2 Application to the PSACR-002 study . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S50 S8.3 Application to the STAR study . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S51 
+
+S1 S9 Additional tables and figures S54 
+
+S9.1 Simulation experiments . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S54 S9.2 CARDIA application . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S59 S9.3 PSACR application . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S64 S9.4 STAR application . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . S70 
+
+S2 S1 Summary 
+
+This Supplementary Material is organized as follows. Section S2 summarizes the technical notation used in the subsequent statistical analysis. Section S3 presents the covariance matrix adjustment used to construct confidence bands for the targeted learners. Section S4 presents the construction of weighted orthogonal learners for the conditional natural direct effect, CNDE( X). Section S5 presents useful lemmas with proofs and additional technical results. Section S6 presents the proofs of all technical results in the main manuscript and this Supplementary Material. Section S7 presents supporting information for the simulation experiments. Section S8 presents two additional empirical applications. Section S9 presents additional tables and figures. Throughout, let H = E{ϕNIE  
+
+> d
+
+b(X)b(X)⊤} = E{w(X)b(X)b(X)⊤} and h = E{b(X)ϕNIE  
+
+> n
+
+} =
+
+E{b(X)w(X)g(X)} denote the population analogues of bH and bh, respectively. 
+
+# S2 Some technical notation 
+
+The following technical notation is employed in the main manuscript and is reproduced below for use in the Supplementary Material. Let [ n] = {1, . . . , n } denote the set of positive integers up to n. Let •c denote the set complement, and let A\B = A ∩ Bc
+
+denote the set difference. Let ∥v∥q = ( PLl=1 |vl|q)1/q denote the usual ℓq norm. Let ∥•∥ op 
+
+denote the matrix operator or spectral norm and ∥f ∥P,q =  R |f |qdP1/q the Lq(P) norm. Let du(•) = max 1≤q≤Q∥b•q − •∥ P,u denote the nuisance estimation error in the Lu(P) norm based on the training sample Fcq (see Section 3). In particular, ∥f ∥P,∞ = sup x |f (x)| is the uniform norm. Let ψk(•) be the kth eigenvalue of a generic matrix • ∈ RK×K such that 
+
+ψ1 ≤ . . . ≤ ψK . We write an ≲ bn if an ≤ cb n for some constant c independent of n, and 
+
+an ≍ bn if an ≲ bn and bn ≲ an. We use X =d Y to denote that two random variables X and 
+
+Y have the same distribution, and write X =d Y + oP(an) if ( X − Y )/a n converges to zero in probability. We also use an ≲P bn to denote that the stochastic sequence an is of order at S3 most bn in probability, i.e., an = OP(bn). The two notations an ≲P bn and an = OP(bn) are used interchangeably for convenience. Let Pn(V ) = n−1 Pni=1 Vi denote the empirical mean of a generic random object V , and let Gn{f (V )} = n−1/2 Pni=1 [f (Vi)−E{f (Vi)}] denote the empirical process indexed by a generic function f . Let diam( X ) := sup x1,x2∈X ∥x1 − x2∥2
+
+denote the diameter of the covariate support X . Let a∧b := min( a, b ) and a∨b := max( a, b ). 
+
+# S3 Confidence band construction for targeted learn-ers 
+
+For the untargeted learners, the covariance matrix estimator is given by 
+
+bV = bH−1Pn
+
+nbϕNIE  
+
+> n
+
+− bϕNIE  
+
+> d
+
+bg(X)
+
+o2
+
+b(X)b(X)⊤
+
+bH−1.
+
+For the targeted learners, the fluctuation parameter bϵ in Algorithm 2 is estimated using the pooled sample and therefore contributes to the first-order uncertainty. To account for this contribution, define bw(X) = ω{bπ(X)} and 
+
+bdw(O) = A bw(X)
+
+bπ(X) br(M, X) {Y − bμ∗
+
+> 1
+
+(M, X)} .
+
+Let bϕNIE  
+
+> n, tar
+
+= bϕNIE  
+
+> n, ∗
+
++ bdw denote the numerator induced by the targeted loss, where bϕNIE  
+
+> n, ∗
+
+is the original orthogonal numerator evaluated using bμ∗
+
+> 1
+
+. Define the Stage 2 and targeting scores by 
+
+bUg(O) = b(X)
+
+nbϕNIE  
+
+> n, tar
+
+− bϕNIE  
+
+> d
+
+bg(X)
+
+o
+
+,
+
+bUϵ(O) = ˇb(X) bdw(O).
+
+Then the corresponding second-order derivatives are 
+
+bJgϵ =Pn
+
+A bw(X)
+
+bπ(X) b(X)ˇb(X)⊤
+
+
+
+,
+
+bJϵϵ =Pn
+
+A bw(X)
+
+bπ(X) br(M, X)ˇb(X)ˇb(X)⊤
+
+
+
+.
+
+Profiling the pooled fluctuation parameter out of the joint estimating equations gives the adjusted score 
+
+bUprof (O) = bUg(O) − bJgϵ bJ−1 
+
+> ϵϵ
+
+bUϵ(O).
+
+S4 The covariance matrix estimator for a targeted learner is therefore 
+
+bVtar = bH−1Pn
+
+h bUprof (O) bUprof (O)⊤
+
+i bH−1.
+
+When ˇGn = Gn with ˇb(X) = b(X), we obtain Jgϵ = Jϵϵ because E{r(M, X) | A = 1 , X} =1. The profile score then reduces asymptotically to 
+
+b(X)
+
+nbϕNIE  
+
+> n, tar
+
+− bdw − bϕNIE  
+
+> d
+
+bg(X)
+
+o
+
+= b(X)
+
+nbϕNIE  
+
+> n, ∗
+
+− bϕNIE  
+
+> d
+
+bg(X)
+
+o
+
+.
+
+Thus, when constructing the covariance matrix under ˇGn = Gn, the adjustment restores the debiasing drift term removed from the targeted loss. Finally, the pointwise and uniform confidence bands are constructed in the same manner as those for the untargeted learners, with the adjustment applied to the covariance matrix estimator. Finally, Algorithm S1 below describes the calculation of the uniform confidence band threshold cn(1 − γ). 
+
+Algorithm S1 Uniform confidence band threshold cn(1 − γ). 
+
+Require: Covariance matrix estimate bV, dense grid {xj }Jj=1 , number of iterations B
+
+Ensure: Threshold cn(1 − γ) 
+
+> 1:
+
+for b = 1 to B do  
+
+> 2:
+
+Generate a standard normal random vector Zb ∼ N (0 , IK ) 
+
+> 3:
+
+Compute Sb = max 1≤j≤J |b(xj )⊤ bV1/2Zb|/∥bV1/2b(xj )∥2 
+
+> 4:
+
+end for  
+
+> 5:
+
+return cn(1 − γ) as the empirical conditional (1 − γ)-quantile of {Sb}Bb=1 given the data. 
+
+# S4 A class of weighted orthogonal learners for the conditional natural direct effect 
+
+When the primary scientific interest lies in the direct pathway that bypasses the media-tor, the same approach can be applied to estimate the conditional natural direct effect. Specifically, the corresponding weighted orthogonal learners minimize the following loss function: 
+
+lw(O; Γ, g )=ϕNDE  
+
+> d
+
+{η10 (X) − η00 (X) − g(X)}2 − 2w(X) {ϕ10 (O) − ϕ00 (O) − η10 (X) + η00 (X)} g(X),
+
+S5 where ϕNDE  
+
+> d
+
+= ϕNIE  
+
+> d
+
+= w(X) + ω′{π(X)} { A − π(X)} and 
+
+ϕNDE  
+
+> n
+
+= {η10 (X) − η00 (X)} ϕNDE  
+
+> d
+
+− w(X) + w(X){ϕ10 (O) − ϕ00 (O)}.
+
+Using regularized linear sieves, the resulting weighted orthogonal learners have the following closed form: 
+
+\CNDE( x) = b(x)⊤ bβ = b(x)⊤( bH + λP)−1 bh,
+
+where bH = Pn{bϕNDE  
+
+> d
+
+b(X)b(X)⊤} and bh = Pn{b(X)bϕNDE  
+
+> n
+
+}. Furthermore, targeted learning can be implemented exactly as outlined in Algorithm 2, because ϕ00 has a form analogous to ϕ11 and the nuisance function bμ0 does not require targeted refinement. Finally, the asymptotic analysis remains largely the same after imposing on μ0 regularity conditions analogous to those imposed on μ1.
+
+# S5 Some useful lemmas and additional technical re-sults 
+
+Before presenting the proofs of the L2 and uniform limit theory, we state a useful lemma, the 
+
+matrix Bernstein concentration inequality (Theorem 6.1.1 in Tropp (2015)), which provides a non-asymptotic tail bound for mean-zero random matrices and is required to derive the convergence rates for bH. For simplicity, we drop the superscripts in ϕNIE  
+
+> d
+
+and ϕNIE  
+
+> n
+
+and write them as ϕd and ϕn, respectively. 
+
+Lemma S1 (Matrix Bernstein ). Let {Mi}ni=1 be a sequence of independent, mean-zero, symmetric K × K random matrices such that ∥Mi∥op ≤ τ almost surely for some τ > 0
+
+and all i ∈ { 1, . . . , n }. Let σ2 = ∥ Pni=1 E(M2 
+
+> i
+
+)∥op be the matrix variance statistic of the sum. Then 
+
+E
+
+> n
+
+X
+
+> i=1
+
+Mi
+
+!
+
+≤ p2σ2 log(2 K) + 13τ log(2 K).
+
+Furthermore, for all t ≥ 0,
+
+Pr 
+
+
+
+> n
+
+X
+
+> i=1
+
+Mi
+
+> op
+
+≥ t
+
+ ≤ 2K exp 
+
+ −t2/2
+
+σ2 + τ t/ 3
+
+
+
+.
+
+S6 Lemma S1 is a well-known concentration inequality for matrices that extends the classi-cal Bernstein inequality for scalar random variables. Theorem S1 below establishes the con-vergence rate for bH under the spectral norm. To proceed, recall that H = E{ϕdb(X)b(X)⊤} =
+
+E{w(X)b(X)b(X)⊤} and h = E{b(X)ϕn} = E{b(X)w(X)g(X)} are defined as the popu-lation analogues of bH and bh evaluated at the true nuisance functions, respectively. More-over, we define eH = Pn{ϕdb(X)b(X)⊤} and eh = Pn{b(X)ϕn}.
+
+Theorem S1. Under Assumptions 1–3, the convergence rate for the weighted Gram matrix estimator bH = Pn{bϕdb(X)b(X)⊤} is given by 
+
+bH − H op 
+
+≲P
+
+rξ2 
+
+> K
+
+log Kn + min ξ2 
+
+> K
+
+d2(π)2, ξ K d4(π)2, d ∞(π)2 := mH 
+
+> n
+
+.
+
+In particular, when w(X) = 1 or w(X) = π(X), it follows that bH − H op 
+
+≲P
+
+pξ2 
+
+> K
+
+log K/n .Proof. Step 0: The triangle inequality implies 
+
+∥ bH − H∥op ≤∥ eH − H∥op + ∥ bH − eH∥op .
+
+We first show that ϕd is almost surely bounded above. To see this, we have sup 
+
+> A, X
+
+|ϕd| = sup 
+
+> A, X
+
+|w(X) + ω′{π(X)}{ A − π(X)}| ≤ sup 
+
+> X
+
+[w(X) + 2 |ω′{π(X)}| ] ≤ 3ϵ2. (S1) where the last inequality is due to Assumption 3(d). 
+
+Step 1: Now, we apply Lemma S1 to derive the bound for ∥ eH − H∥op . We let 
+
+Z = ϕdb(X)b(X)⊤ and note 
+
+∥ eH − H∥op = ∥(Pn − P)( Z)∥op = n−1
+
+> n
+
+X
+
+> i=1
+
+{Zi − E(Z)}
+
+> op
+
+,
+
+which implies that one can set Mi = Zi − E(Z). Clearly, {Mi}ni=1 are independent, mean-zero, symmetric K × K random matrices. Also, we have 
+
+∥M∥op ≤ ∥ Z∥op + ∥E(Z)∥op 
+
+≤ ∥ Z∥op + E(∥Z∥op )
+
+≤6ϵ2 b(X)b(X)⊤ 
+
+> op
+
+= 6 ϵ2∥b(X)∥22 ≤ 6ϵ2ξ2 
+
+> K
+
+:= τ, 
+
+S7 where the first inequality follows from the triangle inequality, the second from Jensen’s inequality, and the third from (S1) and the identity ∥vv ⊤∥op = ∥v∥22. Moreover, we have 
+
+∥E(M2 
+
+> i
+
+)∥op ≤∥ E(Z2)∥op 
+
+≤∥ E{ϕ2
+
+> d
+
+∥b(X)∥22b(X)b(X)⊤}∥ op 
+
+≤9ϵ22ξ2 
+
+> K
+
+∥E{b(X)b(X)⊤}∥ op 
+
+≤9ϵ22ξ2 
+
+> K
+
+∥G∥op ,
+
+where the first inequality follows because E(M2 
+
+> i
+
+) ⪯ E(Z2 
+
+> i
+
+) ( ⪯ denotes the Loewner or-der; ∥A∥op ≤ ∥ B∥op for any positive semi-definite matrices A and B such that A ⪯ B)for the symmetric matrix Zi and the third from the fact that ϕ2
+
+> d
+
+∥b(X)∥22b(X)b(X)⊤ ⪯
+
+9ϵ22ξ2 
+
+> K
+
+b(X)b(X)⊤ and (S1). Thus, we obtain σ2 ≤ n∥E(M2 
+
+> i
+
+)∥op ≤ 9ϵ22nξ 2 
+
+> K
+
+∥G∥op by the triangle inequality. Finally, using Lemma S1 gives 
+
+E
+
+
+
+∥ eH − H∥op 
+
+
+
+= n−1E
+
+
+
+> n
+
+X
+
+> i=1
+
+Mi
+
+> op
+
+ ≤n−1
+
+q 
+
+18 ϵ22nξ 2 
+
+> K
+
+∥G∥op log(2 K) + 2 ϵ2ξ2 
+
+> K
+
+log(2 K)
+
+
+
+≲
+
+rξ2 
+
+> K
+
+∥G∥op log Kn + ξ2 
+
+> K
+
+log Kn
+
+≲
+
+rξ2 
+
+> K
+
+log Kn ,
+
+where the last two inequalities are due to the fact that K = Kn → ∞ , Assumption 3(a), and Assumption 3(c). 
+
+Step 2.1: We then analyze the second term. We further decompose the second term into two components as follows: 
+
+∥ bH − eH∥op =
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n Pnq {(bϕd − ϕd)b(X)b(X)⊤}
+
+> op
+
+≤
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n P
+
+n
+
+(bϕd − ϕd)b(X)b(X)⊤|bΓq
+
+o
+
+> op
+
++ (S2) 
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n
+
+ Pnq − P n
+
+(bϕd − ϕd)b(X)b(X)⊤|bΓq
+
+o
+
+> op
+
+. (S3) To bound the term in (S2), it is straightforward to verify, via a pointwise Taylor expansion, that 
+
+P{bϕqd − ϕd|X, bΓq} = −12ω′′ {eπq(X)} { bπq(X) − π(X)}2 , (S4) S8 where eπq(X) lies between bπq(X) and π(X). In total, we propose three methods to bound the term in (S2). The first method is (S2) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+E
+
+n
+
+(bϕqd − ϕd)b(X)b(X)⊤|bΓq
+
+o
+
+> op
+
+≤ max  
+
+> q
+
+E
+
+"
+
+12ω′′ {eπq(X)} { bπq(X) − π(X)}2 b(X)b(X)⊤
+
+> op
+
+|bΓq
+
+#
+
+≤ϵ2
+
+2 max  
+
+> q
+
+E
+
+h
+
+{bπq(X) − π(X)}2 b(X)b(X)⊤ 
+
+> op
+
+|bΓq
+
+i
+
+≤ξ2 
+
+> K
+
+max  
+
+> q
+
+∥bπq − π∥2
+
+> P,2
+
+,
+
+where the second inequality follows from the law of total expectation (LOTE) and Equation (S4), the third inequality follows from Assumption 3(d), and the fourth inequality follows from the identity ∥vv ⊤∥op = ∥v∥22 for any vector v and Assumption 3(d). Second, we can also bound the term in (S2) as (S2) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+E
+
+n
+
+(bϕqd − ϕd)b(X)b(X)⊤|bΓq
+
+o
+
+> op
+
+=Q−1
+
+> Q
+
+X
+
+> q=1
+
+sup 
+
+> ∥v∥2=1
+
+E
+
+h
+
+(bϕqd − ϕd){v⊤b(X)}2|bΓq
+
+i
+
+≤ max  
+
+> q
+
+sup 
+
+> ∥v∥2=1
+
+E
+
+ 12ω′′ {eπq(X)} {bπq(X) − π(X)}2 {v⊤b(X)}2|bΓq
+
+
+
+≤ϵ2
+
+2 max  
+
+> q
+
+sup 
+
+> ∥v∥2=1
+
+E
+
+h
+
+{bπq(X) − π(X)}2 {v⊤b(X)}2|bΓq
+
+i
+
+≤ϵ2
+
+2 max  
+
+> q
+
+sup 
+
+> ∥v∥2=1
+
+∥bπq − π∥2
+
+> P,4
+
+E {v⊤b(X)}4 1/2
+
+≤ϵ2
+
+2 ξK max  
+
+> q
+
+∥bπq − π∥2
+
+> P,4
+
+∥G∥1/2op 
+
+≲ξK max  
+
+> q
+
+∥bπq − π∥2
+
+> P,4
+
+,
+
+where the fourth inequality follows from the Cauchy-Schwarz inequality and the fifth from the fact that |v⊤b(X)| ≤ ∥ v∥2∥b(X)∥2. Third, we can also bound the term in (S2) as follows: (S2) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+E
+
+n
+
+(bϕqd − ϕd)b(X)b(X)⊤|bΓq
+
+o
+
+> op
+
+=Q−1
+
+> Q
+
+X
+
+> q=1
+
+sup 
+
+> ∥v∥2=1
+
+E
+
+12ω′′ {eπq(X)} { bπq(X) − π(X)}2 {v⊤b(X)}2|bΓq
+
+
+
+S9 ≤ϵ2
+
+2 max  
+
+> q
+
+∥ˆπq − π∥2
+
+> P,∞
+
+∥G∥op ≲ max  
+
+> q
+
+∥ ˆϕqd − ϕd∥P,∞.
+
+Step 2.2: We then apply Lemma S1 to bound the empirical process term in (S3) by constructing new matrices Mi (different from those considered in Step 1) such that the lemma applies. Specifically, we let 
+
+Mi =
+
+h
+
+{bϕqd(Ai, Xi) − ϕd(Ai, Xi)}b(Xi)b(Xi)⊤−
+
+E
+
+h
+
+{bϕqd(Ai, Xi) − ϕd(Ai, Xi)}b(Xi)b(Xi)⊤|bΓq
+
+ii 
+
+.
+
+We then obtain 
+
+∥Mi∥op ≤ {bϕqd(Ai, Xi) − ϕd(Ai, Xi)}b(Xi)b(Xi)⊤
+
+> op
+
++
+
+E
+
+12ω′′ {eπq(X)}{ bπq(X) − π(X)}2b(Xi)b(Xi)⊤|bΓq
+
+
+
+> op
+
+≤ bϕqd − ϕd P,∞
+
+ξ2 
+
+> K
+
++ ϵ2/2E
+
+h
+
+{bπq(X) − π(X)}2 b(Xi)b(Xi)⊤ 
+
+> op
+
+|bΓq
+
+i
+
+≤ bϕqd − ϕd P,∞
+
+ξ2 
+
+> K
+
++ ϵ2/2ξ2 
+
+> K
+
+∥bπq − π∥2 
+
+> P,2
+
+:= τ, 
+
+where the first inequality follows from (S4), the second from Jensen’s inequality and As-sumption 3(d), and the identity ∥vv ⊤∥op = ∥v∥22. Next, we compute σ2 = ∥ Pnq 
+
+> i=1
+
+E(M2 
+
+> i
+
+|bΓq)∥op .We have 
+
+E(M2 
+
+> i
+
+|bΓq) ⪯E
+
+h
+
+{bϕqd(Ai, Xi) − ϕd(Ai, Xi)}2b(Xi)b(Xi)⊤b(Xi)b(Xi)⊤|bΓq
+
+i
+
+⪯ξ2 
+
+> K
+
+∥bϕqd − ϕd∥2
+
+> P,∞
+
+G,
+
+where the first inequality follows because the variance is bounded by the second moment. Thus, we obtain 
+
+σ2 ≤nqξ2 
+
+> K
+
+∥bϕqd − ϕd∥2
+
+> P,∞
+
+∥G∥op .
+
+Finally, applying Lemma S1 yields 
+
+E {(S3) }≤ max  
+
+> q
+
+n−1E
+
+
+
+> nq
+
+X
+
+> i=1
+
+Mi
+
+> op
+
+|bΓ1, . . . , bΓQ
+
+
+
+≤ max  
+
+> q
+
+n−1
+
+q 
+
+2nqξ2 
+
+> K
+
+∥bϕqd − ϕd∥2
+
+> P,∞
+
+∥G∥op log(2 K) + 13
+
+bϕqd − ϕd P,∞
+
++ ϵ2
+
+2 ∥bπq − π∥2
+
+> P,2
+
+
+
+ξ2 
+
+> K
+
+log(2 K)
+
+
+
+S10 ≲
+
+rξ2 
+
+> K
+
+log Kn ,
+
+where the last inequality is due to Assumption 3(a), Assumption 3(c), and Assumption 3(d). When w(X) = 1 or w(X) = π(X), we have bϕd = ϕd (equal to 1 or A, respectively), so bH = eH and the second term in Step 0 vanishes. By Markov’s inequality, combining the results from Steps 0, 1, 2.1, and 2.2 completes the proof. By Theorem S1, we further establish the following lemma for the rate of convergence of the inverse of the penalized Gram matrix, ( bH + λP)−1.
+
+Lemma S2. Under Assumptions 1–3, it follows that 
+
+( bH + λP)−1 − (H + λP)−1
+
+> op
+
+≲P
+
+pξ2 
+
+> K
+
+log K/n + min {ξ2 
+
+> K
+
+d2(π)2, ξ K d4(π)2, d ∞(π)2}{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} .
+
+Proof. We have 
+
+( bH + λP)−1 − (H + λP)−1
+
+> op
+
+= ( bH + λP)−1(H − bH)( H + λP)−1
+
+> op
+
+≤ ( bH + λP)−1
+
+> op
+
+H − bH op 
+
+(H + λP)−1
+
+> op
+
+≤ 1
+
+ϵ1 + λψ 1(P) ( bH + λP)−1
+
+> op
+
+H − bH op 
+
+≲P
+
+1
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} bH − H op 
+
+≲P
+
+pξ2 
+
+> K
+
+log K/n + min {ξ2 
+
+> K
+
+d2(π)2, ξ K d4(π)2, d ∞(π)2}{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} ,
+
+where the first equality is due to the matrix identity A−1 − B−1 = A−1(B − A)B−1 for any invertible matrices A and B, the first inequality is submultiplicativity of the operator norm, and the second inequality follows from (S17), and the third inequality follows from the fact that ( bH + λP)−1
+
+> op
+
+= 1 /ψ 1( bH + λP) ≤ 1/
+
+n
+
+ψ1( bH) + λψ 1(P)
+
+o
+
+≲P 1/ {ϵ1/2 + λψ 1(P)}
+
+(ψ1( bH) ≥ ϵ1/2 with probability approaching one, as shown in Step 2 of the proof of Theorem 3), and the last inequality follows from Theorem S1. The next two propositions give linearizations of bβ with pointwise and uniform error bounds, which serve as the basis for deriving the convergence rates and Gaussian approxi-mations for the proposed orthogonal learners. Their proofs are given in Sections S6.5 and S6.6, respectively. S11 Proposition S1 (Pointwise linearization ). Under Assumptions 1–3, for any eb in the unit sphere {eb ∈ RK : ∥eb∥2 = 1 }, the estimator bβ is asymptotically linear with 
+
+√neb⊤
+
+ bβ − β∗
+
+
+
+= eb⊤H−1Gn
+
+b(X) ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g∗(X)  + Rem 1n(eb),
+
+where the remainder term Rem 1n(eb) is bounded as follows: Rem 1n(eb) ≲P
+
+√n P3 
+
+> j=1
+
+mjn + λψ max (√n + √K + √nm 0n)
+
+ϵ1 + λψ min 
+
++
+
+mH
+
+> n
+
+n
+
+ξK + √n P3 
+
+> j=0
+
+mjn + √nλψ K (P)
+
+o
+
+{ϵ1 + λψ min } { ϵ1/2 + λψ 1(P)} .
+
+Proposition S2 (Uniform linearization ). Under Assumptions 1–4, the estimator bβ is asymptotically linear with 
+
+√neb(x)⊤
+
+ bβ − β∗
+
+
+
+= eb(x)⊤H−1Gn
+
+b(X) ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g∗(X)  + Rem 1n{eb(x)},
+
+√neb(x)⊤
+
+ bβ − β∗
+
+
+
+= eb(x)⊤H−1Gn
+
+b(X) ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g(X)  + Rem 1n{eb(x)} + Rem 2n{eb(x)},
+
+where the remainder terms Rem 1n{eb(x)} and Rem 2n{eb(x)} capture the impact of the un-known design and first-stage nuisance estimation errors, and the impact of approximation error, respectively, and are bounded as follows. Define m4n = n1/ν √log K +√Kl K cK . Then 
+
+sup 
+
+> x
+
+|Rem 1n{eb(x)}| 
+
+≲P
+
+√n P3 
+
+> j=1
+
+mjn + λψ K (P)( √n + √K + √nm 0n)
+
+ϵ1 + λψ 1(P) +
+
+mH
+
+> n
+
+n√n P3 
+
+> j=0
+
+mjn + m4n + √nλψ K (P)
+
+o
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} ,
+
+sup 
+
+> x
+
+|Rem 2n{eb(x)}| ≲P
+
+plog Kl K cK .
+
+The next lemma is Proposition 6.1 of Belloni et al. (2015), which provides a sharper bound for the empirical processes that appear in the proofs of uniform linearization and uniform convergence rates. For ease of reference, we state it without proof. 
+
+Lemma S3. Let (ϵ1, X1), . . . , (ϵn, Xn) be i.i.d. random vectors taking values in Rp+1 .Suppose that E(ϵi|Xi) = 0 and σ2 := sup x∈X E(ϵ2 
+
+> i
+
+|Xi = x) < ∞, where X denotes the support of X1. Let F be a class of functions on Rp such that E{f (X1)2} = 1 and ∥f ∥∞ ≤
+
+b for all f ∈ F . Define G := {(ϵ, x) 7 → ϵf (x) : f ∈ F} . Suppose that there exist constants A > e 2 and V ≥ 2 such that sup Q N {G , L 2(Q), ε ∥G∥L2(Q)} ≤ (A/ε )V for all 
+
+S12 0 < ε ≤ 1, where the envelope is G(ϵ, x) := |ϵ|b. If E(|ϵ1|ν ) < ∞ for some ν > 2, then 
+
+Esup f ∈F | Pni=1 ϵif (Xi)| ≤ C(σ + pE|ϵ1|ν )pnV log( Ab ) + V b ν/ (ν−2) log( Ab ), where C
+
+is a universal constant. 
+
+Finally, the next two lemmas, Lemmas 4 and 6 of van der Laan et al. (2024), provide local maximal inequalities used to bound the empirical processes in the analysis of targeted learning in Theorem 2. We omit the proofs, which can be found in van der Laan et al. (2024), which generalizes the results in Van Der Vaart and Wellner (2011). Define ∥F∥ P,q := sup f ∈F ∥f ∥P,q as the envelope for the function class F under the Lq(P) norm. 
+
+Lemma S4. Suppose J(∞, F, ∥ · ∥ P,∞) < ∞. Then 
+
+E
+
+
+
+sup  
+
+> f∈F
+
+|(Pn − P)( f )|
+
+
+
+≲ n−1/2J(δ, F, ∥ · ∥ P,∞),
+
+for any δ ≥ ∥F∥ P,2 + n−1/2.
+
+Lemma S5. Let H be a uniformly bounded function class satisfying J(∞, H, ∥·∥ P,∞) < ∞,and let G be a function class with J(δ, G, ∥ · ∥ P,2) ≲ δ
+
+q ˇK log(1 /δ ) where log(1 /∥G∥ P,2) + log(1 /∥H∥ P,2) ≲ log n. Then 
+
+E
+
+
+
+sup  
+
+> f∈HG
+
+|Gn(f )|
+
+
+
+≲ ∥G∥ P,2J
+
+max {∥H∥ P,2, n −1/2}∥G∥ P,2
+
+, H, ∥ · ∥ P,∞
+
+
+
++ ∥H∥ P,∞
+
+q
+
+ˇK log n max 
+
+∥G∥ P,2,
+
+s
+
+ˇK log nn
+
+ ,
+
+where HG := {hg : h ∈ H , g ∈ G} .
+
+# S6 Proofs for all technical results 
+
+For simplicity, we refer to the sequential ignorability assumption as SI. 
+
+S6.1 Proof of Proposition 1 
+
+Proof. For any ( a1, a 2) ∈ { (0 , 0) , (1 , 0) , (1 , 1) }, the LOTE gives 
+
+θa1a2 (X) = 
+
+Z
+
+E{Y (a1, m )|M (a2) = m, X}fM (a2)|X(m|X) dm. 
+
+S13 By Assumption 1(i), the pair {Y (a1, m ), M (a2)} is independent of A conditional on X, and Assumption 1(ii) implies Y (a1, m ) ⊥ M (a2)|A = a2, X. Therefore, 
+
+E{Y (a1, m )|M (a2) = m, X} =E{Y (a1, m )|M (a2) = m, A = a2, X}
+
+=E{Y (a1, m )|A = a2, X}
+
+=E{Y (a1, m )|X},
+
+where the last equality again follows from Assumption 1(i). Moreover, 
+
+E{Y (a1, m )|X} =E{Y (a1, m )|A = a1, X}
+
+=E{Y (a1, m )|M (a1) = m, A = a1, X}
+
+=E(Y |M = m, A = a1, X)=μa1 (m, X),
+
+where the first equality follows from Assumption 1(i), the second from Assumption 1(ii), and the third from consistency. Similarly, Assumption 1(i) and consistency yield 
+
+fM (a2)|X(m|X) = fM (a2)|A, X(m|a2, X) = f (m|a2, X).
+
+Substitution gives 
+
+θa1a2 (X) = 
+
+Z
+
+μa1 (m, X)f (m|a2, X) dm, 
+
+as required. 
+
+S6.2 Proof of Theorem 1 
+
+S6.2.1 Some preliminaries for deriving the EIF 
+
+We present some preliminaries standard in the semiparametric literature (Tsiatis, 2006) that are useful for deriving the nonparametric EIFs in the next subsection. Denote θd = E{w(X)} and θn = θd ˇgw = E[w(X){η11 (X) − η10 (X)}]. We consider a submodel P parameterized by a univariate parameter ϵ, such that P = {fϵ(O) : ϵ ∈ T ⊆ 
+
+R}, with the true distribution attained at ϵ = 0. Let θr,ϵ , r ∈ { d, n } be the value of θr
+
+within the submodel P, with θr = θr, 0 at the truth. Consider the following orthogonal factorization for the joint density fϵ(O) within the submodel P
+
+fϵ(O) = fϵ(Y |M, A, X)fϵ(M |A, X)fϵ(A|X)fϵ(X),
+
+S14 and the corresponding score functions 
+
+S(O) = ∂ log fϵ(O)
+
+∂ϵ |ϵ=0 ,S(Y |M, A, X) = ∂ log fϵ(Y |M, A, X)
+
+∂ϵ |ϵ=0 ,S(M |A, X) = ∂ log fϵ(M |A, X)
+
+∂ϵ |ϵ=0 ,S(A|X) = ∂ log fϵ(A|X)
+
+∂ϵ |ϵ=0 ,S(X) = ∂ log fϵ(X)
+
+∂ϵ |ϵ=0 .
+
+Under the nonparametric model, the score S(O) lies in the full Hilbert space of mean-zero functions with finite second moments, with H := {S(O) : E{S(O)} = 0 , E{S(O)2} < ∞} .Following Tsiatis (2006); Kennedy (2024), the nonparametric EIF, denoted as φNIE  
+
+> r
+
+(O; θr), r ∈{d, n }, for θr is the unique solution, if it exists, to the following differential equation: 
+
+∇ϵ=0 θr,ϵ = E{φNIE  
+
+> r
+
+(O; θr)S(O)},
+
+where ∇ϵ=0 hϵ = ∂h ϵ/∂ϵ |ϵ=0 denotes the partial derivative with respect to ϵ evaluated at 
+
+ϵ = 0. 
+
+S6.2.2 Main proof of Theorem 1 
+
+Proof. To begin, we derive the nonparametric EIF for the denominator θd. By the chain rule, we have that ˙θd = T1 + T2,
+
+where 
+
+T1 =E {ω(π(X)) S(X)} ,T2 =E {ω′(π(X)) ˙ π(X)} .
+
+For the first term, we have that 
+
+T1 = E [{ω(π(X)) − θd} S(X)] = E [{ω(π(X)) − θd} S(O)] ,
+
+because E {S(X)} = 0. For the second term, we have that 
+
+T2 =E {ω′(π(X)) E {AS (A|X)|X}} 
+
+S15 =E {ω′(π(X)) AS (A|X)}
+
+=E [ω′(π(X)) {A − π(X)} S(A|X)] =E [ω′(π(X)) {A − π(X)} S(O)] .
+
+To summarize, the nonparametric EIF for θd is given by 
+
+φNIE  
+
+> d
+
+= −θd + ϕNIE  
+
+> d
+
+,
+
+where 
+
+ϕNIE  
+
+> d
+
+=ω(π(X)) + ω′(π(X)) {A − π(X)} .
+
+Next, we derive the nonparametric EIF for the numerator θn. By Proposition 1, we can express θn using the following integral: 
+
+θn =
+
+Z
+
+ω(π(x)) {η11 (x) − η10 (x)} f (x)dx.
+
+Therefore, the chain rule implies that ˙θn = T4 + T5 + T6 − T7,
+
+where 
+
+T4 =
+
+Z
+
+ω(π(x)) {η11 (x) − η10 (x)} ˙f (x)dx,T5 =
+
+Z
+
+ω′(π(x)) ˙ π(x) {η11 (x) − η10 (x)} f (x)dx,T6 =
+
+Z
+
+ω(π(x)) ˙ η11 (x)f (x)dx,T7 =
+
+Z
+
+ω(π(x)) 
+
+Z n
+
+˙μ1(m, x)f (m|0, x) + μ1(m, x) ˙f (m|0, x)
+
+o
+
+dmf (x)dx.
+
+We analyze the term T4 as follows: 
+
+T4 =
+
+Z
+
+ω(π(x)) {η11 (x) − η10 (x)} S(x)f (x)dx
+
+=E [w(X) {η11 (X) − η10 (X)} S(X)] =E [[ w(X) {η11 (X) − η10 (X)} − θn] S(X)] ,
+
+where the last equality follows from the fact that E {S(X)} = 0. The analysis of the term 
+
+T2 implies that 
+
+T5 =E [ω′(π(X)) {η11 (X) − η10 (X)} { A − π(X)} S(O)] .
+
+S16 We then analyze the term T6 as follows: 
+
+T6 =
+
+Z Z
+
+ω(π(x)) y {S(y, 1, x) − S(1 , x)} f (y|1, x)f (x)dyd x
+
+=
+
+Z Z
+
+ω(π(x)) yS (y, 1, x)f (y|1, x)f (x)dyd x −
+
+Z
+
+ω(π(x)) η11 (x)S(1 , x)f (x)dx
+
+=E
+
+ Aπ(X)w(X)Y S (Y, A, X)
+
+
+
+− E
+
+ Aπ(X)w(X)η11 (X)S(A, X)
+
+
+
+=E
+
+ Aπ(X)w(X)Y S (O)
+
+
+
+− E
+
+ Aπ(X)w(X)η11 (X)S(O)
+
+
+
+=E
+
+ Aπ(X)w(X) {Y − η11 (X)} S(O)
+
+
+
+.
+
+where the fourth equality follows from the fact that S(Y, A, X) = E{S(O)|Y, A, X}. We finally analyze the term T7 as follows: 
+
+T7 =
+
+Z Z Z
+
+w(x)y {S(y, m, 1, x) − S(m, 1, x)} f (y|m, 1, x)f (m|0, x)f (x)dydmd x+
+
+Z Z
+
+w(x)μ1(m, x) {S(m, 0, x) − S(0 , x)} f (m|0, x)f (x)dmd x
+
+=E
+
+ Aπ(X)w(X)r(M, X)Y S (O)
+
+
+
+− E
+
+ Aπ(X)μ1(M, X)w(X)r(M, X)S(O)
+
+
+
++
+
+E
+
+ 1 − A
+
+1 − π(X)w(X)μ1(M, X)S(O)
+
+
+
+− E
+
+ 1 − A
+
+1 − π(X)w(X)η10 (X)S(O)
+
+
+
+=E
+
+
+
+w(X)
+
+ Aπ(X)r(M, X) {Y − μ1(M, X)} + 1 − A
+
+1 − π(X) {μ1(M, X) − η10 (X)}
+
+
+
+S(O)
+
+
+
+.
+
+Finally, the nonparametric EIF for θn is given by 
+
+φNIE  
+
+> n
+
+= −θn + ϕNIE  
+
+> n
+
+,
+
+where 
+
+ϕNIE  
+
+> n
+
+= {η11 (X) − η10 (X)} ϕNIE  
+
+> d
+
+− w(X) + w(X) {ϕ11 (O) − ϕ10 (O)} .
+
+Finally, the nonparametric EIF for ˇ gw follows from the product rule for the influence-functions operator; see, for example, Trick 2a in Section 3.4.3 of Kennedy (2024). 
+
+S6.3 Proof of Theorem 2 
+
+Proof. Step 0: We consider the following decomposition: sup 
+
+> g∈G
+
+|Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g )}| 
+
+S17 ≤ sup 
+
+> g∈G
+
+|Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, Π( g)) }| + sup 
+
+> g∈G
+
+|Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g − Π( g)) }| ≤ sup 
+
+> g∈G
+
+|Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, Π( g)) }| + (S5) sup 
+
+> g∈G
+
+|Pn{∆( O; π, f 0, f 1, μ 1, g − Π( g)) }| + (S6) sup 
+
+> g∈G
+
+|Pn{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g − Π( g)) − ∆( O; π, f 0, f 1, μ 1, g − Π( g)) }| . (S7) We analyze these three terms in (S5)-(S7). 
+
+Step 1: We show that (S5) = 0. To see this, we define the empirical projection, characterized by the weighted least squares loss in Algorithm 2, as ˇb(X)⊤ bϵ, where 
+
+bϵ = arg min  
+
+> ϵ
+
+Pn
+
+Aω {bπ(X)}br(M, X)
+
+bπ(X)
+
+Y − bμ1(M, X) − ˇb(X)⊤ϵ 2
+
+
+
+. (S8) The corresponding score equation for the empirical projection is given by 
+
+0 =Pn
+
+Aω {bπ(X)}br(M, X)
+
+bπ(X)
+
+Y − bμ1(M, X) − ˇb(X)⊤ bϵ ˇb(X)
+
+
+
+=Pn
+
+Aω {bπ(X)}br(M, X)
+
+bπ(X) {Y − bμ∗
+
+> 1
+
+(M, X)} ˇb(X)
+
+
+
+.
+
+Suppose that Π( g)( x) = ˇb(x)⊤ϵ∗ for some fixed coordinate vector ϵ∗. Therefore, it follows that 
+
+0⊤ϵ∗ = 0 = Pn
+
+Aω {bπ(X)}br(M, X)
+
+bπ(X) {Y − bμ∗
+
+> 1
+
+(M, X)} ˇb(X)⊤ϵ∗
+
+
+
+=Pn
+
+n
+
+∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, Π( g)) 
+
+o
+
+. (S9) By (S9), we obtain (S5) = 0. 
+
+Step 2: We analyze the term in (S6). Now, we treat ∆ : g 7 → ∆( O; π, f 0, f 1, μ 1, T (g)) as an operator taking values in G. Assumption 3(d) and condition (vii) of Theorem 2 imply 
+
+Aw (X)r(M, X)
+
+π(X) {Y − μ1(M, X)} P,∞
+
+≤ ϵ3ϵ22/ϵ 21 ≤ C0,
+
+where C0 := max {1, C eϵ22/ϵ 21}. Consider the following class of functions: 
+
+R := {O 7 → ∆( O; π, f 0, f 1, μ 1, T (g)) : g ∈ G} ,
+
+where T (g) = g − Π( g) denotes the residual operator induced by Π. We derive the entropy for R. We note, for any g1, g 2 ∈ G , ∥∆( O; π, f 0, f 1, μ 1, T (g1)) −∆( O; π, f 0, f 1, μ 1, T (g2)) ∥P,∞ ≤
+
+S18 C0∥T (g1) − T (g2)∥P,∞ ≤ C0(1 + Λ ˇK )∥g1 − g2∥P,∞ under Assumption 3(d), which implies the operator ∆ is C0(1+Λ ˇK )-Lipschitz under the sup norm. Therefore, an ρ/ {C0(1+Λ ˇK )}-cover of G is an ρ-cover of R, which suggests that 
+
+N (ρ, R, ∥ · ∥ P,∞) ≤ N (ρ/ {C0(1 + Λ ˇK )}, G, ∥ · ∥ P,∞). (S10) Further, the inequality (S10) implies that 
+
+J(δ, R, ∥ · ∥ P,∞) = 
+
+Z δ
+
+> 0
+
+q
+
+log N (ρ, R, ∥ · ∥ P,∞)dρ 
+
+≤
+
+Z δ
+
+> 0
+
+q
+
+log N (ρ/ {C0(1 + Λ ˇK )}, G, ∥ · ∥ P,∞)dρ 
+
+=C0(1 + Λ ˇK )
+
+Z δ/ {C0(1+Λ ˇK )}
+
+> 0
+
+q
+
+log N (ρ′, G, ∥ · ∥ P,∞)dρ ′
+
+=C0(1 + Λ ˇK )J(δ/ {C0(1 + Λ ˇK )}, G, ∥ · ∥ P,∞)
+
+≲(1 + Λ ˇK ){δ/ (1 + Λ ˇK )}1−1/(2 τ ) = δ1−1/(2 τ )(1 + Λ ˇK )1/(2 τ ), (S11) where the second equality is due to the change of variables ρ′ = ρ/ {C0(1 + Λ ˇK )} and the second inequality is due to J(δ, G, ∥ · ∥ P,∞) ≲ δ1−1/(2 τ ). Moreover, for R, under Assumption 3(d), we have sup f ∈R ∥f ∥P,2 ≤ C0c ˇK . Since C0 ≥ 1, the choice δ = C0(c ˇK + n−1/2) satisfies 
+
+δ ≥ sup f ∈R ∥f ∥P,2 + n−1/2. Lemma S4 therefore gives 
+
+E{(S6) } = 1
+
+√nE
+
+
+
+sup 
+
+> g∈G
+
+|Gn{∆( O; π, f 0, f 1, μ 1, g − Π( g)) }| 
+
+
+
+≲n−1/2J{C0(c ˇK + n−1/2), R, ∥ · ∥ P,∞}
+
+≲n−1/2(c ˇK + n−1/2)1−1/(2 τ )(1 + Λ ˇK )1/(2 τ ),
+
+where the first equality follows from the fact that, by the LOTE, 
+
+E{∆( O; π, f 0, f 1, μ 1, g − Π( g)) }
+
+=E
+
+
+
+w(X) Aπ(X)r(M, X){Y − μ1(M, X)} { g(X) − Π( g)( X)}
+
+
+
+= 0 .
+
+Finally, by Markov’s inequality, we obtain (S6) ≲P n−1/2(c ˇK + n−1/2)1−1/(2 τ )(1 + Λ ˇK )1/(2 τ ).For use in Step 3.2.1, define the class R0 := {X 7 → T (g)( X) : g ∈ G} . Similar arguments imply 
+
+J(δ, R0, ∥ · ∥ P,∞) ≤(1 + Λ ˇK )J
+
+ δ
+
+1 + Λ ˇK
+
+, G, ∥ · ∥ P,∞
+
+
+
+S19 ≲δ1−1/(2 τ )(1 + Λ ˇK )1/(2 τ ). (S12) 
+
+Step 3: We analyze the term in (S7). We consider a further decomposition of (S7) as follows: (S7) ≤ sup 
+
+> g∈G
+
+|P{∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g − Π( g)) − ∆( O; π, f 0, f 1, μ 1, g − Π( g)) }| + (S13) sup 
+
+> g∈G
+
+|(Pn − P){∆( O; bπ, bf0, bf1, bμ∗
+
+> 1
+
+, g − Π( g)) − ∆( O; π, f 0, f 1, μ 1, g − Π( g)) }| . (S14) We first bound the estimation error for the refined nuisance bμ∗ 
+
+> 1
+
+using the estimation er-ror for the first-stage nuisance bμ1. To do this, we define G := E{ˇb(X)ˇb(X)⊤}, bH := 
+
+Pn{A bw(X)br(M, X)/bπ(X)ˇb(X)ˇb(X)⊤}, and bh := Pn[A bw(X)br(M, X)/bπ(X)ˇb(X){Y −ˆμ1(M, X)}]. Then we have 
+
+∥μ1 − bμ∗
+
+> 1
+
+∥P,2 ≤∥ bμ1 − μ1∥P,2 + ∥bμ∗ 
+
+> 1
+
+− bμ1∥P,2
+
+=∥bμ1 − μ1∥P,2 + ∥ˇb(X)⊤ bϵ∥P,2
+
+≤d2(μ1) + {bϵ⊤Gbϵ}1/2,
+
+≲d2(μ1) + ∥bϵ∥2,
+
+≤d2(μ1) + ∥ bH−1
+
+∥op ∥bh∥2
+
+=d2(μ1) + ∥bh∥2
+
+ψ1( bH)
+
+≲Pd2(μ1) + ∥bh∥2
+
+≤d2(μ1)+ 
+
+∥Pn[A bw(X)br(M, X)/bπ(X)ˇb(X){Y − μ1(M, X)}]∥2+ (S15) 
+
+∥Pn[A bw(X)br(M, X)/bπ(X)ˇb(X){μ1(M, X) − bμ1(M, X)}]∥2. (S16) Here, the first inequality follows from the triangle inequality, and the first equality follows from bμ∗
+
+> 1
+
+(M, X) − bμ1(M, X) = ˇb(X)⊤ bϵ. The second inequality uses the definition of d2(μ1)and the identity ∥ˇb(X)⊤ bϵ∥P,2 = bϵ⊤Gbϵ 1/2, where the fitted coefficient vector is held fixed when taking the population norm. The third inequality follows from bϵ⊤Gbϵ ≤ ψ ˇK (G)∥bϵ∥22
+
+and Assumption 3(a), applied to ˇb. The fourth inequality follows from the normal equations 
+
+bϵ = bH−1 bh and the operator norm inequality. The second equality uses ∥ bH−1
+
+∥op = 1 /ψ 1( bH)on the event that bH is positive definite. The fifth inequality uses ψ1( bH)−1 = OP(1), S20 as justified below. Finally, the last inequality follows from the triangle inequality after substituting Y − bμ1 = ( Y − μ1) + ( μ1 − bμ1) into the definition of bh.To justify the fifth inequality and the preceding inverse matrix identities, define bai =
+
+Ai bw(Xi)br(Mi, Xi)/bπ(Xi). The derivative bounds in Assumption 3(d) imply, for t, p ∈
+
+[ϵ1, 1 − ϵ1], 
+
+ω(t) ≥ ω(p) min 
+
+ tp, 1 − t
+
+1 − p
+
+
+
+.
+
+Taking t = bπ(Xi) and p = π(Xi), and using the bounds on the propensity scores, medi-ator densities, and w in the same assumption, gives cA i ≤ bai ≤ CA i for some positive constants c, C . Consequently, bH ⪰ cPn{Aˇb(X)ˇb(X)⊤} and E{Aˇb(X)ˇb(X)⊤} ⪰ ϵ1G. The growth condition (vi) ensures that Pn{Aˇb(X)ˇb(X)⊤} − E{Aˇb(X)ˇb(X)⊤} op = oP(1), by the same matrix concentration argument used for the unweighted Gram matrix. Since Assumption 3(a), applied to ˇb, bounds ψ1(G) away from zero, the preceding inequalities imply that bH is positive definite with probability tending to one and that ψ1( bH)−1 = OP(1). For each fold q, write, for i ∈ F q,
+
+Zqi = Ai bwq(Xi)brq(Mi, Xi)
+
+bπq(Xi) ˇb(Xi){Yi − μ1(Mi, Xi)}.
+
+Conditional on the training sample Fcq , these vectors are independent and centered. Jensen’s inequality across folds and the conditional second moment identity within each fold imply 
+
+E
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n Pnq Zq
+
+> 22
+
+≤
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n E∥Pnq Zq∥22
+
+=
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n
+
+1
+
+nq
+
+E∥Zq∥22 ≲ Q ˇKn ≲ ˇKn .
+
+Thus, Markov’s inequality gives (S15) ≲P
+
+q ˇK/n .By Step 2.1 of the proof in Section S6.4, we obtain (S16) ≲P d2(μ1) + ξ ˇK
+
+√nd2(μ1).
+
+Combining the preceding bounds yields 
+
+∥μ1 − bμ∗
+
+> 1
+
+∥P,2 ≲P
+
+
+
+1 + ξ ˇK
+
+√n
+
+
+
+d2(μ1) + 
+
+s
+
+ˇKn := r1n.
+
+It remains to analyze the terms in (S13) and (S14). S21 Step 3.1: For the term in (S13), we have (S13) 
+
+≤ sup 
+
+> g∈G
+
+E
+
+
+
+A
+
+ bw(X)
+
+bπ(X) br(M, X) − w(X)
+
+π(X) r(M, X)
+
+
+
+{Y − μ1(M, X)}{ g − Π( g)}
+
+
+
++sup 
+
+> g∈G
+
+E
+
+
+
+A bw(X)
+
+bπ(X) br(M, X){μ1(M, X) − bμ∗
+
+> 1
+
+(M, X)}{ g − Π( g)}
+
+
+
+= sup 
+
+> g∈G
+
+E
+
+
+
+A bw(X)
+
+bπ(X) br(M, X){μ1(M, X) − bμ∗
+
+> 1
+
+(M, X)}{ g − Π( g)}
+
+
+
+≤ sup 
+
+> g∈G
+
+E
+
+
+
+A bw(X)2
+
+bπ(X)2 br(M, X)2{μ1(M, X) − bμ∗
+
+> 1
+
+(M, X)}2
+
+1/2
+
+∥g − Π( g)∥P,2
+
+≲ sup 
+
+> g∈G
+
+∥μ1 − bμ∗
+
+> 1
+
+∥P,2 ∥g − Π( g)∥P,2 ,
+
+where the first equality follows from the LOTE, the second inequality follows from the Cauchy-Schwarz inequality, and the last inequality follows from Assumption 3(d). 
+
+Step 3.2: Due to sample splitting, we consider (S14) ≤ PQq=1 (nq/n )Zq, where 
+
+Zq := sup 
+
+> g∈G
+
+|(Pnq − P){∆( O; bπq, bf0, bf1, bμ∗
+
+> 1
+
+, g − Π( g)) − ∆( O; π, f 0, f 1, μ 1, g − Π( g)) |F cq }| ≤ sup 
+
+> g∈G
+
+|(Pnq − P)[ {V (1)  
+
+> n,q
+
+(O; bϵ) + V (2)  
+
+> n,q
+
+(O)}{ g − Π( g)}|F cq ]|,
+
+where 
+
+V (1)  
+
+> n,q
+
+(O; bϵ) := A bwq(X)
+
+bπq(X) brq(M, X){μ1(M, X) − bμq
+
+> 1
+
+(M, X) − ˇb(X)⊤ bϵ},V (2)  
+
+> n,q
+
+(O) := A
+
+ bwq(X)
+
+bπq(X) brq(M, X) − w(X)
+
+π(X) r(M, X)
+
+
+
+{Y − μ1(M, X)}.
+
+Step 3.2.1: To bound the term involving V (1)  
+
+> n,q
+
+, we note that, conditional on Fcq , the randomness of V (1)  
+
+> n,q
+
+comes from bϵ. To remove the randomness induced by the sieve co-efficients bϵ, we embed V (1)  
+
+> n,q
+
+into the following deterministic (conditional on Fcq ) class of functions: for some sufficiently large constant Mυ that depends on υ ∈ (0 , 1), 
+
+Tq := 
+
+O 7 → V (1)  
+
+> n,q
+
+(O; ϵ) : ∥ϵ∥∞ ≤ Mυ, ∥V (1)  
+
+> n,q
+
+∥P,2 ≤ Mυ
+
+
+
+1 + ξ ˇK
+
+√n
+
+
+
+d2(μ1) + 
+
+s
+
+ˇKn
+
+ .
+
+Next, we will show that, with high probability at least 1 − υ, one can always find a sufficiently large Mυ and define the corresponding Tq such that V (1)  
+
+> n,q
+
+(O) ∈ T q.S22 First, let cG := inf n ψ1(G) > 0, as guaranteed by Assumption 3(a) for the targeting basis ˇb. For every realization of bϵ, ∥ˇb(X)⊤ bϵ∥2 
+
+> P,2
+
+= bϵ⊤Gbϵ ≥ cG∥bϵ∥22 ≥ cG∥bϵ∥2
+
+> ∞
+
+. Consequently, 
+
+∥bϵ∥∞ ≤c−1/2 
+
+> G
+
+∥ˇb(X)⊤ bϵ∥P,2
+
+≤c−1/2 
+
+> G
+
+∥ˇb(X)⊤ bϵ∥P,∞
+
+≤c−1/2 
+
+> G
+
+(∥bμ∗
+
+> 1
+
+∥P,∞ + ∥bμ1∥P,∞) ≲ 1,
+
+where the last step uses the assumed uniform boundedness of both outcome regressions. Thus one may choose a constant Mυ, 1 such that ∥bϵ∥∞ ≤ Mυ, 1 on that boundedness event. Second, we note 
+
+∥V (1)  
+
+> n,q
+
+(O; bϵ)∥P,2 ≲∥bμq 
+
+> 1
+
+− μ1 + ˇb(X)⊤ bϵ∥P,2
+
+≤∥ bμq 
+
+> 1
+
+− μ1∥P,2 + ∥ˇb(X)⊤ bϵ∥P,2
+
+≲P
+
+
+
+1 + ξ ˇK
+
+√n
+
+
+
+d2(μ1) + 
+
+s
+
+ˇKn ,
+
+where the last inequality follows from (S15) and (S16). Thus, for all υ ∈ (0 , 1), one can pick 
+
+Mυ, 2 such that Pr( ∥V (1)  
+
+> n,q
+
+(O; bϵ)∥P,2 ≤ Mυ, 2 (1 + ξ ˇK /√n) d2(μ1) + 
+
+q ˇK/n ) ≥ 1 − υ. Finally, set Mυ = max( Mυ, 1, M υ, 2). Moreover, the class Tq is a subset of a ( ˇKn + 1)-dimensional linear space with uniformly bounded coefficients. Following the arguments in Lemma 7 of van der Laan et al. (2024), which uses Lemma 2.6.15 and Theorem 2.10.20 of van der Vaart and Wellner (1996), the class Tq is VC-subgraph with dimension O( ˇK), and its entropy integral satisfies J(δ, Tq, ∥ · ∥P,∞) ≲ δ
+
+q ˇK log(1 /δ ). Thus, we have verified all conditions required to apply Lemma S5. Therefore, by Markov’s inequality and Lemma S5, we obtain sup 
+
+> g∈G
+
+(Pnq − P) V (1)  
+
+> n,q
+
+(O; bϵ){g − Π( g)}
+
+≲P
+
+∥T q∥P,2
+
+√n J
+
+c ˇK ∨ n−1/2
+
+∥T q∥P,2
+
+, R0, ∥ · ∥ P,∞
+
+
+
++ l ˇK c ˇK
+
+s
+
+ˇK log nn
+
+∥T q∥P,2 ∨
+
+s
+
+ˇK log nn
+
+
+
+≲n−1/2{∥T q∥P,2(1 + Λ ˇK )}1/(2 τ )  c ˇK ∨ n−1/21−1/(2 τ ) + l ˇK c ˇK
+
+s
+
+ˇK log nn
+
+∥T q∥P,2 ∨
+
+s
+
+ˇK log nn
+
+ ,
+
+where the last inequality follows from (S12). By the definition of Tq, ∥T q∥P,2 ≲ r1n.S23 Step 3.2.2: To bound the term involving V (2)  
+
+> n,q
+
+(O), we note that, conditional on Fcq ,
+
+V (2)  
+
+> n,q
+
+is a deterministic function of the data O. We follow arguments analogous to those used in Step 2 and apply Lemma S4 to obtain the bound. Conditional on Fcq , we consider the following class of functions: 
+
+R∗ := {O 7 → V (2)  
+
+> n,q
+
+(O)T (g) : g ∈ G} ,
+
+We derive the entropy for R∗. We note, for any g1, g 2 ∈ G and some sufficiently large constant C > 0 depending only on ϵ1, ϵ 2, ϵ 3,
+
+∥V (2)  
+
+> n,q
+
+(O)T (g1) − V (2)  
+
+> n,q
+
+(O)T (g2)∥P,∞
+
+≤C ∥bπq − π∥P,∞ + X
+
+> a=0 ,1
+
+∥ bf qa − fa∥P,∞
+
+!
+
+∥T (g1) − T (g2)∥P,∞
+
+≤C
+
+(
+
+d∞(π) + X
+
+> a=0 ,1
+
+d∞(fa)
+
+)
+
+(1 + Λ ˇK )∥g1 − g2∥P,∞
+
+under Assumption 3(d) and conditions (i) and (vii) of Theorem 2, which implies the op-erator V (2)  
+
+> n,q
+
+(O)T (g) is LVK := C{d∞(π) + P 
+
+> a=0 ,1
+
+d∞(fa)}(1 + Λ ˇK )-Lipschitz under the sup norm. Therefore, a ρ/L VK -cover of G is a ρ-cover of R∗, which suggests that 
+
+N (ρ, R∗, ∥ · ∥ P,∞) ≤ N (ρ/L VK , G, ∥ · ∥ P,∞),
+
+and 
+
+J(δ, R∗, ∥ · ∥ P,∞) ≤LVK J(δ/L VK , G, ∥ · ∥ P,∞)
+
+≲{d∞(π) + X
+
+> a=0 ,1
+
+d∞(fa)}(1 + Λ ˇK )
+
+(
+
+δ
+
+{d∞(π) + P 
+
+> a=0 ,1
+
+d∞(fa)}(1 + Λ ˇK )
+
+)1−1/(2 τ )
+
+=δ1−1/(2 τ )[{d∞(π) + X
+
+> a=0 ,1
+
+d∞(fa)}(1 + Λ ˇK )] 1/(2 τ ).
+
+If d∞(π)+ P 
+
+> a=0 ,1
+
+d∞(fa) = 0, then V (2)  
+
+> n,q
+
+= 0 and the corresponding entropy contribution is zero; the calculation above is for a nonzero nuisance error. Moreover, for R∗, under Assumption 3(d) and condition (vii), we have sup f ∈R ∗ ∥f ∥P,2 ≲ {d∞(π)+ P 
+
+> a=0 ,1
+
+d∞(fa)}c ˇK
+
+and sup f ∈R ∗ ∥f ∥P,2 ≲ {d2(π) + P 
+
+> a=0 ,1
+
+d2(fa)}l ˇK c ˇK , which implies sup f ∈R ∗ ∥f ∥P,2 ≲ r2n := [{d∞(π) + P 
+
+> a=0 ,1
+
+d∞(fa)}c ˇK ] ∧ [{d2(π) + P 
+
+> a=0 ,1
+
+d2(fa)}l ˇK c ˇK ]. S24 To apply Lemma S4 conditional on Fcq , define, for u ∈ { 2, ∞} ,
+
+Du,q := ∥bπq − π∥P,u + X
+
+> a=0 ,1
+
+∥ bf qa − fa∥P,u ,
+
+and r2n,q := ( D∞,q c ˇK ) ∧ (D2,q l ˇK c ˇK ). These quantities are nonrandom conditional on Fcq .The preceding entropy and L2 bounds also hold with du(π)+ P 
+
+> a=0 ,1
+
+du(fa) and r2n replaced by Du,q and r2n,q , respectively. If D∞,q = 0, then V (2)  
+
+> n,q
+
+= 0 and the corresponding empirical process term is zero. Finally, we apply Lemma S4 conditionally on Fcq , with δ = C′(r2n,q + n−1/2 
+
+> q
+
+) for some sufficiently large constant C′ to obtain 
+
+E
+
+
+
+sup 
+
+> g∈G
+
+(Pnq − P) V (2)  
+
+> n,q
+
+(O){g − Π( g)} Fcq
+
+
+
+≲n−1/2 
+
+> q
+
+J  C′(r2n,q + n−1/2 
+
+> q
+
+), R∗, ∥ · ∥ P,∞
+
+
+
+≲n−1/2 
+
+> q
+
+(r2n,q + n−1/2 
+
+> q
+
+)1−1/(2 τ )[D∞,q (1 + Λ ˇK )] 1/(2 τ ).
+
+Conditional Markov’s inequality, together with Du,q ≤ du(π) + P 
+
+> a=0 ,1
+
+du(fa), r2n,q ≤ r2n,and nq ≍ n for fixed Q, gives sup 
+
+> g∈G
+
+(Pnq − P) V (2)  
+
+> n,q
+
+(O){g − Π( g)}
+
+≲Pn−1/2(r2n + n−1/2)1−1/(2 τ )[{d∞(π) + X
+
+> a=0 ,1
+
+d∞(fa)}(1 + Λ ˇK )] 1/(2 τ ).
+
+S6.4 Proof of Theorem 3 
+
+Proof. Step 1: By the triangle inequality, it follows that 
+
+∥bg − g∥P,2 =∥bg − g∗ + g∗ − g∥P,2
+
+≤∥ bg − g∗∥P,2 + ∥g∗ − g∥P,2
+
+≤∥ bg − g∗∥P,2 + cK (Assumption 3(b)) .
+
+Following Newey (1997), Assumption 3(a) implies that, without loss of generality, we may orthonormalize G to the identity matrix to simplify the exposition. Then the first term equals 
+
+∥bg − g∗∥P,2 =∥b(X)⊤( bβ − β∗)∥P,2
+
+S25 =
+
+h
+
+EX[{b(X)⊤( bβ − β∗)}2]
+
+i1/2
+
+=
+
+h
+
+EX[( bβ − β∗)⊤b(X)b(X)⊤( bβ − β∗)] 
+
+i1/2
+
+=
+
+n
+
+( bβ − β∗)⊤G( bβ − β∗)
+
+o1/2
+
+=∥ bβ − β∗∥2.
+
+It remains to analyze ∥ bβ − β∗∥2, the ℓ2 estimation error of bβ relative to its projection β∗.
+
+Step 2: We first show that all eigenvalues of the estimated Gram matrix bH are bounded below by ϵ1/2 with probability approaching one. Because 
+
+E(ϕd|X) = w(X) + ω′{π(X)}E{A − π(X)|X} = w(X),
+
+the smallest eigenvalue of the Gram matrix H satisfies 
+
+ψ1(H) = inf  
+
+> ∥v∥2=1
+
+v⊤Hv
+
+= inf  
+
+> ∥v∥2=1
+
+E
+
+h
+
+w(X) v⊤b(X) 2i
+
+≥ϵ1 inf  
+
+> ∥v∥2=1
+
+E v⊤b(X)b(X)⊤v = ϵ1, (S17) where the inequality follows from inf X w(X) ≥ ϵ1 in Assumption 3(d), and the last equality follows from the assumption that G is the identity matrix after orthonormalization. By Weyl’s inequality, it follows that 
+
+ψ1( bH) ≥ψ1(H) − ∥ bH − H∥op 
+
+≥ϵ1 − ∥ bH − H∥op .
+
+Since Theorem S1 implies that ∥ bH − H∥op = oP(1) under Assumption 3(c), it follows that lim  
+
+> n→∞
+
+Pr 
+
+
+
+∥ bH − H∥op ≤ ϵ1/2
+
+
+
+= 1 .
+
+Because the event ∥ bH − H∥op ≤ ϵ1/2 implies ψ1( bH) ≥ ϵ1 − ∥ bH − H∥op ≥ ϵ1/2, we obtain lim  
+
+> n→∞
+
+Pr 
+
+n
+
+ψ1( bH) ≥ ϵ1/2
+
+o
+
+≥ lim  
+
+> n→∞
+
+Pr 
+
+
+
+∥ bH − H∥op ≤ ϵ1/2
+
+
+
+= 1 .
+
+Next, we analyze the primary quantity of interest remaining from Step 1, bβ − β∗
+
+> 2
+
+. By the triangle inequality and the submultiplicative property of the spectral norm, it follows that 
+
+bβ − β∗
+
+> 2
+
+=
+
+ bH + λP
+
+−1
+
+{bh − ( bH + λP)β∗} 2
+
+S26 ≤
+
+ bH + λP
+
+−1
+
+> op
+
+bh − ( bH + λP)β∗
+
+> 2
+
+≤
+
+bh − bHβ∗
+
+> 2
+
++ λ ∥Pβ∗∥2
+
+ψ1( bH + λP)
+
+≤
+
+bh − bHβ∗
+
+> 2
+
++ λ ∥Pβ∗∥2
+
+ψ1( bH) + λψ 1(P)
+
+≲P2
+
+bh − bHβ∗
+
+> 2
+
++ λ ∥Pβ∗∥2
+
+ϵ1 + 2 λψ 1(P) . (S18) To proceed, we first bound the term bh − bHβ∗
+
+> 2
+
+. The triangle inequality implies that 
+
+bh − bHβ∗
+
+> 2
+
+= Pn
+
+h
+
+b(X)
+
+nbϕn − bϕdb(X)⊤β∗
+
+oi 
+
+> 2
+
+≤ Pn{b(X)( bϕn − ϕn)} 2
+
++ (S19) 
+
+∥Pn [b(X) {ϕn − w(X)g(X)}]∥2 + (S20) 
+
+∥Pn{b(X)w(X)α(X; g, β∗)}∥ 2 + (S21) 
+
+Pn
+
+b(X){w(X) − ϕd}b(X)⊤β∗ 
+
+> 2
+
++ (S22) 
+
+Pn
+
+h
+
+b(X)( ϕd − bϕd)b(X)⊤β∗
+
+i
+
+> 2
+
+. (S23) Subsequently, we analyze these five terms. 
+
+Step 2.1: Following convention in empirical process theory, we use P to denote the expectation. By sample cross-fitting and triangle inequality, the first term in (S19) can be written as (S19) = 
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n Pnq {b(X)( bϕn − ϕn)}
+
+> 2
+
+≤
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n P{b(X)( bϕn − ϕn)|bΓq}
+
+> 2
+
++ (S24) 
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n
+
+h
+
+(Pnq − P){b(X)( bϕn − ϕn)|bΓq}
+
+i
+
+> 2
+
+, (S25) where nq = |F q| is the sample size for the testing fold Fq and Pnq (V ) = n−1
+
+> q
+
+P 
+
+> i∈F q
+
+Vi
+
+denotes the empirical mean across the testing fold Fq. To avoid cumbersome notation, we sometimes suppress dependence on the data. For example, we write E(bπ) to denote 
+
+E{bπ(X)} and simply use f1 to denote f (M |1, X). S27 Following Tchetgen Tchetgen and Shpitser (2012), the expected bias of the triply robust estimator for the NIE, conditional on the training sample, is given by 
+
+E
+
+h
+
+b(X)
+
+nbζ(O) − κ(X)
+
+o
+
+|bΓq
+
+i
+
+=E
+
+
+
+b(X) bπ − π
+
+bπ
+
+Z
+
+(bμ1 − μ1)f1dm |bΓq
+
+
+
++ E
+
+
+
+b(X) bπ − π
+
+bπ
+
+Zbμ1( bf1 − f1)dm |bΓq
+
+
+
++
+
+E
+
+(
+
+b(X)
+
+Z
+
+(bμ1 − μ1) bf0
+
+bπ (bπ − π)dm |bΓq
+
+)
+
++ E
+
+(
+
+b(X)
+
+Z
+
+(bμ1 − μ1)π bf0
+
+bπ bf1
+
+( bf1 − f1)dm |bΓq
+
+)
+
+−
+
+E
+
+
+
+b(X)
+
+Z
+
+(bμ1 − μ1)( bf0 − f0)dm |bΓq
+
+
+
++ E
+
+
+
+b(X)π − bπ
+
+1 − bπ
+
+Zbμ1( bf0 − f0)dm |bΓq
+
+
+
+. (S26) To bound the term (S24), we note that 
+
+P{b(X)( bϕqn − ϕn)|bΓq}
+
+=E
+
+h
+
+b(X)
+
+h
+
+ω′{bπq(X)} { π(X) − bπq(X)} bκq(X) + ω{bπq(X)}bζq(O) − w(X)κ(X)
+
+i
+
+|bΓq
+
+i
+
+=E
+
+
+
+b(X)
+
+
+
+ω′{bπq(X)}{ π(X) − bπq(X)}{ bκq(X) − κ(X)} − 12ω′′ {eπq(X)}{ bπq(X) − π(X)}2κ(X)
+
+
+
+|bΓq
+
+
+
++
+
+E
+
+h
+
+b(X)ω{bπq(X)}{ bζq(O) − κ(X)}| bΓq
+
+i
+
+, (S27) where the first equality follows from the law of total expectation and the second equality follows from a pointwise Taylor expansion with eπq(X) lying between π(X) and bπq(X). Combining (S26) and (S27) yields (S24) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+E
+
+n
+
+b(X)( bϕqn − ϕn)|bΓq
+
+o
+
+=Q−1
+
+> Q
+
+X
+
+> q=1
+
+" KX
+
+> k=1
+
+h
+
+E
+
+n
+
+bk(X)( bϕqn − ϕn)|bΓq
+
+oi 2
+
+#1/2
+
+≲√K max 
+
+> q
+
+"
+
+∥bπq − π∥P,2 ∥bμq 
+
+> 1
+
+− μ1∥P,2 +
+
+> 1
+
+X
+
+> a=0
+
+∥ bf qa − fa∥P,2 + ∥bπq − π∥P,2
+
+!
+
++
+
+∥bμq 
+
+> 1
+
+− μ1∥P,21X
+
+> a=0
+
+∥ bf qa − fa∥P,2
+
+#
+
+, (S28) where the first inequality follows from the fact that nq/n ≈ Q−1 and the third inequality follows from Jensen’s inequality, the Cauchy-Schwarz, and Assumption 3(d). Alternatively, it is possible to drop √K in the bound (S28) by replacing the L2 nuisance error with the 
+
+L4 nuisance error. To see this, we have (S24) ≤ max  
+
+> q
+
+sup 
+
+> ∥v∥2=1
+
+v⊤E
+
+n
+
+b(X)( bϕqn − ϕn)|bΓq
+
+o
+
+S28 ≲ max  
+
+> q
+
+sup 
+
+> ∥v∥2=1
+
+h
+
+E
+
+hv⊤b(X) 2ii 1/2
+
+"
+
+∥bπq − π∥P,4 ∥bμq 
+
+> 1
+
+− μ1∥P,4 +
+
+> 1
+
+X
+
+> a=0
+
+∥ bf qa − fa∥P,4 + ∥bπq − π∥P,4
+
+!
+
++
+
+∥bμq 
+
+> 1
+
+− μ1∥P,41X
+
+> a=0
+
+∥ bf qa − fa∥P,4
+
+#
+
+≲ max 
+
+> q
+
+"
+
+∥bπq − π∥P,4 ∥bμq 
+
+> 1
+
+− μ1∥P,4 +
+
+> 1
+
+X
+
+> a=0
+
+∥ bf qa − fa∥P,4 + ∥bπq − π∥P,4
+
+!
+
++
+
+∥bμq 
+
+> 1
+
+− μ1∥P,41X
+
+> a=0
+
+∥ bf qa − fa∥P,4
+
+#
+
+, (S29) where the first inequality is because the ℓ2 norm is self-dual, the second inequality follows from the Cauchy-Schwarz inequality, Assumption 3(d), and the decompositions in (S26) and (S27), and the last inequality follows from the fact that sup ∥v∥2=1 E
+
+hv⊤b(X) 2i
+
+=sup ∥v∥2=1 |v⊤Gv| = ∥G∥op ≲ 1. To analyze the empirical process term (S25), we note that (S25) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+(Pnq − P)
+
+n
+
+b(X)( bϕqn − ϕn)|bΓq
+
+o
+
+> 2
+
+. (S30) Thus, by Markov’s inequality, it is sufficient to bound E
+
+
+
+(Pnq − P)
+
+n
+
+b(X)( bϕn − ϕn)|bΓq
+
+o 22
+
+
+
+.Because E {∥ (Pn − P)( V)∥22} = n−1E {∥ V − E(V)∥22} for i.i.d. copies of any random vector 
+
+V, it follows that 
+
+E
+
+
+
+(Pnq − P)
+
+n
+
+b(X)( bϕqn − ϕn)|bΓq
+
+o 22
+
+
+
+=n−1 
+
+> q
+
+E
+
+
+
+b(X)( bϕqn − ϕn) − E
+
+n
+
+b(X)( bϕqn − ϕn)|bΓq
+
+o 22
+
+|bΓq
+
+
+
+≤n−1 
+
+> q
+
+E
+
+h
+
+∥b(X)∥22 (bϕqn − ϕn)2|bΓq
+
+i
+
+≤n−1 
+
+> q
+
+ξ2 
+
+> K
+
+∥bϕqn − ϕn∥2
+
+> P,2
+
+, (S31) where the first inequality follows from the fact that the coordinatewise variance is bounded above by the corresponding coordinatewise second moment. Combining (S30) and (S31) yields (S25) ≲PQ−1
+
+> Q
+
+X
+
+> q=1
+
+n−1/2 
+
+> q
+
+ξK ∥bϕqn − ϕn∥P,2
+
+≲n−1/2ξK max  
+
+> q
+
+∥bϕqn − ϕn∥P,2
+
+≲n−1/2ξK max  
+
+> q
+
+∥bμq 
+
+> 1
+
+− μ1∥P,2 +
+
+> 1
+
+X
+
+> a=0
+
+∥ bf qa − fa∥P,2 + ∥bπq − π∥P,2
+
+!
+
+= m(1) 2n . (S32) S29 where the last inequality follows from standard arguments in the debiased machine learning literature (e.g., Kennedy (2024)) and Assumption 3(d). Eventually, by Markov’s inequality, we obtain (S19) ≲P m1n + m(1) 2n .
+
+Step 2.2: Because E{b(X)Ω } = 0 and the observations are independent, 
+
+E{(S20) 2} = n−1E Pn{∥ b(X)∥22Ω2}
+
+= n−1E{∥ b(X)∥22Ω2}≤ ϵ2n−1 trace( G) ≲ K/n, 
+
+where the first equality uses the vanishing cross terms in the squared norm of a mean of independent, centered vectors, the inequality uses the conditional second moment bound in Assumption 3(d), and the final bound uses Assumption 3(a). Thus, by Markov’s inequality, we obtain (S20) ≲P
+
+pK/n .
+
+Step 2.3: There are two alternative ways to bound the term (S21). First, we can bound the term (S21) as follows. We note 
+
+E{(S21) 2} ≤ n−1E w(X)2α(X; g, β∗)2b(X)⊤b(X)
+
+≤ϵ22l2 
+
+> K
+
+c2 
+
+> K
+
+n−1trace( G)
+
+≲l2 
+
+> K
+
+c2 
+
+> K
+
+n−1K, 
+
+where the second inequality follows from Assumptions 3(b) and 3(d), and the third in-equality follows from Assumption 3(a). Thus, by Markov’s inequality, we obtain (S21) ≲P
+
+lK cK
+
+pK/n . Second, we can also bound the term (S21) as follows. We note 
+
+E{(S21) 2} ≤ n−1E w(X)2α(X; g, β∗)2∥b(X)∥22
+
+≲n−1ξ2 
+
+> K
+
+∥α(X; g, β∗)∥2
+
+> P,2
+
+≲n−1ξ2 
+
+> K
+
+c2 
+
+> K
+
+,
+
+where the second inequality follows from Assumption 3(b). Thus, by Markov’s inequality, we obtain (S21) ≲P ξK cK /√n. Combining the above two alternative bounds yields that (S21) ≲P min lK cK
+
+rKn , ξK cK
+
+√n
+
+!
+
+.
+
+S30 Step 2.4: We bound the term in (S22). By the Pythagorean theorem (applicable because w(X) > 0 almost surely), it follows that 
+
+E w(X)g(X)2 =E
+
+h
+
+w(X) b(X)⊤β∗ 2i
+
++ E
+
+h
+
+w(X) g(X) − b(X)⊤β∗ 2i
+
+≥E
+
+h
+
+w(X) b(X)⊤β∗ 2i
+
+, (S33) which, together with Assumption 3(d), implies 
+
+ϵ1E
+
+hb(X)⊤β∗ 2i
+
+≤ E
+
+h
+
+w(X) b(X)⊤β∗ 2i
+
+≤ E w(X)g(X)2 ≤ ϵ2E g(X)2 . (S34) Then we obtain 
+
+E{(S22) 2} =n−1E
+
+ ˇΩ2 b(X)⊤β∗ 2 ∥b(X)∥22
+
+
+
+≤ϵ22/ϵ 1n−1ξ2 
+
+> K
+
+E g∗(X)2
+
+≤ϵ22/ϵ 1n−1ξ2 
+
+> K
+
+E g(X)2 ≲ n−1ξ2 
+
+> K
+
+,
+
+where the first inequality follows from Assumptions 3(b) and 3(d), and the second inequality follows from (S34) and Assumption 3(d). Thus, by Markov’s inequality, we obtain (S22) ≲P
+
+ξK /√n.
+
+Step 2.5: To bound the term (S23), we apply a similar argument to that used for bounding the term (S19). We use the decomposition: (S23) = 
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n Pnq
+
+h
+
+b(X)( ϕd − bϕd)b(X)⊤β∗
+
+i
+
+> 2
+
+≤
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n P{b(X)( ϕd − bϕqd)g∗(X)|bΓq}
+
+> 2
+
++ (S35) 
+
+> Q
+
+X
+
+> q=1
+
+nq
+
+n
+
+h
+
+(Pnq − P){b(X)( ϕd − bϕqd)g∗(X)|bΓq}
+
+i
+
+> 2
+
+. (S36) By Equation (S4), it follows that (S35) ≤Q−1
+
+> Q
+
+X
+
+> q=1
+
+E
+
+n
+
+b(X)g∗(X)( bϕqd − ϕd)|bΓq
+
+o
+
+> 2
+
+≲
+
+> Q
+
+X
+
+> q=1
+
+E
+
+
+
+b(X)g∗(X)12ω′′ {eπq(X)} { bπq(X) − π(X)}2 |bΓq
+
+
+
+> 2
+
+≤
+
+> Q
+
+X
+
+> q=1
+
+" KX
+
+> k=1
+
+
+
+E
+
+
+
+bk(X)g∗(X)12ω′′ {eπq(X)} { bπq(X) − π(X)}2 |bΓq
+
+ 2#1/2
+
+S31 ≲ max 
+
+> q
+
+" KX
+
+> k=1
+
+E g∗(X)2 E
+
+h
+
+{bπq(X) − π(X)}4 |bΓq
+
+i#1/2
+
+≲√K max  
+
+> q
+
+∥bπq − π∥2
+
+> P,4
+
+,
+
+where the second inequality follows from (S4) and the LOTE, the fourth inequality follows from Assumption 3(d) and the Cauchy-Schwarz inequality, and the last inequality follows from Assumption 3(b) and (S34). Applying a similar argument to that used for bounding the term (S25) yields: (S36) ≲P n−1/2ξK max  
+
+> q
+
+∥bπq − π∥P,4 := m(2) 2n ,
+
+which implies that (S23) ≲P m(2) 2n + m3n.
+
+Step 3: Finally, we bound the regularization bias term λ ∥Pβ∗∥2 as follows. By (S33), it follows that 
+
+E w(X)g∗(X)2 =β∗⊤ Hβ∗
+
+≤E w(X)g(X)2 ≤ ϵ2E g(X)2 . (S37) Moreover, we have 
+
+β∗⊤ Hβ∗ ≥ ψ1(H)∥β∗∥22 ≥ ϵ1∥β∗∥22, (S38) where the last inequality follows from (S17). Therefore, (S37) and (S38) imply 
+
+∥β∗∥22 ≤ ϵ2/ϵ 1E{g(X)2} ≲ 1. (S39) Finally, we obtain 
+
+λ∥Pβ∗∥2 ≤λ∥P∥op ∥β∗∥2
+
+≲λψ K (P),
+
+where the last inequality follows from (S39). Finally, we conclude by combining the preceding results from Steps 1-3. S32 S6.5 Proof of Proposition S1 
+
+Proof. Step 0: The estimator satisfies the exact identity 
+
+√n( bβ − β∗) = ( bH + λP)−1
+
+n√n(bh − bHβ∗) − √nλ Pβ∗
+
+o
+
+.
+
+By (S19)–(S23), we obtain the following decomposition: 
+
+√neb⊤
+
+ bβ − β∗
+
+
+
+=√neb⊤
+
+ bH + λP
+
+−1 h
+
+Pn
+
+n
+
+b(X)bϕn
+
+o
+
+− ( bH + λP)β∗
+
+i
+
+=eb⊤
+
+ bH + λP
+
+−1 √nPn{b(X)( bϕn − ϕn)} + Gn [b(X) {ϕn − w(X)g(X)}] + 
+
+Gn{b(X)w(X)α(X; g, β∗)} + Gn [b(X) {w(X) − ϕd} g∗(X)] + 
+
+√nPn
+
+n
+
+b(X)
+
+
+
+ϕd − bϕd
+
+
+
+g∗(X)
+
+o
+
+− √nλ Pβ∗
+
+
+
+,
+
+which further implies Rem 1n(eb)=eb⊤{( bH + λP)−1 − (H + λP)−1}Gn [b(X) {ϕn − w(X)g(X)}] + (S40) 
+
+eb⊤{( bH + λP)−1 − (H + λP)−1}Gn{b(X)w(X)α(X; g, β∗)}+ (S41) 
+
+eb⊤ (H + λP)−1 − H−1 Gn [b(X) {ϕn − ϕdg∗(X)}] + (S42) 
+
+eb⊤{( bH + λP)−1 − (H + λP)−1}Gn [b(X) {w(X) − ϕd} g∗(X)] + (S43) 
+
+√neb⊤(H + λP)−1Pn{b(X)( bϕn − ϕn)}+ (S44) 
+
+√neb⊤(H + λP)−1Pn{b(X)( ϕd − bϕd)g∗(X)}+ (S45) 
+
+√neb⊤{( bH + λP)−1 − (H + λP)−1}Pn{b(X)( bϕn − ϕn)}+ (S46) 
+
+√neb⊤{( bH + λP)−1 − (H + λP)−1}Pn{b(X)( ϕd − bϕd)g∗(X)}− (S47) 
+
+√nλ eb⊤{( bH + λP)−1 − (H + λP)−1}Pβ∗− (S48) 
+
+√nλ eb⊤(H + λP)−1Pβ∗. (S49) It suffices to analyze the ten terms in (S40) through (S49). 
+
+Step 1.1: We can bound the term in (S40) as follows: 
+
+|(S40) | ≤ √n eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pn [b(X) {ϕn − w(X)g(X)}]∥2
+
+S33 ≲P
+
+√Km H
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Lemma S2 and the bound for the term in (S20). 
+
+Step 1.2: We can bound the term in (S41) as follows: 
+
+|(S41) | ≤ √n eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pn{b(X)w(X)α(X; g, β∗)}∥ 2
+
+≲P
+
+mH 
+
+> n
+
+min 
+
+
+
+lK cK
+
+√K, ξ K cK
+
+
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Lemma S2 and the bound for the term in (S21). 
+
+Step 1.3: To bound the term in (S42), we note (S42) = √neb⊤ (H + λP)−1 − H−1 Pn [b(X)ϕdα(X; g, β∗)] + (S50) 
+
+√neb⊤ (H + λP)−1 − H−1 Pn [b(X)w(X) {ζ(O) − κ(X)}] . (S51) To bound the term in (S50), we note 
+
+E ∥Pn [b(X)ϕdα(X; g, β∗)] ∥22
+
+
+
+= 1
+
+nE ϕ2
+
+> d
+
+α(X; g, β∗)2 ∥b(X)∥22
+
+≲ min 
+
+
+
+l2 
+
+> K
+
+c2
+
+> K
+
+Kn , ξ2 
+
+> K
+
+c2
+
+> K
+
+n
+
+
+
+,
+
+where the equality follows from the fact that E{b(X)ϕdα(X; g, β∗)} = 0 and the in-equality is due to (S1) and the proof for bounding the term in (S21). By the resol-vent identity, we obtain ( H + λP)−1 − H−1 = −λ(H + λP)−1PH −1, which implies that 
+
+∥(H+λP)−1−H−1∥op ≤ λ∥(H+λP)−1∥op ∥P∥op ∥H−1∥op = λψ K (P)/{ψ1(H+λP)ψ1(H)} ≤ 
+
+λψ K (P)/[ϵ1{ϵ1 + λψ 1(P)}]. For the term in (S51), we have 
+
+E ∥Pn [b(X)w(X) {ζ(O) − κ(X)}]∥22
+
+
+
+= 1
+
+nE {w(X)}2 {ζ(O) − κ(X)}2 ∥b(X)∥22
+
+
+
+≲n−1trace( G) = Kn ,
+
+where the inequality uses the bounded conditional second moment of ζ(O) − κ(X) implied by Assumption 3(d). Thus, combining the above yields 
+
+|(S42) | ≲P
+
+√n
+
+(
+
+min lK cK
+
+rKn , ξK cK
+
+√n
+
+!
+
++
+
+rKn
+
+)
+
+λψ K (P)
+
+ϵ1 + λψ 1(P).
+
+S34 Step 1.4: We can bound the term in (S43) as follows: 
+
+|(S43) | ≤ √n eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pn [b(X) {w(X) − ϕd} g∗(X)] ∥2
+
+≲P
+
+ξK mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Lemma S2 and the bound for the term in (S22). 
+
+Step 1.5: We can bound the term in (S44) as follows: 
+
+|(S44) | ≤ √n eb 2
+
+(H + λP)−1 
+
+> op
+
+Pn{b(X)( bϕn − ϕn)} 2
+
+≲P
+
+√n
+
+
+
+m1n + m(1) 2n
+
+
+
+ϵ1 + λψ 1(P) ,
+
+where the last inequality follows from the bound for the term in (S19). 
+
+Step 1.6: We can bound the term in (S45) as follows: 
+
+|(S45) | ≤ √n eb 2
+
+(H + λP)−1 
+
+> op
+
+Pn{b(X)( ϕd − bϕd)g∗(X)} 2
+
+≲P
+
+√n
+
+
+
+m(2) 2n + m3n
+
+
+
+ϵ1 + λψ 1(P) ,
+
+where the last inequality follows from the bound for the term in (S23). 
+
+Step 1.7: We can bound the term in (S46) as follows: 
+
+|(S46) | ≤ √n eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+Pn{b(X)( bϕn − ϕn)} 2
+
+≲P
+
+mH
+
+> n
+
+√n
+
+
+
+m1n + m(1) 2n
+
+
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from the bound for the term in (S19) and Lemma S2. 
+
+Step 1.8: We can bound the term in (S47) as follows: 
+
+|(S47) | ≤ √n eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+Pn{b(X)( ϕd − bϕd)g∗(X)} 2
+
+≲P
+
+mH
+
+> n
+
+√n
+
+
+
+m(2) 2n + m3n
+
+
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from the bound for the term in (S23) and Lemma S2. 
+
+Step 1.9: We can bound the term in (S48) as follows: 
+
+|(S48) | ≤ √nλ eb 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pβ∗∥2
+
+S35 ≲P
+
+mH
+
+> n
+
+√nλψ K (P)
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from (S39) and Lemma S2. 
+
+Step 1.10: We can bound the term in (S49) as follows: 
+
+|(S49) | ≤ √nλ eb 2
+
+(H + λP)−1 
+
+> op
+
+∥Pβ∗∥2
+
+≲P
+
+√nλψ K (P)
+
+ϵ1 + λψ 1(P),
+
+where the last inequality follows from (S17) and (S39). Combining the bounds in Steps 1.1–1.10 yields the following bound for the remainder term. Under Assumption 3, it follows that Rem 1n(eb) ≲P
+
+√n P3 
+
+> j=1
+
+mjn + λψ K (P)( √n + √K + √nm 0n)
+
+ϵ1 + λψ 1(P) +
+
+mH
+
+> n
+
+n
+
+ξK + √n P3 
+
+> j=0
+
+mjn + √nλψ K (P)
+
+o
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} .
+
+S6.6 Proof of Proposition S2 
+
+Proof. We reuse the decomposition results in (S40)–(S49), replacing eb with eb(x), because 
+
+eb(x) has unit norm by definition. 
+
+Step 1.1: The objective is to bound the sup norm of the term 
+
+eb(x)⊤{( bH + λP)−1 − (H + λP)−1}Gn [b(X) {ϕn − w(X)g(X)}] .
+
+The proof strategy follows Step 1 of the proof of Lemma 4.2 in Belloni et al. (2015), with some modifications. To proceed, conditional on the data, we define 
+
+tx(Oi) = eb(x)⊤{( bH + λP)−1 − (H + λP)−1}b(Xi) {ϕn(Oi) − w(Xi)g(Xi)} .
+
+and tx = ( tx(O1), . . . , t x(On)) ⊤. Let T := {tx : x ∈ X } be the index set. Define ∥tx∥n, 2 := 
+
+{n−1 Pni=1 tx(Oi)2}1/2. For any x′̸ = x, we define ∆ eb := eb(x) − eb(x′) and obtain 
+
+∥tx − tx′ ∥n, 2
+
+S36 =
+
+"
+
+n−1
+
+> n
+
+X
+
+> i=1
+
+h
+
+∆⊤ 
+
+> eb
+
+{( bH + λP)−1 − (H + λP)−1}b(Xi) {ϕn(Oi) − w(Xi)g(Xi)}
+
+i2
+
+#1/2
+
+≤ max  
+
+> 1≤i≤n
+
+|Ω( Oi)|
+
+"
+
+n−1
+
+> n
+
+X
+
+> i=1
+
+h
+
+∆⊤ 
+
+> eb
+
+{( bH + λP)−1 − (H + λP)−1}b(Xi)
+
+i2
+
+#1/2
+
+= max  
+
+> 1≤i≤n
+
+|Ω( Oi)|
+
+h
+
+∆⊤ 
+
+> eb
+
+{( bH + λP)−1 − (H + λP)−1} bG{( bH + λP)−1 − (H + λP)−1}∆eb
+
+i1/2
+
+≤ max  
+
+> 1≤i≤n
+
+|Ω( Oi)|
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥ bG∥1/2op ∥∆eb∥2
+
+≤ξLK max  
+
+> 1≤i≤n
+
+|Ω( Oi)|
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥ bG∥1/2op ∥x − x′∥2,
+
+where the last inequality follows from Assumption 4. Therefore, the function tx is Lipschitz with Lipschitz constant Lt := ξLK max 1≤i≤n |Ω( Oi)|∥ ( bH + λP)−1 − (H + λP)−1∥op ∥ bG∥1/2op .Since t(x) is Lipschitz and Assumption 4 assumes that diam( X ) is uniformly bounded from above, it follows that the covering number for T equipped with ∥tx∥n, 2 satisfies 
+
+N (T , ∥ · ∥ n, 2, ϵ ) ≤  Constant ϵ−1Lt
+
+d . (S52) We note 
+
+E
+
+
+
+max  
+
+> 1≤i≤n
+
+|Ω( Oi)||{ Xi}ni=1 
+
+
+
+≤E
+
+
+
+> n
+
+X
+
+> i=1
+
+|Ω( Oi)|ν
+
+!1/ν 
+
+|{ Xi}ni=1 
+
+
+
+≤
+
+( nX
+
+> i=1
+
+E (|Ω( Oi)|ν |Xi)
+
+)1/ν 
+
+≲n1/ν , (S53) where the second inequality is due to Jensen’s inequality and the third inequality follows from Assumption 4. By (S52) and Dudley’s inequality, we obtain that, conditional on the data, 
+
+Eι
+
+(
+
+sup 
+
+> x
+
+1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ιitx(Oi) |{O i}ni=1 
+
+)
+
+=Eι
+
+(
+
+sup 
+
+> tx∈T
+
+1
+
+√n
+
+> n
+
+X
+
+> i=1
+
+ιitx(Oi) |{O i}ni=1 
+
+)
+
+≲
+
+Z 2 sup tx∈T ∥tx∥n, 2
+
+> 0
+
+q
+
+log N (T , ∥ · ∥ n, 2, ϵ )dϵ 
+
+S37 ≤
+
+Z 2 max 1≤i≤n |Ω( Oi)|∥ ( bH+λP)−1−(H+λP)−1∥op ∥ bG∥1/2op 
+
+> 0
+
+q
+
+log N (T , ∥ · ∥ n, 2, ϵ )dϵ 
+
+≲plog K max  
+
+> 1≤i≤n
+
+|Ω( Oi)|∥ ( bH + λP)−1 − (H + λP)−1∥op ∥ bG∥1/2op 
+
+≲P
+
+√log Kn 1/ν mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where {ιi}ni=1 are independent Rademacher random variables, taking values in {− 1, 1} with equal probability, the third inequality follows from a change of variables and the fact that log ξLK ≲ log K under Assumption 4, and the last inequality follows from Assumption 3(c), Lemma S2, (S53), and Markov’s inequality. 
+
+Step 1.2: We bound the sup norm of the term as follows: 
+
+|eb(x)⊤{( bH + λP)−1 − (H + λP)−1}Gn{b(X)w(X)α(X; g, β∗)}| ≤√n eb(x) 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pn{b(X)w(X)α(X; g, β∗)}∥ 2
+
+≲P
+
+mH 
+
+> n
+
+lK cK
+
+√K
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+Therefore, the supremum norm of the sum of the first two terms is of stochastic order 
+
+≲P mH 
+
+> n
+
+m4n/{ϵ1/2 + λψ 1(P)}/{ϵ1 + λψ 1(P)}.
+
+Step 1.3: Using g = κ and the definition of ϕn, we have the exact decomposition 
+
+ϕn − ϕdg∗(X) = ϕdα(X; g, β∗) + w(X){ζ(O) − κ(X)}.
+
+The Cauchy–Schwarz and triangle inequalities therefore give sup 
+
+> x
+
+eb(x)⊤{(H + λP)−1 − H−1}Gn[b(X){ϕn − ϕdg∗(X)}]
+
+≤∥ (H + λP)−1 − H−1∥op 
+
+
+
+∥Gn{b(X)ϕdα(X; g, β∗)}∥ 2 + ∥Gn[b(X)w(X){ζ(O) − κ(X)}]∥2
+
+
+
+≲P
+
+λψ K (P)
+
+ϵ1 + λψ 1(P)
+
+√nm 0n + √K
+
+
+
+,
+
+where the last inequality follows from the second moment bounds in Step 1.3 of Section S6.5 and the resolvent identity. 
+
+Step 1.4: We note 
+
+E
+
+
+
+max  
+
+> 1≤i≤n
+
+| { w(Xi) − ϕd(Ai, Xi)} g∗(Xi)|
+
+
+
+S38 ≤3ϵ22E
+
+
+
+> n
+
+X
+
+> i=1
+
+|g∗(Xi)|ν
+
+!1/ν 
+
+≲
+
+( nX
+
+> i=1
+
+E(|g∗(Xi)|ν )
+
+)1/ν 
+
+≲n1/ν , (S54) where the first inequality follows from (S1) and Assumption 3(d), the second inequality is due to Jensen’s inequality, and the last inequality follows from Assumption 4. We then apply empirical process arguments similar to those used in Step 1.1 and obtain sup 
+
+> x
+
+|eb(x)⊤{( bH + λP)−1 − (H + λP)−1}Gn [b(X) {w(X) − ϕd} g∗(X)] |
+
+≲plog K max  
+
+> 1≤i≤n
+
+| { w(Xi) − ϕd(Ai, Xi)} g∗(Xi)|∥ ( bH + λP)−1 − (H + λP)−1∥op ∥ bG∥1/2op 
+
+≲P
+
+√log Kn 1/ν mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from (S54) and Lemma S2. 
+
+Step 1.5: For the fifth term, we have that sup 
+
+> x
+
+|√neb(x)⊤(H + λP)−1Pn{b(X)( bϕn − ϕn)}| ≤√n sup 
+
+> x
+
+eb(x) 2
+
+(H + λP)−1 
+
+> op
+
+Pn{b(X)( bϕn − ϕn)} 2
+
+≲P
+
+√n
+
+
+
+m1n + m(1) 2n
+
+
+
+ϵ1 + λψ 1(P) ,
+
+where the last inequality follows from Step 1.5 of the proof in Section S6.5. 
+
+Step 1.6: For the sixth term, it follows that sup 
+
+> x
+
+|√neb(x)⊤(H + λP)−1Pn{b(X)( ϕd − bϕd)g∗(X)}| ≤√n sup 
+
+> x
+
+eb(x) 2
+
+(H + λP)−1 
+
+> op
+
+Pn{b(X)( ϕd − bϕd)g∗(X)} 2
+
+≲P
+
+√n
+
+
+
+m(2) 2n + m3n
+
+
+
+ϵ1 + λψ 1(P) ,
+
+where the last inequality follows from Step 1.6 of the proof in Section S6.5. 
+
+Step 1.7: For the seventh term, it follows that sup 
+
+> x
+
+|√neb(x)⊤{( bH + λP)−1 − (H + λP)−1}Pn{b(X)( bϕn − ϕn)}| 
+
+S39 ≤√n sup 
+
+> x
+
+eb(x) 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+Pn{b(X)( bϕn − ϕn)} 2
+
+≲P
+
+√n
+
+
+
+m1n + m(1) 2n
+
+
+
+mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Step 1.7 of the proof in Section S6.5. 
+
+Step 1.8: For the eighth term, it follows that sup 
+
+> x
+
+|√neb(x)⊤{( bH + λP)−1 − (H + λP)−1}Pn{b(X)( ϕd − bϕd)g∗(X)}| ≤√n sup 
+
+> x
+
+eb(x) 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+Pn{b(X)( ϕd − bϕd)g∗(X)} 2
+
+≲P
+
+√n
+
+
+
+m(2) 2n + m3n
+
+
+
+mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Step 1.8 of the proof in Section S6.5. 
+
+Step 1.9: For the ninth term, it follows that sup 
+
+> x
+
+|√nλ eb(x)⊤{( bH + λP)−1 − (H + λP)−1}Pβ∗|≤√nλ sup 
+
+> x
+
+eb(x) 2
+
+ bH + λP
+
+−1
+
+− (H + λP)−1
+
+> op
+
+∥Pβ∗∥2
+
+≲P
+
+√nλψ K (P)mH
+
+> n
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)},
+
+where the last inequality follows from Step 1.9 of the proof in Section S6.5. 
+
+Step 1.10: For the tenth term, it follows that sup 
+
+> x
+
+|λeb(x)⊤(H + λP)−1Pβ∗|≤λ sup 
+
+> x
+
+eb(x) 2
+
+(H + λP)−1 
+
+> op
+
+∥Pβ∗∥2
+
+≲P
+
+λψ K (P)
+
+ϵ1 + λψ 1(P),
+
+where the last inequality follows from Step 1.10 of the proof in Section S6.5. 
+
+Step 1.11: Finally, the term sup x |Rem 2n(eb(x)) | can be analyzed using arguments analogous to those in Step 1.1: 
+
+Eι
+
+
+
+sup 
+
+> x
+
+|Rem 2n(eb(x)) ||{O i}ni=1 
+
+
+
+≲plog K max  
+
+> 1≤i≤n
+
+|ϕd(Ai, Xi)α(Xi; g, β∗)|∥ H−1∥op ∥ bG∥1/2op 
+
+S40 ≲P
+
+plog Kl K cK sup 
+
+> A, X
+
+|ϕd| 1
+
+ψ1(H)
+
+≤plog Kl K cK
+
+3ϵ2
+
+ϵ1
+
+≲plog Kl K cK ,
+
+where the penultimate inequality follows from (S1) and (S17). 
+
+S6.7 Proof of Theorem 4 
+
+Proof. We first establish the following uniform bound for the linearized form in Proposition S2: sup 
+
+> x
+
+|eb(x)⊤H−1Gn [b(X) {ϕn − ϕdg(X)}] |
+
+≲P
+
+plog K + ξν/ (ν−2)  
+
+> K
+
+log K
+
+√n ≲ plog K. (S55) The proof of (S55) closely follows the proof of Theorem 4.3 in Belloni et al. (2015), with some modifications. We reproduce the argument below. We will apply Lemma S3. To proceed, we define ε := ϕn(O) − ϕd(O)g(X) and consider G := {(ε, x) 7 → εeb(v)⊤H−1b(x) : 
+
+v ∈ X } . It is straightforward to verify that E(ε|X) = 0 and sup x E(|ε|ν |X = x) ≲ 1 under Assumption 4. Also, we note (i) |eb(v)⊤H−1b(x)| ≤ ξK ; (ii) EX[{eb(v)⊤H−1b(X)}2] = 
+
+eb(v)⊤H−1GH −1 eb(v) = ∥eb(v)⊤H−1∥22 ≤ ∥ H−1∥2op = 1 /ψ 1(H)2 ≤ 1/ϵ 21 ≲ 1; and (iii) by Assumption 4, 
+
+|{ eb(v) − eb(v′)}⊤H−1b(x)ε| ≤ | ε|∥ b(x)∥2∥eb(v) − eb(v′)∥2 ≤ | ε|ξK ξLK ∥v − v′∥2.
+
+Furthermore, taking G(ε, x) := |ε|ξK yields sup 
+
+> Q
+
+N {G , L 2(Q), ε ∥G∥L2(Q)} ≤ 
+
+Cξ LK
+
+ε
+
+p
+
+.
+
+The preceding verification of the conditions permits application of Lemma S3, which implies 
+
+E
+
+
+
+sup 
+
+> x
+
+|eb(x)⊤H−1Gn [b(X) {ϕn − ϕdg(X)}] |
+
+
+
+≲ plog K + plog K
+
+s
+
+ξ2ν/ (ν−2)  
+
+> K
+
+log Kn ≲ plog K, 
+
+where the last two inequalities use the two conditions in Assumption 4: log ξLK ≲ log K and 
+
+ξ2ν/ (ν−2)  
+
+> K
+
+log K/n ≲ 1. Eventually, we obtain sup 
+
+> x
+
+|bg(x) − g∗(x)|
+
+S41 = sup 
+
+> x
+
+∥b(x)∥2|eb(x)⊤( bβ − β∗)|≤ξK sup 
+
+> x
+
+|eb(x)⊤( bβ − β∗)|≤ξK /√n sup 
+
+> x
+
+|√neb(x)⊤( bβ − β∗)|≤ξK /√n
+
+(
+
+sup 
+
+> x
+
+|eb(x)⊤H−1Gn
+
+b(X) ϕNIE  
+
+> n
+
+− ϕNIE  
+
+> d
+
+g(X)  | + sup 
+
+> x
+> 2
+
+X
+
+> j=1
+
+|Rem jn {eb(x)}| 
+
+)
+
+≲P
+
+ξK
+
+√n
+
+"√n P3 
+
+> j=1
+
+mjn + λψ K (P)( √n + √K + √nm 0n)
+
+ϵ1 + λψ 1(P) +
+
+mH
+
+> n
+
+n√n P3 
+
+> j=0
+
+mjn + m4n + √nλψ K (P)
+
+o
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} +
+
+plog K(1 + lK cK )
+
+#
+
+, (S56) where the last inequality follows from (S55) and Proposition S2. Finally, we obtain the uniform rate of convergence as follows: sup 
+
+> x
+
+|bg(x) − g(x)|≤ sup 
+
+> x
+
+|b(x)⊤( bβ − β∗) + α(x; g, β∗)|≤ sup 
+
+> x
+
+|b(x)⊤( bβ − β∗)| + sup 
+
+> x
+
+|α(x; g, β∗)|≤ sup 
+
+> x
+
+|b(x)⊤( bβ − β∗)| + lK cK
+
+≲P
+
+ξK
+
+√n
+
+(√n P3 
+
+> j=1
+
+mjn + λψ K (P)( √n + √K + √nm 0n)
+
+ϵ1 + λψ 1(P) +
+
+mH
+
+> n
+
+n√n P3 
+
+> j=0
+
+mjn + m4n + √nλψ K (P)
+
+o
+
+{ϵ1 + λψ 1(P)} { ϵ1/2 + λψ 1(P)} +
+
+plog K(1 + lK cK )
+
+)
+
++ lK cK .
+
+where the third inequality follows from Assumption 3(b). 
+
+S6.8 Proof of Theorem 5 
+
+Proof. Under the additional condition (i) in Theorem 5, the remainder term in Proposition S1 satisfies Rem 1n(eb) = oP(1). Therefore, we obtain 
+
+√neb⊤
+
+∥eb⊤V1/2∥2
+
+ bβ − β∗
+
+
+
+= eb⊤
+
+∥eb⊤V1/2∥2
+
+H−1Gn [b(X) {ϕn − ϕdg∗(X)}] + oP(1) = eb⊤
+
+∥eb⊤V1/2∥2
+
+H−1Gn
+
+h
+
+b(X)
+
+neΩ + ϕdα(X; g, β∗)
+
+oi 
+
++ oP(1) S42 =
+
+> n
+
+X
+
+> i=1
+
+ωin 
+
+neΩi + ϕd(Ai, Xi)α(Xi; g, β∗)
+
+o
+
++ oP(1) ,
+
+where 
+
+ωin := eb⊤H−1b(Xi)
+
+∥eb⊤V1/2∥2
+
+√n.
+
+The additional condition (iii) in Theorem 5 implies 1 ≲ ∥eb⊤V1/2∥2. We also observe that 
+
+|ωin | ≲ ξK /√n and |eΩi + ϕd(Ai, Xi)α(Xi; g, β∗)| ≤ | eΩi| + 3 ϵ2lK cK . Therefore, we can follow the proof of Theorem 4.2 in Belloni et al. (2015) to verify the Lindeberg condition for the CLT by setting ωin in Belloni et al. (2015) to ωin .
+
+S6.9 Proof of Theorem 6 
+
+Proof. Under the additional condition (i) in Theorem 6, the remainder term in Proposition S2 satisfies sup x Rem 1n{eb(x)} = oP(a−1 
+
+> n
+
+). Therefore, we obtain 
+
+√neb(x)⊤
+
+ bβ − β∗
+
+
+
+=eb(x)⊤H−1Gn
+
+h
+
+b(X)
+
+neΩ + ϕdα(X; g, β∗)
+
+oi 
+
++ oP(a−1 
+
+> n
+
+).
+
+To apply arguments analogous to those used in the proof of Theorem 4.4 of Belloni et al. (2015), it remains to verify the following condition: 
+
+E
+
+
+
+V−1/2H−1b(X)
+
+neΩ + ϕdα(X; g, β∗)
+
+o 32
+
+
+
+≲E
+
+
+
+b(X)
+
+neΩ + ϕdα(X; g, β∗)
+
+o 3
+
+≲E
+
+h
+
+∥b(X)∥3
+
+n
+
+|eΩ|3 + |ϕdα(X; g, β∗)|3
+
+oi 
+
+≲E ∥b(X)∥3 (1 + l3 
+
+> K
+
+c3 
+
+> K
+
+)
+
+≤ξK (1 + l3 
+
+> K
+
+c3 
+
+> K
+
+)E ∥b(X)∥2
+
+≤trace( G)ξK (1 + l3 
+
+> K
+
+c3 
+
+> K
+
+) ≍ Kξ K (1 + l3 
+
+> K
+
+c3 
+
+> K
+
+).
+
+Here, for the first inequality, write cΩ := inf x E(eΩ2 | X = x) > 0. At the true nuisance functions, E(eΩ | A, X) = 0, so the cross term with ϕdα vanishes conditionally on X. Hence, under the orthonormalization G = IK , V ⪰ cΩH−1GH −1 ⪰ (3 ϵ2)−2cΩG−1 = (3 ϵ2)−2cΩIK .Together with ∥H−1∥op ≤ ϵ−11 , this bounds ∥V−1/2H−1∥op . In particular, the centered S43 vector V−1/2H−1b(X){eΩ + ϕdα(X; g, β∗)} has covariance IK , as required by the Gaussian coupling argument. 
+
+S6.10 Proof of Theorem 7 
+
+Proof. Step 1: By Proposition S2 and arguments analogous to those used in the proofs of Theorems 5.4 and 5.5 of Belloni et al. (2015), we obtain the following approximation for the supremum of the t-statistics: under the same set of conditions as outlined in Theorem 7 of the main manuscript, we obtain sup 
+
+> x
+
+|Tn(x)| =d sup 
+
+> x
+
+b(x)⊤V1/2
+
+∥V1/2b(x)∥2
+
+N (0 , IK ) + oP
+
+ 1
+
+√log K
+
+
+
+. (S57) 
+
+Step 2: We derive the convergence rate for the covariance matrix estimator, that is, an upper bound for ∥bV − V∥op . To proceed, we first derive an upper bound for ∥ bΥ − Υ∥op ,where 
+
+bΥ := Pn[{bϕn − bϕdbg(X)}2b(X)b(X)⊤],
+
+Υ := E[{eΩ + ϕdα(X; g, β∗)}2b(X)b(X)⊤].
+
+Consider the decomposition: 
+
+bΥ − Υ = Pn[[ {bϕn − bϕdbg(X)}2 − { eΩ + ϕdα(X; g, β∗)}2]b(X)b(X)⊤] (S58) +( Pn − P)[ {eΩ + ϕdα(X; g, β∗)}2b(X)b(X)⊤]. (S59) Let vn := {E(max 1≤i≤n eΩ2 
+
+> i
+
+)}1/2. By the proof of Theorem 4.6 in Belloni et al. (2015), it follows that E{(S59) } ≲ mG
+
+> n
+> 2
+
+(v2 
+
+> n
+
++ l2 
+
+> K
+
+c2 
+
+> K
+
+) + mG
+
+> n
+
+pv2 
+
+> n
+
++ l2 
+
+> K
+
+c2 
+
+> K
+
+∥Υ∥1/2op . We then show that (i) 
+
+∥Υ∥op ≲ 1 and (ii) mG
+
+> n
+> 2
+
+(v2 
+
+> n
+
++ l2 
+
+> K
+
+c2 
+
+> K
+
+) = o(1). To show (i), because √log Kl K cK ≲ √log K,we get lK cK ≲ 1. Since mG 
+
+> n
+
+= o(1) by Assumption 3(c), we get l2 
+
+> K
+
+c2 
+
+> K
+
+mG 
+
+> n
+> 2
+
+= o(1). Since 
+
+E(eΩ|A, X) = 0 and ϕd is a function of ( A, X), we obtain E[{eΩ + ϕdα(X; g, β∗)}2|X] = 
+
+E(eΩ2|X) + E(ϕ2
+
+> d
+
+|X)α(X; g, β∗)2 ≲ 1 + l2 
+
+> K
+
+c2 
+
+> K
+
+by Assumption 3(b), Assumption 3(d), and (S1). Thus, it follows that, for some constant C > 0, ∥Υ∥op = sup ∥v∥2=1 |v⊤Υv| ≤ C(1 + 
+
+lK cK )2∥G∥op ≤ C(1+ lK cK )2 ≲ 1. To show (ii), because mG 
+
+> n
+
+= o(1) under Assumption 3(c) and lK cK ≲ 1, we obtain mG
+
+> n
+> 2
+
+l2 
+
+> K
+
+c2 
+
+> K
+
+= o(1). By (S53), with ν replaced by ν/ 2, we obtain S44 vn ≲ n1/ν , which implies mG 
+
+> n
+
+νn ≲ mG 
+
+> n
+
+n1/ν = o(1). Therefore, by Markov’s inequality, we obtain (S59) ≲P (vn ∨ 1 + lK cK )mG 
+
+> n
+
+.We then analyze the term in (S58). Let Ψ = eΩ + ϕdα(X; g, β∗), bΨ := bϕn − bϕdbg(X), and ∆ϕ := bΨ − Ψ. Then bΨ2 − Ψ2 = ∆ 2 
+
+> ϕ
+
++ 2Ψ∆ ϕ. Thus, we obtain 
+
+∥(S58) ∥op = ∥Pn{( bΨ2 − Ψ2)b(X)b(X)⊤}∥ op 
+
+≤∥ Pn{∆2
+
+> ϕ
+
+b(X)b(X)⊤}∥ op + 2 ∥Pn{Ψ∆ ϕb(X)b(X)⊤}∥ op 
+
+≤(max  
+
+> i
+
+|∆ϕ(Oi)|2 + 2 max  
+
+> i
+
+|Ψ( Oi)| max  
+
+> i
+
+|∆ϕ(Oi)|)∥ bG∥op 
+
+≲P max  
+
+> i
+
+|∆ϕ(Oi)|2 + max  
+
+> i
+
+|Ψ( Oi)| max  
+
+> i
+
+|∆ϕ(Oi)|,
+
+where the last inequality follows from the fact that ∥ bG∥op ≲P 1. We note max i |Ψ( Oi)| ≤ 
+
+max i |eΩ( Oi)| + 3 ϵ2lK cK ≲ n1/ν + lK cK . We derive an upper bound for max i |∆ϕ(Oi)| as follows: max  
+
+> i
+
+|∆ϕ(Oi)|≤ max  
+
+> i
+
+|bϕn(Oi) − ϕn(Oi)| + max  
+
+> i
+
+|{ bϕd(Oi) − ϕd(Oi)}b(Xi)⊤β∗|+max  
+
+> i
+
+|ϕd(Oi)b(Xi)⊤( bβ − β∗)| + max  
+
+> i
+
+|{ bϕd(Oi) − ϕd(Oi)}b(Xi)⊤( bβ − β∗)|≤ max  
+
+> i
+
+|bϕn(Oi) − ϕn(Oi)| + max  
+
+> i
+
+|{ bϕd(Oi) − ϕd(Oi)}| (∥g − g∗∥P,∞ + ∥g∥P,∞)+ (3 ϵ2 + max  
+
+> i
+
+|bϕd(Oi) − ϕd(Oi)|)∥bg − g∗∥P,∞
+
+≤dΣ 
+
+> ∞
+
++ d∞(π)( lK cK + ∥g∥P,∞) + {3ϵ2 + d∞(π)}∥ bg − g∗∥P,∞
+
+≲dΣ 
+
+> ∞
+
++ d∞(π)( lK cK + ∥g∥P,∞) + {1 + d∞(π)}mG
+
+> n
+
+≲dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+,
+
+where the penultimate inequality follows from (S56) and the conditions in Theorem 7. Thus, we obtain ∥(S58) ∥op ≲P (dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)2 + ( dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)( n1/ν + lK cK ) ≲ (dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)( n1/ν + lK cK ). Eventually, we have ∥ bΥ − Υ∥op ≲P (dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)( n1/ν + lK cK ). Finally, we obtain 
+
+∥bV − V∥op 
+
+≲∥( bH−1 − H−1) bΥ bH−1∥op + ∥H−1( bΥ − Υ) bH−1∥op + ∥H−1Υ( bH−1 − H−1)∥op 
+
+≲P∥ bΥ − Υ∥op + ∥ bH − H∥op ≲P (dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)( n1/ν + lK cK ) + mG 
+
+> n
+
+,
+
+where the last inequality follows from Theorem S1 and the conditions in Theorem 7. S45 Thus, by Equation (A.57) in Belloni et al. (2015), we obtain sup 
+
+> x
+
+∥bV1/2b(x)∥2
+
+∥V1/2b(x)∥2
+
+− 1
+
+≲P∥bV − V∥op 
+
+≲P(dΣ 
+
+> ∞
+
++ mG 
+
+> n
+
+)( n1/ν + lK cK ) + mG 
+
+> n
+
+= oP(1) . (S60) 
+
+Step 3: Finally, we conclude by arguments analogous to those used in the proof of Theorem 5.6 of Belloni et al. (2015), replacing their Theorem 5.5 and Lemma 5.1 with (S57) and (S60), respectively. 
+
+# S7 Supporting information for simulation studies 
+
+The complete simulation setup is provided as follows. We consider a sample of n = 3000 independent individuals. For each individual i = 1 , . . . , n , we first generate three covariates 
+
+Xi = 2Φ( eXi) − 1,
+
+where eXi follows a multivariate normal distribution with mean 0 and covariance matrix 0.9I3 + 0 .1e3e⊤ 
+
+> 3
+
+. Here, I3 is the 3 × 3 identity matrix, e3 is the three-dimensional vector of ones, and Φ( ·) denotes the cumulative distribution function of the standard normal distri-bution, applied componentwise. This construction yields covariates Xi = ( Xi1, X i2, X i3)⊤
+
+supported on [ −1, 1] 3 with marginal uniform distributions and dependence induced through the Gaussian copula. Let expit( x) = {1 + exp( −x)}−1. The binary treatment Ai is generated from 
+
+Ai|Xi ∼ Bernoulli {π(Xi)},
+
+where the treatment propensity score is specified as 
+
+π(Xi) = expit (0 .10 + 0 .18 Xi1 − 0.16 Xi2 + 0 .18 Xi3 + 0 .05 Xi1Xi3) .
+
+The mediator Mi is continuous. For a ∈ { 0, 1}, let μa(Xi) = E(Mi|Ai = a, Xi) denote the true conditional mediator mean. We first define the baseline mediator component 
+
+hM (Xi) =0 .15 + 0 .45 sin(2 πX i1) + 0 .35 cos(2 πX i2) + 0 .30 sin( πX i3) + 0 .28 sin( πX i1Xi2)S46 + 0 .24 cos( πX i2Xi3) + 0 .22 sin( πX i1Xi3) + 0 .35 expit {2.0( Xi1 + Xi2 − 0.25) }− 0.30 expit {2.0( Xi2 − Xi3 + 0 .15) } + 0 .22 
+
+
+
+X2 
+
+> i1
+
+− 13
+
+
+
+− 0.18 
+
+
+
+X2 
+
+> i2
+
+− 13
+
+
+
++ 0 .15 Xi1Xi2Xi3.
+
+The mediator treatment effect is 
+
+τM (Xi) = 0 .60 + 0 .06 Xi1 − 0.05 Xi2 + 0 .04 Xi3 + 0 .03 Xi1Xi2 − 0.02 Xi2Xi3.
+
+The two conditional mediator means are specified as 
+
+μ0(Xi) = hM (Xi) − 12τM (Xi), μ1(Xi) = hM (Xi) + 12τM (Xi).
+
+Thus, μ1(Xi) − μ0(Xi) = τM (Xi). The observed mediator is generated as 
+
+Mi = μAi
+
+(Xi) + N (0 , 1) .
+
+The true CNIE is specified as the smooth nonlinear target 
+
+g(Xi) =0 .45 
+
+"
+
+0.80 sin 
+
+πX i1
+
+2
+
+
+
+− 0.70 cos 
+
+πX i2
+
+2
+
+
+
++ 0 .60 sin 
+
+πX i3
+
+2
+
+
+
++ 0 .45 Xi1Xi2 − 0.40 Xi2Xi3 + 0 .35 Xi1Xi3
+
++ 0 .30 sin 
+
+πX i1
+
+2
+
+
+
+cos 
+
+πX i2
+
+2
+
+
+
++ 0 .25 cos 
+
+πX i2
+
+2
+
+
+
+sin 
+
+πX i3
+
+2
+
+ #
+
+.
+
+This target is smooth and nonlinear, with main nonlinear terms and two-way interaction structure. The continuous outcome Yi is generated from 
+
+Yi = μAi (Mi, Xi) + N (0 , 1.22),
+
+where, for a ∈ { 0, 1},
+
+μa(m, Xi) = hY (Xi) + a d (Xi) + βM (Xi)m. 
+
+The baseline outcome function is 
+
+hY (Xi) =0 .40 + 0 .45 Xi1 − 0.35 Xi2 + 0 .30 Xi3 + 0 .45 sin( πX i1) + 0 .35 cos( πX i2)+ 0 .30 sin( πX i3) + 0 .28 sin( πX i1) cos( πX i3) + 0 .24 cos( πX i2) sin( πX i3)S47 + 0 .22 expit {2.0( Xi1 + Xi2 − 0.2) } − 0.20 expit {2.0( Xi2 − Xi3 + 0 .1) }
+
++ 0 .18 Xi1Xi2 − 0.16 Xi2Xi3 + 0 .14 Xi1Xi2Xi3.
+
+The direct treatment effect function is 
+
+d(Xi) = − 0.40 + 0 .18 Xi1 − 0.16 Xi2 + 0 .14 Xi3 + 0 .24 sin( πX i1) sin( πX i3)+ 0 .20 cos( πX i2) sin( πX i3) + 0 .16 expit {2.0( Xi1 + Xi2 + Xi3 − 0.25) }.
+
+The mediator-outcome coefficient is constructed as 
+
+βM (Xi) = g(Xi)
+
+τM (Xi).
+
+Therefore, under the above data-generating process, the true conditional natural indirect effect is 
+
+βM (Xi){μ1(Xi) − μ0(Xi)} = βM (Xi)τM (Xi) = g(Xi).
+
+The pointwise metrics are calculated at four randomly chosen representative points: x1 =(0 .58 , 0.00 , −1.00) ⊤, x2 = ( −0.83 , −0.67 , −0.33) ⊤, x3 = (0 .33 , −0.42 , 0.25) ⊤, and x4 =(0 .42 , −0.08 , 0.92) ⊤.
+
+# S8 Supporting information for the CARDIA analysis and two additional empirical applications 
+
+S8.1 Additional information for the CARDIA application 
+
+The cross-fitted probability of current smoking ranges from 0.0046 to 0.9434, with a median of 0.0250; 68.3% of the observed profiles have a propensity below 0.05, and none have a propensity above 0.95. Thus, the overlap limitation is one-sided and concentrated near zero. Among the 402 current smokers, the effective sample size increases from 45.1 under the TR learner to 330.5 under the TW learner. Together with its favorable ISE performance and more concentrated ISE distributions in the simulation study, these findings motivate our choice to present the TTW learner in the main manuscript. We compare the TR, TW, OW, TTR, TTW, and TOW estimates at the same 2,396 observed covariate profiles. Table S1 reports each fitted distribution and its individual S48 agreement with TTW. Across all 15 learner pairs, Pearson correlations range from 0.435 to 0.962, Spearman correlations range from 0.409 to 0.943, and sign agreement ranges from 66.0% to 88.2%. Agreement is strongest within corresponding untargeted–targeted pairs: the Spearman correlations are 0.863, 0.822, and 0.943 for TR–TTR, TW–TTW, and OW– TOW, respectively, with corresponding sign agreement of 83.8%, 82.5%, and 88.2%. All six learners assign the same sign to 44.1% of profiles, including 28.2% positive under every learner and 15.9% negative under every learner. The modest variation in agreement across methods may reflect statistical uncertainty arising from the low treatment prevalence and limited overlap: only 16.8% of participants were current smokers at Year 20, and more than 60% had estimated propensity scores below 0.05. Relative to TR, TW, and OW, targeting reduces the mean pointwise band width by 60.9%, 45.8%, and 50.6%, respectively, and reduces the mean uniform band width by 59.9%, 43.9%, and 49.5%.                                                    
+
+> Table S1: Distribution of the estimated CNIEs and agreement with the TTW learner across the 2,396 observed CARDIA covariate profiles. Estimated CNIEs Agreement with TTW Learner Mean Median IQR Positive (%) Spearman ρSame sign (%) TR 0.544 0.389 [−1.052 ,1.991] 57 .10.409 66 .4TW 1.192 0.682 [−1.745 ,3.414] 58 .10.822 82 .5OW 0.610 0.085 [−2.228 ,2.757] 51 .20.586 68 .5TTR 0.044 0.045 [−0.904 ,0.980] 51 .50.456 66 .4TTW 0.562 0.623 [−0.855 ,1.945] 61 .61.000 100 .0TOW 0.288 0.100 [−1.433 ,1.876] 51 .70.647 72 .6
+
+The shallow fit-the-fit summaries identify related low-dimensional modifiers. TR first splits on household income and then baseline high-density lipoprotein cholesterol; TW splits on age and baseline BMI; OW splits on baseline hypertension history and age; TTR splits on household income and prior smoking; TTW splits on prior smoking and household income; and TOW splits on baseline hypertension history and household income. Household income and smoking history recur across multiple learners. S49 S8.2 Application to the PSACR-002 study 
+
+We illustrate the proposed method using data from the Psychological Science Accelerator’s COVID-19 Rapid-Response cognitive-reappraisal experiment (PSACR-002) (Wang et al., 2021). For illustration, we restrict attention to U.S. participants and analyze n = 1238 participants with complete mediator and outcome data. The treatment A is assignment to reconstrual, with active control as the comparison condition. Reconstrual instructed participants to reinterpret the COVID-19 situation, whereas active control asked them to reflect on their thoughts and feelings while providing a comparable amount of instruction and engagement. The mediator M is the mean negative-emotion rating across ten COVID-19-related photographs, and the outcome Y is the mean of five negative-emotion items assessed after the photograph-viewing task. Both variables are measured on the original 1–5 scale, with lower values indicating less negative emotion. We consider baseline de-mographic, socioeconomic, emotional, and COVID-19-related characteristics as plausible effect modifiers and mediator–outcome confounders. In the analytic sample, the mean age is 21.92 years, 72.4% of participants are female, and the mean baseline negative-emotion score is 2.53. The scientific question is whether part of the effect of reconstrual on post-task negative emotion is transmitted through immediate emotional responses to the photographs and whether this pathway differs across participants. For illustration, we implement all six orthogonal learners with sieve smoothers satisfying ˇGn = Gn. The nuisance functions are estimated using Super Learner with a library com-prising SL.mean , SL.glm , SL.glmnet , SL.earth , SL.ranger , and SL.rpart . The second-stage sieve models each of the seven continuous covariates using a cubic penalized B-spline basis of dimension five and includes categorical main effects. To accommodate scientifi-cally plausible heterogeneity while limiting potential overfitting, the sieve includes pairwise tensor-product interactions between baseline negative emotion and baseline positive emo-tion, emotional worry, physical worry, and perceived manageability of restrictions. It also includes factor-by-smooth terms allowing the baseline-negative-emotion curve to differ un-der partial and full lockdown. Penalty selection follows the recommendations from the simulation study. Supplementary Figures S14–S19 display the ordered CNIE estimates, together with S50 pointwise and uniform confidence bands, for the OW, TOW, TR, TTR, TW, and TTW learners. Notably, the supremum-based critical value makes the uniform bands wider rather than smoother. For the TOW learner, the estimated CNIEs have a mean of −0.269, a me-dian of −0.274, and an interquartile range of [ −0.429 , −0.119], with 88.4% being negative. Pointwise intervals lie entirely below zero for 38.9% of the observed profiles, whereas the uniform band lies entirely below zero for only 1.7%. Overall, the estimated mediated path-way is negative for most fitted profiles. The three targeted learners yield similar mean CNIEs and substantially stabilize the fitted surface near the boundaries relative to the untargeted learners. To interpret the fitted heterogeneity, Supplementary Material Figure S20 summarizes the TOW-estimated CNIE surface using a shallow regression tree, an approach also known as fit-the-fit . The first split is physical worry, suggesting that concern about the physi-cal consequences of COVID-19 is the dominant modifier of the fitted mediation pathway. Among participants with physical-worry scores of at least 3.5, baseline positive emotion provides an additional split, with a more negative estimated CNIE among those with lower baseline positive emotion. The corresponding leaf means are −0.397 and −0.229, compared with −0.058 among participants with physical-worry scores below 3.5. Supplementary Fig-ures S21–S25 present fit-the-fit summaries for the other learners, in which physical worry and baseline positive emotion also emerge as prominent modifiers. A population average analysis suggests a negative mediated pathway from reconstrual through immediate negative emotion to post-task negative emotion. The conditional esti-mates reveal a more nuanced pattern: the fitted pathway is weak for some baseline profiles and appreciably more negative among participants reporting greater physical worry, par-ticularly those with lower baseline positive emotion. 
+
+S8.3 Application to the STAR study 
+
+We apply the proposed method to data from the Tennessee Student/Teacher Achievement Ratio (STAR) experiment (Krueger, 1999). For illustration, we proceed with a complete-case analysis of n = 4020 students. The treatment ( A) is assignment to a small kinder-garten class, with regular and regular-with-aide classes combined as the comparison group. S51 The mediator ( M ) is kindergarten listening achievement, measured after class assignment, and the outcome ( Y ) is first-grade reading achievement. The baseline covariate vector X
+
+comprises the pretreatment characteristics prespecified as plausible effect modifiers and mediator–outcome confounders: age at kindergarten entry, sex, race/ethnicity, free-lunch status, and school locale. In the analytic sample, the mean age at kindergarten entry is 5.43 years; approximately 50.1% of students are female, 69.8% are White or Asian, and 44.3% receive free lunch. The scientific question is whether part of the effect of small kindergarten classes on later reading achievement is transmitted through early listening achievement, and whether this pathway differs across students. To address this question, we estimate the CNIE on the original reading-score scale. For illustration, and following the recommendation from the simulation study, we implement the six orthogonal learners with sieve smoothers satisfying ˇGn = Gn. The sieve space is constructed using an order-6 spline for age at kindergarten entry, categorical main effects for sex, race/ethnicity, free-lunch status, and school locale, all pairwise categorical interactions, and factor-by-smooth age interactions for each categorical covariate. The penalty is selected by the GCV score. This specification allows nonlinear age-related heterogeneity and subgroup-specific age patterns while avoiding high-dimensional tensor-product overfitting. Supplementary Material Figures S26–S31 display the ordered estimated CNIEs, along with pointwise and uniform confidence bands, for all students under the OW, TOW, TR, TTR, TW, and TTW learners, respectively. Across the six learners, most estimated CNIEs oscillate around zero, whereas the upper tail is clearly positive and the lower tail is mod-erately negative. Thus, the listening-mediated pathway appears weak for many students but substantially stronger for a subset. All learners yield similar fitted patterns, while the targeted learners generally prevent extreme estimated values but appear to produce slightly wider bands. Notably, the uniform confidence bands based on the Gaussian bootstrap in Algorithm S1 use a supremum-based critical value, which makes them wider, not smoother; their smoothness is determined by the estimator and standard errors. To interpret the fitted heterogeneity, Supplementary Material Figure S32 summarizes the TOW-estimated CNIE surface using a shallow regression tree, an approach also known as fit-the-fit . The first split is school locale, suggesting that school context is the dominant low-dimensional modifier of the estimated mediation pathway. The fitted CNIE is smaller on average among students in S52 inner-city or rural schools and larger among students in urban or suburban schools. Within the latter group, free-lunch status is an important additional modifier, with the largest es-timated CNIEs appearing among students receiving free lunch. This pattern suggests that early listening achievement may be an especially important pathway through which small classes improve later reading for economically disadvantaged students in urban or suburban school settings. Supplementary Material Figures S33–S37 present fit-the-fit plots based on the other learners, and the results are similar. A single population average indirect effect would suggest a positive but modest mediated pathway. The finer conditional estimates reveal a more nuanced pattern: for many stu-dents, the estimated listening-mediated component is small, whereas for particular baseline profiles it is substantially larger. For example, the analysis suggests a coherent and inter-pretable policy implication: small kindergarten classes may improve later reading partly by strengthening early listening skills, with this pathway most pronounced in school and socioeconomic contexts where early classroom learning may be especially consequential. S53 S9 Additional tables and figures 
+
+S9.1 Simulation experiments 0.0 0.1 0.2 0.3 TpT TR TW OW TTR TTW TOW Method ISE Penalty GCV Unpenalized 
+
+Figure S1: Simulation results presenting box plots of the integrated squared error (ISE) across 10 3 iterations for the parametric T-learner in Zhao et al. (2025), the nonparametric T-learner, and the six orthogonal learners in Section 5. Each orthogonal learner is implemented using (K1, K 2) = (5 , 3) and two penalty strategies. 
+
+Table S2: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the parametric T-learner based on Zhao et al. (2025) at four representative points. 
+
+x BIAS MCSD AESE CP(%) 
+
+x1 0.27 0.03 0.03 0.0 
+
+x2 0.50 0.03 0.03 0.0 
+
+x3 -0.26 0.03 0.03 0.0 
+
+x4 -0.58 0.03 0.03 0.0 S54 0.0 0.1 0.2 0.3 TpT TR TW OW TTR TTW TOW Method ISE Penalty GCV Unpenalized Figure S2: Simulation results presenting box plots of the integrated squared error (ISE) across 10 3 iterations for the parametric T-learner in Zhao et al. (2025), the nonparametric T-learner, and the six orthogonal learners in Section 5. Each orthogonal learner is implemented using (K1, K 2) = (7 , 3) and two penalty strategies. 
+
+Table S3: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TR learner at four representative points. 
+
+GCV Unpenalized 
+
+K x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.04 0.22 0.26 98.0 -0.02 0.29 0.26 92.6 
+
+x2 0.01 0.18 0.22 98.4 0.02 0.21 0.22 96.5 
+
+x3 -0.03 0.10 0.13 99.1 0.01 0.13 0.13 95.1 
+
+x4 0.02 0.16 0.20 97.9 0.02 0.21 0.19 94.1 (5 , 3) 
+
+x1 -0.05 0.22 0.29 98.4 -0.02 0.31 0.29 94.0 
+
+x2 0.01 0.18 0.23 98.5 0.01 0.22 0.23 96.3 
+
+x3 -0.04 0.10 0.14 98.2 0.00 0.14 0.14 95.7 
+
+x4 0.03 0.16 0.21 98.4 0.03 0.22 0.21 94.0 (7 , 3) 
+
+x1 -0.03 0.23 0.34 99.5 0.02 0.37 0.33 93.1 
+
+x2 0.01 0.19 0.25 99.0 0.02 0.25 0.25 96.3 
+
+x3 -0.04 0.10 0.17 99.3 -0.02 0.18 0.17 94.0 
+
+x4 0.02 0.16 0.22 98.8 0.03 0.24 0.22 95.2 S55 Table S4: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TW learner at four representative points. 
+
+GCV Unpenalized 
+
+K x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.04 0.16 0.26 99.6 -0.02 0.30 0.26 93.4 
+
+x2 0.00 0.16 0.22 99.1 0.02 0.21 0.22 96.0 
+
+x3 -0.04 0.07 0.13 99.1 0.01 0.13 0.13 95.8 
+
+x4 0.04 0.13 0.19 99.1 0.02 0.21 0.19 93.8 (5 , 3) 
+
+x1 -0.04 0.16 0.29 99.8 -0.01 0.32 0.29 93.7 
+
+x2 0.00 0.16 0.23 99.0 0.01 0.22 0.23 96.2 
+
+x3 -0.04 0.07 0.14 99.4 0.00 0.14 0.14 95.7 
+
+x4 0.04 0.12 0.21 99.4 0.03 0.22 0.21 94.3 (7 , 3) 
+
+x1 -0.04 0.16 0.35 99.9 0.02 0.38 0.34 92.9 
+
+x2 0.01 0.16 0.26 99.3 0.02 0.25 0.26 96.1 
+
+x3 -0.04 0.07 0.17 99.7 -0.02 0.18 0.17 94.6 
+
+x4 0.03 0.13 0.23 99.6 0.03 0.24 0.23 94.8  
+
+> Table S5: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the OW learner at four representative points.
+
+GCV Unpenalized 
+
+K x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.05 0.21 0.26 98.0 -0.02 0.29 0.26 92.4 
+
+x2 0.01 0.18 0.22 98.3 0.02 0.21 0.22 96.4 
+
+x3 -0.04 0.10 0.13 98.9 0.01 0.13 0.13 95.0 
+
+x4 0.02 0.16 0.20 98.1 0.02 0.21 0.19 94.2 (5 , 3) 
+
+x1 -0.05 0.22 0.28 98.4 -0.02 0.31 0.28 93.8 
+
+x2 0.01 0.18 0.23 98.5 0.01 0.22 0.23 96.3 
+
+x3 -0.04 0.10 0.14 98.3 0.00 0.14 0.14 95.5 
+
+x4 0.03 0.16 0.21 98.5 0.03 0.22 0.21 93.9 (7 , 3) 
+
+x1 -0.05 0.22 0.34 99.3 0.02 0.37 0.34 93.5 
+
+x2 0.01 0.19 0.26 98.8 0.02 0.25 0.26 96.3 
+
+x3 -0.05 0.10 0.17 99.4 -0.02 0.18 0.17 94.2 
+
+x4 0.03 0.16 0.23 99.2 0.03 0.24 0.23 95.2 S56 Table S6: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TTR learner at four representative points. 
+
+GCV Unpenalized 
+
+K x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.04 0.20 0.24 97.7 -0.01 0.28 0.24 91.8 
+
+x2 0.01 0.17 0.21 98.5 0.02 0.20 0.21 96.5 
+
+x3 -0.03 0.09 0.12 98.6 0.02 0.12 0.12 95.0 
+
+x4 0.01 0.15 0.18 98.3 0.01 0.19 0.18 93.2 (5 , 3) 
+
+x1 -0.04 0.21 0.27 98.7 -0.01 0.30 0.27 92.3 
+
+x2 0.01 0.17 0.22 98.6 0.01 0.21 0.22 96.3 
+
+x3 -0.04 0.09 0.13 98.7 0.01 0.13 0.13 95.6 
+
+x4 0.00 0.14 0.19 98.6 0.01 0.20 0.19 93.7 (7 , 3) 
+
+x1 -0.03 0.21 0.32 99.4 0.02 0.35 0.32 92.3 
+
+x2 0.01 0.17 0.24 99.5 0.02 0.23 0.24 96.8 
+
+x3 -0.04 0.09 0.16 99.5 -0.00 0.16 0.16 94.1 
+
+x4 0.01 0.14 0.21 99.3 0.01 0.22 0.21 94.7  
+
+> Table S7: Pointwise bias, Monte Carlo standard deviation (MCSD), average estimated standard error (AESE), and empirical pointwise coverage for the TOW learner at four representative points.
+
+GCV Unpenalized 
+
+K x BIAS MCSD AESE CP(%) BIAS MCSD AESE CP(%) (4 , 3) 
+
+x1 -0.04 0.20 0.24 97.7 -0.00 0.28 0.24 91.8 
+
+x2 0.01 0.17 0.21 98.6 0.02 0.20 0.21 96.3 
+
+x3 -0.04 0.09 0.12 99.0 0.02 0.12 0.12 94.9 
+
+x4 0.01 0.14 0.18 98.4 0.01 0.19 0.18 93.4 (5 , 3) 
+
+x1 -0.05 0.20 0.27 98.6 -0.01 0.30 0.27 92.5 
+
+x2 0.01 0.17 0.22 98.6 0.01 0.21 0.22 96.2 
+
+x3 -0.04 0.09 0.13 98.9 0.01 0.13 0.13 95.3 
+
+x4 0.00 0.14 0.19 98.9 0.01 0.20 0.19 93.7 (7 , 3) 
+
+x1 -0.04 0.20 0.32 99.4 0.02 0.35 0.31 92.5 
+
+x2 0.01 0.17 0.24 99.6 0.02 0.23 0.24 96.6 
+
+x3 -0.04 0.09 0.16 99.6 -0.00 0.16 0.16 93.8 
+
+x4 0.01 0.14 0.21 99.6 0.01 0.22 0.21 94.6 S57 Table S8: Empirical coverage of uniform confidence bands across 25 3 equally spaced grid points in the cube [ −1, 1] 3. EP denotes empirical simultaneous coverage probability, reported as a percentage. GNC denotes grid noncoverage, defined as 10 4 × (1 − ¯Cgrid ), where ¯Cgrid is the average fraction of evaluation-grid points covered by the uniform band. Smaller GNC indicates better grid-point coverage. 
+
+(K1, K 2) Penalty Metric TR TW OW TTR TTW TOW (4 , 3) GCV EP 95.2% 94.6% 95.4% 97.8% 98.3% 97.9% GNC 1.644 5.349 1.646 0.304 0.178 0.349 Unpenalized EP 89.7% 89.5% 89.5% 89.3% 89.3% 88.8% GNC 3.253 3.166 3.452 3.744 3.560 3.980 (5 , 3) GCV EP 96.2% 96.4% 96.9% 99.6% 99.9% 99.4% GNC 1.761 4.842 1.620 0.066 0.003 0.070 Unpenalized EP 90.0% 90.4% 89.5% 89.6% 89.3% 89.5% GNC 2.462 2.304 2.551 2.930 2.644 3.081 (7 , 3) GCV EP 97.4% 97.1% 97.3% 99.9% 100.0% 99.9% GNC 1.367 3.532 1.219 0.006 0.000 0.003 Unpenalized EP 90.2% 89.9% 90.3% 88.2% 89.1% 88.9% GNC 1.126 0.998 1.171 1.420 1.199 1.473 S58 S9.2 CARDIA application 010 20 30 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 Estimated probability of current smoking Density 
+
+Treatment smoking Former or never Current 
+
+Cross−fitted treatment propensity overlap 
+
+Figure S3: Cross-fitted treatment propensity overlap by Year-20 smoking status. The horizontal axis is the estimated probability of current smoking; rug marks show the observed covariate profiles. −20 −10 010 20 30 40 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(a) 95% pointwise confidence band     
+
+> −40 −20 020 40 60 0500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE
+
+(b) 95% uniform confidence band Estimated CNIE using TR learner 
+
+Figure S4: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the TR learner, along with 95% pointwise and uniform confidence bands. 
+
+S59 −20 020 40 60 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(a) 95% pointwise confidence band     
+
+> −50 050 100 0500 1,000 1,500 2,000
+
+Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(b) 95% uniform confidence band Estimated CNIE using TW learner Figure S5: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the TW learner, along with 95% pointwise and uniform confidence bands. −40 −20 020 40 60 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(a) 95% pointwise confidence band     
+
+> −50 050 100 0500 1,000 1,500 2,000
+
+Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(b) 95% uniform confidence band Estimated CNIE using OW learner 
+
+Figure S6: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the OW learner, along with 95% pointwise and uniform confidence bands. 
+
+S60 −15 −10 −5 0510 15 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(a) 95% pointwise confidence band     
+
+> −20 −10 010 20 0500 1,000 1,500 2,000
+
+Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(b) 95% uniform confidence band Estimated CNIE using TTR learner Figure S7: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the TTR learner, along with 95% pointwise and uniform confidence bands. −20 −10 010 20 0 500 1,000 1,500 2,000 Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(a) 95% pointwise confidence band     
+
+> −30 −20 −10 010 20 30 40 0500 1,000 1,500 2,000
+
+Participant index (ordered by estimated CNIE) Estimated CNIE 
+
+(b) 95% uniform confidence band Estimated CNIE using TOW learner 
+
+Figure S8: CNIE estimates at the observed covariate profiles in the CARDIA application, obtained using the TOW learner, along with 95% pointwise confidence intervals and a 95% simul-taneous confidence band. 
+
+S61 Income group = Less than $35,000 Baseline HDL >= 41  
+
+> yes no
+
+Income group = Less than $35,000 Baseline HDL >= 41 
+
+0.54 n=2396 100% −1.1 n=543 23% 1n=1853 77% 0.54 n=1368 57% 2.4 n=485 20%  
+
+> yes no
+
+Figure S9: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TR learner in the CARDIA application. Age >= 37 Baseline BMI < 36  
+
+> yes no
+
+Age >= 37 Baseline BMI < 36 
+
+1.2 n=2396 100% 0.57 n=1947 81% 0.05 n=1685 70% 3.9 n=262 11% 3.9 n=449 19%  
+
+> yes no
+
+Figure S10: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TW learner in the CARDIA application. Hypertension history = No Age >= 38  
+
+> yes no
+
+Hypertension history = No Age >= 38 
+
+0.61 n=2396 100% 0.014 n=2039 85% −0.6 n=1515 63% 1.8 n=524 22% 4n=357 15%  
+
+> yes no
+
+Figure S11: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the OW learner in the CARDIA application. 
+
+S62 Income group = Less than $35,000 Prior smoking = Former  
+
+> yes no
+
+Income group = Less than $35,000 Prior smoking = Former 
+
+0.044 n=2396 100% −1.1 n=543 23% 0.39 n=1853 77% −0.73 n=356 15% 0.66 n=1497 62%  
+
+> yes no
+
+Figure S12: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TTR learner in the CARDIA application. Hypertension history = No Income group = Less than $35,000  
+
+> yes no
+
+Hypertension history = No Income group = Less than $35,000 
+
+0.29 n=2396 100% −0.079 n=2039 85% −1.8 n=421 18% 0.37 n=1618 68% 2.4 n=357 15%  
+
+> yes no
+
+Figure S13: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TOW learner in the CARDIA application. 
+
+S63 S9.3 PSACR application −10 −5 0510 (a) 95% pointwise confidence band −10 −5 0510 0 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using OW learner 
+
+Figure S14: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the OW learner, along with pointwise and uniform confidence bands. 
+
+S64 −3 −2 −1 0123(a) 95% pointwise confidence band −4 −2 0240 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TOW learner Figure S15: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the TOW learner, along with pointwise and uniform confidence bands. −10 −5 0510 (a) 95% pointwise confidence band −10 −5 0510 15 0 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TR learner 
+
+Figure S16: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the TR learner, along with pointwise and uniform confidence bands. 
+
+S65 −3 −2 −1 0123(a) 95% pointwise confidence band −4 −2 0240 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TTR learner Figure S17: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the TTR learner, along with pointwise and uniform confidence bands. −15 −10 −5 0510 15 (a) 95% pointwise confidence band −20 −10 010 20 0 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TW learner 
+
+Figure S18: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the TW learner, along with pointwise and uniform confidence bands. 
+
+S66 −6 −4 −2 0246(a) 95% pointwise confidence band −5 050 200 400 600 800 1,000 1,200 Participants index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TTW learner Figure S19: CNIE estimates at the observed covariate profiles in the PSACR application, obtained using the TTW learner, along with pointwise and uniform confidence bands. Physical worry >= 3.5 Baseline positive emotion < 3.3   
+
+> yes no Physical worry >= 3.5 Baseline positive emotion < 3.3
+> −0.27 n=1238 100% −0.32 n=999 81% −0.4 n=535 43% −0.23 n=464 37% −0.058 n=239 19%
+> yes no
+
+Figure S20: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TOW learner in the PSACR application. 
+
+S67 Baseline positive emotion < 3.1 Physical worry >= 3.5 Lockdown status = No lockdown  
+
+> yes no
+
+Baseline positive emotion < 3.1 Physical worry >= 3.5 Lockdown status = No lockdown 
+
+−0.3 n=1238 100% −0.52 n=560 45% −0.61 n=431 35% −0.21 n=129 10% −0.12 n=678 55% −0.37 n=218 18% −0.0073 n=460 37%  
+
+> yes no
+
+Figure S21: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the OW learner in the PSACR application. Baseline positive emotion < 3.1 Physical worry >= 3.5 Lockdown status = No lockdown  
+
+> yes no
+
+Baseline positive emotion < 3.1 Physical worry >= 3.5 Lockdown status = No lockdown 
+
+−0.31 n=1238 100% −0.53 n=560 45% −0.62 n=431 35% −0.22 n=129 10% −0.13 n=678 55% −0.37 n=218 18% −0.013 n=460 37%  
+
+> yes no
+
+Figure S22: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TR learner in the PSACR application. Physical worry >= 3.5 Baseline positive emotion < 3.3  
+
+> yes no
+
+Physical worry >= 3.5 Baseline positive emotion < 3.3 
+
+−0.27 n=1238 100% −0.32 n=999 81% −0.4 n=535 43% −0.23 n=464 37% −0.059 n=239 19%  
+
+> yes no
+
+Figure S23: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TTR learner in the PSACR application. 
+
+S68 Baseline positive emotion < 3.7 Physical worry >= 3.5  
+
+> yes no
+
+Baseline positive emotion < 3.7 Physical worry >= 3.5 
+
+−0.3 n=1238 100% −0.43 n=886 72% −0.54 n=695 56% −0.038 n=191 15% 0.034 n=352 28%  
+
+> yes no
+
+Figure S24: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TW learner in the PSACR application. Physical worry >= 3.5 Baseline positive emotion < 3.3  
+
+> yes no
+
+Physical worry >= 3.5 Baseline positive emotion < 3.3 
+
+−0.27 n=1238 100% −0.3 n=999 81% −0.38 n=535 43% −0.22 n=464 37% −0.11 n=239 19%  
+
+> yes no
+
+Figure S25: Fit-the-fit plot based on a decision tree summary of the estimated CNIEs from the TTW learner in the PSACR application. 
+
+S69 S9.4 STAR application −60 −40 −20 020 40 60 80 (a) 95% pointwise confidence band −100 −50 050 100 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using OW learner 
+
+Figure S26: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the OW learner, with pointwise and uniform confidence bands. 
+
+S70 −100 −50 050 100 (a) 95% pointwise confidence band −150 −100 −50 050 100 150 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TOW learner Figure S27: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the TOW learner, with pointwise and uniform confidence bands. −150 −100 −50 050 (a) 95% pointwise confidence band −200 −150 −100 −50 050 100 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TR learner 
+
+Figure S28: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the TR learner, with pointwise and uniform confidence bands. 
+
+S71 −100 −50 050 100 (a) 95% pointwise confidence band −100 −50 050 100 150 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TTR learner Figure S29: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the TTR learner, with pointwise and uniform confidence bands. −100 −50 050 100 (a) 95% pointwise confidence band −150 −100 −50 050 100 150 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TW learner 
+
+Figure S30: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the TW learner, with pointwise and uniform confidence bands. 
+
+S72 −150 −100 −50 050 100 150 (a) 95% pointwise confidence band −200 −100 0100 200 0 500 1,000 1,500 2,000 2,500 3,000 3,500 4,000 Students index (ordered by estimated CNIE) Estimated CNIE (b) 95% uniform confidence band 
+
+Estimated CNIE using TTW learner Figure S31: CNIE estimates at the observed covariate profiles in the STAR application, obtained using the TTW learner, with pointwise and uniform confidence bands. school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 age_k_entry < 5.3 free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 age_k_entry < 5.3 free_lunch = Not free lunch female = Female 
+
+2n=4020 100% 1.3 n=2851 71% 0.24 n=1422 35% −3.3 n=363 9% 1.4 n=1059 26% 2.3 n=1429 36% 0.71 n=628 16% 3.5 n=801 20% 3.8 n=1169 29% 1.2 n=827 21% −2.6 n=408 10% 4.9 n=419 10% 9.9 n=342 9%  
+
+> yes no
+
+Figure S32: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the TOW learner in the STAR application. 
+
+S73 school_locale = Inner city,Rural female = Male age_k_entry >= 5.2 white_asian = Other race free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.2 white_asian = Other race free_lunch = Not free lunch female = Female 
+
+2n=4020 100% 1.3 n=2851 71% 0.27 n=1422 35% −1 n=996 25% 3.3 n=426 11% 2.2 n=1429 36% 0.081 n=461 11% 3.3 n=968 24% 3.9 n=1169 29% 0.93 n=827 21% −3.3 n=408 10% 5n=419 10% 11 n=342 9%  
+
+> yes no
+
+Figure S33: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the OW learner in the STAR application. school_locale = Inner city,Rural female = Male age_k_entry >= 5.3 school_locale = Inner city free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.3 school_locale = Inner city free_lunch = Not free lunch female = Female 
+
+1.9 n=4020 100% 1.2 n=2851 71% 0.31 n=1422 35% −1.4 n=841 21% 2.8 n=581 14% 2.1 n=1429 36% −0.33 n=410 10% 3n=1019 25% 3.7 n=1169 29% 0.66 n=827 21% −4 n=408 10% 5.2 n=419 10% 11 n=342 9%  
+
+> yes no
+
+Figure S34: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the TR learner in the STAR application. 
+
+S74 school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 school_locale = Inner city free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 school_locale = Inner city free_lunch = Not free lunch female = Female 
+
+1.9 n=4020 100% 1.2 n=2851 71% 0.24 n=1422 35% −3.3 n=363 9% 1.5 n=1059 26% 2.1 n=1429 36% −0.35 n=410 10% 3.1 n=1019 25% 3.7 n=1169 29% 1n=827 21% −3.1 n=408 10% 5n=419 10% 10 n=342 9%  
+
+> yes no
+
+Figure S35: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the TTR learner in the STAR application. school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 white_asian = Other race free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 white_asian = Other race free_lunch = Not free lunch female = Female 
+
+2.1 n=4020 100% 1.4 n=2851 71% 0.26 n=1422 35% −2.5 n=363 9% 1.2 n=1059 26% 2.5 n=1429 36% 0.59 n=461 11% 3.4 n=968 24% 4n=1169 29% 1.1 n=827 21% −3 n=408 10% 5n=419 10% 11 n=342 9%  
+
+> yes no
+
+Figure S36: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the TW learner in the STAR application. 
+
+S75 school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 age_k_entry < 5.3 free_lunch = Not free lunch female = Female  
+
+> yes no
+
+school_locale = Inner city,Rural female = Male age_k_entry >= 5.7 age_k_entry < 5.3 free_lunch = Not free lunch female = Female 
+
+2.1 n=4020 100% 1.3 n=2851 71% 0.22 n=1422 35% −3.4 n=363 9% 1.4 n=1059 26% 2.5 n=1429 36% 0.97 n=628 16% 3.6 n=801 20% 3.9 n=1169 29% 1.4 n=827 21% −2.1 n=408 10% 4.8 n=419 10% 9.8 n=342 9%  
+
+> yes no
+
+Figure S37: Fit-the-fit plot based on a decision tree summary of the CNIEs estimated using the TTW learner in the STAR application. 
+
+S76
