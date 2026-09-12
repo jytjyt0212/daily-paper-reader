@@ -1,0 +1,958 @@
+Title: MUtE: A Dual Framework for Concept Erasure and Counterfactual Interventions
+
+URL Source: https://arxiv.org/pdf/2609.11253v1
+
+Published Time: Fri, 11 Sep 2026 00:59:58 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# MUtE: A Dual Framework for Concept Erasure and Counterfactual Interventions 
+
+Antoine Saillenfest a.saillenfest@groupeonepoint.com onepoint, 29 rue des Sablons, 75116 Paris (France) 
+
+# Abstract 
+
+Erasing concept-specific information from representations has been proven useful for miti-gating bias or interpreting model decisions. The joint objective is to transform the original representations such that the target concept becomes unpredictable, while maximally pre-serving concept-unrelated information. In this work, we revisit the optimal bounds of con-cept erasure to derive a novel class of erasure functions that naturally induce a deterministic, dual counterfactual mapping. Bridging the gap between theoretical optimality and practical representation learning, we design an implementation that imposes a translational bias on counterfactual trajectories—a constraint that aligns with how many concepts geometrically manifest in modern language models. Our framework enables seamless navigation between concept erasure and counterfactual generation. We empirically demonstrate its efficacy in improving downstream algorithmic fairness and generating counterfactual texts. 1
+
+# 1 Introduction 
+
+Text representations inherently entangle a diverse array of latent concepts, ranging from sensitive demo-graphic attributes (e.g. gender or race) requiring algorithmic mitigation to abstract semantic properties (e.g. writing style or aspect) manipulated for interpretability. Because targeted interventions in the discrete textual space are difficult to automate and frequently yield disfluent artifacts, representation engineering predominantly isolates and manipulates these concepts directly within the continuous embedding space. The specific task of concept erasure aims to obliterate information pertaining to a target concept from a set of representations via an erasure function (Ravfogel et al., 2020; 2022a; Chowdhury et al., 2025). From an information-theoretic perspective, optimal erasure necessitates navigating a fundamental trade-off: max-imizing privacy (ensuring the post-erasure representations contain minimal information regarding the target concept) while maximizing utility (maximizing the retained information from the original representations) (Chowdhury et al., 2025). Because concept erasure is fundamentally task-agnostic, the resulting representa-tions are broadly applicable across downstream NLP tasks, demonstrating efficacy in improving algorithmic fairness (Ravfogel et al., 2020; Chowdhury & Chaturvedi, 2022; Lemberger & Saillenfest, 2024), enhancing interpretability (Lemberger & Saillenfest, 2024), and mitigating language model toxicity (Singh et al., 2024). Driven by these applications, concept erasure has seen rapid development. By relaxing strict privacy con-straints, a significant body of work has addressed linear guardedness (Ravfogel et al., 2023), which consists in preventing concept recovery by a linear adversary. Methods such as INLP (Ravfogel et al., 2020), RLACE (Ravfogel et al., 2022a), and the state-of-the-art LEACE (Belrose et al., 2023) achieve linear erasure via projections onto a low-dimensional concept nullspace. However, general (non-linear) concept erasure re-mains an open challenge. Current approaches include adversarial training (Ganin et al., 2016; Feder et al., 2021; Ravfogel et al., 2022b), information-theoretic loss optimization (FaRM (Chowdhury & Chaturvedi, 2022), KRaM (Chowdhury et al., 2023)), Bayesian optimization (PEF (Chowdhury et al., 2025)), filtering of ranked directions out of embeddings (TaCo Jourdan et al. (2024)) and density matching via projections (LEOPARD (Saillenfest & Lemberger, 2025)). Those approaches, however, frequently sacrifice downstream  
+
+> 1Code and data: https://github.com/toinesayan/MUtE .
+
+1arXiv:2609.11253v1 [cs.LG] 10 Sep 2026 Figure 1: The MUtE ∗ continuous erasure framework. A piecewise erasure function f utilizes class-conditional diffeomorphisms fi to bijectively map source distributions Pi to a shared invariant space, maximizing utility retention. This structure natively induces a dual counterfactual mapping ( f −12 ◦f1), anchoring a sample x and its counterfactual x2←1 to the identical post-erasure representation f (x). Constraining these counterfactual trajectories with an a priori structural prior—such as the linear translational bias prevalent in NLP—ties the conditional mappings, effectively resolving the functional non-identifiability of optimal erasure. utility to satisfy strict privacy bounds. Furthermore, these methods suffer from severe computational bottle-necks, relying on extensive neural network training, expensive density estimations, or Bayesian optimization over finite supports, which scales poorly in high-dimensional regimes. Concurrently, recent literature has established profound connections between concept erasure and the gener-ation of counterfactual representations, i.e. approximations of the embedding space under simulated causal interventions on the surface text. Assuming a structural causal model and Gaussian priors, Lemberger & Saillenfest (2024) have demonstrated that concept erasure can act as an intermediary mapping for counter-factual generation. Inspired by linear erasure techniques, recent works derive linear steering interventions under minimal displacement constraints (Singh et al., 2024), which have been decoded into counterfactual texts using continuous-to-discrete inversion techniques (Avitan et al., 2025; Morris et al., 2023). In this work, we revisit discrete concept erasure within continuous representation spaces at optimality. We formalize the structure of optimal erasure functions and demonstrate that they inherently induce a dual, deterministic counterfactual mapping. Bridging theory and practice, we propose a practical implementation that imposes a rigid translational bias on counterfactual trajectories. This approach practically exploits the phenomenon that modern text encoders frequently isolate concepts as linear directions. To summarize, our primary contributions are: • We introduce MUtE ∗ (Maximum Ut ility-preserving Erasure), a class of optimal erasure functions for continuous representations that intrinsically defines a dual counterfactual mapping (Section 2). • We derive a practical, computationally efficient implementation that leverages a translational bias to perform erasure and counterfactual representation generation (Section 3). • We empirically validate our framework across synthetic data and NLP benchmarks, demonstrating its efficacy for bias mitigation and counterfactual text generation (Section 4). 
+
+# 2 Optimal Erasure and Counterfactuals 
+
+This section formalizes the theoretical foundations of Maximum Utility-preserving Erasure (MUtE ∗). After defining the problem setting (Section 2.1), we review the necessary conditions for perfect erasure (Section 2.2) and maximal utility retention (Section 2.3). Assuming an oracle predictor, we demonstrate that this optimal erasure naturally induces a dual counterfactual mapping (Section 2.4), providing a principled geometric mechanism to resolve the inherent non-identifiability of erasure functions. 22.1 Problem statement 
+
+Let PS be a probability distribution over an arbitrary input space S. Let enc : S → RD be an encoding function mapping inputs to a continuous representation space, and let Z = {1, . . . , K } (K > 1) denote a discrete set of concept classes assigned by a ground-truth labeling function c∗ : S → Z .We define the concept variable Z and the representation variable X ∼ PX as random variables over S:
+
+Z(s) = c∗(s) (1) 
+
+X(s) = enc( s) (2) Let p(x) denote the probability density function (PDF) of PX . For each concept class i ∈ Z , we introduce the class-conditional representation variable Xi ∼ Pi, where the corresponding conditional density is defined as pi(x) := p(x | Z = i). Concept erasure seeks an erasure function f that removes concept-related information about Z (Eq. 1) from the representations X (Eq. 2). We define the post-erasure representation as Q = f (X), distributed according to the pushforward measure Q = f#PX , with corresponding class-conditional distributions Qi.We make the following assumptions: • The erasure function preserves the latent dimensionality, i.e., f : RD → RD .• The conditional distributions Pi are continuous over RD and exhibit full support (i.e., there is no zero-density regions). 2
+
+2.2 Discrete Concept Erasure. 
+
+Concept erasure fundamentally seeks a transformation f that enforces strict statistical independence between 
+
+f (X) and Z. This translates into a rigorous distributional constraint: the class-conditional distributions of the post-erasure representations must be perfectly aligned (Saillenfest & Lemberger, 2025). Formally: 
+
+∀i ∈ Z , Qi = Q (3) From an information-theoretic perspective, Eq. 3 corresponds to achieving the privacy bound characterized by vanishing mutual information: I(f (X); Z) = 0 (Chowdhury et al., 2025). Crucially, however, this pure erasure objective is not self-sufficient. An infinite set of mappings satisfies this independence criterion, including degenerate, constant functions (e.g., f (x) = k ∈ RD ) that catastrophically collapse the representation space. Consequently, any viable concept erasure framework must formulate a joint objective: satisfying the erasure criterion while maximizing the retention of task-agnostic information (utility) inherent to the original representations. 
+
+2.3 Maximum Utility Preservation. 
+
+From an information-theoretic perspective, preserving maximum utility requires the conditional entropy to vanish: H(X|f (X), Z ) = 0 (Chowdhury et al., 2025). Conditioning on a concept class i ∈ Z , the equality 
+
+H(Xi|f (Xi)) = 0 implies that Xi can be perfectly recovered from its post-erasure representation. Since the forward mapping is deterministic by definition ( H(f (Xi)|Xi) = 0), this mutual determinism ensures that f
+
+maps each conditional distribution Pi bijectively to Qi.Structurally, integrating the perfect erasure constraint (Eq. 3), MUtE ∗ (Maximum Utility-preserving Era-sure) functions satisfies:       
+
+> 2In our primary NLP setting ( S= Σ ∗, where Σ is an alphabet and PSis a language model), discrete textual inputs strictly map to point masses in RD.To satisfy continuity and full-support constraints, we assume these discrete representations are continuously smoothed (e.g., via kernel density estimation).
+
+3∀s ∈ S , f (X(s)) = fc∗(s)(X(s)) (4) where each fi : RD → RD is a diffeomorphism transforming Pi into Q.This continuous-space formulation mirrors the optimal erasure framework introduced by Chowdhury et al. (2025). Their approach achieves optimal privacy-utility bounds via class-conditional permutations, assuming discrete supports of equal cardinality that are identical up to permutation relative to the target distribu-tion. Our framework generalizes these optimality principles to continuous probability measures by replacing combinatorial permutations with diffeomorphisms. The sample-dependent assignment c∗(s) in Eq. 4 precludes f from operating solely on the observable representation X. To circumvent this limitation, Chowdhury et al. (2025) assume disjoint conditional sup-ports, guaranteeing perfect predictability of the concept class from the representation alone. In practice, high-dimensional continuous representations inevitably exhibit overlapping supports, yielding an irreducible Bayes error that precludes strict determinism. However, because modern latent spaces demonstrate high structural separability, routinely allowing probes to achieve near-perfect empirical classification, we adopt a tractable theoretical surrogate. We assume the existence of an optimal oracle predictor η∗ that recovers the concept class with negligible error, idealizing it as exact for our formulation: 
+
+∀s ∈ S , η∗(X(s)) = Z(s) = c∗(s) (5) Under this oracle assumption, MUtE ∗ functions (Eq. 4) can be expressed as a class of representation-dependent erasure mappings: 
+
+f : RD → RD , x 7 → fη∗(x)(x) (6) Because concept erasure enforces alignment strictly at the distributional level (Eq. 3), the hypothesis space of valid MUtE ∗ mappings is infinite. This permits arbitrary topological distortions of the representation space. To resolve this fundamental non-identifiability, we next exploit the dual counterfactual mapping intrinsically induced by these optimal erasure functions. 
+
+2.4 Dual Counterfactual Mapping 
+
+Let the counterfactual mapping of a representation-dependent MUtE ∗ function f (Eq. 6) be: 
+
+f← : RD × Z → RD , (x, j ) 7 → f −1 
+
+> j
+
+(f (x)) (7) This transport is termed counterfactual because, for any distinct concept classes i, j ∈ Z , it maps Xi ∼ Pi
+
+to Xj←i := f←(Xi, j ) = f −1 
+
+> j
+
+(fi(Xi)) that is strictly distributed according to Pj .By definition, f (Xj←i) = f (Xi). This establishes a fundamental structural correspondence between a MUtE ∗
+
+function and the counterfactuals it generates: a sample and all its counterfactual counterparts map to the exact same invariant coordinate in the post-erasure latent space. Consequently, each erased representation serves as a geometric anchor connecting |Z| counterfactual representations. Crucially, this collision property provides a principled mechanism to resolve the inherent non-identifiability of optimal erasure functions. If the geometry of the target counterfactuals Xj←i can be approximated apriori , it directly constrains the hypothesis space of f by tying the diffeomorphisms fi and fj . By enforcing 
+
+f (Xj←i) = f (Xi) over these expected counterfactual trajectories, we can isolate geometrically grounded solutions from the infinite space of otherwise valid MUtE ∗ functions. In NLP, the geometric relationship between representations and their counterfactuals has been extensively studied. The Linear Bias Hypothesis posits that deep NLP models naturally encode concepts as linear direc-tions within their high-dimensional latent spaces (Bolukbasi et al., 2016; Vargas & Cotterell, 2020). Thus, recent steering techniques operationalize counterfactual generation via linear interventions (Singh et al., 2024). The simplest such intervention approximates a counterfactual shift by translating the representation along the vector difference between class centroids (Subramani et al., 2022; Singh et al., 2024). 4Synthesizing the theoretical formulation above, Figure 1 illustrates the MUtE ∗ framework, demonstrating how its invertible mappings enable bidirectional geometric navigation between concept erasure and counter-factual generation. 
+
+# 3 Operationalizing MUtE ∗ via Iterative Density Matching 
+
+This section bridges the theoretical formulation of MUtE ∗ with a computationally tractable implementa-tion. We first recall an iterative Gaussianization procedure (Section 3.1), adapting it to construct a fully representation-dependent erasure mapping (Section 3.2). Geometrically, this mapping imposes an inherent translational bias on the counterfactual trajectories. We then relax the assumption of an oracle predictor η∗
+
+to formally characterize the impact of noisy routing. This theoretical analysis directly motivates algorithmic regularizations to promote effective concept erasure within deeply entangled latent spaces (Section 3.3). 
+
+3.1 Iterative Gaussianization 
+
+Rotation-Based Iterative Gaussianization (RBIG) (Laparra et al., 2011) is a highly efficient, iterative Gaus-sianization technique that transforms any continuous random distribution P into an isotropic Gaussian 
+
+N (0 , I ). For a set of observations x, the process alternates between applying an orthogonal rotation matrix 
+
+R(t) ∈ O( D) and a dimension-wise marginal Gaussianization ψ(t):
+
+x(t+1) = (ψ(t) ◦ R(t)) (x(t))with x(0) = x (8) where: 
+
+ψ(t)(x(t)) = 
+
+(
+
+Φ−1
+
+(∫ x(t)
+
+> d
+> −∞
+
+p(t) 
+
+> d
+
+(u)du 
+
+)) 
+
+> d=1 ,...,D
+
+(9) The marginal Gaussianization ψ(t) operates independently on each dimension d, mapping the data to N (0 , 1) via a marginal uniformization, based on the cumulative density function (CDF) of the marginal probability density function (PDF) pd, followed by the inverse CDF of the standard normal N (0 , 1), Φ −1.Provided the sequence of orthogonal rotations {R(t)} induces sufficient cross-dimensional mixing (e.g., via orthogonal ICA (Hyvarinen et al., 2019), PCA (Jolliffe & Cadima, 2016), or random orthogonal matrices), RBIG guarantees monotonic convergence to N (0 , I ). This monotonic convergence is formally characterized by a strict reduction in negentropy, defined here as the Kullback-Leibler divergence to the standard isotropic Gaussian, at step t. The negentropy reduction ∆ J(t) at step t is thus strictly positive: ∆J(t) := DKL (P(t) ∥ N (0 , I )) − DKL (P(t+1) ∥ N (0 , I )) > 0 (10) The overall Gaussianization process is bijective. Rotations are invertible and ( R(t))−1 = ( R(t))⊤. ψ(t) is invertible when the support of each marginal PDF is connected (i.e. there are no zero-probability regions) making the marginal CDF strictly monotonic and hence invertible. 
+
+3.2 Selective Iterative Density Matching 
+
+We adapt the process defined in Eq. 8 into a conditional mapping, selective based on the predicted class 
+
+η∗(x) of the sample x:
+
+x(t+1) =
+
+(
+
+ψ(t) 
+
+> η∗(x)
+
+◦ R(t)
+
+)
+
+(x(t))with x(0) = x (11) 5where R(t) is an orthogonal rotation, and ψ(t) 
+
+> i
+
+denotes the class-conditional, dimension-wise marginal Gaus-sianization at step t. For a given concept class i, ψ(t) 
+
+> i
+
+is defined using the marginal class-conditional PDF 
+
+p(t) 
+
+> i,d
+
+for the dimension d:
+
+ψ(t) 
+
+> i
+
+(x) = 
+
+(
+
+Φ−1
+
+(∫ xd
+
+> −∞
+
+p(t)
+
+> i,d
+
+(u)du 
+
+)) 
+
+> d=1 ,...,D
+
+(12) At each iteration, R(t) is applied uniformly across the entire representation space, acting as an isometry that preserves the macroscopic geometric structure. Conversely, the class-conditional marginal transforma-tions ψ(t) 
+
+> i
+
+independently warp the conditional densities to align their marginals with a standard normal distribution. Under the assumption that η∗ acts as a perfect oracle (Eq. 5) and conditioned on any concept class i, this process mirrors the standard RBIG, which guarantees that Pi is bijectively mapped to an isotropic Gaussian 
+
+N (0 , I ) as t → ∞ . Consequently, this iterative procedure asymptotically drives all conditional distributions 
+
+Pi to a shared target measure, theoretically guaranteeing complete concept erasure after a sufficient number of iterations T .3
+
+Truncating the iterative process at step T yields an empirical conditional-bijective MUtE function: 
+
+f : Rd → Rd, x 7 → fη∗(x)(x)with fi = ψ(T −1)  
+
+> i
+
+◦ R(T −1) ◦ · · · ◦ ψ(0)  
+
+> i
+
+◦ R(0) (13) Crucially, the initial marginal Gaussianizations ( ψ(0)  
+
+> i
+
+)i=1 ,..., |Z| independently map the median of each con-ditional distribution to the origin. Because deep continuous representations typically exhibit symmetric, Gaussian-like marginals where the mean and median closely align, this zero-order matching acts as a rigid location shift. Consequently, this dominant first step imparts a strong geometric inductive bias, steering counterfactual representations predominantly along the inter-centroid vector E[Xj ] − E[Xi]. The subsequent sequence of global rotations and marginal transformations non-linearly refines this trajectory to ensure exact higher-order distributional alignment without destroying the foundational translational bias. 
+
+3.3 Implementation and Mitigation of Noisy Routing 
+
+Due to overlapping conditional supports, the empirical predictor η∗ inherently exhibits classification error. Crucially, MUtE decouples density estimation from sample routing: marginal transformations ψ(t) 
+
+> i
+
+are fitted using ground-truth labels, while the forward mapping of a sample x relies strictly on its predicted class η∗(x). This irreducible Bayes error theoretically precludes strict convergence to an exact isotropic Gaussian. We formalize this limitation by expressing the stepwise negentropy reduction for class i under noisy routing (see Appendix A for the full derivation): ∆J(t) 
+
+> i
+
+= ∆ J∗(t) 
+
+> i
+
+− E(t) 
+
+> i
+
+(14) where ∆ J∗(t) 
+
+> i
+
+≥ 0 denotes the ideal negentropy reduction at step t under perfect routing, and E(t) 
+
+> i
+
+> 0represents a strictly positive entropic penalty induced by misrouting. Consequently, the convergence of each class-conditional distribution to N (0 , I ) is fundamentally bottlenecked by this routing error. Nevertheless, this analytical decomposition directly motivates algorithmic regularizations to optimize the stepwise negentropy reduction—specifically, by maximizing the ideal marginal gain ∆ J∗(t) 
+
+> i
+
+and bounding the routing penalty E(t) 
+
+> i
+
+. Although exact asymptotic convergence to the standard normal is mathematically    
+
+> 3Concept erasure requires only that the class-conditional densities match (Eq. 3), not full convergence to N(0 , I ). In practice,
+> Tdenotes the number of steps to satisfy Eq. 3.
+
+6unattainable, we expect that enforcing these bounds iteratively drives the conditional manifolds into a sufficiently tight, shared neighborhood, to effectively neutralizes class separability. To maximize the marginal Gaussianization gain ∆ J∗(t) 
+
+> i
+
+, the rotation sequence {R(t)} must systematically in-duce sufficient cross-dimensional mixing. While techniques such as orthogonal ICA drive rapid convergence, PCA offers a superior trade-off between step-wise negentropy reduction and computational complexity (La-parra et al., 2011). To satisfy this mixing requirement concurrently across all concept classes i ∈ Z , we adopt an alternating rotation schedule: R(t) = RPCA  
+
+> i
+
+, where i ≡ t (mod |Z| ) and RPCA  
+
+> i
+
+diagonalizes the covariance of P(t) 
+
+> i
+
+. This cyclic scheme periodically aligns the principal axes of each conditional manifold, ensuring their unique cross-correlations are successively exposed for marginal Gaussianization. Although a rotation RPCA  
+
+> i
+
+optimized for class i does not explicitly target the cross-correlations of a distinct class j̸ = i,the RBIG framework guarantees that any valid orthogonal rotation still yields a non-negative negentropy reduction (∆ J∗(t) 
+
+> j
+
+≥ 0). Moreover, if the class-conditional manifolds are approximately equivalent up to a translation, their covariance structures inherently align. In this regime, rotating by RPCA  
+
+> i
+
+is thus expected to simultaneously drive a high negentropy reduction for all classes at every iterative step. The routing penalty E(t) 
+
+> i
+
+quantifies the entropic cost of spatial tearing, driven by the cross-entropy mismatch when a sample is evaluated via the marginal density estimator of a mispredicted class. To maintain focus on the practical mitigation strategy, we defer the full analytical expansion and bounding of E(t) 
+
+> i
+
+to Appendix A.2. Crucially, this penalty diverges to infinity if the true density is strictly positive where the mispredicted estimator assigns zero probability. To bound this log-density ratio, we estimate the continuous conditional PDFs p(t) 
+
+> i,d
+
+via marginal histograms uniformly discretized into B bins, enforcing a strict minimum density threshold p(t)
+
+> i,d
+
+(xd) ≥ α > 0. This threshold constrains E(t) 
+
+> i
+
+with an upper bound. By defaulting to α = 10 −10 
+
+and B = 1000, the artificial probability mass injected across the domain ( Bα = 10 −7) remains negligible. While these regularizations cannot theoretically guarantee perfect distributional alignment after T iterations, our subsequent evaluations on real-world datasets demonstrate that this constrained implementation yields highly robust concept erasure in practice. 
+
+# 4 Experiments 
+
+We validate our approach on synthetic and NLP datasets (Section 4.1) for concept erasure and utility preservation (Section 4.2), bias mitigation (Section 4.3) and counterfactual generation of texts (Section 4.4). 
+
+4.1 Datasets, Baselines and Training details 
+
+Table 1: Key dataset statistics. y denotes the availability of a downstream classification task. Dataset Encoder D Concept |Z| #train #test y
+
+GloVe GloVe 300 Gender 3 ~11k ~7k 
+
+Bias in Bios Bert 768 Gender 2 ~256k ~98k ✓
+
+DIAL Deepmoji 300 Race 2 ~180k ~8k ✓
+
+Jigsaw GPT-4 512 Religion 5 ~87k ~9k ✓
+
+Baselines. We compare our approach with several baselines for erasure: FaRM (Chowdhury & Chaturvedi, 2022), KRaM (Chowdhury et al., 2023), TaCo (Jourdan et al., 2024), and LEOPARD (Saillenfest & Lem-berger, 2025), and the linear erasure method LEACE (Belrose et al., 2023) for completeness. Training details are deferred to Appendix C. 
+
+NLP benchmarks. We evaluate our approach for concept erasure across a suite of text embeddings: gender from GloVe (Pennington et al., 2014), gender from BERT representations (Devlin et al., 2019) of short biographies in Bias in Bios (De-Arteaga et al., 2019), race from DeepMoji representations of DIAL 
+
+7Figure 2: Concept erasure via MUtE on synthetic distributions exhibiting near-perfect separability (top row) versus moderate overlap (bottom row). Background hues indicate decision regions for the routing predictor (cols. 1, 3, 4) and the optimal adversarial probe (col. 2). Point colors denote ground-truth concept labels. 
+
+Figure 3: Probing accuracy-Utility tradeoff. Horizontal red (resp. dotted) lines are chance-level baseline accuracies (resp. accuracies on the original latent space). tweets (Blodgett et al., 2016), and religion from GPT-4 embeddings (Achiam et al., 2023) of online comments in Jigsaw (jig, 2019). Table 1 summarizes key statistics, other details are deferred to Appendix B. 
+
+Evaluation. Probes for concept prediction and downstream classification were implemented as MLPs (scikit-learn ’s MLPClassifier (Pedregosa et al., 2011)). Mean Squared Error (MSE) estimations were conducted using MLPRegressor . Accuracies, MSEs, and fairness scores reported are averages across 5 inde-pendent evaluations. 
+
+4.2 Erasure and utility preservation 
+
+Synthetic data. We evaluate MUtE on synthetic R2 data, modeling a binary concept using two different Gaussian mixtures of 2 , 000 samples each. We control concept separability by translating the mixtures along a fixed vector, defining two regimes with initial probe accuracies of 94% and 81%, respectively (Figure 2, left). In both settings, we train MUtE for 20 iterations. Post-erasure, the conditional distributions are aligned, and 8Table 2: Fairness evaluation for downstream classifiers. Best results (excluding original representations) in bold. 
+
+Model ay (%) ↑ TPR RMS ↓ DP ↓
+
+Bias in Bios 
+
+orig. 80.0 ± 0.1 0.164 ± 0.009 0.572 ± 0.005 
+
+FaRM 55.4 ± 0.1 0.082 ± 0.004 0.314 ± 0.002 
+
+KRaM 51.2 ± 0.3 0.056 ± 0.003 0.285 ± 0.004 
+
+MUtE 70.2 ± 0.2 0.091 ± 0.002 0.391 ± 0.004 
+
+DIAL 
+
+orig. 75.8 ± 0.1 0.156 ± 0.007 0.269 ± 0.017 
+
+FaRM 73.3 ± 0.5 0.079 ± 0.004 0.061 ± 0.005 
+
+KRaM 73.1 ± 0.2 0.084 ± 0.005 0.006 ± 0.006 
+
+MUtE 71.0 ± 0.3 0.094 ± 0.005 0.086 ± 0.012 
+
+probe accuracy drops to chance (Figure 2, second column). In both regimes, the mapping produces artifacts corresponding to misclassified samples; their counterfactual displacement is roughly inverse to the trajectory expected under ground-truth routing (Figure 2, third column). The counterfactual mapping exhibits a strong translational bias, confirming our geometric priors (Figure 2, right). 
+
+Real-world datasets We extend our evaluation of MUtE to real-world NLP benchmarks. Results in Fig-ure 3 indicates that MUtE consistently reduces probe accuracy for sensitive attributes to the majority-class baseline (e.g., 50% for balanced binary concepts) consistently outperforming baseline methods. Following Chowdhury et al. (2025), we use the MSE of reconstructing X from f (X) as a surrogate for utility preserva-tion, noting that MUtE maintains low reconstruction error. Furthermore, MUtE demonstrates competitve or higher performance (accuracy ay ) on downstream tasks (Table 2). For GloVe , we quantify the preservation of intrinsic semantic and local topological properties. On the WordSim-353 benchmark, we measure the Spearman rank correlation between embedding cosine similarities and human annotations (Agirre et al., 2009). The original embeddings yield a correlation of 0 .70. MUtE successfully preserves this semantic alignment (0 .71), whereas baseline methods degrade it (FaRM : 0 .53, KRaM : 0 .33). We also evaluate local topological fidelity by computing the retention rate of the top 1% nearest neighbors post-erasure. MUtE retains 19% of the original neighborhood structure, outperforming both FaRM (13%) and KRaM (10%). 
+
+4.3 Fair classification 
+
+A primary downstream application of concept erasure is mitigating algorithmic bias to improve fairness. Following established methodologies (Ravfogel et al., 2020; De-Arteaga et al., 2019; Saillenfest & Lemberger, 2025), we evaluate fairness using two metrics suited for binary concepts: the Root Mean Square of the True Positive Rate Gap (TPR RMS ) and Demographic Parity (DP) (those metrics are formally defined in Appendix D). Results in Table 2 shows that downstream classifiers trained on MUtE-transformed representations exhibit substantial fairness improvements compared to those trained on the original latent space. MUtE is competitive with established baselines, establishing a distinct operating point on the accuracy-fairness Pareto frontier that strongly favors the preservation of representation utility for Bias in Bios .The dual counterfactual mapping induced by MUtE enable its application as a data augmentation technique to train fair classifiers directly within the original representation space. Specifically, we train downstream classifiers on Bias in Bios and DIAL using 50k original samples paired with their 50k generated counter-factuals, yielding a balanced 100k-sample training corpus. We evaluate two distinct supervisory regimes: (1) Oracle-Supervised (MUtE ∗←): Concept and task labels are jointly available during training, allowing us to generate exact counterfactual representations using the theoretical MUtE ∗ function, and (2) Disjoint-9Table 3: Fairness evaluation after data augmentation. Best results (excluding original representations) in bold. 
+
+Model ay (%) ↑ TPR RMS ↓ DP ↓
+
+Bias in Bios 
+
+orig. 78.3 ± 0.2 0.171 ± 0.010 0.568 ± 0.007 
+
+Mean diff. 73.9 ± 0.2 0.136 ± 0.007 0.534 ± 0.005 
+
+Linear OT 73.3 ± 0.2 0.099 ± 0.005 0.449 ± 0.006 
+
+MUtE ∗← 75.6 ± 0.6 0.099 ± 0.003 0.464 ± 0.010 
+
+MUtE ← 76.1 ± 0.4 0.105 ± 0.006 0.470 ± 0.013 
+
+DIAL 
+
+orig. 75.8 ± 0.1 0.155 ± 0.003 0.268 ± 0.006 
+
+Mean diff. 75.5 ± 0.1 0.154 ± 0.005 0.265 ± 0.010 
+
+Linear OT 75.5 ± 0.2 0.144 ± 0.010 0.243 ± 0.024 
+
+MUtE ∗← 75.3 ± 0.3 0.114 ± 0.006 0.168 ± 0.014 
+
+MUtE ← 75.6 ± 0.1 0.109 ± 0.007 0.154 ± 0.017 
+
+Supervised (MUtE ←): Concept and task labels reside in mutually exclusive training sets, MUtE is optimized strictly on the concept-annotated partition and subsequently deployed to augment the task-annotated parti-tion. We benchmark these approaches against two latent steering interventions for counterfactual generation: class-conditional centroid translation (Mean Diff.) (Subramani et al., 2022; Singh et al., 2024) and class-conditional linear optimal transport (Linear OT) (Singh et al., 2024). As shown in Table 3, counterfactual augmentation via MUtE ∗← and MUtE ← drives significant fairness gains in the original representation space, consistently rivaling or outperforming linear steering techniques. 
+
+4.4 Counterfactual text generation 
+
+We evaluate the quality of counterfactual representations generated by MUtE ∗← against linear steering base-lines in the context of discrete text generation. Using the continuous-to-discrete text inversion framework proposed by Morris et al. (2023), we project the counterfactual embeddings back into the natural language space. Specifically, we train a 4-iteration MUtE ∗ model on GTR embeddings (Ni et al., 2022) derived from the Bias in Bios dataset. For test sequences under 32 tokens ( N = 628, bounded by the maximum se-quence length observed during the inversion model’s training), we generate counterfactual embeddings using MUtE ∗←, Mean Difference, and Linear OT, which are subsequently decoded into text. To isolate the impact of the optimization objective from the functional capacity of the mapping, we also train a class-conditional linear surrogate of MUtE ∗← via linear regressions to approximate the counterfactual mappings (male ←
+
+female and female ← male). We benchmark the decoded texts against ground-truth textual counterfactu-als—constructed via rule-based substitutions (De-Arteaga et al., 2019)—using BLEU and ROUGE (1/2/L 
+
+F1-scores) to measure lexical overlap, and BERTScore ( F1) to quantify dense semantic preservation. Finally, to evaluate the efficacy of the latent intervention, we define the gender substitution rate (rg) as the propor-tion of generated gender indicators ( he, him, his, mr, m, himself and she, her, hers, ms, mrs, herself ) that successfully match the target counterfactual class. Qualitative examples of the inverted mapping, MUtE ∗← (Table 4), demonstrate effective gender substitution with high semantic fidelity. Quantitatively (Table 5), although texts decoded from MUtE ∗← exhibit lower 
+
+n-gram overlap (BLEU/ROUGE) with the source text compared to baselines, they sustain high BERTScores and achieve a significantly superior gender substitution rate. This discrepancy exposes a fundamental fail-ure mode of standard linear steering baselines: their high lexical overlap is largely an artifact of under-intervention. Operating essentially as near-identity functions, these methods artificially inflate n-gram met-rics by passively reconstructing the original text. In contrast, by enforcing high-order alignment of the conditional distributions, MUtE ∗← induces deep structural alterations to execute a robust semantic interven-tion, while preserving the core semantic utility. Notably, the linear surrogate derived from MUtE ∗← achieves 10 Table 4: Counterfactual texts decoded after intervention on gender via MUtE ∗← and Linear OT steering on the Bias in Bios dataset. Original gender markers are bolded . Post-intervention markers that successfully align with the target gender are highlighted in green and bolded, whereas contradictory or unchanged markers are highlighted in red and italic. 
+
+Model Gender Text 
+
+original male He received his BA in Mathematics Education from Mercyhurst College in Eric, Pennsylvania, and his PhD in Mathematics from the University of South Carolina. 
+
+Linear OT female He received her BA in Mathematics Education from Mercyhurst College in Eric, Pennsyl-vania, and her PhD in Mathematics from the University of South Carolina, Tri Carolina. 
+
+MUtE ∗← female She received her BA in Mathematics Education from Mercyhurst College in South Car-olina, and her PhD in the Department of Mathematics and Education at Eric University in Pennsylvania. 
+
+original female She participated in projects concerning data analysis. Her research interests include applica-tions of game theory to queueing networks, and to inventory management. 
+
+Linear OT male She participated in projects related to data analysis. His research interests include applica-tions of game theory to inventory management, data management, and queueing networks . 
+
+MUtE ∗← male He participated on projects related to data analysis. His research interests include applica-tions of game theory to inventory management, and stochastic queueing game networks. 
+
+Table 5: Counterfactual text generation evaluation. True CFR (CounterFactual Representation) corre-sponds to texts decoded from the embeddings of true counterfactual text. 
+
+Model BLEU ↑ ROUGE ↑ rg ↑ BERTScore ↑
+
+True CFR 78.68 .92/.80/.88 .98 0.98 
+
+Mean diff. 61.00 .84/.64/.78 .46 0.97 Linear OT 60.45 .85/.65/.78 .65 0.97 MUtE ∗← 32.93 .67/.38/.57 .85 0.93 
+
+↪→ Linear Surrogate 31.18 .66/.36/.56 .92 0.93 comparable efficacy, thereby introducing a novel, computationally efficient linear steering mechanism for targeted concept intervention. 
+
+# 5 Discussion and Future Directions 
+
+This work builds upon recent frameworks unifying concept erasure and counterfactual representation genera-tion, demonstrating they are fundamentally dual interventions. By formalizing the navigation between erased and counterfactual continuous spaces via diffeomorphisms, our approach establishes a versatile paradigm that readily extends beyond NLP. Our approach bypasses gradient-based optimization, yielding an efficient, deterministic training phase in high-dimensional continuous spaces. This training efficiency, however, trades off against inference latency: the forward mapping cost scales linearly with the number of iterations T required for convergence. To cir-cumvent the O(T ) inference bottleneck, the exact multi-step mapping f can be distilled into an amortized surrogate fθ by minimizing the regression loss L = E [∥f (X) − fθ (X)∥22
+
+]. This offline distillation seam-lessly accommodates diverse deployment constraints. To strictly preserve the bijectivity required for dual counterfactual generation, fθ can be parameterized using class-specific Invertible Neural Networks (INNs) or memory-efficient Conditional INNs (cINNs) (Ardizzone et al., 2020). When solely forward erasure is required, relaxing the bijectivity constraint via standard feed-forward networks (e.g., MLPs) maximizes inference throughput. 11 As a preliminary proof-of-concept, we empirically demonstrate in Appendix E that a MLP surrogate suc-cessfully preserves both the predictive utility and fairness guarantees of the exact MUtE representations on downstream tasks. This confirms that a lightweight feed-forward network can adequately approximate the underlying transformations, offering an efficient alternative for practical deployment. We leave extensive evaluations of these distillation strategies to future work. Beyond resolving computational limitations, subsequent research must expand the framework’s causal ex-pressivity. While our current empirical estimator enforces a rigid translational bias, real-world causal factors of variation frequently interact via complex, non-linear mechanisms exhibiting heterogeneous geometric sig-natures (Schölkopf et al., 2021). Formulating and integrating expressive geometric priors to capture these diverse, non-linear causal interventions remains an open challenge that necessitates novel theoretical ap-proaches and dedicated future research. 
+
+# 6 Conclusion 
+
+This work revisits the problem of discrete concept erasure at optimality, formally defined as achieving perfect privacy while maximizing downstream utility preservation. We derive a class of theoretically optimal erasure functions that naturally induce a dual, deterministic counterfactual mapping within the continuous representation space. To bridge theory and practice, we propose a computationally tractable implementation that aligns with this theoretical framework. We demonstrate its empirical efficacy across real-world Natural Language Processing tasks, successfully exploiting the geometric phenomenon that many latent concepts in modern language models manifest as rigid location shifts. Notably, our method proves highly effective for both algorithmic bias mitigation and the generation of counterfactual texts. Future work will explore extending this framework to other data modalities such as image representations in computer vision, and integrating complex geometric priors to model diverse causal interventions. 
+
+# Limitations 
+
+Our framework is strictly formulated for the erasure of a single, discrete concept. It does not naturally extend to continuous sensitive attributes—a regime where methods such as FaRM (Chowdhury & Chaturvedi, 2022) and KRaM (Chowdhury et al., 2023) are currently better suited—nor does it directly accommodate the simultaneous joint erasure of multiple intersecting concepts. While enforcing a translational geometric prior is highly effective for many latent concepts in modern text encoders, real-world causal factors of variation frequently interact via highly non-linear mechanisms. Conse-quently, applying MUtE to arbitrarily complex, entangled representations without verifying the underlying topological assumptions risks suboptimal or unpredictable interventions. 
+
+# Ethical Considerations 
+
+In this work, we intervene on sensitive demographic attributes—such as gender, race, and religion—by for-mulating them as discrete categorical variables drawn from a restricted label set. In real-world applications, operationalizing these attributes requires rigorous consensus, a process frequently hindered by heterogeneous cultural, ethical, and legal contexts. Furthermore, the forced erasure of concept-related representations in-herently induces a loss of information. This utility degradation can severely impair downstream predictive performance, posing significant risks when deploying these models in high-stakes domains (e.g., healthcare, criminal justice, or resource allocation). Consequently, algorithmic fairness cannot be the sole evaluation criterion in practice. Finally, targeted interventions on specific data dimensions carry unintended systemic risks: erasing a single sensitive attribute may inadvertently incentivize the model to exploit unprotected proxy variables, potentially exacerbating representation biases against intersecting demographic groups. 12 References 
+
+Jigsaw unintended bias in toxicity classification, 2019. URL https://www.kaggle.com/c/ jigsaw-unintended-bias-in-toxicity-classification/data .Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 , 2023. Eneko Agirre, Enrique Alfonseca, Keith Hall, Jana Kravalova, Marius Paşca, and Aitor Soroa. A study on similarity and relatedness using distributional and WordNet-based approaches. In Mari Ostendorf, Michael Collins, Shri Narayanan, Douglas W. Oard, and Lucy Vanderwende (eds.), Proceedings of Human Language Technologies: The 2009 Annual Conference of the North American Chapter of the Association for Computational Linguistics , pp. 19–27, Boulder, Colorado, June 2009. Association for Computational Linguistics. Lynton Ardizzone, Jakob Kruse, Carsten Lüth, Niels Bracher, Carsten Rother, and Ullrich Köthe. Condi-tional invertible neural networks for diverse image-to-image translation. In DAGM German Conference on Pattern Recognition , pp. 373–387. Springer, 2020. Matan Avitan, Ryan Cotterell, Yoav Goldberg, and Shauli Ravfogel. A practical method for generating string counterfactuals. In Findings of the Association for Computational Linguistics: NAACL 2025 , pp. 3267–3286, 2025. Nora Belrose, David Schneider-Joseph, Shauli Ravfogel, Ryan Cotterell, Edward Raff, and Stella Biderman. LEACE: Perfect linear concept erasure in closed form. In Thirty-seventh Conference on Neural Information Processing Systems , 2023. Su Lin Blodgett, Lisa Green, and Brendan O’Connor. Demographic dialectal variation in social media: A case study of african-american english. In Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing , pp. 1119–1130, 2016. Tolga Bolukbasi, Kai-Wei Chang, James Y Zou, Venkatesh Saligrama, and Adam T Kalai. Man is to computer programmer as woman is to homemaker? debiasing word embeddings. Advances in neural information processing systems , 29, 2016. Somnath Basu Roy Chowdhury and Snigdha Chaturvedi. Learning fair representations via rate-distortion maximization. Transactions of the Association for Computational Linguistics , 10:1159–1174, 2022. doi: 10.1162/tacl_a_00512. Somnath Basu Roy Chowdhury, Nicholas Monath, Kumar Avinava Dubey, Amr Ahmed, and Snigdha Chaturvedi. Robust concept erasure via kernelized rate-distortion maximization. Advances in Neural Information Processing Systems , 36, 2023. Somnath Basu Roy Chowdhury, Kumar Avinava Dubey, Ahmad Beirami, Rahul Kidambi, Nicholas Monath, Amr Ahmed, and Snigdha Chaturvedi. Fundamental limits of perfect concept erasure. In Yingzhen Li, Stephan Mandt, Shipra Agrawal, and Emtiyaz Khan (eds.), Proceedings of The 28th International Confer-ence on Artificial Intelligence and Statistics , volume 258 of Proceedings of Machine Learning Research , pp. 901–909. PMLR, 03–05 May 2025. URL https://proceedings.mlr.press/v258/chowdhury25a.html .Maria De-Arteaga, Alexey Romanov, Hanna Wallach, Jennifer Chayes, Christian Borgs, Alexandra Choulde-chova, Sahin Geyik, Krishnaram Kenthapadi, and Adam Tauman Kalai. Bias in bios: A case study of semantic representation bias in a high-stakes setting. In Proceedings of the Conference on Fairness, Accountability, and Transparency , FAT* ’19, pp. 120–128, New York, NY, USA, 2019. Association for Computing Machinery. ISBN 9781450361255. doi: 10.1145/3287560.3287572. Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidirectional transformers for language understanding. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, NAACL-HLT 2019 , volume 1, pp. 4171—-4186, Minneapolis, MN, USA, 2019. Association for Computational Linguistics. 13 Amir Feder, Nadav Oved, Uri Shalit, and Roi Reichart. Causalm: Causal model explanation through counterfactual language models. Computational Linguistics , 47(2):333–386, 2021. Yaroslav Ganin, Evgeniya Ustinova, Hana Ajakan, Pascal Germain, Hugo Larochelle, François Laviolette, Mario March, and Victor Lempitsky. Domain-adversarial training of neural networks. Journal of machine learning research , 17(59):1–35, 2016. Aapo Hyvarinen, Hiroaki Sasaki, and Richard Turner. Nonlinear ica using auxiliary variables and generalized contrastive learning. In Kamalika Chaudhuri and Masashi Sugiyama (eds.), Proceedings of the Twenty-Second International Conference on Artificial Intelligence and Statistics , volume 89 of Proceedings of Machine Learning Research , pp. 859–868. PMLR, 16–18 Apr 2019. URL https://proceedings.mlr. press/v89/hyvarinen19a.html .Ian T Jolliffe and Jorge Cadima. Principal component analysis: a review and recent developments. Philo-sophical transactions of the royal society A: Mathematical, Physical and Engineering Sciences , 374(2065): 20150202, 2016. Fanny Jourdan, Louis Béthune, Agustin Picard, Laurent Risser, and Nicholas Asher. Taco: Targeted concept erasure prevents non-linear classifiers from detecting protected attributes. arXiv preprint arXiv:2312.06499 , 2024. Valero Laparra, Gustavo Camps-Valls, and Jesús Malo. Iterative gaussianization: from ica to random rotations. IEEE transactions on neural networks , 22(4):537–549, 2011. Pirmin Lemberger and Antoine Saillenfest. Explaining text classifiers with counterfactual representations. In Ulle Endriss, Francisco S. Melo, Kerstin Bach, Alberto José Bugarín Diz, Jose Maria Alonso-Moral, Senén Barro, and Fredrik Heintz (eds.), ECAI 2024 - 27th European Conference on Artificial Intelligence ,volume 392 of Frontiers in Artificial Intelligence and Applications , pp. 890–897. IOS Press, 2024. doi: 10.3233/FAIA240576. John Morris, Volodymyr Kuleshov, Vitaly Shmatikov, and Alexander M Rush. Text embeddings reveal (almost) as much as text. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pp. 12448–12460, 2023. Jianmo Ni, Chen Qu, Jing Lu, Zhuyun Dai, Gustavo Hernandez Abrego, Ji Ma, Vincent Zhao, Yi Luan, Keith Hall, Ming-Wei Chang, et al. Large dual encoders are generalizable retrievers. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing , pp. 9844–9855, 2022. Fabian Pedregosa, Gaël Varoquaux, Alexandre Gramfort, Vincent Michel, Bertrand Thirion, Olivier Grisel, Mathieu Blondel, Peter Prettenhofer, Ron Weiss, Vincent Dubourg, et al. Scikit-learn: Machine learning in python. the Journal of machine Learning research , 12:2825–2830, 2011. Jeffrey Pennington, Richard Socher, and Christopher D Manning. Glove: Global vectors for word representa-tion. In Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP) ,pp. 1532–1543, 2014. Shauli Ravfogel, Yanai Elazar, Hila Gonen, Michael Twiton, and Yoav Goldberg. Null it out: Guarding protected attributes by iterative nullspace projection. In Dan Jurafsky, Joyce Chai, Natalie Schluter, and Joel Tetreault (eds.), Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , pp. 7237–7256, Online, July 2020. Association for Computational Linguistics. doi: 10.18653/ v1/2020.acl-main.647. Shauli Ravfogel, Michael Twiton, Yoav Goldberg, and Ryan D Cotterell. Linear adversarial concept erasure. In International Conference on Machine Learning , pp. 18400–18421. PMLR, 2022a. Shauli Ravfogel, Francisco Vargas, Yoav Goldberg, and Ryan Cotterell. Adversarial concept erasure in kernel space. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing , pp. 6034–6055, 2022b. 14 Shauli Ravfogel, Yoav Goldberg, and Ryan Cotterell. Log-linear guardedness and its implications. In 
+
+Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 9413–9431, 2023. Antoine Saillenfest and Pirmin Lemberger. Nonlinear concept erasure: A density matching approach. In Inês Lynce, Nello Murano, Mauro Vallati, Serena Villata, Federico Chesani, Michela Milano, Andrea Omicini, and Mehdi Dastani (eds.), ECAI 2025 - 28th European Conference on Artificial Intelligence ,volume 413 of Frontiers in Artificial Intelligence and Applications , pp. 2138–2145. IOS Press, 2025. doi: 10.3233/FAIA251053. Bernhard Schölkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, and Yoshua Bengio. Toward causal representation learning. Proceedings of the IEEE , 109(5): 612–634, 2021. Shashwat Singh, Shauli Ravfogel, Jonathan Herzig, Roee Aharoni, Ryan Cotterell, and Ponnurangam Ku-maraguru. Representation surgery: theory and practice of affine steering. In Proceedings of the 41st International Conference on Machine Learning , pp. 45663–45680, 2024. Nishant Subramani, Nivedita Suresh, and Matthew Peters. Extracting latent steering vectors from pre-trained language models. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio (eds.), Find-ings of the Association for Computational Linguistics: ACL 2022 , pp. 566–581, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.findings-acl.48. URL https: //aclanthology.org/2022.findings-acl.48/ .Francisco Vargas and Ryan Cotterell. Exploring the linear subspace hypothesis in gender bias mitigation. In Bonnie Webber, Trevor Cohn, Yulan He, and Yang Liu (eds.), Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pp. 2902–2913, Online, November 2020. Association for Computational Linguistics. doi: 10.18653/v1/2020.emnlp-main.232. 15 A Conditional Negentropy Evolution 
+
+In this section, we analyse the evolution of the negentropy for each class of samples. We first compute the theoretical negentropy reduction under a perfect routing assumption (Section A.1). Subsequently, we rigorously evaluate the negentropy evolution under the empirical noisy routing assumption (Section A.2). Let i ∈ Z denote a target concept class and t denote an arbitrary iteration step of MUtE. Let R(t) and 
+
+{ψ(t) 
+
+> k
+
+}k∈Z be the orthogonal rotation matrix and the class-conditional marginal Gaussianizations at step t,respectively. For notational brevity, we omit the iteration superscript ( t) where unambiguous. Let X(t) 
+
+> i
+
+be a random variable distributed according to the true class-conditional probability density function (PDF) p(t) 
+
+> i
+
+. We define the rotated variable as ˜Xi = RX (t) 
+
+> i
+
+, with corresponding joint PDF ˜ p(t) 
+
+> i
+
+and marginal PDFs ˜ p(t) 
+
+> i,d
+
+for each dimension d ∈ { 1, . . . , D }.We denote the rotated decision regions, partitioned by the potentially noisy empirical predictor η∗, as ˜Ωk = {˜x ∈ RD | η∗(R−1 ˜x) = k}. Using the indicator function I˜Ωk , the piecewise forward mapping of a sample x ∼ X(t) 
+
+> i
+
+(Equation 11) can be expressed over the rotated space as: 
+
+x(t+1) = ψη∗(x)(Rx ) = ∑
+
+> k∈Z
+
+I˜Ωk (˜ x)ψk(˜ x)Consequently, the pushforward measure for the entire class i is given by: 
+
+X(t+1)  
+
+> i
+
+= ∑
+
+> k∈Z
+
+I˜Ωk ( ˜Xi)ψk( ˜Xi) (15) We track the convergence using the negentropy J(X) = DKL (P ∥ N (0 , I )), which can be decomposed into the differential entropy and a cross-entropy penalty against the standard normal PDF ϕ (which is the derivative of the standard normal CDF Φ ′(x) = ϕ(x)): 
+
+J(X) = −h(X) − Ex∼X
+
+[
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+ϕ(xd)
+
+]
+
+(16) where the differential entropy is defined as: 
+
+h(X) = −Ex∼X [log p(x)] (17) 
+
+A.1 Negentropy Reduction Under Perfect Routing 
+
+Under the assumption of an optimal oracle predictor ( η∗(x) = i), all samples belonging to class i are trans-formed strictly via the corresponding diffeomorphism ψi ◦ R. Following standard Iterative Gaussianization (RBIG) principles (Laparra et al., 2011), each transformation strictly reduces the negentropy of the distri-bution. The negentropy reduction under perfect routing is: ∆J∗ 
+
+> i
+
+= J(X(t) 
+
+> i
+
+) − J(( ψi ◦ R)( X(t) 
+
+> i
+
+)) Because orthogonal rotations are entropy-preserving isometries, J(X(t) 
+
+> i
+
+) = J( ˜Xi). Thus: ∆J∗ 
+
+> i
+
+= J( ˜Xi) − J(ψi( ˜Xi)) Recalling property 3.1 from Laparra et al. (2011), this reduction exactly equals the sum of the marginal negentropies of the rotated representations: ∆J∗ 
+
+> i
+
+=
+
+> D
+
+∑
+
+> d=1
+
+E˜x∼ ˜Xi
+
+[
+
+log ˜p(t)
+
+> i,d
+
+(˜ xd)
+
+ϕ(˜ xd)
+
+]
+
+≥ 016 A.2 Negentropy Evolution Under Noisy Routing 
+
+We now evaluate the evolution of the negentropy ∆ Ji under a realistic noisy routing regime, where overlaps in conditional distributions yield an irreducible Bayes error. The exact negentropy reduction can be decomposed as: ∆Ji = J(X(t) 
+
+> i
+
+) − J(X(t+1)  
+
+> i
+
+)= ∆ J∗ 
+
+> i
+
+−
+
+(
+
+J(X(t+1)  
+
+> i
+
+) − J(ψi( ˜Xi)) 
+
+)︸ ︷︷ ︸
+
+> := Ei
+
+(18) To explicitly compute J(X(t+1)  
+
+> i
+
+), we first evaluate the differential entropy h(X(t+1)  
+
+> i
+
+) of the shattered push-forward measure (Equation 16). To rigorously account for the non-differentiable decision boundaries ∂ ˜Ωk,we decompose the integral over the latent space into a piecewise sum over the disjoint regions ˜Ωk. Because the boundaries possess a Lebesgue measure of zero, they do not contribute to the integral: 
+
+h(X(t+1)  
+
+> i
+
+) = − ∑
+
+> k∈Z
+
+∫
+
+> ˜Ωk
+
+p(t+1)  
+
+> i
+
+(y) log p(t+1)  
+
+> i
+
+(y)dy 
+
+Applying the change of variables y = ψk(˜ x) locally within the interior of each region ˜Ωk yields: 
+
+h(X(t+1)  
+
+> i
+
+) = − ∑
+
+> k∈Z
+
+∫˜Ωk ˜p(t) 
+
+> i
+
+(˜ x) log 
+
+( ˜p(t)    
+
+> i(˜ x)
+> |det Jψk(˜ x)|
+
+)
+
+d˜x
+
+= h( ˜Xi) + ∑
+
+> k∈Z
+
+∫˜Ωk ˜p(t) 
+
+> i
+
+(˜ x) log ( | det Jψk (˜ x)|) d˜x
+
+(19) Because the marginal transformation ψk operates independently across dimensions, its Jacobian matrix Jψk
+
+is purely diagonal: det Jψk (˜ x) = 
+
+> D
+
+∏
+
+> d=1
+
+dd˜xd
+
+ψk,d (˜ xd)Applying the chain rule and the inverse function theorem to the marginal uniformization 
+
+ψk,d (˜ xd) = Φ −1
+
+(∫ ˜xd 
+
+> −∞
+
+p(t)
+
+> k,d
+
+(u)du 
+
+)
+
+(Equation 12), we have: 
+
+dd˜xd
+
+ψk,d (˜ xd) = ˜p(t)
+
+> k,d
+
+(˜ xd)
+
+ϕ(ψk,d (˜ xd)) And thus: 
+
+| det Jψk (˜ x)| =
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> k,d
+
+(˜ xd)
+
+ϕ(ψk,d (˜ xd)) (20) Substituting Equation 20 back into the differential entropy expansion (Equation 19), and aggregating the piecewise integrals via the empirical predictor η∗(x), we obtain: 
+
+h(X(t+1)  
+
+> i
+
+) = h( ˜Xi) + E˜x∼ ˜Xi
+
+[
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> η∗(x),d
+
+(˜ xd)
+
+]
+
+− E˜x∼ ˜Xi
+
+[
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+ϕ(ψη∗(x),d (˜ xd)) 
+
+]
+
+(21) We formulate the negentropy of the pushforward measure J(X(t+1)  
+
+> i
+
+) by substituting Equation 21 into Equa-tion 16. Observing that the standard normal cross-entropy terms exactly cancel out, the expression simplifies to: 
+
+J(X(t+1)  
+
+> i
+
+) = −h( ˜Xi) − E˜x∼ ˜Xi
+
+[
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> η∗(x),d
+
+(˜ xd)
+
+]
+
+(22) 17 By corollary, the negentropy term corresponding to a perfect oracle routing ( J(ψi( ˜Xi))) is recovered by uniformly substituting η∗(x) = i:
+
+J(ψi( ˜Xi)) = −h( ˜Xi) − E˜x∼ ˜Xi
+
+[
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> i,d
+
+(˜ xd)
+
+]
+
+(23) Subtracting Equation 23 from Equation 22 isolates the routing penalty Ei introduced in Equation 18: 
+
+Ei = E˜x∼ ˜Xi
+
+log 
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> i,d
+
+(˜ xd)˜p(t)
+
+> η∗(x),d
+
+(˜ xd)
+
+ (24) It needs to be noted that Ei is entirely dictated by the misclassified regions, and rewrites as: 
+
+Ei = ∑ 
+
+> k̸=i
+
+∫
+
+> ˜Ωk
+
+˜p(t) 
+
+> i
+
+(˜ x) log 
+
+> D
+
+∏
+
+> d=1
+
+˜p(t)
+
+> i,d
+
+(˜ xd)˜p(t)
+
+> k,d
+
+(˜ xd) d˜ x (25) The term Ei represents the exact entropic penalty incurred by spatial tearing. It mathematically quantifies the cross-entropy mismatch caused by evaluating the true marginal density ˜ p(t) 
+
+> i,d
+
+using the estimators of the mispredicted class ˜ p(t)
+
+> η∗(x),d
+
+. Because the decision boundaries ∂ ˜Ωk are non-differentiable, samples routed incorrectly inevitably inject non-Gaussian artifacts into the pushforward measure. Consequently, strict monotonic negentropy reduction (∆ Ji > 0) is not guaranteed. Noisy routing injects entropy ( Ei > 0), while the subsequent rotation and exact marginalization forcibly remove it (∆ J∗ 
+
+> i
+
+> 0). Crucially, Equation 25 demonstrates that the penalty Ei diverges to infinity if a mispredicted marginal density ˜ p(t) 
+
+> k,d
+
+evaluates to zero over regions where the true density ˜ p(t) 
+
+> i,d
+
+is strictly positive. To rigorously constrain this divergence in practice, we enforce a strict minimum threshold α > 0 on all empirical marginal density estimators. By bounding the denominator, the maximum log-ratio across all D dimensions becomes strictly finite. Defining ϵi = ∑ 
+
+> k̸=i
+
+∫˜Ωk ˜p(t) 
+
+> i
+
+(˜ x) d˜ x ≡ P(η∗( ˜Xi)̸ = i) as the class-specific empirical routing error, we can factor it out of the domain of integration, yielding an upper bound of: 
+
+Ei ≤ O (−ϵiD log α) (26) This thresholding strategy guarantees a strictly finite supremum for the spatial tearing penalty, explicitly tying the worst-case algorithmic instability to the intrinsic Bayes error of the latent space. 
+
+# B Datasets 
+
+GloVe This dataset is a subset of the 150,000 most frequent word embeddings from the original GloVe 
+
+corpus Pennington et al. (2014). Words are categorized into three discrete concept classes (male-biased, female-biased, and neutral) based on the magnitude of their projection onto the gender direction. This direction is formally defined as the principal component of the subspace spanned by gendered word-pair differences. The dataset comprises 21,996 embeddings, partitioned into 10,777 for training (49%), 4,620 for validation (21%), and 6,599 for testing (30%). 
+
+Bias in Bios This is a real-world benchmark of short biographies scraped from the web, designed specifi-cally to study gender bias in NLP De-Arteaga et al. (2019). Each sample is annotated with a binary gender attribute and one of 28 occupation labels. We utilize the subset curated by Ravfogel et al. (2020), which pre-serves ∼98% of the original corpus. The dataset exhibits severe historical gender-occupation correlations. It contains 399,423 biographies, stratified by occupation into 255,710 training (64%), 39,369 validation (10%), and 98,344 testing (25%) samples. 18 DIAL Derived from the DeepMoji corpus Blodgett et al. (2016), DIAL is a Twitter-based sentiment classification benchmark. Each observation includes a binary downstream sentiment label ( happy or sad )and a binary demographic attribute corresponding to the linguistic dialect: African-American English (AAE) or Standard American English (SAE). We adopt the version pre-processed by Chowdhury et al. (2023), which guarantees perfect balance across both race and sentiment labels. The dataset totals 175,996 samples, split into 160,000 for training (91%), 8,000 for validation (4.5%), and 7,996 for testing (4.5%). 
+
+Jigsaw Based on the Jigsaw Toxicity Classification benchmark, this dataset is used for the downstream task of binary toxicity detection. We target religion as the sensitive concept, operationalized as a discrete categorical variable with five labels: Buddhist , Christian , Hindu , Jewish , and Muslim . The corpus comprises 96,492 samples, divided into 87,434 for training (91%) and 9,058 for testing (9%). 
+
+# C Training 
+
+C.1 Hardware and Environment 
+
+All experiments are conducted on an NVIDIA GeForce RTX 2080 Ti GPU with 11GB of VRAM and an Intel(R) Core(TM) i9-9900K CPU, using PyTorch 2.8.0 and Python 3.12.9. We employ CUDA 12.6 for accelerated computations. 
+
+C.2 MUtE 
+
+We selected T via early stopping, halting the procedure when the validation probe accuracy plateaued at the majority-class baseline, resulting in: T = 100 for GloVe , T = 70 for Bias in Bios , T = 150 for DIAL 
+
+and Jigsaw .
+
+C.3 Other models settings 
+
+LEACE. We relied on the publicly available implementation from: 
+
+https://github.com/EleutherAI/concept-erasure .
+
+KRaM and FaRM. We reimplement both KRaM Chowdhury et al. (2023) and FaRM Chowdhury & Chaturvedi (2022) following a standardized training protocol. For both architectures, the hidden dimension at each layer is strictly constrained to match the input feature dimension. Network depth is task-dependent: we utilize 4 layers for GloVe , Bias in Bios , and Jigsaw , and 7 layers for DIAL . The networks are optimized over 50 epochs with a batch size of 512, utilizing a learning rate of 10 −3 and a weight decay coefficient of 10 −5. For the KRaM objective specifically, the regularization weighting hyperparameter is set to λ = 0 .7. 
+
+LEOPARD. We reimplemented the LEOPARD framework Saillenfest & Lemberger (2025). For the 
+
+GloVe , Bias in bios , and DIAL datasets, we adopted the exact hyperparameter configurations recom-mended by the original authors. Lacking explicit guidelines for Jigsaw , we applied the DIAL configuration to this dataset. Cascaded training was employed across all settings. Specifically, models were trained for 1000 epochs on GloVe , 100 epochs on Bias in bios , and 200 epochs on both DIAL and Jigsaw , utiliz-ing batch sizes of 10777, 8192, and 2048, respectively. The regularization parameter γ was set to 200 for 
+
+GloVe and 100 for all other datasets. The initial learning rate was configured to 1 .0 × 10 −3 for GloVe 
+
+and 5 .0 × 10 −4 for the remaining datasets, subject to a step decay factor of 0 .1 at the training midpoint. 
+
+TaCo. We reimplemented the TaCo framework Jourdan et al. (2024). Standard TaCo operates as a constrained nonlinear erasure method, optimizing post-erasure representations by ranking removal directions according to their joint importance to both the target concept and a predefined downstream label. For a fair evaluation against unconstrained baselines, we ablated this downstream dependency. Specifically, we adapted TaCo to rank directions based exclusively on their relevance to the target concept, quantified via variance-based sensitivity analysis using Sobol indices. Consistent with Jourdan et al. (2024), we initially apply PCA 19 Model Inference time ay (%) ↑ TPR RMS ↓ DP ↓ az (%)                                                     
+
+> Bias in Bios
+> MUtE 18.7s 70.2 ±0.2 0.091 ±0.002 0.391 ±0.004 53.2 ±0.4
+> MLP surrogate 2.1s 71.9 ±0.2 0.089 ±0.005 0.413 ±0.005 53.3 ±0.2
+> DIAL
+> MUtE 14.0s 71.0 ±0.3 0.094 ±0.005 0.086 ±0.012 50.2 ±0.4
+> MLP surrogate 0.1s 71.4 ±0.1 0.091 ±0.006 0.092 ±0.016 50.0 ±0.4
+
+Table 6: Empirical evaluation of the MLP surrogate’s fidelity relative to the exact MUtE mapping. Inference time indicates the total duration required to map the respective test sets. Downstream performance and fairness metrics are evaluated using classifiers trained on the exact MUtE representations but tested on representations generated by the designated model at inference time. to project the representations onto a 100-dimensional subspace. To trace the Pareto front (Figure 3), we sweep the number of filtered dimensions from 5 to 95 by step of 5. 
+
+C.4 Evaluation Protocol 
+
+To evaluate representation quality, both the probing classifiers and the downstream task models are imple-mented via scikit-learn ’s MLPClassifier . The networks are optimized using a constant learning rate of 10 −4 for a maximum of 20 training epochs, which empirically proved sufficient for convergence. To en-sure statistical reliability, all reported accuracy and fairness metrics are averaged across five independent experimental runs. 
+
+# D Fairness Metrics 
+
+TPR RMS is the root mean square (RMS) of the sum of the bias quantified by computing the difference (Gap) in the true positive rate (TPR) of the classifier between individuals with different concept class labels. Formally, for a binary concept and downstream labels Y sampled from the set of downstream labels Y:TPR 0,y = p( ˆY = y|Z = 0 , Y = y)Gap y = TPR 1,y − TPR 0,y 
+
+TPR RMS =
+
+√ 1
+
+|Y| 
+
+∑
+
+> y∈Y
+
+(Gap y )2
+
+(27) Intuitively, the true-positive-rate of a “fair” classifier should not be sensitive to the values of the protected attributes. For completeness, we also report demographic parity which measures the difference in prediction w.r.t. to a protected attribute and is achieved when the probability of a certain prediction is not dependent on sensitive group membership: DP = ∑
+
+> y∈Y
+
+|p( ˆY = y|Z = 0) − p( ˆY = y|Z = 1) | (28) 
+
+# E Distillation of the MUtE Mapping 
+
+As a preliminary proof-of-concept for offline distillation, we approximate a pre-trained exact MUtE map-ping using a Multi-Layer Perceptron (MLP) surrogate. The surrogate pipeline comprises an initial Principal Component Analysis (PCA) whitening step (fitted on the training distribution) followed by a 4-layer MLP. 20 To ensure sufficient capacity, the hidden dimension is set to 2 d, where d represents the input feature di-mension. Intermediate layers consist of a linear transformation, Layer Normalization, and a tanh activation, culminating in a linear output layer. We train the surrogate model to minimize the Mean Squared Error (MSE) between its outputs and the exact MUtE representations. Optimization is performed using AdamW with a learning rate of 10 −3 and a batch size of 2 , 048 for a maximum of 1 , 500 epochs, holding out 2 , 000 samples for validation monitoring. As detailed in Table 6, the MLP surrogate strictly preserves both the predictive utility ( ay ) and the fairness guarantees (TPR RMS , DP, az ) of the exact MUtE mapping. Crucially, the surrogate accelerates inference by at least an order of magnitude. This empirically validates that a lightweight feed-forward network can successfully capture the underlying geometric manifold of the optimal erasure function, providing an efficient alternative for latency-sensitive downstream deployments. 21

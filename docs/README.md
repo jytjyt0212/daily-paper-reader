@@ -6,92 +6,89 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-09-11
-- 运行时间：2026-09-11 22:05:17 UTC
+- 最新运行日期：2026-09-12
+- 运行时间：2026-09-12 21:34:27 UTC
 - 运行状态：成功
-- 本次总论文数：24
-- 精读区：7
+- 本次总论文数：22
+- 精读区：5
 - 速读区：17
 
 ### 今日简报（AI）
-今日精读7篇、速读17篇，重点聚焦具身智能安全与世界模型两大前沿。最值得关注的是《Rethinking World Models for Safety-Critical Embodied Systems》和《Puffin-World》，均获9.0高分，分别探讨安全关键场景下的世界模型重构与原生3D世界状态的多模态统一建模。建议普通读者优先了解世界模型如何在自动驾驶、机器人等高风险场景中兼顾感知与安全决策。
-- 详情：[/202609/11/README](/202609/11/README)
+- 今日共生成 22 篇推荐（精读 5 篇，速读 17 篇）
+- 精读：《OpenWAM: An Open, Modular Exploration Towards Systematic World-Action Model Pretraining》（9.0/10）, 《Programmable World Model》（9.0/10）
+- 速读：《Geodesic-informed Generative Diffusion Model For Topology-preserved Image Video Generation》（7.0/10）, 《Logit Refiner: Improving Visual Autoregressive Models via Intra-Scale Dependency Modeling》（7.0/10）, 《SeamFlow: Structure-Aware Flow Matching on Edge Probabilities for Artist-Like UV Unwrapping》（6.0/10）
+- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
+- 详情：[/202609/12/README](/202609/12/README)
 
 ### 精读区论文标签
-1. [Rethinking World Models for Safety-Critical Embodied Systems](/202609/11/2609.03774v1-rethinking-world-models-for-safety-critical-embodied-systems)  
+1. [OpenWAM: An Open, Modular Exploration Towards Systematic World-Action Model Pretraining](/202609/12/2609.07398v1-openwam-an-open-modular-exploration-towards-systematic-world-action-model-pretraining)  
    标签：评分：9.0/10、query:world-models
-   evidence：重新思考安全关键具身系统的世界模型
-2. [Puffin-World: Scaling a Unified Multimodal Model with Native 3D World States](/202609/11/2609.04196v1-puffin-world-scaling-a-unified-multimodal-model-with-native-3d-world-states)  
+   evidence：世界-动作模型预训练架构
+2. [Programmable World Model](/202609/12/2609.10540v1-programmable-world-model)  
    标签：评分：9.0/10、query:world-models
-   evidence：具备原生3D世界状态的统一多模态世界模型
-3. [Flow Duality and Source Geometry for Categorical Generation](/202609/11/2609.10863v1-flow-duality-and-source-geometry-for-categorical-generation)  
-   标签：评分：9.0/10、query:gen-models
-   evidence：面向类别生成的流匹配对偶性
-4. [Coupled Control and Wireless World Models for Resilient Remote Robotic Control](/202609/11/2609.04851v1-coupled-control-and-wireless-world-models-for-resilient-remote-robotic-control)  
-   标签：评分：8.0/10、query:world-models
-   evidence：用于鲁棒机器人控制的JEPA世界模型
-5. [Data-Driven Risk Fields for Safer End-to-End Autonomous Driving](/202609/11/2609.10377v2-data-driven-risk-fields-for-safer-end-to-end-autonomous-driving)  
-   标签：评分：8.0/10、query:self-driving
-   evidence：带可学习风险场的端到端自动驾驶
-6. [Frequency-Conditioned Flow Matching for Vision-Language-Action Models](/202609/11/2609.10405v1-frequency-conditioned-flow-matching-for-vision-language-action-models)  
+   evidence：可编程世界模型架构
+3. [ReaDiT Guidance: Control for Image and Video Generation using Diffusion Transformer Features](/202609/12/2609.04649v1-readit-guidance-control-for-image-and-video-generation-using-diffusion-transformer-features)  
    标签：评分：8.0/10、query:gen-models
-   evidence：面向视觉-语言-动作模型的频率条件化流匹配
-7. [MC-DeTra: Motion-Consistent Joint Object Detection and Socially-Aware Trajectory Forecasting in Bird's-Eye-View Images](/202609/11/2609.11717v1-mc-detra-motion-consistent-joint-object-detection-and-socially-aware-trajectory-forecasting-in-birds-eye-view-images)  
-   标签：评分：8.0/10、query:self-driving
-   evidence：面向自动驾驶的联合检测与轨迹预测
+   evidence：利用扩散Transformer特征控制图像与视频生成
+4. [Learning Counterfactual World Models for Embodied Reasoning under Partial Observability](/202609/12/2609.05834v1-learning-counterfactual-world-models-for-embodied-reasoning-under-partial-observability)  
+   标签：评分：8.0/10、query:world-models
+   evidence：学习反事实世界模型以支持具身推理，直接聚焦世界模型的可行动性
+5. [Generalist Open-World Temporal Perception](/202609/12/2609.06823v1-generalist-open-world-temporal-perception)  
+   标签：评分：8.0/10、query:world-models
+   evidence：面向时序感知的多模态世界模型
 
 ### 速读区论文标签
-1. [Test-Time Weak-to-Strong Alignment: Transferring Implicit Rewards from Weak to Strong Flow Models](/202609/11/2609.05968v1-test-time-weak-to-strong-alignment-transferring-implicit-rewards-from-weak-to-strong-flow-models)  
+1. [Geodesic-informed Generative Diffusion Model For Topology-preserved Image Video Generation](/202609/12/2609.08153v1-geodesic-informed-generative-diffusion-model-for-topology-preserved-image-video-generation)  
    标签：评分：7.0/10、query:gen-models
-   evidence：面向文本到图像流模型的测试时对齐
-2. [A Multi-Modal Perception Pipeline for Object Detection and Tracking in Autonomous Racing](/202609/11/2609.08338v2-a-multi-modal-perception-pipeline-for-object-detection-and-tracking-in-autonomous-racing)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：面向自动驾驶检测跟踪的多模态后融合感知
-3. [Certified Topological Interaction in Neural Representations: Class Disentanglement Is Mostly Pairwise](/202609/11/2609.08561v1-certified-topological-interaction-in-neural-representations-class-disentanglement-is-mostly-pairwise)  
-   标签：评分：7.0/10、query:causal-rep
-   evidence：度量神经表征中的类别解耦
-4. [PlannerForge: LLM Agents for Scenario-Based Testing of Motion Planners in Autonomous Driving](/202609/11/2609.08965v1-plannerforge-llm-agents-for-scenario-based-testing-of-motion-planners-in-autonomous-driving)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：面向自动驾驶运动规划器场景测试的LLM智能体框架
-5. [Counterfactual Marginalisation: Framework for Evaluating Robustness to Nuisance Variables](/202609/11/2609.10778v1-counterfactual-marginalisation-framework-for-evaluating-robustness-to-nuisance-variables)  
-   标签：评分：7.0/10、query:cf-image-gen
-   evidence：用反事实图像生成器干预属性并聚合预测
-6. [Guide, Not Bind: Why Defeasible Priors Fail in Augmented Lagrangian Causal Discovery](/202609/11/2609.03442v1-guide-not-bind-why-defeasible-priors-fail-in-augmented-lagrangian-causal-discovery)  
+   evidence：测地线启发的扩散模型用于保拓扑图像视频生成
+2. [Logit Refiner: Improving Visual Autoregressive Models via Intra-Scale Dependency Modeling](/202609/12/2609.11804v1-logit-refiner-improving-visual-autoregressive-models-via-intra-scale-dependency-modeling)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：改进视觉自回归图像生成模型
+3. [SeamFlow: Structure-Aware Flow Matching on Edge Probabilities for Artist-Like UV Unwrapping](/202609/12/2609.04751v1-seamflow-structure-aware-flow-matching-on-edge-probabilities-for-artist-like-uv-unwrapping)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：用于生成式建模的流匹配方法
+4. [Diffusion Language Models for Mobile Edge Agentic AI: Foundations, Applications, and Challenges](/202609/12/2609.04778v1-diffusion-language-models-for-mobile-edge-agentic-ai-foundations-applications-and-challenges)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：用于文本生成的扩散语言模型
+5. [LayerRoute: Action-Conditioned Mixture-of-Layers Routing for Vision-Language-Action Policies](/202609/12/2609.06079v1-layerroute-action-conditioned-mixture-of-layers-routing-for-vision-language-action-policies)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：视觉-语言-动作策略，可迁移到自动驾驶VLA
+6. [Where Success Breaks: Failure-Boundary Learning for Robust Vision-Language-Action Models](/202609/12/2609.06114v1-where-success-breaks-failure-boundary-learning-for-robust-vision-language-action-models)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：视觉-语言-动作模型的鲁棒适配
+7. [Agentic Visual Generation: From Generative Models to Agentic Control](/202609/12/2609.06758v1-agentic-visual-generation-from-generative-models-to-agentic-control)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：以LLM/VLM为控制器的智能体化视觉生成
+8. [A Two-Stage Framework for Ego-Centric Key Object Identification via Object State Prediction](/202609/12/2609.07125v1-a-two-stage-framework-for-ego-centric-key-object-identification-via-object-state-prediction)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：面向自动驾驶感知的以自车为中心关键物体识别
+9. [VoT: Vision-of-Thought for Unified Multimodal Representation Alignment](/202609/12/2609.07815v1-vot-vision-of-thought-for-unified-multimodal-representation-alignment)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：文生图扩散Transformer合成
+10. [Transformers as In-Context Samplers: From Closed-Form Diffusion to Estimation-Free Sampling](/202609/12/2609.08981v1-transformers-as-in-context-samplers-from-closed-form-diffusion-to-estimation-free-sampling)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：Transformer实现闭式扩散采样器，将上下文学习与生成建模相连
+11. [Tensor Network Moral Graph Recovery of Discrete Probability Distributions](/202609/12/2609.09258v1-tensor-network-moral-graph-recovery-of-discrete-probability-distributions)  
    标签：评分：6.0/10、query:causal-rep
-   evidence：带专家先验的因果发现
-7. [Joint Alignment and Distillation for Video Generation via Sample-Guided Distribution Matching](/202609/11/2609.04283v1-joint-alignment-and-distillation-for-video-generation-via-sample-guided-distribution-matching)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：视频生成模型对齐与蒸馏
-8. [GenPuzzle: Benchmarking Visual Reasoning in Image Generation Models](/202609/11/2609.05902v1-genpuzzle-benchmarking-visual-reasoning-in-image-generation-models)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：图像生成模型视觉推理能力基准
-9. [MobileVLA-R1 2.0: RL-Enhanced Reasoning for Mobile Robot Control](/202609/11/2609.06251v1-mobilevla-r1-20-rl-enhanced-reasoning-for-mobile-robot-control)  
+   evidence：用张量网络恢复因果道德图
+12. [A Risk-Sensitive and Uncertainty-Aware Decision-Making and Control Framework for Safe and Robust Autonomous Driving](/202609/12/2609.09650v1-a-risk-sensitive-and-uncertainty-aware-decision-making-and-control-framework-for-safe-and-robust-autonomous-driving)  
    标签：评分：6.0/10、query:self-driving
-   evidence：面向机器人控制的强化学习增强VLA框架
-10. [Object-Aware Background-Controlled Editing via Weighted Velocity Guidance](/202609/11/2609.06288v1-object-aware-background-controlled-editing-via-weighted-velocity-guidance)  
-   标签：评分：6.0/10、query:cf-image-gen
-   evidence：基于速度引导的免训练物体感知图像编辑
-11. [Collision Snapshot Guided Time-Reversed Safety-Critical Scenario Generation](/202609/11/2609.06433v1-collision-snapshot-guided-time-reversed-safety-critical-scenario-generation)  
-   标签：评分：6.0/10、query:self-driving
-   evidence：面向自动驾驶的安全关键交通场景生成
-12. [ContextFlow: In-Context Flow Matching for Robot Manipulation](/202609/11/2609.06852v1-contextflow-in-context-flow-matching-for-robot-manipulation)  
+   evidence：面向安全自动驾驶的风险敏感不确定性感知决策控制框架
+13. [StreetDiff: Multi-view Street Scenes Generation via Cross-view Consistent Multi-view Stable Diffusion with Structure Prompts](/202609/12/2609.09890v1-streetdiff-multi-view-street-scenes-generation-via-cross-view-consistent-multi-view-stable-diffusion-with-structure-prompts)  
    标签：评分：6.0/10、query:gen-models
-   evidence：用于连续动作分布的条件流匹配模型
-13. [Nonparametric heterogeneous causal mediation with orthogonal machine learning](/202609/11/2609.08097v1-nonparametric-heterogeneous-causal-mediation-with-orthogonal-machine-learning)  
+   evidence：跨视图一致的多视图扩散街景图像生成
+14. [Shedding Light: A Benchmark for Evaluating Lighting Understanding in Generative Image Models](/202609/12/2609.10787v1-shedding-light-a-benchmark-for-evaluating-lighting-understanding-in-generative-image-models)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：评估生成图像模型光照理解能力的基准
+15. [MUtE: A Dual Framework for Concept Erasure and Counterfactual Interventions](/202609/12/2609.11253v1-mute-a-dual-framework-for-concept-erasure-and-counterfactual-interventions)  
    标签：评分：6.0/10、query:causal-rep
-   evidence：正交机器学习估计异质因果中介效应
-14. [Revisiting Spectral Representations in Generative Diffusion Models](/202609/11/2609.08253v1-revisiting-spectral-representations-in-generative-diffusion-models)  
+   evidence：概念擦除并诱导表征的对偶反事实映射
+16. [Deep operator learning for efficient sampling from invariant measures of stochastic differential equations](/202609/12/2609.11376v1-deep-operator-learning-for-efficient-sampling-from-invariant-measures-of-stochastic-differential-equations)  
    标签：评分：6.0/10、query:gen-models
-   evidence：谱表征学习与扩散生成模型
-15. [Dreaming in Flow: Generative Grounding Feedback for Self-Evolving Unified Multimodal Models](/202609/11/2609.08282v1-dreaming-in-flow-generative-grounding-feedback-for-self-evolving-unified-multimodal-models)  
+   evidence：算子学习结合流方法进行采样
+17. [Harnessing Intrinsic Subject-Aware Attention for Controllable Multi-Subject Video Generation](/202609/12/2609.11507v1-harnessing-intrinsic-subject-aware-attention-for-controllable-multi-subject-video-generation)  
    标签：评分：6.0/10、query:gen-models
-   evidence：流级反馈驱动自演化统一多模态生成
-16. [A Multi-Modal Perception Pipeline for Object Detection and Tracking in Autonomous Racing](/202609/11/2609.08338v1-a-multi-modal-perception-pipeline-for-object-detection-and-tracking-in-autonomous-racing)  
-   标签：评分：6.0/10、query:self-driving
-   evidence：面向自动驾驶的多模态融合感知
-17. [VeriScene: Reconstructing Crime Scenes from Legal Evidence via World-Model Agent](/202609/11/2609.08342v1-veriscene-reconstructing-crime-scenes-from-legal-evidence-via-world-model-agent)  
-   标签：评分：6.0/10、query:world-models
-   evidence：用世界模型智能体重建多模态场景
+   evidence：基于扩散Transformer的视频生成与注意力控制
 
 
 <div class="dpr-home-promo-card">
