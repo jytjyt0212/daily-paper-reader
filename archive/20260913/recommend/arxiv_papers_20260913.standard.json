@@ -1,0 +1,391 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-09-13T21:30:15.979480+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 7,
+    "deep_divecandidates": 2,
+    "deep_cap": 12,
+    "deep_selected": 2,
+    "quick_candidates": 6,
+    "quick_skim_target": 17,
+    "quick_selected": 6
+  },
+  "deep_dive": [
+    {
+      "id": "2609.09210v1",
+      "source": "arxiv",
+      "title": "Identifying Habit, Physics, and Nuisance in Robot World Models",
+      "abstract": "Teleoperated demonstrations are often multimodal even when the underlying dynamics are nearly deterministic given the executed action. We argue that this multimodality typically mixes three factors--operator habit in action selection, shared physics, and observation nuisance--and that entangled next-observation predictors absorb all three. We formalize the split with a structural causal model a=g(h,z,u), z'=f(z,a), o=r(z,c), and test it with complementary interventions: replacing or shuffling actions at fixed state sharply increases next-state error, whereas appearance and camera changes should not; habit-aware reverse scoring improves ranking of feasible pasts without rewriting the dynamics. The associated adaptation rule is to freeze a shared physics readout and update only a thin interface. On StackCube, DROID, and RH20T this rule improves low-shot transfer relative to training from scratch, retains cleaner dynamics under corrupted adaptation data, and extends from proprioception to pixel observations with multi-view and multi-step checks. We do not equate latent actions with operator habit, and we do not target large-scale video generation benchmarks.",
+      "authors": [
+        "Jinting Hang",
+        "Zhenhui Cai"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.CV"
+      ],
+      "published": "2026-09-06T00:20:22+00:00",
+      "link": "https://arxiv.org/pdf/2609.09210v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:pendulum",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "structural causal model for robot world models separating habit, physics, nuisance",
+      "llm_evidence_cn": "面向机器人世界模型的结构因果模型，分离习惯、物理与干扰",
+      "llm_evidence": "面向机器人世界模型的结构因果模型，分离习惯、物理与干扰",
+      "canonical_evidence": "面向机器人世界模型的结构因果模型，分离习惯、物理与干扰",
+      "llm_tldr_en": "Robot world models entangle operator habit, shared physics and observation nuisance; a structural causal model with action/appearance interventions separates them, and habit-aware reverse scoring improves ranking of feasible pasts.",
+      "llm_tldr_cn": "针对遥操作演示中多模态来源不清的问题，论文指出下一观测预测器会纠缠操作习惯、共享物理与观测干扰三类因素。作者用结构因果模型形式化该分解，并通过替换或打乱动作、改变外观与相机等互补干预加以检验。实验显示动作干预会显著增大下一状态误差，而习惯感知的反向评分能改善可行过去状态的排序。该框架为机器人世界模型的解耦与可迁移性提供了因果视角。",
+      "llm_tldr": "针对遥操作演示中多模态来源不清的问题，论文指出下一观测预测器会纠缠操作习惯、共享物理与观测干扰三类因素。作者用结构因果模型形式化该分解，并通过替换或打乱动作、改变外观与相机等互补干预加以检验。实验显示动作干预会显著增大下一状态误差，而习惯感知的反向评分能改善可行过去状态的排序。该框架为机器人世界模型的解耦与可迁移性提供了因果视角。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.05834v1",
+      "source": "arxiv",
+      "title": "Learning Counterfactual World Models for Embodied Reasoning under Partial Observability",
+      "abstract": "World models promise a general route to embodied intelligence: learn predictive dynamics once, then reason, plan, and act with them. Increasingly, the representations beneath such models are pretrained on large-scale video, interaction, and multimodal corpora, which raises a question prediction quality alone cannot answer: when is a learned representation actually actionable? We identify a failure mode we call counterfactual collapse: a model predicts visually plausible futures while failing to distinguish interventions with different behavioral consequences. This arises whenever a representation is optimized for perceptual similarity rather than intervention structure, which is precisely the objective under which most large-scale pretrained encoders are learned. We introduce Counterfactual Latent World Models (CLWM), which combine a recurrent belief-state encoder, action-conditioned latent dynamics, and a contrastive counterfactual objective that separates futures induced by distinct interventions even when their observations look alike. Across occluded manipulation, aliased navigation, and long-horizon manipulation, CLWM improves planning success over the strongest baseline (65.1% $\\to$ 74.6% on Occluded Push and 67.3% $\\to$ 78.9% on Aliased Maze) and reduces exploitative planning failures (18.4% $\\to$ 9.7% on Deferred Kitchen), with ablations attributing the gains to hard counterfactual negatives, especially perceptual-alias negatives. Finally, our counterfactual separability metric, which tracks planning success across the five baseline model classes ($r \\ge 0.94$), is representation-agnostic: given intervention-outcome labels, it can audit any encoder, pretrained or trained from scratch, before a planner trusts it. We do not yet measure it on large-scale pretrained encoders. Here we establish the metric and its relationship to planning success for world models trained from scratch.",
+      "authors": [
+        "Todd Y. Zhou",
+        "Daniel Zhang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-09-05T02:56:47+00:00",
+      "link": "https://arxiv.org/pdf/2609.05834v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "learning counterfactual world models for embodied reasoning",
+      "llm_evidence_cn": "面向具身推理的反事实世界模型",
+      "llm_evidence": "面向具身推理的反事实世界模型",
+      "canonical_evidence": "面向具身推理的反事实世界模型",
+      "llm_tldr_en": "Identifies counterfactual collapse in pretrained world models and proposes learning counterfactual world models that optimize intervention structure, making learned representations actionable under partial observability.",
+      "llm_tldr_cn": "世界模型被视为通向具身智能的通用路径，但当其表征仅以感知相似度为目标训练时，可能预测出视觉上合理却无法区分不同干预后果的未来，作者称此为反事实崩溃。本文提出学习反事实世界模型的方法，在部分可观测条件下显式优化干预结构而非仅拟合观测。实验显示该方法能区分具有不同行为后果的干预，使学到的表征更具可操作性，为具身推理与规划提供更可靠的世界模型基础。",
+      "llm_tldr": "世界模型被视为通向具身智能的通用路径，但当其表征仅以感知相似度为目标训练时，可能预测出视觉上合理却无法区分不同干预后果的未来，作者称此为反事实崩溃。本文提出学习反事实世界模型的方法，在部分可观测条件下显式优化干预结构而非仅拟合观测。实验显示该方法能区分具有不同行为后果的干预，使学到的表征更具可操作性，为具身推理与规划提供更可靠的世界模型基础。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent world model paper",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2609.08981v1",
+      "source": "arxiv",
+      "title": "Transformers as In-Context Samplers: From Closed-Form Diffusion to Estimation-Free Sampling",
+      "abstract": "A growing body of work establishes that large language models are not mere statistical memorizers, but are capable of in-context learning: performing inference at test time using only examples provided in the prompt, without any parameter updates. Prior theoretical work has shown that this capability extends to supervised learning tasks such as linear regression. We prove that in-context learning extends further to \\emph{data generation}: frozen transformers can simulate iterative generative samplers from in-context samples. We first show that transformers can realize closed-form and smoothed closed-form diffusion samplers. The construction identifies a concrete generative role for softmax attention: it computes responsibility weights and weighted empirical averages, while feedforward layers implement Euler updates.   To empirically relate these constructions to pretrained language models, we study \\emph{semantic-topic sampling}: prompts consisting of words drawn from a common semantic category, such as animals, foods, or cities. Across transformer layers, the normalized hidden states exhibit a two-stage geometry: they move toward a uniform spherical reference in intermediate layers and then return to structured, topic-dependent representations near the output. We further measure an interacting-particle energy on these hidden-state clouds and observe the same U-shape pattern. We then prove that transformers can approximate an energy-based sampler, constructing the same U-shape energy across the layers.",
+      "authors": [
+        "Arman Adibi",
+        "Alireza Jafari",
+        "Mohammad Ghavamzadeh",
+        "Hadi Daneshmand"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "stat.AP",
+        "stat.CO",
+        "stat.ML"
+      ],
+      "published": "2026-09-08T16:25:11+00:00",
+      "link": "https://arxiv.org/pdf/2609.08981v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Transformers simulate diffusion samplers in-context for data generation",
+      "llm_evidence_cn": "Transformer在上下文中模拟扩散采样器进行数据生成",
+      "llm_evidence": "Transformer在上下文中模拟扩散采样器进行数据生成",
+      "canonical_evidence": "Transformer在上下文中模拟扩散采样器进行数据生成",
+      "llm_tldr_en": "The paper proves frozen transformers can simulate iterative generative samplers in-context, realizing closed-form and smoothed diffusion samplers via softmax attention.",
+      "llm_tldr_cn": "已有工作表明大模型可进行上下文学习完成回归等任务，但其能否直接进行数据生成尚不清楚。本文证明冻结的Transformer能够仅凭提示中的样例模拟迭代式生成采样器，并可实现闭式与平滑闭式扩散采样，其中softmax注意力承担计算责任权重的生成角色。该结果为上下文学习扩展到数据生成提供了理论依据，也揭示了注意力机制在生成过程中的具体作用。",
+      "llm_tldr": "已有工作表明大模型可进行上下文学习完成回归等任务，但其能否直接进行数据生成尚不清楚。本文证明冻结的Transformer能够仅凭提示中的样例模拟迭代式生成采样器，并可实现闭式与平滑闭式扩散采样，其中softmax注意力承担计算责任权重的生成角色。该结果为上下文学习扩展到数据生成提供了理论依据，也揭示了注意力机制在生成过程中的具体作用。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "diffusion models and flow matching",
+      "matched_requirement_id": "req-21",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.09486v1",
+      "source": "arxiv",
+      "title": "Efficient Fairness Auditing Across Guidance Scales in Text-to-Image Diffusion Models via Causal Abstraction",
+      "abstract": "Fairness auditing of text-to-image diffusion models often requires generating large numbers of images across sampling configurations, making comprehensive evaluation computationally expensive. We propose a causal-abstraction-based audit instrument for efficiently evaluating fairness under interventions on the classifier-free guidance scale. Given a fixed prompt and a target feature function, we represent the diffusion process as a low-level structural causal model and construct a corresponding high-level model over abstract denoising states. We characterize the projected causal structure, establish identifiability of the fairness-relevant interventional query, and provide sufficient conditions under which the high-level model preserves this query. A probabilistic transformer implements the high-level model as an amortized predictor of target-feature distributions across guidance scales. Experiments evaluate distributional fidelity, fairness-query accuracy, and computational efficiency. We present two auditing demonstrations: one using standard Stable Diffusion 1.5 and another using StayFair, a fairness-enhanced Stable Diffusion model, to examine their behavior across guidance scales.",
+      "authors": [
+        "Nabila Tasfiha Rahman",
+        "Rajatsubhra Chakraborty",
+        "Depeng Xu",
+        "Lu Zhang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CV"
+      ],
+      "published": "2026-09-08T22:05:06+00:00",
+      "link": "https://arxiv.org/pdf/2609.09486v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "diffusion model auditing with causal abstraction",
+      "llm_evidence_cn": "结合因果抽象的扩散模型审计",
+      "llm_evidence": "结合因果抽象的扩散模型审计",
+      "canonical_evidence": "结合因果抽象的扩散模型审计",
+      "llm_tldr_en": "Fairness auditing of text-to-image diffusion models requires generating many images across sampling settings, which is costly. The authors model the diffusion process as a low-level structural causal model and build an abstract high-level model, proving identifiability of fairness queries while cutting sampling needs.",
+      "llm_tldr_cn": "文生图扩散模型的公平性审计通常需要在多种采样配置下生成大量图像，计算成本高昂，难以全面评估。本文提出基于因果抽象的审计工具，在固定提示与目标特征下将扩散过程建模为低层结构因果模型，并在抽象去噪状态上构建对应高层模型，刻画投影因果结构并证明公平性相关干预查询的可识别性。该方法在减少采样需求的同时保持理论保证，为扩散模型公平性评估提供了高效手段。",
+      "llm_tldr": "文生图扩散模型的公平性审计通常需要在多种采样配置下生成大量图像，计算成本高昂，难以全面评估。本文提出基于因果抽象的审计工具，在固定提示与目标特征下将扩散过程建模为低层结构因果模型，并在抽象去噪状态上构建对应高层模型，刻画投影因果结构并证明公平性相关干预查询的可识别性。该方法在减少采样需求的同时保持理论保证，为扩散模型公平性评估提供了高效手段。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "diffusion models and flow matching",
+      "matched_requirement_id": "req-21",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.11242v1",
+      "source": "arxiv",
+      "title": "From Evaluation to Enhancement: Benchmarking and Improving Think-with-Video Reasoning for Video Generative Models",
+      "abstract": "Video generation has advanced to produce visually compelling and temporally coherent results. Yet, whether these models can genuinely think with video--executing symbolic rules, respecting physical laws, and pursuing intentional goals--remains an open question. Existing benchmarks only partially address this, often conflating visual quality with cognitive correctness. We introduce VWG-Bench (Video World Generalist Benchmark), a comprehensive benchmark spanning 9 reasoning dimensions and 38 fine-grained tasks. To enable precise diagnosis, we design a three-level VLM-as-Judge protocol that independently assesses video-level fluency, task-level rule adherence, and sample-level goal realization. Evaluations of leading models reveal a striking gap: while models achieve strong rendering scores, they consistently fail on logic-heavy and rule-constrained tasks. To address this, we propose Vid-PRE (Video Prompt Reasoner and Enhancer), a model-agnostic prompt rewriter that offloads the cognitive burden of reasoning to a dedicated VLM. Trained via reinforcement learning with purely text-based rewards, Vid-PRE produces concise, constraint-aware prompts without the instability of video-level reward signals. Experiments show that Vid-PRE yields substantial reasoning improvements across multiple generators without architectural modifications. Together, VWG-Bench and Vid-PRE offer a rigorous diagnostic lens and a scalable path toward true think-with-video capabilities. All data and code are publicly available at https://huggingface.co/datasets/KlingTeam/VWG-Bench.",
+      "authors": [
+        "Meng Luo",
+        "Yicheng Liu",
+        "Jiahao Wang",
+        "Yuanxing Zhang",
+        "Xin Tao",
+        "Pengfei Wan",
+        "Kun Gai",
+        "Hao Fei"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-09-10T08:40:58+00:00",
+      "link": "https://arxiv.org/pdf/2609.11242v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "benchmark for think-with-video reasoning in video world models",
+      "llm_evidence_cn": "视频世界模型的视频推理基准",
+      "llm_evidence": "视频世界模型的视频推理基准",
+      "canonical_evidence": "视频世界模型的视频推理基准",
+      "llm_tldr_en": "Introduces VWG-Bench, a benchmark spanning 9 reasoning dimensions and 38 tasks with a three-level VLM-as-Judge protocol, to test whether video generative models truly reason like world models.",
+      "llm_tldr_cn": "视频生成模型虽能产出视觉连贯的结果，但能否真正以视频思考、执行符号规则并遵循物理规律仍不清楚，现有基准常将视觉质量与认知正确性混淆。本文提出VWG-Bench，覆盖9个推理维度与38项细粒度任务，并设计三级VLM-as-Judge协议分别评估视频流畅度、规则遵循与目标实现。对多个领先视频生成模型的评测揭示了其在物理与因果推理上的系统性缺陷，为世界模型式视频生成提供了诊断工具。",
+      "llm_tldr": "视频生成模型虽能产出视觉连贯的结果，但能否真正以视频思考、执行符号规则并遵循物理规律仍不清楚，现有基准常将视觉质量与认知正确性混淆。本文提出VWG-Bench，覆盖9个推理维度与38项细粒度任务，并设计三级VLM-as-Judge协议分别评估视频流畅度、规则遵循与目标实现。对多个领先视频生成模型的评测揭示了其在物理与因果推理上的系统性缺陷，为世界模型式视频生成提供了诊断工具。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent advances in world models",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.11538v1",
+      "source": "arxiv",
+      "title": "Particle GFlowNets: Rethinking Generative Marginalization Models",
+      "abstract": "Generative Marginalization Models (MaMs) have been recently introduced as efficient neural sampling models for any-order autoregressive modelling of discrete distributions. By learning both the marginal and conditional probabilities of a persistent-block Gibbs sampler, MaMs enable fast posterior evaluation with a single neural network forward pass. While prior work has considered MaMs to be distinct from Generative Flow Networks (GFlowNets), a well-established paradigm for inference in discrete stochastic models, we show that they are equivalent. Then, we also extend MaMs' sampling strategy to non-autoregressive generative processes. In particular, we describe an automatic criterion for full-state rejuvenation of the Gibbs sampler, derived from the Gelman-Rubin statistic, which plays a key role in speeding up learning convergence. Our experiments show that our method, called Particle GFlowNets, markedly accelerates training in large combinatorial spaces.",
+      "authors": [
+        "Tiago da Silva",
+        "Diego Mesquita",
+        "Salem Lahlou"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-09-10T13:37:28+00:00",
+      "link": "https://arxiv.org/pdf/2609.11538v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Generative flow networks for discrete distributions and neural sampling",
+      "llm_evidence_cn": "面向离散分布与神经采样的生成流网络",
+      "llm_evidence": "面向离散分布与神经采样的生成流网络",
+      "canonical_evidence": "面向离散分布与神经采样的生成流网络",
+      "llm_tldr_en": "The paper shows Generative Marginalization Models are equivalent to GFlowNets and extends their sampling to non-autoregressive generative processes with an automatic full-state rejuvenation criterion.",
+      "llm_tldr_cn": "生成边缘化模型此前被视为与生成流网络不同，限制了对离散分布高效采样理论的理解。本文证明二者等价，并将边缘化模型的采样策略扩展到非自回归生成过程，给出基于Gelman-Rubin准则的全状态更新判据。这一等价性统一了两类离散生成建模范式，为高效神经采样提供了更清晰的理论基础与可扩展方法。",
+      "llm_tldr": "生成边缘化模型此前被视为与生成流网络不同，限制了对离散分布高效采样理论的理解。本文证明二者等价，并将边缘化模型的采样策略扩展到非自回归生成过程，给出基于Gelman-Rubin准则的全状态更新判据。这一等价性统一了两类离散生成建模范式，为高效神经采样提供了更清晰的理论基础与可扩展方法。",
+      "llm_tags": [
+        "query:gen-models:composite"
+      ],
+      "matched_query_tag": "query:gen-models:composite",
+      "matched_query_text": "Papers central to 生成模型与流匹配相关论文检索, especially work that connects or combines: generative models survey; diffusion models and flow matching; variational autoencoders latent variable models; large language models text generation; flow matching method for generative modeling; score based generative models recent; recent breakthroughs in generative model research; state of the art generative model papers for image synthesis; generative model applications in natural language processing; recent advances in flow matching for generative modeling.",
+      "matched_requirement_id": "req-composite-gen-models",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.11801v1",
+      "source": "arxiv",
+      "title": "Thinking with Looped Flows",
+      "abstract": "Humans and machines often solve harder problems by spending more time on computation. In deep learning, looped models implement this idea during inference by recurrently updating a hidden state. In practice, however, their training backpropagates through only one or a few updates, making it hard to train early updates to support future ones. We propose looped flows, an approach that sidesteps this issue by training the recurrence with local denoising objectives. By imposing temporal association across denoising objectives through progressively decreasing noise levels and shared noise, the model is incentivized to learn recurrent states that transfer useful computation over time, even when gradients cover only a few updates. We then formulate inference as integrating the velocity of a probability flow parameterized by the learned denoiser, coupled with recurrent states. This allows solving harder problems by spending more computation through a finer temporal grid and enables multiple valid predictions from different initial noise samples. Across six reasoning benchmarks including two multi-solution benchmarks, looped flows outperform prior state-of-the-art looped models overall, achieving 58.8% test accuracy on ARC-AGI-1 and 12.2% on ARC-AGI-2.",
+      "authors": [
+        "Ayhan Suleymanzade",
+        "Chanhyuk Lee",
+        "Floor Eijkelboom",
+        "Nicholas M. Boffi",
+        "İsmail İlkan Ceylan",
+        "Jinwoo Kim"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-09-10T16:52:54+00:00",
+      "link": "https://arxiv.org/pdf/2609.11801v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:gen-models",
+        "query:causal-rep",
+        "query:gen-models",
+        "query:pendulum",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Looped flows trained with local denoising objectives for recurrent computation",
+      "llm_evidence_cn": "以局部去噪目标训练循环流的递归计算模型",
+      "llm_evidence": "以局部去噪目标训练循环流的递归计算模型",
+      "canonical_evidence": "以局部去噪目标训练循环流的递归计算模型",
+      "llm_tldr_en": "Looped flows train recurrent hidden-state updates with local denoising objectives and progressive noise levels, enabling effective looped inference without long backpropagation.",
+      "llm_tldr_cn": "循环模型通过在推理时反复更新隐状态来投入更多计算，但其训练往往只反向传播一步或几步，难以让早期更新支持后续计算。本文提出循环流方法，用局部去噪目标训练递归过程，并通过逐步降低噪声与共享噪声建立跨去噪目标的时序关联，使模型学到可随时间传递有效计算的循环状态。该方法把推理形式化为对概率速度的积分，为深层循环式生成建模提供了新的训练范式。",
+      "llm_tldr": "循环模型通过在推理时反复更新隐状态来投入更多计算，但其训练往往只反向传播一步或几步，难以让早期更新支持后续计算。本文提出循环流方法，用局部去噪目标训练递归过程，并通过逐步降低噪声与共享噪声建立跨去噪目标的时序关联，使模型学到可随时间传递有效计算的循环状态。该方法把推理形式化为对概率速度的积分，为深层循环式生成建模提供了新的训练范式。",
+      "llm_tags": [
+        "query:gen-models:composite"
+      ],
+      "matched_query_tag": "query:gen-models:composite",
+      "matched_query_text": "Papers central to 生成模型与流匹配相关论文检索, especially work that connects or combines: generative models survey; diffusion models and flow matching; variational autoencoders latent variable models; large language models text generation; flow matching method for generative modeling; score based generative models recent; recent breakthroughs in generative model research; state of the art generative model papers for image synthesis; generative model applications in natural language processing; recent advances in flow matching for generative modeling.",
+      "matched_requirement_id": "req-composite-gen-models",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.11897v1",
+      "source": "arxiv",
+      "title": "CausalArena: Benchmarking Causal Discovery in the Foundation Model Era",
+      "abstract": "Causal discovery aims to uncover causal structures from data and is fundamental to scientific reasoning and intervention-based decision making. Its evaluation relies heavily on structural causal models (SCMs), which specify a causal graph together with the mechanisms that generate data, yet existing studies differ substantially in graph families, mechanisms, and evaluation protocols. The emergence of causal discovery foundation models (CDFMs) further complicates evaluation: performance may reflect not only causal discovery ability, but also overlap between pretraining environments and test SCMs, making results on fixed synthetic benchmarks difficult to interpret. We introduce CausalArena, a unified and evolvable benchmark for causal discovery under a common protocol. Synthetic SCMs supply controlled breadth over structures and mechanisms; semantic operational SCMs provide human-auditable, semantically grounded environments beyond standard synthetic generators; and formula-grounded SCMs test discovery under explicit scientific mechanisms. Public real-world datasets provide an additional external-validity check. Experiments across classical, neural, and pretrained methods reveal substantial ranking shifts across SCM families and protocols, showing that strong performance in one benchmark regime does not reliably transfer to others. These results highlight benchmark diversity and pretraining--evaluation overlap as central challenges for evaluating causal discovery in the foundation model era.",
+      "authors": [
+        "Zi-Rong Li",
+        "Si-Yang Liu",
+        "Tian-Zuo Wang",
+        "Han-Jia Ye"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-09-10T17:53:15+00:00",
+      "link": "https://arxiv.org/pdf/2609.11897v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "benchmark for causal discovery and structural causal models",
+      "llm_evidence_cn": "面向因果发现与结构因果模型的基准",
+      "llm_evidence": "面向因果发现与结构因果模型的基准",
+      "canonical_evidence": "面向因果发现与结构因果模型的基准",
+      "llm_tldr_en": "Causal discovery evaluation relies on structural causal models, but graph families, mechanisms and protocols vary, and foundation models complicate benchmarking. CausalArena offers a unified, evolvable benchmark to separate genuine causal discovery ability from pretraining overlap.",
+      "llm_tldr_cn": "因果发现旨在从数据中揭示因果结构，是科学推理与干预决策的基础，但其评估高度依赖结构因果模型，而现有研究在图族、机制与评估协议上差异很大。因果发现基础模型的出现进一步使问题复杂化，因为性能可能来自预训练环境与测试SCM的重叠而非真正的因果发现能力。本文提出CausalArena，一个统一且可演进的因果发现基准，系统组织图族、机制与评估协议。该基准有助于在基础模型时代更可靠地解释与比较因果发现结果。",
+      "llm_tldr": "因果发现旨在从数据中揭示因果结构，是科学推理与干预决策的基础，但其评估高度依赖结构因果模型，而现有研究在图族、机制与评估协议上差异很大。因果发现基础模型的出现进一步使问题复杂化，因为性能可能来自预训练环境与测试SCM的重叠而非真正的因果发现能力。本文提出CausalArena，一个统一且可演进的因果发现基准，系统组织图族、机制与评估协议。该基准有助于在基础模型时代更可靠地解释与比较因果发现结果。",
+      "llm_tags": [
+        "query:causal-rep"
+      ],
+      "matched_query_tag": "query:causal-rep",
+      "matched_query_text": "causal representation learning methods and theory",
+      "matched_requirement_id": "req-30",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}
