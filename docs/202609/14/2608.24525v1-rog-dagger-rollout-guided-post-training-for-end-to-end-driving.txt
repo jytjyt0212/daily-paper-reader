@@ -1,0 +1,815 @@
+Title: RoG-DAgger: Rollout-Guided Post-Training for End-to-End Driving
+
+URL Source: https://arxiv.org/pdf/2608.24525v1
+
+Published Time: Wed, 26 Aug 2026 01:07:51 GMT
+
+Number of Pages: 19
+
+Markdown Content:
+# RoG-DAgger: Rollout-Guided Post-Training for End-to-End Driving 
+
+# Liangyu Zhong 1,2 , Joachim Sicking 1, Fabian Hueger 1, Hanno Gottschalk 2
+
+> 1
+
+CARIAD SE, Volkswagen Group 
+
+> 2
+
+Institute of Mathematics, Technical University of Berlin 
+
+Abstract 
+
+Recent end-to-end driving systems demonstrate strong per-formance on closed-loop benchmarks, yet are still predomi-nantly trained on fixed expert-collected data using open-loop imitation learning. This training-inference mismatch leaves the policy vulnerable in policy-induced states, where accu-mulated errors can lead to safety-critical failures. A promis-ing post-training approach to overcome this issue is Dataset Aggregation (DAgger), which gathers expert demonstrations in policy-induced states and subsequently fine-tunes the policy on the resulting aggregated dataset. Existing driving DAgger pipelines, however, face three challenges: i) the expert is restricted to a limited trajectory-and-speed solution space, ii) takeover may occur too early or too late relative to im-pending failures, and iii) privileged expert decisions may rely on information unavailable to the student. To address this, we introduce RoG-DAgger , a post-training framework that uses short-horizon kinematic rollouts to construct high-quality expert demonstrations in safety-critical states. Specifi-cally, RoG-DAgger expands the expert’s trajectory-and-speed solution space and evaluates candidate plans through rollout to construct preventive supervision. Moreover, it uses roll-out solvability to time the takeover near the estimated point of no return. Lastly, it aligns the expert’s field of view with that of the student to provide student-compatible supervision. Across in-distribution (including long-horizon) and out-of-distribution evaluations, RoG-DAgger improves the end-to-end model SimLingo by 5.3 driving-score points and 6.2 per-centage points in success rate on Bench2Drive, doubles its driving score from 22 to 44 on Longest6 v2, and improves out-of-distribution success rate from 55% to 66% on Fail2Drive. 
+
+# 1 Introduction 
+
+Recent end-to-end (E2E) driving systems (Renz et al. 2025; Fu et al. 2025; Nguyen et al. 2026) have achieved strong results on closed-loop benchmarks, where predicted actions are executed in the simulator and influence subsequent ob-servations. However, these models are still predominantly trained on fixed expert-collected data using open-loop im-itation learning. They therefore remain vulnerable to the distribution shift between open-loop training and closed-loop execution (Liu et al. 2026). We study this issue using SimLingo (Renz et al. 2025), a widely used camera-based E2E driving model. Evaluating SimLingo on the closed-loop Bench2Drive benchmark (B2D; see Jia et al. (2024)), we find that collisions account for roughly 80% of its failed 0 0.5 1 1.5 2
+
+> Time-To-Collision (s)
+> 0510 15 20
+> Frequency (%)  SimLingo pre-training Bench2Drive inference
+
+Figure 1: SimLingo pre-training data (orange) lacks safety-critical interactions as measured by time-to-collision (TTC), limiting the model’s ability to learn how to prevent or re-cover from such situations. As interactions, however, oc-cur frequently in closed-loop Bench2Drive inference (blue), this constitutes a substantial distribution shift. Samples with TTC > 2s are omitted for clarity. routes (see App. A for details). These failures likely arise when small imitation errors propagate and compound over time, causing the policy to deviate from expert trajectories and visit states underrepresented in the training data, of-ten referred to as compounding errors (Ross and Bagnell 2010). To illustrate the resulting train–inference mismatch, we compare how frequently the model encounters safety-critical interactions, measured by the time-to-collision (TTC; see Karnchanachari et al. (2024)) distributions of SimLingo’s training data and its inference on B2D. As shown in Fig. 1, the SimLingo driving model encounters substantially lower TTC values during closed-loop inference than observed dur-ing training. This indicates that the model may learn neither how to prevent such near-collision events nor how to recover 
+
+from collisions once they occur. 
+
+Dataset Agg regation (DAgger; see Ross, Gordon, and Bag-nell (2011)) provides a promising way to mitigate this issue by running an expert model alongside a pretrained E2E pol-icy in closed-loop simulation and fine-tuning the policy using the expert’s demonstrations. Here, the expert is a generally stronger privileged driving policy with access to scene infor-mation, such as surrounding-actor states and lane geometry. In driving DAgger, expert supervision is typically collected around takeover events , where control is transferred from the student policy to the expert. Recent methods such as TakeAD (Liu et al. 2026) primarily collect post-takeover arXiv:2608.24525v1 [cs.RO] 25 Aug 2026 B1. Expand the Trajectory-and-Speed Solution Space   
+
+> B2. Solvability-Aware Takeover Trigger
+> B3. Field-of-View Aligned Planning
+> ego actor
+> ego
+> rollout
+> actor
+> rollout
+> Field of View
+> Solvable
+> Unsolvable
+> A. Kinematic Ego and
+> Actor Rollout
+> latest solvable state
+> (point of no return)
+
+Figure 2: RoG-DAgger leverages kinematic rollout and introduces three improvements to existing DAgger methods. Panel A shows how rollouts are used to construct trajectory-and-speed supervision and to evaluate candidate expert plans. Panels B1-B3 highlight three modifications: (1) an expanded trajectory-and-speed solution space (red: collision-prone nominal plan, green: improved plan), (2) solvability-aware takeover near the estimated point of no return (yellow star: PONR, red region: no feasible corrective plan remains), and (3) expert-student field-of-view alignment (yellow triangle) for student-learnable supervision. expert demonstrations, providing supervision for recovery from unsafe states. TakeVLA (Gao et al. 2026) addition-ally retains pre-takeover frames and assigns warning-style language labels (e.g., “decelerate”) to encourage proactive avoidance, while further refining low-level behavior through reinforcement learning in reconstructed scenarios. However, TakeVLA’s pre-takeover labels remain event-level rather than state-specific, even though different states associated with the same warning may require substantially different trajectories and speed profiles. We therefore seek to provide explicit trajectory-and-speed supervision for each pre-takeover state by constructing counterfactual rollouts of expert-proposed candidate plans. Generating reliable preventive supervision, however, remains challenging due to three limitations of ex-isting DAgger pipelines: i) a restricted expert trajectory-and-speed solution space, ii) takeover timing that may be prema-ture or too late to prevent the impending failure, and iii) a mis-alignment between the fields of view of expert and student. To address these limitations, we propose RoG-DAgger, a Ro llout-Guided post-training framework for E2E driving (Fig. 3). RoG-DAgger uses kinematic rollouts (Fig. 2, A) to guide both expert supervision and takeover. First, we expand the expert’s trajectory-and-speed solution space with multi-ple candidate geometric trajectories and target speeds, and retain only rollout-solvable candidates that satisfy driving constraints (Fig. 2, B1). Second, we introduce a solvability-aware trigger that takes over near the boundary beyond which the impending failure can no longer be prevented (Fig. 2, B2). Finally, we align the fields of view of expert and student to reduce supervision that depends on information unavailable to the student, similar to Nguyen et al. (2026), see Fig. 2, B3. We evaluate RoG-DAgger by post-training SimLingo on the public CARLA Leaderboard 2.0 training routes (Au-tonomous Vision 2023) and testing on three complemen-tary closed-loop benchmarks: B2D for in-distribution evalu-ation, Longest6 v2 for long-horizon driving, and Fail2Drive for out-of-distribution generalization. On B2D, RoG-DAgger improves SimLingo by 5.3 driving score (DS) and 6.2 p.p. in success rate (SR), outperforming TakeAD and performing on par with TakeVLA. It further doubles SimLingo’s DS from 22 to 44 on Longest6 v2 and improves OOD SR from 55% to 66% on Fail2Drive. Overall, our contributions are three-fold: 
+
+• We introduce kinematic ego and actor rollouts for con-structing and assessing explicit pre-takeover trajectory-and-speed supervision for DAgger methods. 
+
+• We propose RoG-DAgger, a rollout-guided post-training framework that improves both expert supervision and takeover by expanding the expert solution space, identi-fying when preventive interventions remain feasible, and aligning the fields of view of expert and student. 
+
+• We demonstrate that RoG-DAgger improves closed-loop driving across complementary in-distribution (including long-horizon) and out-of-distribution settings, showing that rollout-guided supervision generalizes beyond the scenarios used for post-training. 
+
+# 2 Related Work 
+
+We first review representative end-to-end driving systems in Sec. 2.1. Online post-training approaches that enable these systems to perform better in closed-loop settings are dis-cussed in Sec. 2.2. 
+
+2.1 End-to-End Driving Systems 
+
+End-to-end driving systems directly optimize the mapping from sensory observations to planned trajectories, enabling a fully differentiable pipeline that reduces reliance on hand-crafted interfaces between different driving modules. Earlier (non-language-based) approaches include TransFuser (Chitta et al. 2023) and UniAD (Hu et al. 2023), which jointly op-timize perception, prediction, and planning tasks within a planning-oriented framework. Recently, vision-language models have increasingly been adapted to end-to-end driving, due to their improved scene understanding and broad world knowledge (Sima et al. 2024; Zhong et al. 2024, 2025; Wu et al. 2025), giving rise to vision-language-action models. Representative methods in-clude SimLingo (Renz et al. 2025), ORION (Fu et al. 2025), pre-training data  
+
+> pre-training data collection
+> closed-loop
+> simulation
+> w/ expert
+> pre-trained
+
+E2E policy 
+
+> fine-tuning
+
+E2E policy 
+
+> post-training data
+> two types of triggers
+> pre-takeover
+> frames
+> post-takeover
+> frames
+> expert
+> takeover
+> infraction-based takeover
+> (collision, lane-deviation, …)
+> solvability-aware takeover
+> (i.e., before being unrecoverable)
+> data collection (zoom-in)
+> solvability-aware takeover
+> infraction-based takeover
+> closed-loop simulation w/
+> expert model
+> point of
+> no return
+
+post -training pre -training Figure 3: Overview of the RoG-DAgger training pipeline. Starting from a pretrained E2E policy, we collect post-training data in two independent closed-loop runs (see zoom-in panel) and fine-tune the policy using a mixture of pre- and post-training data. The infraction-based run captures policy-induced failures and expert recovery demonstrations, while the solvability-aware run intervenes before failures become unavoidable to collect corrective behavior (gray hatched bar indicates avoided infraction). A restart trigger is used in both runs but omitted for clarity. and AutoVLA (Zhou et al. 2025) which have primarily fo-cused on improving the alignment between visual observa-tions, language instructions, and driving actions. However, despite the growing emphasis on closed-loop simulation in the community, these models are still primarily trained on fixed offline datasets and do not explicitly address the distri-bution shift between open-loop and closed loop (see intro-duction and Liu et al. (2026)). This motivates closed-loop post-training methods that adapt pretrained driving policies using feedback or supervision derived from their behavior during deployment. 
+
+2.2 Online Post-Training for E2E Systems 
+
+Unlike fixed offline training, online post-training refines a pretrained driving policy using data collected through closed-loop interaction, where the policy’s actions influ-ence subsequent states, observations, and the responses of surrounding actors. This enables the policy to learn from its own closed-loop errors. Existing approaches mainly differ in their supervision signal. Reward-based methods, such as MindDrive (Fu et al. 2026), optimize the policy using environment-derived feedback, e.g, traffic-infraction penalties. Expert-supervised methods commonly build on Dataset Aggregation (DAgger; see Ross, Gordon, and Bag-nell (2011)), which queries a privileged expert at policy-induced states and uses expert demonstrations for further policy optimization. Driving DAgger methods can be further characterized along two axes: which type of expert supervision is col-lected and when expert takeover is triggered. TakeAD (Liu et al. 2026) collects expert demonstrations around infraction-or discrepancy-triggered takeovers, primarily providing re-covery supervision. TakeVLA (Gao et al. 2026) addition-ally retains pre-takeover observations and assigns warning-style language labels to encourage preventive behavior. Their takeovers are determined by infraction events, expert-student discrepancies, or heuristic risk conditions, without explicitly assessing whether a feasible corrective plan remains at the current state. RoG-DAgger instead constructs state-specific trajectory-and-speed supervision for pre-takeover states and triggers takeover when rollout evaluation indicates that an impending collision can no longer be avoided by nominal emergency braking and therefore requires trajectory-and-speed replanning. 
+
+# 3 Rollout-Guided DAgger for E2E Driving 
+
+We first formulate the learning setup and overall RoG-DAgger framework in Sec. 3.1 and Sec. 3.2, respectively. We then introduce the kinematic rollout model used to evaluate candidate trajectory-and-speed plans in Sec. 3.3, followed by the rollout-guided expert supervision and takeover mecha-nisms in Sec. 3.4. 
+
+3.1 Problem Formulation 
+
+Driving policies in E2E driving map the current sensory observation, ego state, and navigational condition at time step t to a future ego plan 
+
+ˆat = Π θ (Ct, Sego  
+
+> t
+
+, Ot) ,
+
+where Πθ denotes the learned policy, Ct the navigational condition (e.g., GPS target points or language instructions), 
+
+Sego  
+
+> t
+
+the ego state (i.e., position and speed), and Ot the sen-sory observation, such as RGB images. Following SimLingo, we represent the predicted ego plan as 
+
+ˆat =  ˆageo  
+
+> t
+
+, ˆatemp 
+
+> t
+
+ ,
+
+where ˆageo  
+
+> t
+
+denotes the geometric trajectory, represented by a sequence of equidistantly sampled waypoints describing the intended path, and ˆatemp  
+
+> t
+
+specifies the ego vehicle’s tem-poral progress along this path. During execution, the pre-dicted trajectories are converted into steering, throttle, and braking commands using lateral and longitudinal PID con-trollers (Åström and Hägglund 2006). Driving policies are commonly trained on expert demon-strations using an L1 imitation loss (IL) 
+
+LIL = λgeo ∥ˆageo − ageo ,∗∥1 + λtemp ˆatemp − atemp ,∗ 
+
+> 1
+
+,
+
+where a∗ denotes the expert supervision. During pre-training, this supervision is collected at expert-induced states, whereas DAgger (Ross, Gordon, and Bagnell 2011) queries the expert at states visited by the student policy, providing corrective supervision for policy-induced states. Following recent driving DAgger methods (Liu et al. 2026; Gao et al. 2026), we selectively collect data around takeover events rather than at every policy step. We refer to states before and after takeover as pre- and post-takeover samples, respec-tively. Post-takeover trajectory supervision is directly con-structed from the expert-controlled rollout, while our goal is to additionally construct state-specific trajectory-and-speed supervision for pre-takeover states. 
+
+3.2 RoG-DAgger Framework 
+
+We now provide an overview of our RoG-DAgger framework (Fig. 3). Starting from a pretrained student policy, we per-form two independent closed-loop data-collection runs using 
+
+infraction-based and solvability-aware takeover triggers, re-spectively. Running the two protocols separately is necessary because solvability-aware takeover changes the subsequent state distribution and may suppress failures that the student would otherwise encounter. In the infraction-based run, takeover is triggered by col-lision, lane deviation, red-light or stop-sign violation. We retain the pre-takeover states leading to the failure together with post-takeover expert recovery demonstrations. In the solvability-aware run, in contrast, takeover occurs before an impending failure according to a rollout-based criterion (de-tails in Sec. 3.4) and only post-takeover expert demonstra-tions are retained. In both runs, moreover, a restart trig-ger, similar in purpose to that used in TakeVLA (Gao et al. 2026), is enabled when the ego vehicle fails to make ex-pected progress for a prolonged period, with only post-takeover recovery samples being retained. Detailed trigger definitions are provided in App. B.2. The collected sam-ples are subsequently used for fine-tuning with the imitation objective mentioned above, which yields the RoG-DAgger post-trained model. In the following, we describe DoG-DAgger in greater detail, beginning with the kinematic rollout model used to construct preventive supervision and to assess candidate solvability. 
+
+3.3 Kinematic Ego and Actor Rollout 
+
+RoG-DAgger uses short-horizon rollouts of the ego vehi-cle and surrounding actors to evaluate candidate trajectory-and-speed plans. These rollouts support both preventive su-pervision for pre-takeover states and the solvability-aware takeover mechanism. We first describe the ego rollout, fol-lowed by the surrounding-actor rollout. Given the current ego state sego  
+
+> t
+
+(including speed v0), a candidate geometric trajectory ageo  
+
+> t
+
+, and target speed vtarget  
+
+> t
+
+, we define the ego rollout as arollout  
+
+> t
+
+= Rego 
+
+ sego  
+
+> t
+
+, ageo  
+
+> t
+
+, v target 
+
+> t
+
+ , which repre-sents the resulting counterfactual ego trajectory. Our rollout Algorithm 1: Controller-in-the-Loop Kinematic Ego Rollout 
+
+Inputs : ego state sego 0 , geometric trajectory ageo , target speed 
+
+vtarget , planning horizon H, braking ratio ρ
+
+Output : ego rollout arollout  
+
+> 1:
+
+s0 ← sego 0 , arollout ← ∅  
+
+> 2:
+
+for k = 0 to H − 1 do  
+
+> 3:
+
+ϕk ← LateralCtrl (sk, ageo ) 
+
+> 4:
+
+if vtarget ≈ 0 or vk > ρ v target then  
+
+> 5:
+
+(uthr  
+
+> k
+
+, u brk  
+
+> k
+
+) ← (0 , 1)  
+
+> 6:
+
+else  
+
+> 7:
+
+(uthr  
+
+> k
+
+, u brk  
+
+> k
+
+) ← (ThrottleCtrl (vk, v target ), 0)  
+
+> 8:
+
+end if  
+
+> 9:
+
+sk+1 , v k+1 ← BicycleModel (sk, ϕ k, u thr  
+
+> k
+
+, u brk  
+
+> k
+
+) 
+
+> 10:
+
+arollout [k + 1] ← sk+1  
+
+> 11:
+
+end for  
+
+> 12:
+
+return arollout 
+
+closely reflects the execution of candidate trajectory-and-speed plans. At each step, we apply the same lateral and longi-tudinal control logic used during deployment and propagate the resulting controls using the kinematic bicycle model and dynamics parameters from World on Rails (Chen, Koltun, and Krähenbühl 2021). Crucially, the rollout reproduces the deployed braking condition, enabling realistic transitions be-tween throttle and full braking. Unlike PDM-Lite (Zimmerlin et al. 2024), which models throttle control without this brak-ing behavior, our rollout more faithfully reflects the deployed longitudinal controller. Alg. 1 summarizes the procedure. For surrounding actors, we follow the non-reactive roll-out setting of PDM-Lite, propagating each actor over the same horizon while assuming unchanged low-level con-trol. Together, the ego and actor rollouts provide the counterfactual future trajectories that are used to evaluate candidate trajectory-and-speed plans, as described in the following sections. 
+
+3.4 Rollout-Guided Expert Supervision 
+
+We now use the rollout model from Sec. 3.3 and examine whether expert supervision assigned to pre-takeover states is actually preventive. In a diagnostic run on the CARLA LB2 training routes, we use CARLA collision infractions as takeover triggers and PDM-Lite (Zimmerlin et al. 2024), a commonly used privileged expert with near-perfect per-formance on B2D and employed by prior driving DAg-ger work (Liu et al. 2026; Gao et al. 2026). For each pre-takeover state, we roll out the corresponding expert trajectory-and-speed plan and assess whether it prevents the impending collision. Our analysis shows that roughly 30% of pre-takeover sam-ples remain collision-prone under rollout (additional details are provided in App. B.1). This shows that expert supervision at pre-takeover states is not necessarily sufficient to prevent the impending collision. We identify three underlying limi-tations: the expert’s restricted trajectory-and-speed solution space, takeover timing that is not aligned with the impending failures, and a mismatch between privileged expert inputs and the student’s field of view. RoG-DAgger addresses these (a) Expert with fixed 
+
+> geometric trajectories
+> (b) Expert with expanded geometric trajectories
+> N/A (safe)
+> N/A (safe)
+
+Figure 4: Comparison between experts with fixed and ex-panded sets of geometric trajectories. In (a), the expert fol-lows a fixed pre-computed route and attempts to avoid the predicted collision through emergency braking. However, due to vehicle dynamics, the ego vehicle cannot deceler-ate sufficiently before reaching the collision point. In (b), the expert additionally considers alternative geometric tra-jectories, which are evaluated through rollouts for collision-freeness before selection. Geometric trajectories (red dots in the images) correspond to the routes executed in simulation. TTC and distance are estimated using our rollout model. limitations by expanding the expert’s solution space, intro-ducing solvability-aware takeover, and aligning the expert’s field of view with that of the student. We elaborate on each of these aspects in the following. 
+
+Expanding the Trajectory-and-Speed Solution Space 
+
+PDM-Lite follows a precomputed route and responds to pre-dicted collisions with dynamic actors primarily by setting the target speed to zero, resulting in full braking along the nominal path. This is effective when longitudinal control suffices, but does not verify that braking prevents the colli-sion and may fail when geometric adaptation is required (see representative examples of such failure cases in Fig. 4 and App. B.4). We therefore expand the expert’s trajectory-and-speed solution space and validate candidate plans through the rollout model. When PDM-Lite predicts a collision requiring braking, we generate geometric candidates by laterally shifting the nominal trajectory ageo  
+
+> t
+
+. We first identify the waypoints cor-responding to the predicted overlap between the ego and actor rollouts. We then shift these waypoints laterally, away from the actor’s direction of motion. We increase the offset in steps of ∆d up to dmax , using cosine ease-in/ease-out tran-sitions, and discard trajectories leaving the admissible lanes. For each geometric candidate ageo  
+
+> t,i
+
+, indexed by i, we evaluate a set of target speeds indexed by j. Outside junctions, we re-tain zero target speed. Inside junctions, where stopping in the conflict region may be undesirable, we additionally consider nonzero evasive speeds 
+
+Vtarget =
+
+{0}, outside junctions ,
+
+{0, 0.25 vt, 0.5 vt}, inside junctions ,
+
+and compute the corresponding ego rollout arollout  
+
+> t,i,j
+
+=
+
+Rego 
+
+ sego  
+
+> t
+
+, ageo  
+
+> t,i
+
+, v target 
+
+> t,j
+
+ . We retain only collision-free, lane-compliant candidates, prioritizing higher target speed and then smaller lateral offset. If no valid candidate exists, we fall back to the nominal trajectory with full braking. Addi-tional details regarding solution space expansion is provided in App. B.3. 
+
+Solvability-Aware Takeover Trigger A richer expert so-lution space alone cannot prevent collision if takeover oc-curs too late. As the ego approaches a conflict, collision-free candidates may eventually disappear. We define the latest state with at least one collision-free candidate as the esti-mated point of no return (PONR). Because this boundary is difficult to derive analytically, we approximate it using rollout solvability. Existing takeover triggers do not explicitly account for this solvability margin. TakeAD (Liu et al. 2026) uses infraction-or expert-student discrepancy-based triggers, which may in-tervene after failure or for benign behavioral differences. TakeVLA (Gao et al. 2026) additionally uses heuristic pre-dictive triggers, such as constant-speed collision prediction, which may trigger prematurely without accounting for brak-ing or alternative corrective plans. Premature takeover re-duces exposure to policy-induced states, whereas overly late takeover may leave insufficient room for recovery. We therefore aim to intervene near the estimated PONR while recovery remains possible. When PDM-Lite predicts a collision and initiates emergency braking, we first test with our kinematic rollout model whether nominal braking avoids it. If so, the student remains in control, otherwise, trajectory-and-speed replanning is required. Takeover is triggered when a collision-free replanning solution is available and either an imminent collision is detected ( Replan Success ) or the need for replanning persists over multiple timestamps within an interval for a less imminent collision ( Repeated Replan Success ). These triggers allow the expert to take over at highly critical yet still recoverable states, enabling the student to learn recovery behavior near the estimated PONR. For a limited number of samples with an imminent collision, no collision-free candidate exists ( Replan Failure ). In these cases, takeover with emergency braking without re-planning is triggered as a fallback. For detailed definitions of trigger conditions and solvability-aware takeover examples, see Tab. 7 and App. B.5, respectively. 
+
+Field-of-View-Aligned Planning Even a rollout-solvable expert plan may provide ineffective supervision if it depends Method Bench2Drive Longest6 v2 DS ↑ SR ↑ DS ↑ RC ↑                                                   
+
+> Privileged methods
+> PDM-Lite (Zimmerlin et al. 2024) 97.02 92.27 73 100 RoG-Expert (ours) 93.41 81.81 55 100
+> Pre-trained-only methods
+> UniAD (Hu et al. 2023) 45.81 16.36 ––TF ++ (Zimmerlin et al. 2024) 84.21 67.27 23 70 ORION (Fu et al. 2025) 77.74 54.62 ––AutoVLA (Zhou et al. 2025) 78.84 57.73 ––HiP-AD (Tang et al. 2025) 86.77 69.09 756 SimLingo (Renz et al. 2025) 85.07 67.27 22 70
+> Post-trained methods
+> MindDrive (Fu et al. 2026) 78.04 55.09 ––TakeAD (Liu et al. 2026) 71.39 40.83 ––TakeVLA (Gao et al. 2026) 89.72 73.73 ––RoG-DAgger (ours) 90.34 73.51 44 88
+
+Table 1: Closed-loop performance on Bench2Drive and Longest6 v2. DS, SR, and RS denote Driving Score, Suc-cess Rate, and Route Completion, respectively. RoG-DAgger achieves strong performance across both benchmarks. Dash indicates an unreported result. on information unavailable to the student. Following Nguyen et al. (2026), we therefore restrict expert planning to sur-rounding actors within the student’s field of view. DAgger introduces an additional issue when an infraction is caused by an actor outside the student’s field of view. In such cases, the observation-aligned expert also cannot con-dition its action on the responsible actor, so its pre-takeover trajectory does not provide meaningful supervision for pre-venting that event. For example, during a lane change, the vehicle responsible for a later collision may still be outside the student’s field of view in early pre-takeover states. We therefore discard pre-takeover samples whose responsible actor is not visible to the student, while retaining the asso-ciated post-takeover samples for recovery supervision. We refer to the resulting expert as RoG-Expert. 
+
+# 4 Experiments 
+
+We first introduce our experimental setup and implementa-tion details in Sec. 4.1. We then present the performance of RoG-DAgger on in-distribution and out-of-distribution benchmarks in Secs. 4.2 and 4.3, respectively. Finally, we val-idate our design choices through ablation studies in Sec. 4.4. 
+
+4.1 Implementation Details 
+
+Following prior work (Gao et al. 2026), we use SimLingo as the pretrained E2E driving policy. In our implementation we replace the original InternVL-2 backbone (Chen et al. 2024) with Qwen3-VL-2B (Qwen 2025), which yielded com-parable performance in our preliminary evaluation. Further details on the model are provided in App. A. We then deploy the pretrained policy on the CARLA LB2 training routes (Autonomous Vision 2023) and perform on-                                                  
+
+> Method Base Generalization DS ↑SR ↑HM ↑DS ↑SR ↑HM ↑
+> UniAD 47.5 36.3 41.2 44.0 27.6 33.9 TF ++ 83.3 78.5 80.8 75.4 61.1 67.5 ORION 53.0 52.0 52.5 51.2 46.0 48.5 HiP-AD 74.1 70.7 72.4 67.1 56.7 61.5 SimLingo 82.6 79.3 80.9 71.7 55.0 62.2 RoG-DAgger (ours) 80.2 80.0 80.1 74.7 66.0 70.1
+
+Table 2: Closed-loop performance on Fail2Drive. Base de-notes in-distribution evaluation, while Generalization refers to distribution-shifted scenarios. DS, SR, and HM de-note Driving Score, Success Rate, and their harmonic mean, respectively. RoG-DAgger remains competitive on base scenarios while showing improved OOD generaliza-tion over SimLingo.                          
+
+> Ablation Bench2Drive
+> Traj.-speed Solv.-aware FoV alignment DS ↑SR ↑
+> Component −++88.71 68.94
+> +−+88.65 69.86
+> ++−88.96 69.86
+> Takeover data Post-takeover only 88.05 68.04
+> PDM-Lite DAgger baseline 87.85 66.66
+> RoG-DAgger full 90.34 73.51
+
+Table 3: Ablation study on Bench2Drive. We evaluate the effects of trajectory-and-speed space expansion, solvability-aware triggering, FoV alignment, takeover data selection and expert model. line post-training using RoG-DAgger as described in Sec. 3. Following Liu et al. (2026), we reduce data-collection and fine-tuning costs by focusing on routes where the pretrained policy performs poorly and applying rule-based filtering (see App. B.6) to remove uninformative samples, such as cases where the ego vehicle remains stuck in traffic. For infraction-triggered events, we retain a 40-frame (2s) pre-takeover window and a 40-frame (2s) post-takeover window. For solvability-aware and restart triggers, we retain only post-takeover observations: 40 frames (2s) for solvability-aware interventions and 80 frames (4s) for restart events to capture the full recovery process. Overall, we collect approximately 51K post-training samples and mix them with the original SimLingo pretraining data at a 3:1 post-to-pre ratio to mit-igate catastrophic forgetting (Rolnick et al. 2019). Details on the distribution of the collected post-training data are reported in App. C. We fine-tune the policy for five epochs using AdamW (Loshchilov and Hutter 2019), with a batch size of 24 and a learning rate of 10 −5. We evaluate on three closed-loop benchmarks: Bench2Drive (B2D; see Jia et al. (2024)), CARLA Longest6 v2 (Autonomous Vision 2023), and Fail2Drive (F2D; see Gerstenecker, Geiger, and Renz SimLingo  B ASELINE  Collides with cross-traffic         
+
+> 5.6 m/s thr 1.0 brk 0.0 6.8 m/s thr 1.0 brk 0.0 9.0 m/s thr 1.0 brk 0.0
+> Dange r
+
+# RoG-DAgger  OU R S  Yields, junction cleared         
+
+> 6.0 m/s thr 1.0 brk 0.0 7.3m/s thr 0.0 brk 1.0 6.0m/s thr 0.0 brk 1.0
+> Sa fe
+> Approaching
+> junction
+> Approaching junction
+> Keep accelerating
+> Decelerate and shift to the left
+
+Figure 5: Qualitative comparison of RoG-DAgger with SimLingo on a Bench2Drive scene. At t1, both policies approach a junction while a cross-traffic fire truck is already visible. Both policies continue to accelerate, likely because the pre-training data contains primarily successful junction traversals and lacks corrective supervision for such hazardous interactions. As a result, SimLingo keeps accelerating at t2 and collides with the fire truck at t3. In contrast, after RoG-DAgger post-training, the policy slows down at t2 and shifts to the left, avoiding the collision at t3. Red dots denote the predicted geometric trajectory, while green dots denote the predicted temporal trajectory. “thr”: throttle, “brk”: brake. (2026)). B2D evaluates in-distribution (ID) driving across diverse short routes, while Longest6 v2 stresses long-horizon closed-loop robustness with routes approximately 
+
+10 × longer and an additional penalty for driving substan-tially slower than local traffic. F2D finally evaluates out-of-distribution (OOD) generalization under unseen assets and novel scenario configurations. Following each benchmark’s practices, we report Driving Score (DS) and Success Rate (SR) on B2D and F2D, and DS as well as Route Completion (RC) on Longest6 v2, where failure-free completion is sub-stantially harder. Details of metrics are provided in App. D.1. 
+
+4.2 ID and Long-Horizon Benchmarks 
+
+We report results on B2D and Longest6 v2 in Tab. 1. De-spite its richer solution space, RoG-Expert is outperformed by PDM-Lite on both benchmarks. This is partly expected because RoG-Expert restricts privileged hazard information to the student’s field of view, sacrificing some standalone expert performance in favor of student-compatible supervi-sion. Nevertheless, post-training substantially improves the base policy. On B2D, RoG-DAgger improves over SimLingo by 5.3 p.p. in DS and 6.2 p.p. in SR, reaching 90.34 DS and 73.51 SR. This demonstrates that our post-training procedure effectively narrows the open-loop-closed-loop distribution gap. Compared to other post-training methods, RoG-DAgger clearly outperforms TakeAD and MindDrive and performs comparably to TakeVLA. The gains are more pronounced on Longest6 v2, where RoG-DAgger doubles SimLingo’s DS from 22 to 44 and im-proves RC from 70 to 88, substantially outperforming the other non-privileged methods. Notably, on Longest6 v2, pre-trained SimLingo achieves 22 DS compared with 73 DS for its privileged data-generation expert, PDM-Lite, leav-ing a 51-point student-expert gap. In contrast, RoG-DAgger reaches 44 DS despite being post-trained with the substan-tially weaker RoG-Expert, which achieves 55 DS, leaving only an 11-point gap to its corresponding supervision expert. This observation motivates our analysis in Sec. 4.4 of why standalone expert performance does not necessarily translate into effective post-training supervision. In Fig. 5, we provide a qualitative comparison of RoG-DAgger with SimLingo on a B2D scene where RoG-DAgger decelerates and shifts left to safely avoid the cross-traffic, whereas SimLingo continues accelerating and ultimately col-lides. Further qualitative examples and more detailed B2D metrics can be found in App. D.2. 
+
+4.3 Out-of-Distribution Benchmarks 
+
+In addition to in-distribution evaluation, we assess OOD generalization on Fail2Drive (F2D). As shown in Tab. 2, RoG-DAgger performs comparably to SimLingo on the base scenarios, while TF++ achieves the highest DS on both base and generalization scenarios, potentially benefiting from its LiDAR input. On the generalization counterpart, RoG-DAgger outper-forms SimLingo by about 3 p.p. in DS and 11 p.p. in SR. In challenging scenarios such as FullyBlocked , RoG-DAgger slows down and stops when the road is obstructed, whereas SimLingo often maintains speed and collides with the block-ing vehicle. Although this exact scenario is absent in the CARLA LB2, we hypothesize that by learning from preven-tive pre-takover samples encountered under its own policy, the model acquires more general behaviors, such as slowing down or stopping when an obstacle blocks the drivable path, rather than memorizing responses to specific training scenar-ios. Additional qualitative examples and more detailed F2D metrics are provided in App. D.3. 4.4 Ablation Studies 
+
+In this section, we validate our design choices on B2D and summarize the respective results in Tab. 3. We use the hy-perparameters from Sec. 4.1 unless stated otherwise. 
+
+RoG-Expert Component Analysis We ablate the three main components of RoG-DAgger individually in the upper part of Tab. 3. Removing any component degrades both DS and SR relative to the full method (90.34 DS / 73.51 SR), demonstrating that the three design choices provide comple-mentary benefits. The three ablated variants achieve broadly similar DS, suggesting that no single component dominates the overall improvement. Removing trajectory-speed solu-tion space expansion produces the largest SR drop to 68.94, highlighting the importance of geometric adaptation when collision avoidance cannot be achieved by speed adjustment alone along the precomputed route. Disabling solvability-aware takeover and FoV alignment reduces SR to 69.86. 
+
+Takeover Data Next, we evaluate the contribution of preventive pre-takeover supervision by training with post-takeover samples only. Removing pre-takeover samples re-duces the B2D SR from 73.51 to 68.04. The larger degra-dation in SR suggests that pre-takeover supervision is par-ticularly important for preventing failures, rather than only learning to recover after an unsafe state has already been reached. This supports explicitly supervising the policy on the states leading up to safety-critical events. 
+
+PDM-Lite DAgger Baseline We further compare against a conventional DAgger configuration using PDM-Lite as the takeover expert together with the infraction- and restart-based triggers. This reduces B2D DS from 90.34 to 87.85 and SR from 73.51 to 66.66. Interestingly, although PDM-Lite achieves higher standalone closed-loop performance than RoG-Expert, its corresponding DAgger pipeline produces a weaker student. This suggests that privileged expert perfor-mance alone is not a sufficient proxy for supervision quality: effective post-training additionally requires corrective plans that are feasible, timely, and compatible with the student’s ob-servations. Since this baseline also removes the solvability-aware intervention used by RoG-DAgger, the comparison reflects the combined effect of expert design and takeover strategy rather than expert choice alone. 
+
+# 5 Discussion 
+
+In this work, we introduced RoG-DAgger, a post-training framework that improves pre-trained driving policies through closed-loop expert supervision. To mitigate the open-loop-closed-loop distribution shift, RoG-DAgger extends con-ventional DAgger with trajectory-and-speed solution-space expansion, solvability-aware triggering, and expert-student field-of-view alignment, while validating expert demonstra-tions through kinematic rollouts. Applied to SimLingo, RoG-DAgger consistently improves closed-loop performance and is competitive on B2D, while being substantially stronger un-der long-horizon and OOD evaluation. These results demon-strate that learning from policy-induced states with reli-able expert supervision can substantially improve closed-loop driving performance, particularly in challenging states that are underrepresented during pre-training, highlighting a promising direction for post-training of autonomous agents, e.g., for general robotics. Although RoG-DAgger demonstrates strong performance across benchmarks, its rollout-based solvability estimation remains approximate. Following PDM-Lite, our actor roll-out assumes that surrounding actors remain non-reactive over a short rollout time horizon, which can lead to inaccurate forecasts when they change their driving intentions in re-sponse to the ego vehicle or the scene. In addition, although RoG-DAgger expands the expert’s trajectory-and-speed so-lution space, the considered candidate set may not contain all feasible collision-avoidance solutions. Consequently, the estimated point of no return should not be interpreted as a physical feasibility boundary: a candidate trajectory classi-fied as solvable may lead to a different outcome when sur-rounding actors react, while an unsuccessful search does not rule out feasible solutions outside the considered candidate space. Extending RoG-DAgger with interaction-aware actor prediction, including robust uncertainty estimates (Sicking et al. 2021; Pintz et al. 2022) and richer trajectory generation is an important direction for future work. A further constraint of our method is its reliance on CARLA closed-loop simulation to explore policy-induced states together with their corresponding observations, which limits direct application to real-world data. Extending rollout-guided post-training to high-fidelity data-driven sim-ulators (e.g., AlpaSim (NVIDIA et al. 2025)) is a natural direction for future research. 
+
+# 6 Acknowledgments 
+
+Hanno Gottschalk acknowledges financial support by the German Federal Ministry of Economic Affairs and Energy under grant no. 19A23014Q within the nxtAIM consortium. 
+
+# References 
+
+Åström, K. J.; and Hägglund, T. 2006. Advanced PID Con-trol . ISA—The Instrumentation, Systems, and Automation Society. ISBN 978-1-55617-942-6. Autonomous Vision. 2023. CARLA Garage: A Starter Kit for the CARLA Leaderboard 2.0. https://github.com/autonomousvision/carla_garage. Chen, D.; Koltun, V.; and Krähenbühl, P. 2021. Learning to drive from a world on rails. In 2021 IEEE/CVF International Conference on Computer Vision, ICCV 2021, Montreal, QC, Canada, October 10-17, 2021 , 15570–15579. IEEE. Chen, Z.; Wang, W.; Cao, Y.; Liu, Y.; Gao, Z.; Cui, E.; Zhu, J.; Ye, S.; Tian, H.; Liu, Z.; Gu, L.; Wang, X.; Li, Q.; Ren, Y.; Chen, Z.; Luo, J.; Wang, J.; Jiang, T.; Wang, B.; He, C.; Shi, B.; Zhang, X.; Lv, H.; Wang, Y.; Shao, W.; Chu, P.; Tu, Z.; He, T.; Wu, Z.; Deng, H.; Ge, J.; Chen, K.; Dou, M.; Lu, L.; Zhu, X.; Lu, T.; Lin, D.; Qiao, Y.; Dai, J.; and Wang, W. 2024. Expanding Performance Boundaries of Open-Source Multimodal Models with Model, Data, and Test-Time Scaling. arXiv:2412.05271. Chitta, K.; Prakash, A.; Jaeger, B.; Yu, Z.; Renz, K.; and Geiger, A. 2023. TransFuser: Imitation With Transformer-Based Sensor Fusion for Autonomous Driving. IEEE Trans. Pattern Anal. Mach. Intell. , 45(11): 12878–12895. Fu, H.; Zhang, D.; Zhao, Z.; Cui, J.; Liang, D.; Zhang, C.; Zhang, D.; Xie, H.; Wang, B.; and Bai, X. 2025. Orion: A Holistic End-To-End Autonomous Driving Frame-work by Vision-Language Instructed Action Generation. In IEEE/CVF International Conference on Computer Vi-sion, ICCV 2025, Honolulu, HI, USA, October 19-25, 2025 ,24823–24834. IEEE. Fu, H.; Zhang, D.; Zhao, Z.; Cui, J.; Xie, H.; Wang, B.; Chen, G.; Liang, D.; and Bai, X. 2026. MindDrive: A Vision-Language-Action Model for Autonomous Driving via Online Reinforcement Learning. In Computer Vision - ECCV 2026 - 19th European Conference, Malmö, Sweden, September 8-12, 2026, Proceedings . Springer. Gao, Y.; Liu, D.; Zhang, Q.; Zheng, Y.; Tian, H.; Li, G.; Ye, H.; Chen, L.; Ding, D.; and Zhao, D. 2026. Learning from Mistakes: Post-Training for Driving VLA with Takeover Data. arXiv:2603.14972. Gerstenecker, S.; Geiger, A.; and Renz, K. 2026. Fail2Drive: Benchmarking Closed-Loop Driving Generalization. In 
+
+IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) .Hu, E. J.; Shen, Y.; Wallis, P.; Allen-Zhu, Z.; Li, Y.; Wang, S.; Wang, L.; and Chen, W. 2022. LoRA: Low-Rank Adaptation of Large Language Models. In The Tenth International Con-ference on Learning Representations, ICLR 2022, Virtual Event, April 25-29, 2022 .Hu, Y.; Yang, J.; Chen, L.; Li, K.; Sima, C.; Zhu, X.; Chai, S.; Du, S.; Lin, T.; Wang, W.; Lu, L.; Jia, X.; Liu, Q.; Dai, J.; Qiao, Y.; and Li, H. 2023. Planning-oriented Autonomous Driving. In IEEE/CVF Conference on Computer Vision and Pattern Recognition, CVPR 2023, Vancouver, BC, Canada, June 17-24, 2023 , 17853–17862. IEEE. Jia, X.; Yang, Z.; Li, Q.; Zhang, Z.; and Yan, J. 2024. Bench2Drive: Towards Multi-Ability Benchmarking of Closed-Loop End-To-End Autonomous Driving. In Glober-sons, A.; Mackey, L.; Belgrave, D.; Fan, A.; Paquet, U.; Tomczak, J. M.; and Zhang, C., eds., Advances in Neural Information Processing Systems 37: Annual Conference on Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December 10 - 15, 2024 .Karnchanachari, N.; Geromichalos, D.; Tan, K. S.; Li, N.; Eriksen, C.; Yaghoubi, S.; Mehdipour, N.; Bernasconi, G.; Fong, W. K.; Guo, Y.; and Caesar, H. 2024. Towards learning-based planning: The nuPlan benchmark for real-world au-tonomous driving. In IEEE International Conference on Robotics and Automation, ICRA 2024, Yokohama, Japan, May 13-17, 2024 , 629–636. IEEE. Liu, D.; Gao, Y.; Qian, D.; Zhang, Q.; Ye, X.; Han, J.; Zheng, Y.; Liu, X.; Xia, Z.; Ding, D.; Pan, Y.; and Zhao, D. 2026. TakeAD: Preference-Based Post-Optimization for End-to-End Autonomous Driving With Expert Takeover Data. IEEE Robotics Autom. Lett. , 11(2): 1738–1745. Loshchilov, I.; and Hutter, F. 2019. Decoupled Weight Decay Regularization. In 7th International Conference on Learning Representations, ICLR 2019, New Orleans, LA, USA, May 6-9, 2019 .Nguyen, L.; Fauth, M.; Jaeger, B.; Dauner, D.; Igl, M.; Geiger, A.; and Chitta, K. 2026. LEAD: Minimizing Learner-Expert Asymmetry in End-to-End Driving. In Conference on Computer Vision and Pattern Recognition (CVPR) .NVIDIA; Cao, Y.; de Lutio, R.; Fidler, S.; Garcia Cobo, G.; Gojcic, Z.; Igl, M.; Ivanovic, B.; Karkus, P.; Martinez Esturo, J.; Pavone, M.; Smith, A.; Tanimura, E.; Tyszkiewicz, M.; Watson, M.; Wu, Q.; and Zhang, L. 2025. AlpaSim: A Mod-ular, Lightweight, and Data-Driven Research Simulator for Autonomous Driving. https://github.com/NVlabs/alpasim. Accessed: 2026-07-28. Pintz, M.; Sicking, J.; Poretschkin, M.; and Akila, M. 2022. A survey on uncertainty toolkits for deep learning. ICLR 2022 Workshop on ML Evaluation Standards .Qwen. 2025. Qwen3-VL Technical Report. arXiv:2511.21631. Renz, K.; Chen, L.; Arani, E.; and Sinavski, O. 2025. Sim-Lingo: Vision-Only Closed-Loop Autonomous Driving with Language-Action Alignment. In IEEE/CVF Conference on Computer Vision and Pattern Recognition, CVPR 2025, Nashville, TN, USA, June 11-15, 2025 , 11993–12003. Com-puter Vision Foundation / IEEE. Rolnick, D.; Ahuja, A.; Schwarz, J.; Lillicrap, T. P.; and Wayne, G. 2019. Experience Replay for Continual Learning. In Wallach, H. M.; Larochelle, H.; Beygelzimer, A.; d’Alché-Buc, F.; Fox, E. B.; and Garnett, R., eds., Advances in Neural Information Processing Systems 32: Annual Conference on Neural Information Processing Systems 2019, NeurIPS 2019, December 8-14, 2019, Vancouver, BC, Canada , 348–358. Ross, S.; and Bagnell, D. 2010. Efficient Reductions for Imitation Learning. In Teh, Y. W.; and Titterington, D. M., eds., Proceedings of the Thirteenth International Conference on Artificial Intelligence and Statistics, AISTATS 2010, Chia Laguna Resort, Sardinia, Italy, May 13-15, 2010 , volume 9 of JMLR Proceedings , 661–668. JMLR.org. Ross, S.; Gordon, G. J.; and Bagnell, D. 2011. A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning. In Gordon, G. J.; Dunson, D. B.; and Dudík, M., eds., Proceedings of the Fourteenth International Conference on Artificial Intelligence and Statistics, AISTATS 2011, Fort Lauderdale, USA, April 11-13, 2011 , volume 15 of JMLR Proceedings , 627–635. JMLR.org. Sicking, J.; Akila, M.; Pintz, M.; Wirtz, T.; Fischer, A.; and Wrobel, S. 2021. A novel regression loss for non-parametric uncertainty optimization. 3rd Symposium on Advances in Approximate Bayesian Inference (AABI) .Sima, C.; Renz, K.; Chitta, K.; Chen, L.; Zhang, H.; Xie, C.; Beißwenger, J.; Luo, P.; Geiger, A.; and Li, H. 2024. DriveLM: Driving with Graph Visual Question Answering. In Leonardis, A.; Ricci, E.; Roth, S.; Russakovsky, O.; Sattler, T.; and Varol, G., eds., Computer Vision - ECCV 2024 - 18th European Conference, Milan, Italy, September 29-October 4, 2024, Proceedings, Part LII , volume 15110 of Lecture Notes in Computer Science , 256–274. Springer. Tang, Y.; Xu, Z.; Meng, Z.; and Cheng, E. 2025. HiP-AD: Hi-erarchical and Multi-Granularity Planning with Deformable Attention for Autonomous Driving in a Single Decoder. In IEEE/CVF International Conference on Computer Vi-sion, ICCV 2025, Honolulu, HI, USA, October 19-25, 2025 ,25605–25615. IEEE. Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Ichter, B.; Xia, F.; Chi, E. H.; Le, Q. V.; and Zhou, D. 2022. Chain-of-Thought Prompting Elicits Reasoning in Large Language Models. In Koyejo, S.; Mohamed, S.; Agarwal, A.; Belgrave, D.; Cho, K.; and Oh, A., eds., Advances in Neural Informa-tion Processing Systems 35: Annual Conference on Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - December 9, 2022 .Wu, Y.; Slieter, D.; Subramanian, V.; Abouelazm, A.; Bohn, R.; and Zöllner, J. M. 2025. Why Braking? Scenario Ex-traction and Reasoning Utilizing LLM. In IEEE Inter-national Conference on Vehicular Electronics and Safety, ICVES 2025, Coventry, United Kingdom, October 27-28, 2025 , 248–255. IEEE. Zhong, L.; Rosenthal, F.; Sicking, J.; Hüger, F.; Bagdonat, T.; Gottschalk, H.; and Schwinn, L. 2025. FOCUS: Internal MLLM Representations for Efficient Fine-Grained Visual Question Answering. In The Thirty-ninth Annual Conference on Neural Information Processing Systems .Zhong, L.; Sicking, J.; Hüger, F.; and Gottschalk, H. 2024. VL4AD: Vision-Language Models Improve Pixel-Wise Anomaly Detection. In 2nd Workshop on Vision-Centric Autonomous Driving (VCAD) at the European Con-ference on Computer Vision (ECCV) .Zhou, Z.; Cai, T.; Zhao, S. Z.; Zhang, Y.; Huang, Z.; Zhou, B.; and Ma, J. 2025. AutoVLA: A Vision-Language-Action Model for End-to-End Autonomous Driving with Adaptive Reasoning and Reinforcement Fine-Tuning. In The Thirty-ninth Annual Conference on Neural Information Processing Systems .Zimmerlin, J.; Beißwenger, J.; Jaeger, B.; Geiger, A.; and Chitta, K. 2024. Hidden Biases of End-to-End Driving Datasets. arXiv:2412.09602. A Model Architecture and Pre-Training 
+
+SimLingo (Renz et al. 2025) operates on a front-facing cam-era view with a horizontal field of view (FoV) of 110 ◦, which defines the visual context available to the policy for scene un-derstanding and planning. For motion prediction, the policy outputs 10 trajectory waypoints together with 10 correspond-ing speed waypoints, jointly representing the spatial path and desired speed profile over the prediction horizon. These plan-ning outputs are decoded from the learned visual-language representation using lightweight MLP heads for trajectory and speed prediction. With the model architecture established, we next describe the training procedure and optimization settings used for fine-tuning. We pre-train the model following the SimLingo training recipe, while keeping all other unspecified settings identical to those in SimLingo. Training is performed for 5 epochs with a learning rate of 1×10 −4 and an effective batch size of 48 across 4 GPUs, corresponding to 12 samples per GPU. We apply LoRA (Hu et al. 2022) with rank r = 32 and scaling factor α = 64 . Although SimLingo enables chain-of-thought (Wei et al. 2022) output by default, the original paper reports no notable performance degradation when it is disabled (Renz et al. 2025). We observe the same behavior in our implementation and thus disable the chain-of-thought output in all experiments to reduce inference latency. More-over, we replace the InternVL backbone used in (Renz et al. 2025) with a more recent Qwen3-VL-2B-Instruct. As shown in Tab. 4, however, we observe no significant per-formance difference between the original SimLingo with an InternVL backbone and our Qwen3-VL-based version on B2D. Throughout the paper, we use the latter version and refer to it simply as SimLingo. We analyze the B2D failure cases in Tab. 5 and find that collisions account for roughly 80% of the analyzed failures. We exclude the YieldToEmer-gencyVehicle scenario from this analysis because SimLingo lacks a rear-facing camera and therefore cannot reliably de-tect and proactively yield to an emergency vehicle approach-ing from behind. 
+
+Model DS SR (%) 
+
+SimLingo (Renz et al. 2025) 85.07 67.27 
+
+SimLingo-Qwen3-VL-2B ( ours ) 86.59 66.36 Table 4: Comparison between the original SimLingo and our Qwen3-VL-2B-based version. Both variants achieve com-parable driving performance despite the change in VLM backbone. DS and SR denote driving score and success rate, respectively. 
+
+# B Implementation Details of RoG-DAgger 
+
+This section provides additional implementation details of RoG-DAgger. We first present a preliminary DAgger exper-iment with PDM-Lite that motivates our design choices in App. B.1, then describe the data-collection trigger conditions and the trajectory-and-speed solution-space expansion used by RoG-Expert in App. B.2 and B.3, respectively. We subse-
+
+Failure Category Count Proportion (%) 
+
+Total recorded failures 73 –Ignored cases 5 –
+
+Analyzed failures 68 100.0 Collision-related failures 53 77.9 
+
+Collision with vehicle 49 72.1 Collision with static 4 5.9 Collision with pedestrian 1 1.5 
+
+Non-collision failures 15 22.1 
+
+Table 5: Breakdown of the recorded failures. After excluding five Yield To Emergency Vehicle cases, we analyze 68 failures, of which 53 are collision-related. The collision subcategories are not mutually exclusive, as one failure involves both a vehicle and a static object. quently provide qualitative examples of geometric trajecto-ries in App. B.4 and solvability-aware takeovers in App. B.5, followed by details of the rule-based data-filtering procedure in App. B.6 and other implementation settings in App. B.7. 
+
+B.1 Preliminary DAgger Experiment with PDM-Lite 
+
+As described in Sec. 3.4, we conduct a diagnostic DAgger run using PDM-Lite as the expert policy and CARLA col-lision events as the takeover trigger. For each pre-takeover sample, we query PDM-Lite for a counterfactual trajectory-and-speed plan from the corresponding policy-induced state. We then execute this plan with our controller-in-the-loop kinematic rollout model and determine whether the resulting ego temporal trajectory overlaps with the predicted tempo-ral trajectory of any surrounding actor. Such an overlap is counted as a predicted collision. We evaluate pre-takeover windows of 20 frames, following TakeVLA (Gao et al. 2026), and 40 frames, corresponding to our default setting, while fixing the post-takeover window to 40 frames. As shown in Tab. 6, the counterfactual PDM-Lite plans produce predicted collision rates of 43.2% and 29.6% for the 20-frame and 40-frame pre-takeover windows, respectively, compared to only 0.47% for the post-takeover samples. These results indicate that expert actions generated before takeover are frequently unsafe in policy-induced states. As discussed in Sec. 3.4, this discrepancy can likely be attributed to the expert’s restricted solution space, delayed intervention timing, and misalign-ment between the expert and student policies. 
+
+B.2 Trigger Conditions 
+
+As described in Sec. 3.2, we conduct two independent data-collection runs using three types of triggers. The correspond-ing trigger conditions are detailed in Tab. 7. 
+
+B.3 Trajectory-and-Speed Solution-Space Expansion 
+
+When full braking alone is insufficient, we expand the so-lution space by generating geometric candidates around the Split Window Samples Collision Rate 
+
+Pre-takeover 20 5568 2404 43.18% Pre-takeover 40 9565 2829 29.58% Post-takeover 40 20845 99 0.47% Table 6: Collision statistics for pre- and post-takeover sam-ples. For pre-takeover samples, we compare temporal win-dows of 20 and 40 frames preceding the trigger, while the post-takeover window is 40. Collision rate denotes the frac-tion of retained samples for which our rollout model predicts a collision within the corresponding window when executing the trajectory-and-speed plan provided by PDM-Lite. 
+
+Trigger Trigger Condition Infraction A standard CARLA infraction, including a collision, red-light violation, or out-of-lane violation. 
+
+Solvability-Aware Takeover 
+
+Replan Success: 
+
+R-TTC < 1 s AND replanning succeeds. 
+
+Repeated Replan Success: 
+
+1 s < R-TTC < 1.5 s AND 
+
+replanning succeeds in two of four consec-utive frames. 
+
+Replan Failure: 
+
+R-TTC < 1 s AND replanning fails. 
+
+Restart A persistent discrepancy is detected be-tween the ego vehicle and the expert model: the ego speed remains below 
+
+0.1 m /s for all of the previous 200 frames, while both the mean expert target speed over these frames and the current expert target speed exceed 0.4 m /s.Table 7: Details on the three types of trigger conditions used for post-training data collection. R-TTC denotes the time-to-collision estimated by our rollout model. predicted ego-actor overlap, as summarized in Alg. 2. Re-planning is triggered when the nominal PDM-Lite collision detector requests an emergency stop, which is the case if the ego vehicle is moving faster than 0.4m /s, while the tar-get speed falls below 10 −3m/s. Collision prediction is then performed assuming a target speed of zero. Given the resulting predicted collision interval, we locally modify the affected portion of the nominal trajectory rather than shifting the entire route. In particular, the modified seg-ment starts approximately in a distance of 
+
+5 m + lhalf _ego + lhalf _actor 
+
+before the first predicted ego-actor overlap and extends approximately 
+
+2 m + lhalf _ego + lhalf _actor 
+
+Algorithm 2: Trajectory-and-speed solution-space expan-sion. PDM-Collision denotes PDM-Lite’s native collision prediction used to trigger emergency braking. It returns the collision-relevant actor o and the index set I of nominal-trajectory waypoints involved in the predicted ego-actor over-lap. Local-Shift (a, I, o, d ) shifts only the waypoints of ego trajectory a indexed by I by distance d along the direction perpendicular to the local trajectory, choosing the side away from actor o’s direction of motion, with smooth ease-in/ease-out transitions to the unchanged trajectory. Rego denotes the controller-in-the-loop ego rollout model (see Sec. 3.3). Re-planning is targeted to avoid o, while candidate plans are validated against all predicted actors At.
+
+Inputs : ego state sego  
+
+> t
+
+, nominal trajectory ageo  
+
+> t
+
+, current speed vt, predicted actors At, shift unit size ∆d, maximum shift dmax 
+
+Output : expert plan (a∗
+
+> geo
+
+, a∗
+
+> temp
+
+) or ∅ 
+
+> 1:
+
+(o, I) ← PDM-Collision (sego  
+
+> t
+
+, ageo  
+
+> t
+
+, At) 
+
+> 2:
+
+if o = ∅ then  
+
+> 3:
+
+return ∅ 
+
+> 4:
+
+end if  
+
+> 5:
+
+abrk temp ← R ego (sego  
+
+> t
+
+, ageo  
+
+> t
+
+, 0)  
+
+> 6:
+
+if Collision-Free (abrk temp , At) then  
+
+> 7:
+
+return (ageo  
+
+> t
+
+, abrk temp ) 
+
+> 8:
+
+end if  
+
+> 9:
+
+if sego  
+
+> t
+
+is inside a junction then  
+
+> 10:
+
+Vtarget ← { 0.5 vt, 0.25 vt, 0} 
+
+> 11:
+
+else  
+
+> 12:
+
+Vtarget ← { 0} 
+
+> 13:
+
+end if  
+
+> 14:
+
+for vtarget ∈ V target do  
+
+> 15:
+
+for d = ∆ d, 2∆ d, . . . , d max do  
+
+> 16:
+
+a′ 
+
+> geo
+
+← Local-Shift (ageo  
+
+> t
+
+, I, o, d ) 
+
+> 17:
+
+if Lane-Compliant (a′
+
+> geo
+
+) then  
+
+> 18:
+
+a′ 
+
+> temp
+
+← R ego (sego  
+
+> t
+
+, a′
+
+> geo
+
+, v target ) 
+
+> 19:
+
+if Collision-Free (a′
+
+> temp
+
+, At) then  
+
+> 20:
+
+return (a′
+
+> geo
+
+, a′
+
+> temp
+
+) 
+
+> 21:
+
+end if  
+
+> 22:
+
+end if  
+
+> 23:
+
+end for  
+
+> 24:
+
+end for  
+
+> 25:
+
+return (ageo  
+
+> t
+
+, abrk temp )
+
+beyond the final overlap, where lhalf _ego and lhalf _actor 
+
+denote the longitudinal half-extents of the ego vehicle and collision-relevant actor, respectively. The 5 m pre-collision margin allows the avoidance maneuver to begin before enter-ing the predicted conflict region, while the 2 m post-collision extension avoids a sudden change in trajectory curvature and steering. Within this segment, we shift the nominal trajectory later-ally, i.e., perpendicular to the local ego-route direction and away from the collision-relevant actor. To avoid abrupt ge-ometric changes, the lateral displacement is introduced and removed using a spatial cosine ease-in/ease-out transition over 2 m. Specifically, we define the transition weight as E(u) = 1 − cos( πu )2 , u ∈ [0 , 1] ,
+
+where u denotes the normalized progress through the tran-sition interval. During the ease-in transition, the weight in-creases smoothly from E(0) = 0 to E(1) = 1 , and the interpolated trajectory is given by 
+
+ 1 − E(u) ageo + E(u) a′ 
+
+> geo
+
+,
+
+where a′ 
+
+> geo
+
+denotes the shifted trajectory. For the ease-out transition, the same weighting profile is applied in re-verse, smoothly returning the shifted trajectory to the nomi-nal trajectory. As a result, the trajectory gradually approaches the selected lateral displacement, remains shifted through the central collision-avoidance region, and smoothly merges back into the nominal trajectory after the predicted conflict. As in Alg. 2, we search over increasing lateral offsets and retain the first candidate whose rollout is both collision-free and lane-compliant. In the implementation, offsets ∆d are evaluated in 0.2 m increments until dmax = 3 m, thereby favoring the smallest geometric deviation that resolves the predicted collision. A candidate is considered lane-valid only if its lateral deviation remains within approximately 
+
+wlane 
+
+2 + 0 .2 m ,
+
+where wlane is the local lane width. Candidates outside this admissible region are discarded. We first consider target-speed options in descending order and, for each target speed, evaluate geometric candidates with progressively increasing lateral offsets using the controller-in-the-loop rollout model 
+
+Rego , following Alg. 1. Candidates are retained only when their temporal rollout remains collision-free with respect to all predicted surrounding actors. We prioritize higher target speeds and then smaller lateral deviations. If no valid shifted candidate exists, we fall back to the nominal geometric tra-jectory with full braking. 
+
+B.4 Examples of Geometric Trajectory Shifting 
+
+In the main paper, we discuss why a restricted trajectory-and-speed solution space can lead an expert model to pro-duce suboptimal actions. Here, we provide a concrete ex-ample in Figs. 6 and 7. We evaluate two privileged experts in the MergeIntoSlowTraffic scenario. The expert in Fig. 6 follows the default PDM-Lite strategy: it tracks a precom-puted geometric trajectory and attempts to avoid collisions solely through full braking, i.e., by setting the target speed to zero. In contrast, the RoG-Expert in Fig. 7 uses an expanded trajectory-and-speed solution space. While the default expert fails to complete the scenario safely, the RoG-Expert with the expanded solution space resolves the traffic conflict by com-bining adapted geometric trajectory and full braking. This comparison shows that an expert with a restricted trajectory-and-speed solution space can itself become the performance bottleneck, as it may fail to provide a safe corrective action even with privileged scene information. 
+
+B.5 Solvability-Aware Takeover Examples 
+
+We illustrate the solvability-aware takeover mechanism in Fig. 8. As the ego vehicle approaches the junction, even a small deviation in the turning angle can lead to a colli-sion. The solvability-aware trigger activates RoG-Expert at a highly critical yet still recoverable state, close to the esti-mated point of no return (PONR). RoG-Expert then corrects the trajectory in time to avoid the impending accident. By collecting supervision near this boundary, the student is ex-posed to recovery behavior in states where intervention is necessary but successful correction remains feasible. 
+
+B.6 Rule-Based Training Data Filtering 
+
+Following the filtering principle used in TakeAD (Liu et al. 2026), we retain collected samples that exhibit a meaning-ful discrepancy between the policy and the expert model, while removing uninformative low-motion cases. A sample is considered relevant when the target-speed disagreement exceeds 0.5 m/s, the current speed exceeds the target speed by more than 10%, or the absolute steering deviation is at least 0.2 rad . Speed and steering criteria are combined with OR logic, such that a disagreement in either control dimen-sion is sufficient to retain the sample. Similarly, we filter stuck or near-stationary behavior: events with an average speed be-low 0.5 m/s are removed, and post-takeover segments are discarded when both their average and final speeds remain below 0.3 m/s. In addition to these TakeAD-inspired filters, we apply an observability-based filter specific to our recovery setting. As discussed in Sec. 3.4, pre-takeover collision frames are re-tained only when the collision-relevant actor is visible in the camera view. This prevents samples from being included when the relevant actor lies outside the model’s observable field of view. 
+
+B.7 Further Implementation Details 
+
+For the expert target speed, we follow LEAD (Nguyen et al. 2026), i.e., the target speed is capped by the minimum of the posted speed limit and the typical flow speed of nearby vehicles. In addition, we use PDM-Lite’s default bounding-box inflation to account for uncertainty in both the predicted actor rollouts and the estimated execution of the ego action. 
+
+# C Distribution of Post-Training Data 
+
+Tab. 8 summarizes the composition of the RoG-DAgger post-training dataset from two complementary perspectives. Panel (a) reports the proportion of samples collected be-fore and after takeover, with the majority originating from the post-takeover phase. Panel (b) groups samples by their high-level collection trigger and further breaks them down into the corresponding event types (including collisions, red-light and out-of-lane infractions), different outcomes of the solvability-aware takeover, and restart events. 
+
+# D Additional RoG-DAgger Results 
+
+This section provides further details on the evaluation met-rics and additional results. We first elaborate on the primary Figure 6: Expert without expanded trajectory-and-speed solution space fails to prevent collision. An expert such as PDM-Lite follows a precomputed route and primarily responds to predicted collisions with full braking along the nominal path. However, in safety-critical states, especially those induced by the policy, braking alone does not necessarily prevent an impending collision. At t1, the ego vehicle controlled by expert follows the nominal route and prepares for lane change. At t2, the expert predicts a collision and initiates full braking, but the intervention is insufficient due to the vehicle dynamics, and a collision occurs at t4.The geometric trajectories shown as red dots in the lower row correspond to the trajectories illustrated in the upper row. N/A (safe) 
+
+> N/A (safe)
+
+Figure 7: Expert with expanded trajectory-and-speed solution space succeeds in preventing impending collision. RoG-Expert searches for an alternative geometric trajectory when the rollout model predicts that emergency braking along the nominal trajectory is insufficient to avoid an impending collision. Specifically, at t1, the ego vehicle controlled by expert follows the nominal route and prepares for lane change. At t2, the expert proposes an emergency braking combined with a first local trajectory shift to increase clearance from the predicted collision from our rollout model. At t3, the expert performs a second, larger shift as the previous plan from t2 remains insufficient. The ego vehicle then continues braking safely until reaching zero speed at t4. Across the two replanning steps, the predicted time-to-collision (TTC), computed by our rollout model, increases from 0.4 s to 1.0 s , and no collision occurs . Dashed boxes of the same color mark the first and last locations of the predicted collision actor. Note that bounding boxes are inflated following PDM-Lite to account for uncertainty in rollout prediction. The geometric trajectories shown as red dots in the lower row correspond to the improved trajectories illustrated in the upper row. Speed: 8.75 m/s Speed: 9.03 m/s Figure 8: SimLingo with solvability-aware takeover. At t1, the policy controls the ego vehicle while preparing for a left turn. As oncoming traffic approaches, our kinematic rollout model predicts at t2 a time-to-collision (TTC) of 0.05 s , indicating an imminent collision. This activates the solvability-aware takeover, which shifts the geometric trajectory 0.5 m to the right while setting the target speed to 50% of the current speed. At t3, the RoG-Expert applies a second, larger correction of 0.9 m to the right, again setting the target speed to 50% of the current speed, successfully avoiding the collision. At t4, the ego vehicle continues safely under expert control during the post-takeover period. 
+
+(a) Takeover Phase 
+
+Pre-takeover 27.3% Post-takeover 72.7% 
+
+(b) Collection Trigger / Event Type Infraction 55.3% 
+
+Collision 47.7% Red-Light Infraction 2.9% Out-of-Lane Infraction 4.7% 
+
+Solvability-Aware Takeover 23.1% 
+
+Repeated Replan Success 1.7% Replan Failed 8.7% Replan Success 12.7% 
+
+Restart 21.6% 
+
+Table 8: Composition of the post-training dataset from two different perspectives: (a) takeover phase and (b) col-lection trigger and event type. Percentages are normal-ized separately within each panel. Bold rows in (b) denote high-level trigger classes, while indented rows show their event-type breakdown. metrics used throughout the paper in App. D.1. Then, we re-port complementary in-distribution results on Bench2Drive, including efficiency, comfort, multi-capability performance, and additional qualitative examples, in App. D.2. Finally, we present out-of-distribution results on Fail2Drive at both the scenario-class and individual-scenario level, together with visual examples, in App. D.3. 
+
+D.1 Details of Evaluation Metrics 
+
+The primary evaluation metrics reported in the main paper are Route Completion (RC), Driving Score (DS), and Suc-cess Rate (SR). Route Completion measures the percentage 
+
+Scenario Class SimLingo RoG-DAgger ∆
+
+Visual-longitudinal 71.1 81.2 +10.1 Visual-lateral 45.9 51.3 +5.4 Behavior 31.2 62.0 +30.8 Robustness 86.8 80.7 -6.1 
+
+Mean 58.8 68.8 +10.0 Table 9: Per-class harmonic mean of DS and SR on gen-eralization scenarios of Fail2Drive. RoG-DAgger improves over SimLingo on three out of four scenario classes, with the largest gain on behavior generalization (+30.8 HM), while SimLingo performs better on robustness scenarios. of the prescribed route traversed by the autonomous driv-ing agent and therefore quantifies its progress toward the destination. Driving Score jointly evaluates route progress and driving compliance by weighting the Route Comple-tion of each route with a multiplicative infraction penalty. The penalty accounts for unsafe or invalid driving behavior, such as collisions, red-light violations, lane departures, and scenario timeouts. Success Rate measures the proportion of evaluation routes that are completed successfully while sat-isfying the requirements of the evaluation protocol. 
+
+D.2 In-Distribution Evaluation 
+
+In Tab. 10, we report additional B2D evaluation metrics covering driving efficiency, comfort, and multi-ability per-formance. RoG-DAgger generally outperforms SimLingo across these metrics and achieves performance comparable to that of TakeVLA. Further qualitative RoG-DAgger examples on B2D are presented in Fig. 11. D.3 Out-of-Distribution Evaluation 
+
+We report additional F2D results in Tabs. 9 and 11. Com-pared to SimLingo, RoG-DAgger improves harmonic mean by 30 p.p. on Behavior scenarios, including Fully Blocked 
+
+and Construction Pedestrian . This gain is likely attributable to the inclusion of a broader range of safety-critical scenar-ios during post-training. In contrast, RoG-DAgger performs 6 p.p. worse on Robustness scenarios. We hypothesize that the model exhibits overly conservative behavior near con-struction sites with irregular object orientations and place-ments, which can impede route progress and lead to scenario-timeout penalties. We provide additional qualitative head-to-head comparisons of RoG-DAgger and SimLingo in Figs. 9 and 10. Further qualitative examples for F2D are presented in Fig. 12. 
+
+# E Technical Details 
+
+E.1 Hardware and Software 
+
+We conduct our experiments on Microsoft Azure Stan-dard_NC96ads_A100_v4 instances, equipped with 96 AMD EPYC 7V13 (Milan) CPU cores, 880 GB of system memory, and four NVIDIA A100 PCIe GPUs with 80 GB of memory each. Our software environment uses Python 3.10, PyTorch 2.8 with CUDA 12.6 and cuDNN 9.10, and CARLA 0.9.15 for closed-loop simulation. 
+
+E.2 Compute Time 
+
+Using four NVIDIA A100 GPUs, pre-training SimLingo-Qwen3VL-2B takes approximately 35 hours with our train-ing schedule. Data collection on CARLA Leaderboard 2.0 requires approximately 15 hours with six parallel CARLA instances per GPU, and post-training takes an additional 3-4 hours. Method Efficiency Comfort Multi-Capability (%) 
+
+Merging Overtaking Emergency Brake Give Way Traffic Sign Mean 
+
+Privileged methods 
+
+PDM-Lite (Zimmerlin et al. 2024) 213.47 22.33 82.05 91.11 81.67 80.00 70.97 81.16 RoG-Expert (ours) 196.89 14.13 75.00 84.44 93.33 40.00 88.95 76.35 
+
+Pre-trained-only methods 
+
+UniAD (Hu et al. 2023) 129.21 43.58 12.16 20.00 23.64 10.00 13.89 15.89 TF ++ (Zimmerlin et al. 2024) – – 58.75 57.77 83.33 40.00 82.11 64.39 ORION (Fu et al. 2025) 151.48 17.38 25.00 71.11 78.33 30.00 69.15 54.72 HiP-AD (Tang et al. 2025) 203.12 19.36 50.00 84.44 83.33 40.00 72.10 65.98 AutoVLA (Zhou et al. 2025) 146.93 39.33 – – – – – –SimLingo (Renz et al. 2025) 259.23 33.67 54.01 57.04 88.33 53.33 82.45 67.03 
+
+Post-trained methods 
+
+MindDrive (Fu et al. 2026) – – 32.89 75.56 68.33 50.00 57.89 56.94 TakeAD (Liu et al. 2026) 193.30 22.89 30.77 35.56 56.67 50.00 42.02 43.00 TakeVLA (Gao et al. 2026) 249.01 30.27 63.64 64.44 91.67 50.00 85.48 71.05 
+
+RoG-DAgger (ours) 242.84 35.10 67.09 64.44 85.00 50.00 84.74 70.25 Table 10: Detailed Bench2Drive evaluation of efficiency, comfort, and multi-ability performance. RoG-DAgger improves over SimLingo in merging, overtaking, and traffic-sign handling, and achieves a higher overall mean. It performs comparably to TakeVLA overall, with stronger merging but lower emergency-braking performance. Beyond these scenario-specific capabilities, we further assess whether the observed gains preserve desirable overall driving behavior in terms of efficiency and comfort. RoG-DAgger maintains competitive efficiency while improving comfort over both SimLingo and TakeVLA, suggesting that its closed-loop gains do not come at the cost of less comfortable driving. 
+
+Class Scenario Driving Score (DS) ↑ Success Rate (SR) ↑
+
+Base Gen. Rel. Base Gen. Rel. 
+
+Behavior Wall 98.6 68.5 -30.5 100.0 20.0 -80.0 Behavior Fully Blocked 94.1 83.8 -11.0 100.0 80.0 -20.0 Behavior Pedestrians On Road 82.6 64.8 -21.5 80.0 60.0 -25.0 Behavior Construction Pedestrian 54.1 67.4 +24.6 40.0 60.0 +50.0 Visual-lat Bad Parking 79.3 71.0 -10.5 70.0 60.0 -14.3 Visual-lat Construction Permutations 76.4 54.3 -28.9 100.0 40.0 -60.0 Visual-lat Custom Obstacles 51.8 55.6 +7.2 30.0 30.0 0.0 Visual-lon Obscured Stop 95.4 99.4 +4.2 100.0 100.0 0.0 Visual-lon Hard Brake 83.3 73.8 -11.4 80.0 60.0 -25.0 Visual-lon Right Of Way 90.9 83.7 -8.0 100.0 80.0 -20.0 Visual-lon Animals 78.6 82.1 +4.6 70.0 80.0 +14.3 Visual-lon Pedestrian Other Blocker 73.8 74.1 +0.4 80.0 80.0 0.0 Robustness Right Construction 93.7 72.5 -22.7 100.0 60.0 -40.0 Robustness Opposite Construction 98.5 98.6 +0.2 100.0 100.0 0.0 Robustness Image On Object 79.9 73.5 -8.0 100.0 80.0 -20.0 Robustness Passable Obstacles 92.5 97.5 +5.3 100.0 100.0 0.0 Robustness Pedestrian Crowd 71.8 64.5 -10.2 80.0 60.0 -25.0 Table 11: Per-scenario performance of RoG-DAgger on Fail2Drive. We report Driving Score (DS) and Success Rate (SR) on the 
+
+Base and Generalization splits. SR and relative changes between the two splits (Rel.) are reported as percentages. RoG-DAgger performs particularly well on several novel scenario configurations, such as Construction Pedestrian and Fully Blocked . However, it still fails on entirely novel scenarios involving unseen assets, such as Wall .Speed: 3.2 m/s  Speed: 5.7 m/s  Speed: 8.9 m/s  Speed: 5.3 m/s 
+
+SimLingo 
+
+RoG-DAgger    
+
+> Speed: 15.8 m/s Speed: 16.3 m/s Speed: 15.4 m/s Speed: 15.1 m/s
+
+Figure 9: Head-to-head comparison of RoG-DAgger (bottom) and SimLingo (top) in the Construction Pedestrian scenario of Fail2Drive. SimLingo tends to steer left despite oncoming traffic approaching from the left while the right side of the construction site is completely free. This behavior is consistent with a training bias in which construction zones predominantly appear on the right side of the road. As a result, SimLingo may resort to a late evasive maneuver and collide with the traffic warning sign while attempting to avoid the oncoming vehicles. In contrast, RoG-DAgger learns to steer right in the same situation. This behavior can be likely attributed to the RoG-Expert, whose expanded trajectory-and-speed solution space exposes the student to multiple feasible recovery strategies and thereby encourages greater trajectory multimodality. Speed: 10.5 m/s  Speed: 11.8 m/s  Speed: 12.4 m/s  Speed: 0.2 m/s 
+
+SimLingo 
+
+RoG-DAgger    
+
+> Speed: 6.2 m/s Speed: 2.9 m/s Speed: 0.7 m/s Speed: 0.0 m/s
+
+Figure 10: Head-to-head comparison of RoG-DAgger (bottom) and SimLingo (top) in the Fully Blocked scenario of Fail2Drive. SimLingo continues to accelerate from t1 to t3 toward the fire truck blocking the road. This behavior likely reflects a lack of corrective experience for such safety-critical situations, ultimately resulting in a collision at t4. In contrast, RoG-DAgger is post-trained on safety-critical scenarios induced by the policy and paired with expert demonstrations. This preventive supervision enables the model to decelerate as it approaches the fire truck and avoid the collision. Speed: 15.1 m/s  Speed: 11.6 m/s  Speed: 7.6 m/s  Speed: 0.4 m/s       
+
+> Speed: 1.3 m/s Speed: 1.7 m/s Speed: 1.7 m/s Speed: 2.5 m/s
+> Speed: 9.8 m/s Speed: 7.2 m/s Speed: 5.2 m/s Speed: 3.2 m/s
+> (A)
+> (B)
+> (C)
+
+Figure 11: Qualitative examples of RoG-DAgger on Bench2Drive. In row (A), RoG-DAgger successfully merges into traffic while executing a left turn, using emergency braking to avoid a collision with the lead vehicle. In row (B), the predicted geometric trajectory adapts laterally from left to right as the pedestrian moves across the route. This contrasts with PDM-Lite/SimLingo-style behavior, where the geometric path remains largely fixed and collision avoidance is handled primarily through speed adjustment. Row (C) shows a failure case: RoG-DAgger slows down and attempts a lane change to pass through the construction area, however, due to the limited field of view, a vehicle approaching from the rear-left remains unobserved and causes a side collision. (A) 
+
+> (B)
+> (C)
+
+Figure 12: Qualitative examples of RoG-DAgger on Fail2Drive. In row (A), although RoG-DAgger has never been trained on scenes involving animals, the model appears to recognize that the road ahead is no longer safely drivable and begins braking in time to avoid the animal. A similar behavior is observed in row (B): despite not encountering children’s slides during either pre- or post-training, the post-trained policy successfully navigates the constrained space, performs a lane change, and passes around the slide obstructing the road. Row (C) shows a failure case: Although the model appears to recognize the wall blocking the road once it is at close range, it fails to brake sufficiently and ultimately collides with the obstacle.

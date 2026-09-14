@@ -6,119 +6,91 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-08-16 ~ 2026-09-14
-- 运行时间：2026-09-14 08:30:25 UTC
+- 最新运行日期：2026-09-14
+- 运行时间：2026-09-14 23:17:15 UTC
 - 运行状态：成功
-- 本次总论文数：32
-- 精读区：15
-- 速读区：17
+- 本次总论文数：23
+- 精读区：8
+- 速读区：15
 
 ### 今日简报（AI）
-- 今日共生成 32 篇推荐（精读 15 篇，速读 17 篇）
-- 精读：《Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving》（9.0/10）, 《WA-JEPA: Rethinking the Video JEPA Paradigm for World-Action Modeling in Autonomous Driving》（9.0/10）
-- 速读：《Counterfactual Contrastive Analysis》（8.0/10）, 《Foundation Models for Partial Causal Identification》（8.0/10）, 《Roadside-Cooperative Autonomous Driving: From Data Platform to Vision-Language End-to-End Reasoning》（8.0/10）
-- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
-- 详情：[/20260816-20260914/README](/20260816-20260914/README)
+2026-09-14 日报：从23篇中精读8篇、速读15篇，端到端自动驾驶成为今日最高分方向。  
+最值得看的是精读9.0的《READ: Learning Risk-Informed Fields for End-to-End Autonomous Driving》和8.0的《RoG-DAgger: Rollout-Guided Post-Training for End-to-End Driving》，速读可顺带关注扩散采样与图像生成情感对齐。  
+普通读者建议先读这两篇端到端驾驶精读，再按兴趣扫速读中的生成模型主题。
+- 详情：[/202609/14/README](/202609/14/README)
 
 ### 精读区论文标签
-1. [Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving](/20260816-20260914/2608.18035v1-plug-and-play-traffic-element-awareness-for-end-to-end-autonomous-driving)  
+1. [READ: Learning Risk-Informed Fields for End-to-End Autonomous Driving](/202609/14/2609.12371v1-read-learning-risk-informed-fields-for-end-to-end-autonomous-driving)  
    标签：评分：9.0/10、query:self-driving
-   evidence：面向端到端自动驾驶的即插即用交通要素感知
-2. [WA-JEPA: Rethinking the Video JEPA Paradigm for World-Action Modeling in Autonomous Driving](/20260816-20260914/2608.20974v2-wa-jepa-rethinking-the-video-jepa-paradigm-for-world-action-modeling-in-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向自动驾驶规划的V-JEPA世界-动作模型
-3. [Geo-VLA: Geometry-Aware Vision-Language-Action Planning via Internalization of Map Semantics](/20260816-20260914/2608.21440v1-geo-vla-geometry-aware-vision-language-action-planning-via-internalization-of-map-semantics)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向端到端自动驾驶的几何感知视觉-语言-动作规划
-4. [Where World Models Break: Natural-Input Failure Discovery](/20260816-20260914/2608.22421v1-where-world-models-break-natural-input-failure-discovery)  
-   标签：评分：9.0/10、query:world-models
-   evidence：世界模型在自然输入下的失效发现
-5. [MomADv2: Reliable Temporal Memory for End-to-End Autonomous Driving](/20260816-20260914/2608.23405v1-momadv2-reliable-temporal-memory-for-end-to-end-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向长时程端到端自动驾驶的可靠状态空间时序记忆
-6. [GeoWAM: Visual Geometry World Action Models for Autonomous Driving](/20260816-20260914/2608.23486v1-geowam-visual-geometry-world-action-models-for-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向自动驾驶的几何世界动作模型
-7. [GeoWAM: Visual Geometry World Action Models for Autonomous Driving](/20260816-20260914/2608.23486v2-geowam-visual-geometry-world-action-models-for-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：基于几何的世界动作模型联合建模场景演化与自车动作
-8. [Variance-Guided Spatial Attention Fusion for Robust End-to-End Driving under Asymmetric Sensor Degradation](/20260816-20260914/2608.24366v1-variance-guided-spatial-attention-fusion-for-robust-end-to-end-driving-under-asymmetric-sensor-degradation)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向端到端驾驶的方差引导相机-激光雷达融合
-9. [LeFlow: Generative Latent Flow Planning for World Models](/20260816-20260914/2608.24855v1-leflow-generative-latent-flow-planning-for-world-models)  
-   标签：评分：9.0/10、query:world-models
-   evidence：面向世界模型的生成式潜在流规划
-10. [Successive Capacity Growth: Task-Complexity-Driven Width and Depth Expansion for Vision Transformer Encoders in JEPA World Models](/20260816-20260914/2608.27367v1-successive-capacity-growth-task-complexity-driven-width-and-depth-expansion-for-vision-transformer-encoders-in-jepa-world-models)  
-   标签：评分：9.0/10、query:world-models
-   evidence：JEPA世界模型中自适应ViT编码器架构
-11. [Jigsaw-CRL: Recovering Global Latent Causal Order from Fragmented Multi-Client Interventions](/20260816-20260914/2608.28991v1-jigsaw-crl-recovering-global-latent-causal-order-from-fragmented-multi-client-interventions)  
-   标签：评分：9.0/10、query:causal-rep
-   evidence：从碎片化干预中学习因果表征
-12. [Flow-JEPA: Flow Matching for Robust Latent Dynamics in JEPA World Models](/20260816-20260914/2608.29029v1-flow-jepa-flow-matching-for-robust-latent-dynamics-in-jepa-world-models)  
-   标签：评分：9.0/10、query:world-models
-   evidence：流匹配潜世界模型架构
-13. [Rethinking Language's Role in Efficient VLA for Autonomous Vehicles: Toward Smarter, Trustworthy Driving](/20260816-20260914/2608.30144v1-rethinking-languages-role-in-efficient-vla-for-autonomous-vehicles-toward-smarter-trustworthy-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向高效自动驾驶的视觉-语言-动作模型
-14. [Driving on Memory](/20260816-20260914/2608.31029v1-driving-on-memory)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：端到端自动驾驶基于传感器规划轨迹
-15. [Qwen-Drive-1.0: An Initial Step towards a Vision-Language Foundation Model for Autonomous Driving](/20260816-20260914/2609.00111v1-qwen-drive-10-an-initial-step-towards-a-vision-language-foundation-model-for-autonomous-driving)  
-   标签：评分：9.0/10、query:self-driving
-   evidence：面向自动驾驶的视觉语言基础模型与规划
+   evidence：端到端自动驾驶与风险知情场
+2. [RoG-DAgger: Rollout-Guided Post-Training for End-to-End Driving](/202609/14/2608.24525v1-rog-dagger-rollout-guided-post-training-for-end-to-end-driving)  
+   标签：评分：8.0/10、query:self-driving
+   evidence：端到端驾驶的滚动引导后训练
+3. [Beyond Uniform Local Isometry and Topology: FactoMap for Disentangled Representations](/202609/14/2608.24762v1-beyond-uniform-local-isometry-and-topology-factomap-for-disentangled-representations)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：考虑因子空间几何的解耦表征学习
+4. [Predicting Consequences and Reinforcing Navigation Policies with Latent World Models](/202609/14/2608.26190v1-predicting-consequences-and-reinforcing-navigation-policies-with-latent-world-models)  
+   标签：评分：8.0/10、query:world-models
+   evidence：预测动作条件潜兼容性的潜世界模型
+5. [Successive Capacity Growth: Task-Complexity-Driven Width and Depth Expansion for Vision Transformer Encoders in JEPA World Models](/202609/14/2608.27367v2-successive-capacity-growth-task-complexity-driven-width-and-depth-expansion-for-vision-transformer-encoders-in-jepa-world-models)  
+   标签：评分：8.0/10、query:world-models
+   evidence：面向JEPA世界模型ViT编码器的任务驱动宽度与深度扩展
+6. [Disentangling Representation using Attributes-based Gaussian Estimation for Medical Sound Diagnosis](/202609/14/2608.29026v1-disentangling-representation-using-attributes-based-gaussian-estimation-for-medical-sound-diagnosis)  
+   标签：评分：8.0/10、query:causal-rep
+   evidence：基于属性高斯估计的解耦表征学习
+7. [Self-Aware Active Learning Enables Continual Improvement in Autonomous Driving](/202609/14/2608.29772v1-self-aware-active-learning-enables-continual-improvement-in-autonomous-driving)  
+   标签：评分：8.0/10、query:self-driving
+   evidence：用于自动驾驶自适应的预测性世界模型
+8. [Representation-based Masked Diffusion Model](/202609/14/2609.12382v1-representation-based-masked-diffusion-model)  
+   标签：评分：8.0/10、query:gen-models
+   evidence：面向并行文本生成的掩码扩散模型
 
 ### 速读区论文标签
-1. [Counterfactual Contrastive Analysis](/20260816-20260914/2608.19032v2-counterfactual-contrastive-analysis)  
-   标签：评分：8.0/10、query:cf-image-gen
-   evidence：无分类器的反事实图像生成
-2. [Foundation Models for Partial Causal Identification](/20260816-20260914/2608.20841v1-foundation-models-for-partial-causal-identification)  
-   标签：评分：8.0/10、query:causal-rep
-   evidence：从观测数据界定干预与反事实的因果基座模型
-3. [Roadside-Cooperative Autonomous Driving: From Data Platform to Vision-Language End-to-End Reasoning](/20260816-20260914/2608.21032v1-roadside-cooperative-autonomous-driving-from-data-platform-to-vision-language-end-to-end-reasoning)  
-   标签：评分：8.0/10、query:self-driving
-   evidence：V2X平台与视觉语言端到端协同驾驶框架
-4. [ConvergeFlow: Language Flow with Provable Convergence to Token Embeddings](/20260816-20260914/2608.23551v1-convergeflow-language-flow-with-provable-convergence-to-token-embeddings)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：面向连续生成式语言建模的流匹配目标
-5. [Renormalization Group Flow Matching for Scalable Local Generative Modeling](/20260816-20260914/2608.23696v1-renormalization-group-flow-matching-for-scalable-local-generative-modeling)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：重整化群流匹配实现可扩展生成建模
-6. [Representation Learning in Diffusion and Flow-based Model: An Application Aspect](/20260816-20260914/2608.24068v1-representation-learning-in-diffusion-and-flow-based-model-an-application-aspect)  
-   标签：评分：8.0/10、query:gen-models
-   evidence：扩散与流生成模型中表示学习的综述
-7. [HarnessEval-W: Agentifying the Evaluation of Visual Worlds](/20260816-20260914/2608.16859v1-harnesseval-w-agentifying-the-evaluation-of-visual-worlds)  
-   标签：评分：7.0/10、query:world-models
-   evidence：世界模型的基准评测
-8. [HarnessEval-W: Agentifying the Evaluation of Visual Worlds](/20260816-20260914/2608.16859v2-harnesseval-w-agentifying-the-evaluation-of-visual-worlds)  
-   标签：评分：7.0/10、query:world-models
-   evidence：面向世界模型rollout的智能体化评测基准
-9. [Mask What Matters: Saliency-Guided Video Self-Supervised Learning for Autonomous Driving](/20260816-20260914/2608.17178v1-mask-what-matters-saliency-guided-video-self-supervised-learning-for-autonomous-driving)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：面向驾驶感知的视频自监督表示学习
-10. [GenRec: Knowing Where to Reconstruct and Where to Generate](/20260816-20260914/2608.17832v1-genrec-knowing-where-to-reconstruct-and-where-to-generate)  
+1. [Transformers as In-Context Samplers: From Closed-Form Diffusion to Estimation-Free Sampling](/202609/14/2609.08981v2-transformers-as-in-context-samplers-from-closed-form-diffusion-to-estimation-free-sampling)  
    标签：评分：7.0/10、query:gen-models
-   evidence：多视角流匹配生成模型
-11. [GenRec: Knowing Where to Reconstruct and Where to Generate](/20260816-20260914/2608.17832v2-genrec-knowing-where-to-reconstruct-and-where-to-generate)  
+   evidence：Transformer在上下文中模拟闭式扩散采样器
+2. [Score-based Outlier Generation via Controlling the Radon-Nikodym Derivative](/202609/14/2609.12113v1-score-based-outlier-generation-via-controlling-the-radon-nikodym-derivative)  
    标签：评分：7.0/10、query:gen-models
-   evidence：面向生成式新视角合成的多视角流匹配模型
-12. [One-Stage Object Detectors in Autonomous Driving](/20260816-20260914/2608.19014v1-one-stage-object-detectors-in-autonomous-driving)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：面向自动驾驶感知的单阶段目标检测器综述
-13. [Balancing a Flying Inverted Pendulum with an Unknown Length Using Model Predictive Control and a Genetic Algorithm Estimator](/20260816-20260914/2608.17256v1-balancing-a-flying-inverted-pendulum-with-an-unknown-length-using-model-predictive-control-and-a-genetic-algorithm-estimator)  
-   标签：评分：6.0/10、query:pendulum
-   evidence：飞行倒立摆控制实验，结合MPC与遗传算法估计器
-14. [Scale-Separated Conditioning for Style-Encoder-Free Diffusion Stylization](/20260816-20260914/2608.19719v1-scale-separated-conditioning-for-style-encoder-free-diffusion-stylization)  
+   evidence：通过似然重加权控制扩散分数
+3. [Balancing Emotional Alignment and Semantic Consistency in Image Generation via Reinforcement Learning with Valence-Arousal Anchoring](/202609/14/2609.12830v1-balancing-emotional-alignment-and-semantic-consistency-in-image-generation-via-reinforcement-learning-with-valence-arousal-anchoring)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：结合强化学习的流匹配图像生成框架用于可控合成
+4. [VideoTok4D: A 4D-Aware Video Tokenizer for Compact World Representation](/202609/14/2609.12874v1-videotok4d-a-4d-aware-video-tokenizer-for-compact-world-representation)  
+   标签：评分：7.0/10、query:world-models
+   evidence：面向紧凑世界表示的4D感知视频分词器
+5. [Sharp Causal Bounds for Dynamic Treatment Regimes](/202609/14/2609.06397v1-sharp-causal-bounds-for-dynamic-treatment-regimes)  
+   标签：评分：6.0/10、query:causal-rep
+   evidence：动态治疗方案的因果界推断
+6. [SSP-DMGTimeNet: Physics-Constrained Learning for Spatiotemporal Trajectory Prediction of Vehicle Platoons](/202609/14/2609.06961v1-ssp-dmgtimenet-physics-constrained-learning-for-spatiotemporal-trajectory-prediction-of-vehicle-platoons)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：车辆队列轨迹预测与因果注意力建模
+7. [CLAMP: Constrained Decoding for Vision-Language Embodied Planning](/202609/14/2609.08602v1-clamp-constrained-decoding-for-vision-language-embodied-planning)  
+   标签：评分：6.0/10、query:self-driving
+   evidence：面向视觉语言具身规划的约束解码，可迁移至VLA驾驶
+8. [Guiding Image-to-3D Generation with Test-Time Partial Observations](/202609/14/2609.10531v1-guiding-image-to-3d-generation-with-test-time-partial-observations)  
    标签：评分：6.0/10、query:gen-models
-   evidence：基于扩散的图像风格化生成方法
-15. [Efficient Training with Foresight: Multi-Token Auxiliary Supervision for Autoregressive Image Generation](/20260816-20260914/2608.25386v1-efficient-training-with-foresight-multi-token-auxiliary-supervision-for-autoregressive-image-generation)  
+   evidence：图像到3D生成模型引导
+9. [Learning Interaction between Image and Layout Priors for Joint Image-Layout Generation in Design Templates](/202609/14/2609.11519v1-learning-interaction-between-image-and-layout-priors-for-joint-image-layout-generation-in-design-templates)  
    标签：评分：6.0/10、query:gen-models
-   evidence：面向自回归图像生成的多词元辅助监督
-16. [RubricRM: Generative Reward Modeling via Dynamic Rubrics for Image Generation and Editing](/20260816-20260914/2608.26956v1-rubricrm-generative-reward-modeling-via-dynamic-rubrics-for-image-generation-and-editing)  
+   evidence：联合图像-布局生成模型
+10. [Particle GFlowNets: Rethinking Generative Marginalization Models](/202609/14/2609.11538v1-particle-gflownets-rethinking-generative-marginalization-models)  
    标签：评分：6.0/10、query:gen-models
-   evidence：面向文生图与图像编辑的生成式奖励建模
-17. [RubricRM: Generative Reward Modeling via Dynamic Rubrics for Image Generation and Editing](/20260816-20260914/2608.26956v2-rubricrm-generative-reward-modeling-via-dynamic-rubrics-for-image-generation-and-editing)  
+   evidence：生成边缘化模型与GFlowNet的等价性
+11. [ActSafeGuard: Differentiable and Training-Aligned Constraint Enforcement for Flow-Matching Policies](/202609/14/2609.11697v1-actsafeguard-differentiable-and-training-aligned-constraint-enforcement-for-flow-matching-policies)  
    标签：评分：6.0/10、query:gen-models
-   evidence：面向文生图与图像编辑对齐的生成式奖励建模
+   evidence：基于流匹配策略的安全约束执行
+12. [Thinking with Looped Flows](/202609/14/2609.11801v1-thinking-with-looped-flows)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：基于去噪目标与概率流的循环流方法
+13. [X-Pred MeanFlow for Streaming Token-to-Mel Speech Decoding](/202609/14/2609.12728v1-x-pred-meanflow-for-streaming-token-to-mel-speech-decoding)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：流匹配少步生成解码器
+14. [SCDM: Spatial-Contextual Disentanglement Mamba via Differential Inference for Efficient Image Classification](/202609/14/2609.12825v1-scdm-spatial-contextual-disentanglement-mamba-via-differential-inference-for-efficient-image-classification)  
+   标签：评分：6.0/10、query:causal-rep
+   evidence：选择性表征解耦
+15. [Diffusion Models and Concept Formation](/202609/14/2609.13047v1-diffusion-models-and-concept-formation)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：扩散模型作为层级生成密度模型
 
 
 <div class="dpr-home-promo-card">

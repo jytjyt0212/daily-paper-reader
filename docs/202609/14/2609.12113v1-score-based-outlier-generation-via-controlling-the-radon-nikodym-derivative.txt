@@ -1,0 +1,829 @@
+Title: Score-based Outlier Generation via Controlling the Radon-Nikodym Derivative
+
+URL Source: https://arxiv.org/pdf/2609.12113v1
+
+Published Time: Mon, 14 Sep 2026 00:08:47 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Score-based Outlier Generation via Controlling the Radon-Nikodym Derivative 
+
+Amartya Mukherjee, Tristan Milne, Kry Yik-Chau Lui, Stephanie Hazlewood, Jun Liu 
+
+Abstract — Outliers are important for stress-testing algorithms and understanding system behaviour under rare conditions. Despite being commonly described as low-likelihood events, ex-isting generative approaches rarely control likelihood explicitly. In this work, we introduce a measure-theoretic notion of outliers based on the distribution of log-likelihood values, which is guar-anteed to assign higher probability mass to low-likelihood events with a specifiable magnitude. Building on this formulation, we derive how likelihood reweighting modifies the diffusion score and use this relation to motivate a controlled modification of the reverse-time dynamics. In particular, likelihood reweighting implies a scaling of the score function with a control term derived from the Radon-Nikodym derivative of the likelihood distributions. Correspondingly, the updated score function can be obtained with no retraining of the diffusion model. We exploit the Ornstein–Uhlenbeck semigroup underlying diffusion models to motivate an exponentially interpolated controller which approximates the true control. Experiments demonstrate controlled generation of low-likelihood samples while remaining consistent with the data geometry. 
+
+Outliers play an important role in evaluating the reliability of algorithms and decision-making systems. In many appli-cations, it is important to understand how systems behave under rare or atypical conditions that deviate from the pat-terns commonly observed in training or historical data. For example, in time series such as financial data [13], outliers model how capital markets respond to anomalous shifts in the financial landscape. In tabular data such as electronic health records [18], outliers are crucial for studying patients who deviate from typical disease profiles and for developing treatment strategies tailored to these atypical cases. Generat-ing such rare scenarios is therefore essential for stress-testing algorithms, improving model robustness, and understanding system behaviour under distributional shifts. Existing approaches to outlier generation suffer from two important limitations. First, although outliers are commonly motivated as low-likelihood samples under a reference distri-bution [27], [11], most methods rely on heuristic notions such as reconstruction error, latent-space distance, or classifier uncertainty rather than explicitly controlling likelihood itself. Hence, they provide little formal interpretability over the  
+
+> This research was supported by Mitacs and the Royal Bank of Canada un-der the Mitacs Accelerate program award, Application Reference IT49478. Amartya Mukherjee and Jun Liu are with the Department of Applied Mathematics, University of Waterloo, Waterloo, Ontario, Canada N2L 3G1 (email:
+
+(a29mukhe,j.liu)@uwaterloo.ca ). Tristan Milne, Stephanie Hazlewood, and Kry Yik-Chau Lui are with the Royal Bank of Canada, 1Place Ville Marie, Montreal, Quebec, H3C 3A9 (email: 
+
+(tristan.milne,stephanie.hazlewood)@rbc.com, yikchau.y.lui@borealisai.com ). 
+
+statistical rarity of the generated samples. Second, many ex-isting approaches require specialized architectures or training objectives designed specifically for outlier synthesis [14]. Outlier generation is therefore treated as a separate learning problem rather than a controllable sampling problem. Diffusion models (DMs) have emerged as a powerful frame-work in generative modelling, achieving remarkable success in domains such as image synthesis [17], [22], [23], [21] and video generation [16], [2]. These models are typically trained to reverse a stochastic process that gradually transforms samples from a data distribution into noise via a learned score function. These properties also make DMs particularly attrac-tive for outlier generation. DMs admit tractable likelihood estimation through the probability-flow ordinary differential equation (PF-ODE) and evolve according to continuous-time dynamics that can be controlled. In fact, as we will show, a DM trained on regular data can be steered toward low-likelihood regions at inference time, without retraining or fine-tuning. In this work, we propose a distributional control-theoretic framework for outlier generation in DMs. Unlike previ-ous approaches that identify individual anomalous samples, we control the likelihood distribution. The log-likelihood map induces a one-dimensional pushforward measure, and generating outliers corresponds to steering this measure towards lower values. Our key observation is that likelihood reweighting implies a scaling of the score function with a controller determined by a Radon–Nikodym (RN) derivative on likelihood spaces. This exact pointwise identity motivates a controlled PF-ODE. To obtain a practical controller, we ex-ploit the exponential convergence of the Ornstein–Uhlenbeck (OU) semigroup that underlies the forward diffusion process. We use an exponentially decaying approximation to the initial likelihood-reweighting control. Numerical experiments on Gaussian mixture examples and the CIFAR-10 dataset demonstrate that the proposed method successfully steers diffusion sampling toward low-likelihood regions while remaining consistent with the underlying data geometry. The results suggest that DMs can be interpreted as controllable systems and opens the door to distribution steer-ing and generative modelling under functional constraints. arXiv:2609.12113v1 [cs.LG] 10 Sep 2026 I. B ACKGROUND 
+
+A. Score-Based Diffusion Models 
+
+The diffusion process [26] can be parameterized in continu-ous time by the following Ornstein-Uhlenbeck (OU) SDE 
+
+dxt = −xt dt + √2dwt , x0 ∼ pdata (1) for t ∈ [0, T ], where x0 is sampled from a data distribution and wt is Brownian motion. As t grows, xt diffuses from the clean data x0 into Gaussian noise. We then generate realistic data by sampling Gaussian noise xT and solving the reverse-time SDE 
+
+dxt = [ −xt − 2∇ log pt (xt )] dt + √2dwt , (2) where wt denotes a reverse Brownian motion. Alternatively, we can solve the probability flow ODE (PF-ODE [26]) in reverse-time ˙xt = −xt − ∇ log pt (xt ), xT ∼ N (0, I). (3) It is common practice in the DM literature to train a neural network sθ (xt ,t) to approximate ∇ log pt (xt ), from which realistic training data can then be generated. 
+
+B. Fokker-Planck-Kolmogorov Equation 
+
+The Fokker-Planck-Kolmogorov (FPK) [4] equation that governs the evolution of the underlying distribution from the SDEs in Equation 1 (forward time) and Equation 2 (reverse time) is given by the partial differential equation (PDE): 
+
+d p t (xt )
+
+dt = ∇ · [xt pt (xt )] + ∆pt (xt ), (4) where ∇· is the divergence and ∆ is the Laplacian operator. Recently, density steering via controlling the FPK equation has been of interest to the control community [12], [6], [25]. It is often convenient to express this evolution in terms of the log-density to obtain log-likelihoods. The following result gives the corresponding PDE satisfied by the log-density. 
+
+Proposition 1 (Proposition 3.1 of [19]): Assume the ground truth density pt (x) is sufficiently smooth on 
+
+Rn × [0, T ] with its log-density denoted as lt (x) := log pt (x).Then for all (x,t), its log-density satisfies the PDE 
+
+∂t lt (x) = x · ∇lt (x) + n + ∆lt (x) + ∥∇lt (x)∥2. (5) 
+
+C. Ornstein-Uhlenbeck Operator 
+
+The forward diffusion process underlying score-based mod-els corresponds to OU dynamics, whose generator plays an important role in our analysis of likelihood evolution. 
+
+Definition 1 (Ornstein-Uhlenbeck (OU) Generator): The OU generator L acts on smooth functions f ∈ C2(Rn) by 
+
+L f (x) = ∆ f (x) − x · ∇ f (x).
+
+Theorem 1 (Theorem 3.8 of [3]): Let γ := N (0, I) be the standard Gaussian measure. In the Hilbert space L2(γ), L
+
+is self-adjoint and has discrete spectrum {0, −1, −2, ... } of non-positive integers. The eigenfunctions are the Hermite polynomials [15] (Hα )α∈Nn , orthogonal in L2(γ), satisfying 
+
+L Hα = −| α|Hα .II. C ONTROLLED LIKELIHOOD GENERATION 
+
+Outliers are commonly described as samples with low likeli-hood under a reference data distribution. In likelihood-based generative modelling, this intuition translates into identifying regions where the log-likelihood l(x) := log p(x) is small relative to typical data. However, DMs learn probability mea-sures , not individual samples. Thus, if we wish to generate outliers in a principled way, we must define outliers at the level of distributions rather than individual points. In this section, we characterize outliers through the dis-tribution of log-likelihood values induced by a probability measure. Since outliers correspond to samples with unusually low likelihood, our goal is to steer the likelihood distribution toward lower values. This motivates the use of stochastic ordering to formalize the notion that the target likelihood distribution places more probability mass on lower-likelihood regions. Our main theoretical result shows that likelihood reweighting induces a suitable control through a simple RN structure, resulting in a multiplicative modification of the score function. Motivated by this relation, we use the modified score in a controlled PF-ODE and empirically evaluate its ability to generate low-likelihood samples. 
+
+A. Problem Formulation and Definition of Outlier 
+
+Given a data distribution μ on Rn with density p, the log-likelihood function l(x) = log p(x) induces a scalar random variable l(x) when x ∼ μ. The pushforward measure L :=
+
+l#μ therefore describes the distribution of likelihood values under the model. Shifting this distribution toward lower values corresponds to generating samples that are globally less likely. By modifying this one-dimensional likelihood distribution while preserving the conditional structure of the data given its likelihood level, we obtain a mechanism for generating structured outliers that remain consistent with the underlying data geometry. We now formalize these notions. 
+
+Definition 2 (Log-likelihood pushforward measure): Let μ
+
+be a probability measure on Rn with density p. Define the log-likelihood function l(x) := log p(x). The pushforward measure of μ under l is the probability measure L := l#μ
+
+on R.
+
+Definition 3 (Likelihood-reweighted measure): Let μ be a probability measure on Rn with density p and log-likelihood 
+
+l(x) = log p(x). Let L = l#μ. Let η be a probability measure on R such that η ≪ L. A probability measure ν on Rn is called a likelihood-reweighted measure of μ with target η if 
+
+ν admits the disintegration 
+
+ν(A) = 
+
+> Z
+> R
+
+μ(A | l(x) = u) η(du ), A ⊂ Rn Borel ,where μ(· | l(x) = u) denotes a regular conditional probabil-ity of μ given l(x) = u, which exists for Borel probability measures on Polish spaces [20]. As a consequence, if ν is a likelihood-reweighted measure of μ with target η, then l#ν = η.
+
+Definition 4 (First-order stochastic dominance (FOSD) [1]): 
+
+Let μ and ν be probability measures on R. We say that ν
+
+first-order stochastically dominates μ and write 
+
+μ ≤st ν
+
+if and only if μ([ x, ∞)) ≤ ν([ x, ∞)) for all x ∈ R.Equivalently, if we let Fμ and Fν be cumulative distribution functions (CDFs) of μ and ν respectively, then 
+
+μ ≤st ν ⇐⇒ Fμ (u) ≥ Fν (u) for all u ∈ R.
+
+Stochastic dominance constraints are studied in stochastic optimization and decision theory as a way of enforcing preference relations between random outcomes [8], [9], [10]. 
+
+Definition 5 ( ρ-outlier measure): Let μ be a probability measure on Rn with log-likelihood pushforward L = l#μ. A likelihood-reweighted measure ν with target η is called a 
+
+ρ-outlier measure if (1) η ≤st L, and (2) W1(L, η) ≥ ρ,
+
+where ≤st represents FOSD (see Definition 4) and W1(·, ·) is the Wasserstein-1 distance (see Equation (6) below). 
+
+Remark 1: The notion of a ρ-outlier measure formalizes out-liers at the distribution level, which is natural for generative models that approximate probability measures rather than individual samples. Let FL and Fη denote the CDFs of L and η, and let 
+
+F−1 
+
+> L
+
+and F−1 
+
+> η
+
+denote their quantile functions. The condition 
+
+η ≤st L is equivalent to F−1 
+
+> η
+
+(w) ≤ F−1 
+
+> L
+
+(w) for all w ∈ [0, 1].
+
+Moreover, in one dimension the W1 distance admits the quantile representation [28] 
+
+W1(L, η) =  
+
+> Z10
+
+|F−1 
+
+> η
+
+(w) − F−1 
+
+> L
+
+(w)| dw . (6) Hence, under stochastic dominance, 
+
+W1(L, η) =  
+
+> Z10
+
+ F−1 
+
+> L
+
+(w) − F−1 
+
+> η
+
+(w) dw ,
+
+so the ρ-outlier condition quantifies a strict downward shift of likelihood quantiles, as expected of outliers. To generate samples from the likelihood-reweighted measure 
+
+ν, we seek to characterize its score ∇ log q in terms of the score ∇ log p of the reference distribution, where p and q are the densities of μ and ν respectively. This allows us to use an existing diffusion score model while modifying its sampling dynamics through a likelihood-dependent correction. 
+
+B. Radon-Nikodym Structure of Likelihood Reweighting 
+
+Based on our formulation of likelihood-reweighted distribu-tions (Definition 3), we derive some further properties. 
+
+Theorem 2: Let μ be a probability measure on Rn with density p and log-likelihood l(x) = log p(x). Let L = l#μ be the pushforward measure of μ under l. Let η be a probability measure on R such that η ≪ L, and define 
+
+z(u) := dη
+
+dL (u).
+
+Let ν be the likelihood-reweighted measure defined by 
+
+ν(A) :=
+
+> Z
+> R
+
+μ(A | l(x) = u) η(du ), A ⊂ Rn Borel .
+
+Then ν ≪ μ and 
+
+dν
+
+dμ (x) = z(l(x)) = dη
+
+dL (l(x)) . (7) 
+
+Proof: Let f : Rn → R be bounded and measurable. By definition of ν,
+
+> Z
+
+f (x) ν(dx) = 
+
+> Z
+> R
+
+Z
+
+f (x) p(dx | l(x) = u)
+
+
+
+η(du ).
+
+Since η ≪ L with density z(u), we can write η(du ) = 
+
+z(u) L(du ) and obtain 
+
+> Z
+
+f (x) ν(dx) = 
+
+> Z
+> R
+
+z(u)
+
+> Z
+
+f (x) μ(dx | l(x) = u) L(du ).
+
+By the disintegration theorem [7], 
+
+> Z
+> R
+> Z
+
+f (x) μ(dx | l(x) = u)L(du ) = 
+
+> Z
+
+f (x) μ(dx).
+
+Applying the same identity to the measurable function x 7 →
+
+z(l(x)) f (x) gives 
+
+> Z
+
+f (x) z(l(x)) μ(dx) = 
+
+> Z
+> R
+
+z(u)
+
+> Z
+
+f (x) μ(dx | l(x) = u)L(du ).
+
+Comparing the two expressions, we conclude 
+
+> Z
+
+f (x) ν(dx) = 
+
+> Z
+
+f (x) z(l(x)) μ(dx).
+
+Since this holds for all bounded measurable f , it follows that 
+
+dν
+
+dμ (x) = z(l(x)) .
+
+Corollary 1: Let μt be a family of probability measures on 
+
+Rn with densities pt and log-densities lt = log pt . Let Lt =(lt )#μt . Fix a family of target measures (ηt )t∈[0,T ] on R such that ηt ≪ Lt for each t, and define 
+
+zt (u) := dηt
+
+dL t
+
+(u).
+
+Define νt to be the likelihood-reweighted measure of μt with target ηt in the sense of Definition 3, and let qt denote its density. Then νt ≪ μt and 
+
+dνt
+
+dμt
+
+(xt ) = zt (lt (xt )) = dηt
+
+dL t
+
+(lt (xt )) . (8) The proof follows the same argument as Theorem 2. 
+
+Remark 2: The family {ηt } may be chosen as an auxiliary interpolation satisfying ηT = LT . In this case, νT = μT ,which approaches the standard Gaussian for sufficiently large 
+
+T . The score identity below characterizes each likelihood-reweighted density point-wise in time and motivates the controlled sampling ansatz introduced in Section III. 
+
+Proposition 2: Let (μt , pt , lt , zt , Lt , ηt , νt )t∈[0,T ] be defined as in Corollary 1. Assume further that pt is a C1 density on 
+
+Rn and that zt is C1, and let qt (x) be the density of νt with respect to the Lebesgue measure. Then 
+
+∇ log qt (x) = [ 1 + ct (lt (x))] ∇ log pt (x), (9) where 
+
+ct (u) := ∂u log zt (u). (10) The proof is a direct calculation using the chain rule. The proposition shows that ∇x[log zt (lt (x))] lies in the span of 
+
+∇ log pt everywhere. We are now ready to summarize the main theoretical results. 
+
+Corollary 2: Let (ηt )t∈[0,T ] be a family of target likelihood distributions satisfying ηt ≪ Lt for all t. Then the corre-sponding likelihood-reweighted densities qt satisfy the score relation 
+
+∇ log qt (x) = 
+
+
+
+1 + ∂u
+
+
+
+log dηt
+
+dL t
+
+
+
+(log pt (x)) 
+
+
+
+∇ log pt (x).
+
+(11) Consequently, likelihood reweighting induces a multiplica-tive modification of the diffusion score function. Further-more, we choose a target likelihood distribution η0 that satisfies 
+
+η0 ≤st L0, W1(L0, η0) > ρ,
+
+matching our specification of ρ-outliers. Corollary 2 shows that likelihood control does not require learning a new score function. Instead, the score of alikelihood-reweighted density can be expressed using the original diffusion score and a scalar likelihood-dependent correction, without learning an independent score function. This provides a distribution-steering perspective on outlier generation through likelihood reweighting. III. I MPLEMENTATION 
+
+Motivated by the score relation in Corollary 2, we introduce the controlled reverse-time ODE ansatz ˙xt = −xt − (1 + ct (lt (xt ))) ∇ log pt (xt )
+
+| {z }    
+
+> =:∇log qt(xt)
+
+, (12) where ct (u) = ddu log 
+
+ dηt 
+
+> dL t
+
+(u)
+
+
+
+is a coefficient that needs to be determined. To approximate ct , it is therefore necessary to understand how both ηt and Lt evolve over time under the diffusion dynamics. In particular, the forward OU process governing the diffusion model induces a contraction of density perturbations toward the Gaussian equilibrium, which we analyze next. 
+
+Theorem 3: Let xt solve the OU SDE (1), where x0 ∼ p.Let μt denote the time-marginal law of xt , and let pt
+
+denote its density. The invariant measure is the standard Gaussian measure γ = N (0, I) with density pγ . Define the log-densities 
+
+lt (x) := log pt (x), l∗(x) := log pγ (x).
+
+Assume μt ≪ γ and denote ht (x) as the RN derivative 
+
+ht (x) := dμt 
+
+> dγ
+
+(x). Assume h0 ∈ H1(γ). Then 
+
+∥ht − 1∥2 
+
+> L2(γ)
+
+≤ e−2t ∥h0 − 1∥2
+
+> L2(γ)
+
+.
+
+Moreover, 
+
+∥∇ht ∥L2(γ) ≤ e−t ∥∇h0∥L2(γ).
+
+Finally, suppose there exists m > 0 such that ht (x) ≥ m for 
+
+μt -almost all x and t. Then 
+
+∥ℓt − ℓ∗∥H1(γ) = ∥ log ht ∥H1(γ) ≤ e−t
+
+m ∥h0 − 1∥H1(γ).
+
+Proof: The density pt satisfies the FPK equation 
+
+∂t pt = ∇ · (xpt ) + ∆pt .
+
+Define the density ratio ht (x) := pt (x) 
+
+> γ(x)
+
+. Using the identities 
+
+∇pγ = −xpγ , ∆pγ = ( ∥x∥2 − n)pγ ,
+
+one verifies that ht satisfies 
+
+∂t ht = L ht , L := ∆ − x · ∇,
+
+where L is the OU generator introduced in Definition 1. Let gt := ht − 1. Since R ht dγ = 1, we have R gt dγ = 0. The evolution equation becomes 
+
+∂t gt = L gt , gt |t=0 = g0. (13) By Theorem 1, the operator L is self-adjoint on L2(γ) with eigenfunctions given by Hermite polynomials [15], L Hα =
+
+−| α|Hα . Expanding g0 in the Hermite basis gives 
+
+g0 = ∑ 
+
+> α̸=0
+
+gα Hα , gα = ⟨g0, Hα ⟩L2(γ).
+
+Let (Pt )t≥0 be the OU semigroup on L2(γ) generated by 
+
+L . Since gt satisfies Equation (13), we identify gt with the unique semigroup solution gt = Pt g0. Since Pt acts diagonally on the Hermite basis, we can expand this solution 
+
+gt = ∑ 
+
+> α̸=0
+
+e−| α|t gα Hα .
+
+Taking L2(γ) norms yields 
+
+∥gt ∥2 
+
+> L2(γ)
+
+=
+
+> ∞
+
+# ∑
+
+> k=1
+
+e−2kt ∑
+
+> |α|=k
+
+g2 
+
+> α
+
+≤ e−2t ∥g0∥2
+
+> L2(γ)
+
+,
+
+where the inequality follows immediately since e−kt ≤ e−t
+
+for k ≥ 1. By Lemma 1 of [5], we can bound the gradient: 
+
+∥∇gt ∥2 
+
+> L2(γ)
+
+≤ e−2t ∥∇g0∥2
+
+> L2(γ)
+
+.Because gt = ht − 1, this is equivalent to 
+
+∥∇ht ∥L2(γ) ≤ e−t ∥∇h0∥L2(γ).
+
+Now assume ht ≥ m > 0. Since log is 1 /m-Lipschitz on 
+
+[m, ∞),
+
+| log ht (x)| ≤ 1
+
+m |ht (x) − 1|.
+
+Also, by expanding ∇ log ht (x) = ∇ht (x)  
+
+> ht(x)
+
+, we have 
+
+∥∇ log ht (x)∥ ≤ 1
+
+m ∥∇ht (x)∥.
+
+Combining the two inequalities, 
+
+∥ log ht ∥H1(γ) ≤ 1
+
+m ∥ht − 1∥H1(γ).
+
+Finally, using the L2 and gradient estimates above, 
+
+∥ht − 1∥H1(γ) ≤ e−t ∥h0 − 1∥H1(γ).
+
+Since log ht = ℓt − ℓ∗,
+
+the conclusion follows. Theorem 3 shows that Lt = ( lt )#μt converges exponen-tially towards the Gaussian likelihood equilibrium (l∗)#γ.Motivated by this, we choose the target family {ηt } that likewise vanishes toward the same equilibrium. In particular, the slowest nonconstant OU decay rate e−t motivates the exponentially decaying controller introduced below. 
+
+A. Approximating a control function 
+
+In this section, we claim that, provided the log-likelihood pushforward measure L0 and a target η0, the exponentially interpolated control function ˜ct (u) = e−t c0(u) = e−t ∂u
+
+
+
+log dη0
+
+dL 0
+
+(u)
+
+
+
+, (14) provides a natural approximation choice for the controlled reverse dynamics. The true time-dependent control ct (u)
+
+is computationally intractable. Motivated by the slowest decaying nonconstant term, e−t , of the OU semigroup, we choose the exponentially interpolated controller. We prove that this approximation satisfies a reasonable error bound over both small and large t, thus providing a natural admis-sible approximation that respects the boundary conditions and admits explicit error bounds near both endpoints. 
+
+Theorem 4: Let (xt )t∈[0,T ] be an OU diffusion (1), and let 
+
+Lt and ηt be two families of probability measures on R
+
+which are absolutely continuous with respect to Lebesgue measure, converge exponentially to the Gaussian likelihood equilibrium, and satisfy: 
+
+η0 ≪ L0, η0 ≤st L0, W1(η0, L0) ≥ ρ.
+
+Define the likelihood ratio 
+
+zt (u) := dηt
+
+dL t
+
+(u), ct (u) := ∂u log zt (u).
+
+Assume: (A1) There exists L > 0 such that for all s,t ∈ [0, T ],
+
+∥ct − cs∥L2(Lt ) ≤ L|t − s|.
+
+(A2) There exists K ≥ 1 such that for all t ∈ [0, T ] and all measurable f ,
+
+K−1∥ f ∥L2(L0) ≤ ∥ f ∥L2(Lt ) ≤ K∥ f ∥L2(L0).
+
+Define the interpolant ˜ ct (u) := e−t c0(u). Then ˜ c0 = c0, and for every t ∈ [0, T ],
+
+∥ ˜ct − ct ∥L2(Lt ) ≤ K
+
+
+
+(1 − e−t )∥c0∥L2(L0) + Lt 
+
+
+
+.
+
+In particular, ∥ ˜ct − ct ∥L2(Lt ) = O(t),
+
+Proof: Fix t ∈ [0, T ]. Add and subtract c0:˜ct − ct = ( e−t c0 − c0) + ( c0 − ct ).
+
+Take L2(Lt ) norms and apply the triangle inequality: 
+
+∥ ˜ct − ct ∥L2(Lt ) ≤ ∥ (1 − e−t )c0∥L2(Lt ) + ∥ct − c0∥L2(Lt ).
+
+By (A2), ∥(1 − e−t )c0∥L2(Lt ) ≤ K(1 − e−t )∥c0∥L2(L0).
+
+By (A1), ∥ct − c0∥L2(Lt ) ≤ Lt .
+
+Combine the two bounds to obtain 
+
+∥ ˜ct − ct ∥L2(Lt ) ≤ K
+
+
+
+(1 − e−t )∥c0∥L2(L0) + Lt 
+
+
+
+.
+
+Finally, since 1 − e−t ≤ t, the right-hand side is O(t).
+
+Theorem 5: Let (xt )t∈[0,T ], Lt , ηt , γ, zt (u), ct (u) be defined as in Theorem 4, and let lt , μt , νt be defined as in Corollary 1. Moreover, assume c0 ∈ L∞ and suppose the assumptions from Theorem 3 are satisfied for μt and νt . Then the exponentially-interpolated controller ˜ ct (u) := e−t c0(u) satisfies the bound-ary condition ˜ c0 = c0, and moreover 
+
+∥( ˜ct − ct )( lt (·)) ∇ log pt (·)∥L2(γ) ≤ Ce −t , t ∈ [0, T ],
+
+for a constant C > 0. In particular, 
+
+( ˜ct − ct )( lt (x)) ∇ log pt (x)
+
+converges exponentially fast to zero in L2(γ).
+
+Proof: log zt can be expanded as log zt (lt (x)) = log dνt
+
+dμt
+
+(x) = log dνt
+
+dγ (x) − log dμt
+
+dγ (x).
+
+From Theorem 3 and the triangle inequality, we have 
+
+∥ log zt (lt (·)) ∥H1(γ) ≤
+
+
+
+∥ log dνt
+
+dγ ∥H1(γ) + ∥ log dμt
+
+dγ ∥H1(γ)
+
+
+
+≤ e−t
+
+m
+
+
+
+∥ dν0
+
+dγ − 1∥H1(γ) + ∥ dμ0
+
+dγ − 1∥H1(γ)
+
+
+
+.
+
+By definition of the H1(γ) norm, 
+
+∥∇ log zt ∥L2(γ) ≤ e−t
+
+m
+
+
+
+∥ dν0
+
+dγ − 1∥H1(γ) + ∥ dμ0
+
+dγ − 1∥H1(γ)
+
+
+
+.Since ∇ log zt (lt (xt )) can be expanded as ∂u log zt ∇lt (xt ),
+
+∥∇ log zt (lt (·)) ∥L2(γ) = ∥∂u log zt ∇lt (xt )∥L2(γ),
+
+which decays exponentially. Finally, as ct = ∂u log zt and ˜ ct =
+
+e−t c0, we can write ˜ct − ct = e−t ∂u log z0 − ∂u log zt .
+
+Using the triangle inequality, 
+
+∥( ˜ct − ct )( lt (·)) ∇lt ∥L2(γ) ≤ e−t ∥c0∥L∞ ∥∇lt ∥L2(γ)
+
++ ∥∇ log zt (lt )∥L2(γ).
+
+Since Theorem 3 yields 
+
+∥∇lt − ∇ log γ∥L2(γ) = ∥∇lt + x∥L2(γ) ≤ C1e−t ,
+
+we obtain that ∥∇lt ∥L2(γ) is uniformly bounded over t. Thus, 
+
+∥( ˜ct − ct )( lt (·)) ∇ log pt (·)∥L2(γ) ≤ Ce −t ,
+
+where C = ∥c0∥L∞(γ) sup  
+
+> t∈[0,T]
+
+∥∇lt ∥L2(γ)
+
++ 1
+
+m (∥ dν0
+
+dγ − 1∥H1(γ) + ∥ dμ0
+
+dγ − 1∥H1(γ))
+
+and therefore the right-hand side is O(e−t ).
+
+Corollary 3: Under the assumptions of Theorems 4 and 5, the error between the true control term ct (u)∇lt and the estimate ˜ ct (u)∇lt = e−t c0(u)∇lt are bounded for small and large t:
+
+∥( ˜ct − ct )( lt (·)) ∇lt ∥L2(γ) ≤ O(min (t, e−t )) . (15) 
+
+B. Approximating the target Radon-Nikodym derivative 
+
+We will rely on chi-square approximations for L0 in this paper. In our numerical experiments, these approximations will be verified and demonstrated. We introduce the notation of a linear map La,C defined as La,C(x) = −ax +C. Under this approximation, the control coefficients admit closed-form expressions, making the proposed controller straightforward to compute in practice. 
+
+Assumption 1: Let L0 be a likelihood-pushforward measure on R with finite mean. Assume there exists a > 0 and C such that (La,C)#(χ2 
+
+> n
+
+) ≤st L0.
+
+Fact 1: Let a > 0 and consider the measure Pa :=(La,C)#(χ2 
+
+> n
+
+) on R. Then for any ρ > 0, we can define a measure Pb := ( Lb,C)#(χ2 
+
+> n
+
+), where b = a + ρ 
+
+> n
+
+. This yields 
+
+Pb ≤st Pa, W1(Pa, Pb) = ρ.
+
+Fact 2: Let Pa = ( La,C)#(χ2 
+
+> n
+
+) and Pb = ( Lb,C)#(χ2 
+
+> n
+
+), with 
+
+a, b > 0 and C ∈ R. Their RN derivative is 
+
+dP b
+
+dP a
+
+(u) = 
+
+ ab
+
+n/2
+
+exp 
+
+
+
+(C − u)
+
+ 12a − 12b
+
+ 
+
+, u < C.
+
+Correspondingly, we obtain the constant control 
+
+c0 := ddu log dP b
+
+dP a
+
+(u) = − 12a + 12b .
+
+Remark 3: Under the control ˜ct (u) = c0e−t , where c0 =
+
+− 12a + 12b , the corresponding proxy log-RN derivative takes the approximate form log zt (u) ≈ c0e−t u + β (t) = ⇒ zt (u) ≈ exp (c0e−t u + β (t)) ,
+
+where β (t) is determined by the normalization condition R zt dL t = 1 and the evolution of the measure Lt . This ensures a smooth interpolation between zT ≈ 1 and z0 as given in Fact 2. The linear dependence on u greatly simplifies the implementation and analysis. IV. N UMERICAL EXPERIMENTS 
+
+A. Mixture of Two Gaussians 
+
+We first evaluate our method on a synthetic testbed consisting of a mixture of two Gaussians 
+
+x ∼ 12 N (m, I) + 12 N (−m, I). (16) For this model the score function admits the closed-form expression [24] 
+
+∇ log pt (x) = tanh (mt · x)mt − x, mt = e−t m. (17) We choose m = ˆm1n, where 1 n denotes the n-dimensional vector of ones. This closed-form score allows us to solve the PF-ODE (3) and the log-FPK equation (5) directly without training a neural network. Our goal is to guide the reverse diffusion process to generate ρ-outliers. 
+
+a) Assessment of Assumption 1.: We empirically assess the approximation of L0 by a translated − 12 χ2 
+
+> n
+
+distribution. FOSD is assessed by sorting samples from two likelihood distributions and verifying that the respective inequality holds element-wise. To estimate L0, we sample 10,000 points by solving the reverse PF-ODE (3), then use the log-FPK equation (5) to compute their log-likelihood. Table I reports their empirical W1 distance across several dimensions and values of ˆm. The results indicate that the chi-square model provides a good approximation of the log-likelihood distri-bution. An example empirical CDF is shown in Figure 2.                                         
+
+> Dimension n1416 64 256 ˆm=20.0877 0.0252 0.0961 0.1582 0.2725 ˆm=40.0140 0.0545 0.0761 0.0853 0.2964 ˆm=80.0113 0.0290 0.0484 0.1461 0.3186 ˆm=16 0.0174 0.0545 0.0628 0.1824 0.3250 TABLE I: Empirical assessment of the chi-square approximation with a=
+> 1/2. Values report the empirical W1distance between L0and the fitted chi-square distribution.
+
+b) Outlier generation.: For the remaining experiments we set ˆ m = 2 and diffusion horizon T = 80. We vary the dimen-sion n ∈ { 1, 4, 16 , 64 , 256 } and target ρ ∈ { 0.2, 0.3, 0.4, 0.5}.In each experiment, we verify that FOSD is empirically satisfied, and report the W1 distance between the generated likelihood distribution η0 and the reference L0.Our results are posted in Table II. The generated samples match the target ρ values while maintaining stochastic dom-inance. Figure 1 compares histograms of samples generated by the uncontrolled and controlled PF-ODE in the one-dimensional case. The controlled dynamics produce samples concentrated in lower-likelihood regions such as the tails and the low-density region between the mixture modes.                                                
+
+> Dimension n1416 64 256
+> ρ=0.20.2286 0.2051 0.2234 0.2248 0.2202
+> ρ=0.30.3379 0.3056 0.3314 0.3368 0.3324
+> ρ=0.40.4266 0.4078 0.4450 0.4498 0.4439
+> ρ=0.50.5065 0.5140 0.5475 0.5627 0.5589 TABLE II: Outlier generation results for the Gaussian mixture model. Values report the empirical W1distances between the generated and reference like-lihood distributions. The measured distances closely match the prescribed target values ρ, demonstrating accurate control over outlier magnitude while satisfying stochastic dominance in every experiment.
+> Fig. 1: Histogram comparison of PF-ODE samples in the 1D Gaussian mixture example with ρ=0.5.
+> Fig. 2: Empirical CDFs of the likelihood distribution L0and the target distribution η0in the 4D example with ρ=0.5.
+
+B. Image Data: CIFAR-10 
+
+We next evaluate the method on the CIFAR-10 dataset using the pretrained diffusion model 
+
+google/ddpm-cifar10-32 [17]. The likelihood distribution L0 is approximated using samples generated by the reverse PF-ODE together with the log-FPK equation (5). Empirically, L0 stochastically dominates a translated − 12 χ2
+
+> n
+
+distribution, supporting Assumption 1. Their empirical 
+
+W1 distance is 9.137. We vary the target ρ across 
+
+{50 , 100 , 150 , 200 , 250 } and generate ρ-outliers by modify-ing the reverse diffusion dynamics. Table III reports the empirical W1 distances between the generated likelihood distribution and the reference distribution. Although the realized W1 shifts do not exactly match the prescribed ρ
+
+values, they increase monotonically with ρ. Thus, even when the score is represented by a neural network, the control parameter provides a consistent mechanism for adjusting the degree of likelihood shift. Figure 3 confirms that increasing ρ progressively shifts the generated likelihood distribution toward lower values. At moderate control strengths, the samples in Figures 4a and 4b remain visually consistent with CIFAR-10, suggesting that the controller can access lower-likelihood regions without immediately destroying the learned data structure.                
+
+> Fig. 3: Empirical CDFs of likelihood distributions for different values of ρ.
+> ρ50 100 150 200 250
+> W1distance 71.187 122.658 178.799 262.563 342.121 TABLE III: Outlier generation on CIFAR-10. Increasing the target parameter
+> ρproduces progressively larger W1shifts in the likelihood distribution, demonstrating that the proposed controller remains effective on image data.
+
+Overall, these experiments demonstrate that the proposed framework can steer diffusion sampling toward prescribed likelihood statistics. In both synthetic and image datasets, the controlled PF-ODE successfully shifts the likelihood distri-bution toward lower-probability regions while preserving the structure of the data distribution. V. C ONCLUSION 
+
+In this work, we introduced a distributional perspective on outliers motivated by the probabilistic structure of dif-fusion models. Instead of defining outliers as individual low-likelihood samples, we formalized them through the distribution of log-likelihood values and proposed a notion of ρ-outlier based on the discrepancy between likelihood distributions. Using this formulation, we developed a method for generating outliers by modifying the reverse-time diffu-sion dynamics. The key insight is that likelihood reweighting induces a simple modification of the score function via the RN derivative, which motivates the controlled PF-ODE used for sampling. Numerical experiments support the theoretical predictions on synthetic and image datasets. Future work will explore broader applications of this framework to distribution steering. (a) Generated samples with ρ = 50. (b) Generated samples with ρ = 100. 
+
+Fig. 4: Generated ρ-outliers in the CIFAR-10 image dataset. Although the likelihood values are lower, as demonstrated in Figure 3, the generated samples remain visually consistent with the underlying data distribution. 
+
+REFERENCES [1] V. S. Bawa. Optimal rules for ordering uncertain prospects. Journal of Financial economics , 2(1):95–121, 1975. [2] A. Blattmann, T. Dockhorn, S. Kulal, D. Mendelevitch, M. Kilian, D. Lorenz, Y. Levi, Z. English, V. Voleti, A. Letts, et al. Stable video diffusion: Scaling latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127 , 2023. [3] V. I. Bogachev. Ornstein–uhlenbeck operators and semigroups. Rus-sian Mathematical Surveys , 73(2):191–260, 2018. [4] V. I. Bogachev, N. V. Krylov, M. R¨ ockner, and S. V. Shaposhnikov. 
+
+Fokker–Planck–Kolmogorov Equations , volume 207. Mathematical Surveys and Monographs, 2015. [5] Y. Chen. Log-sobolev inequalities and markov semigroups, 2025. Lecture 2: Ornstein–Uhlenbeck Semigroup and Gaussian Log-Sobolev Inequality, ETH Zurich, Week 3–4. [6] R. Chertovskih, N. Pogodaev, M. Staritsyn, and A. P. Aguiar. Optimal control of diffusion processes: Infinite-order variational analysis and numerical solution. IEEE Control Systems Letters , 8:1469–1474, 2024. [7] C. Dellacherie and P.-A. Meyer. Probabilities and potential, vol. 29 of north-holland mathematics studies, 1978. [8] D. Dentcheva and A. Ruszczynski. Optimization with stochastic dominance constraints. SIAM Journal on Optimization , 14(2):548– 566, 2003. [9] D. Dentcheva and A. Ruszczy´ nski. Optimality and duality theory for stochastic optimization problems with nonlinear dominance con-straints. Mathematical Programming , 99(2):329–350, 2004. [10] D. Dentcheva, M. Ye, and Y. Yi. Risk-averse sequential decision problems with time-consistent stochastic dominance constraints. In 
+
+2022 IEEE 61st Conference on Decision and Control (CDC) , pages 3605–3610. IEEE, 2022. [11] X. Du, Y. Sun, J. Zhu, and Y. Li. Dream the impossible: Outlier imagination with diffusion models. Advances in Neural Information Processing Systems , 36:60878–60901, 2023. [12] A. Fleig and R. Guglielmi. Optimal control of the fokker–planck equation with space-dependent controls. Journal of Optimization Theory and Applications , 174(2):408–427, 2017. [13] P. H. Franses and D. Van Dijk. Non-linear time series models in empirical finance . Cambridge university press, 2000. [14] J. Gu, X. Zhang, and G. Wang. Beyond the norm: A survey of synthetic data generation for rare events. arXiv preprint arXiv:2506.06380 ,2025. [15] M. Hermite. Sur un nouveau d´ eveloppement en s´ erie des fonctions .Imprimerie de Gauthier-Villars, 1864. [16] J. Ho, W. Chan, C. Saharia, J. Whang, R. Gao, A. Gritsenko, D. P. Kingma, B. Poole, M. Norouzi, D. J. Fleet, et al. Imagen video: High definition video generation with diffusion models. arXiv preprint arXiv:2210.02303 , 2022. [17] J. Ho, A. Jain, and P. Abbeel. Denoising diffusion probabilistic models. In Advances in Neural Information Processing Systems , 2020. [18] B. Hu, A. Saragadam, A. Layton, and H. Chen. Synthetic data from diffusion models improves drug discovery prediction. In 2024 IEEE International Conference on Bioinformatics and Biomedicine (BIBM) ,pages 6278–6285. IEEE, 2024. [19] C.-H. Lai, Y. Takida, N. Murata, T. Uesaka, Y. Mitsufuji, and S. Er-mon. FP-Diffusion: Improving score-based diffusion models by en-forcing the underlying score Fokker-Planck equation. In Proceedings of the 40th International Conference on Machine Learning , June 2023. [20] D. Leao Jr, M. Fragoso, and P. Ruffino. Regular conditional prob-ability, disintegration of probability and radon spaces. Proyecciones (Antofagasta) , 23(1):15–29, 2004. [21] W. Peebles and S. Xie. Scalable diffusion models with transformers. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 4195–4205, 2023. [22] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer. High-resolution image synthesis with latent diffusion models. In 
+
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. [23] A. Sauer, F. Boesel, T. Dockhorn, A. Blattmann, P. Esser, and R. Rom-bach. Fast high-resolution image synthesis with latent adversarial diffusion distillation. In SIGGRAPH Asia 2024 Conference Papers ,pages 1–11, 2024. [24] K. Shah, S. Chen, and A. Klivans. Learning mixtures of gaussians using the ddpm objective. Advances in Neural Information Processing Systems , 36:19636–19649, 2023. [25] C. Sinigaglia, A. Manzoni, and F. Braghin. Density control of large-scale particles swarm through pde-constrained optimization. IEEE Transactions on Robotics , 38(6):3530–3549, 2022. [26] Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, and B. Poole. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Representations , 2021. [27] L. Tao, X. Du, X. Zhu, and Y. Li. Non-parametric outlier synthesis. 
+
+arXiv preprint arXiv:2303.02966 , 2023. [28] C. Villani. Topics in optimal transportation , volume 58. American Mathematical Soc., 2021.

@@ -1,0 +1,269 @@
+Title: SCDM: Spatial-Contextual Disentanglement Mamba via Differential Inference for Efficient Image Classification
+
+URL Source: https://arxiv.org/pdf/2609.12825v1
+
+Published Time: Mon, 14 Sep 2026 01:03:06 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# SCDM: Spatial-Contextual Disentanglement Mamba via Differential Inference for Efficient Image Classification 
+
+Mustafa Bora Çelik 1, Hayriye Aktaş Dinçer 1, and Ayse Keles 2 
+
+> 1
+
+Department of Computer Engineering, Faculty of Engineering and Natural Sciences, Ankara Medipol University, Ankara, Turkiye 
+
+mustafa.celik1@std.ankaramedipol.edu.tr, hayriye.aktas@ankaramedipol.edu.tr  
+
+> 2
+
+School of Computer Science, University of Galway, Galway, Ireland 
+
+ayse.keles@universityofgalway.ie 
+
+Abstract. State Space Models (SSMs), particularly VMamba, have emerged as efficient alternatives for modeling long-range dependencies in medical image analysis. However, distinguishing subtle pathologi-cal features from visually similar anatomical backgrounds remains a significant challenge. Existing SSM architectures often learn entangled representations, lacking explicit mechanisms to separate disease-specific signals from normal anatomy. To address this limitation, we propose Spatial-Contextual Differential Mamba (SCDM), an asymmetric dual-branch architecture designed for selective representational disentangle-ment. SCDM introduces a Positive Branch for extracting discriminative features and a Negative Branch that actively models and suppresses nor-mal anatomical context. This separation is achieved through a similarity-driven repulsion gate and a differential inference rule, which promote competitive feature learning without requiring additional branch la-bels or increasing model capacity. Evaluated on the RSNA Pneumonia dataset, SCDM achieves competitive classification performance (AUC of 0.858) while requiring significantly fewer parameters (29.4M) and FLOPs (1.44G) compared to standard VMamba and vision transformer base-lines. Furthermore, activation analyses demonstrate that our differential mechanism yields highly precise localization, effectively isolating lesions by inhibiting irrelevant anatomical distractors. 
+
+Keywords: Medical Image Classification · Deep Learning · State Space Models · Mamba 
+
+## 1 Introduction 
+
+Medical image classification is a cornerstone of computer-aided diagnosis, en-abling early detection of various pathologies [1–3]. Over the last decade, Con-volutional Neural Networks (CNNs) such as ResNet [9] have set competitive benchmarks by leveraging local inductive biases. However, their fixed kernel arXiv:2609.12825v1 [cs.CV] 11 Sep 2026 2 M. B. Çelik et al. 
+
+size inherently limits the ability to capture long-range global context, which is often crucial for identifying subtle pathological patterns across high-resolution scans [10]. Vision Transformers (ViTs) [12] and their hierarchical variants like Swin Transformers [11] overcame this by utilizing self-attention for global spa-tial modeling. Yet, the quadratic computational complexity of attention mech-anisms remains a significant bottleneck for real-time clinical deployment. To address this, State Space Models (SSMs) like Mamba have emerged as efficient alternatives, offering linear-complexity modeling of long-range context [7, 8]. Despite these advances, a persistent challenge in medical imaging is the entanglement of pathological features with visually similar anatomical back-grounds [4]. Standard architectures often lack specialized mechanisms to filter out irrelevant anatomical context (e.g., bony structures in chest X-rays), which can lead to false positives. To overcome this, we propose Spatial-Contextual Dif-ferential Mamba (SCDM), an asymmetric dual-branch architecture tailored for representational disentanglement. SCDM integrates a Positive Branch to extract discriminative features and an active Negative Branch capable of modeling and suppressing normal anatomical mimics. Through a similarity-driven repulsion mechanism and differential inference, SCDM isolates pathology-relevant signals without requiring increased model complexity and parameters. 
+
+## 2 Preliminaries 
+
+In this work, we adopt the standard VMamba backbone and introduce a dif-ferential dual-branch extension at the SS2D level, enabling explicit supervision and disentanglement of hidden state representations without altering the overall backbone structure. 
+
+Selective State Space Modeling. State Space Models (SSMs) map an input sequence x(t) to an output y(t) through a hidden state h(t) [5, 6]. The Selective SSM (S6) mechanism underlying Mamba introduce input-dependent discretiza-tion: 
+
+¯A = e∆A , ¯B = ∆B, (1) 
+
+ht = ¯Ah t−1 + ¯Bx t, yt = Ch t + Dx t, (2) where ∆, B, and C are conditioned on the input. To extend SSMs to 2D visual data, the SS2D module unfolds feature maps along multiple spatial routes (cross-directional scan) and fuses the outputs to obtain global receptive fields with linear complexity. The Visual State Space (VSS) block builds upon SS2D within a residual framework, consisting of an SS2D-based spatial modeling branch and a feed-forward network branch for channel-wise transformation. Stacked VSS blocks form the VMamba backbone. SCDM: Disentanglement Mamba for Image Classification 3
+
+## 3 Methods 
+
+3.1 Overview 
+
+We propose SCDM, an asymmetric dual-branch architecture designed to separate pathological features from normal anatomy under image-level supervision. Unlike standard fusion models, SCDM enforces uniquely specialized roles, as illustrated in Fig. 1: the Negative Branch actively suppresses normal anatomical structures (e.g., ribs), enabling the Positive Branch to focus entirely on localizing lesions. This disentanglement is achieved through an asymmetric strategy combining cooperative branch addition during training with competitive differential readout during inference. Positive Branch Negative Branch Repulsion Gating Mechanism Cross Scan Cross Merge Scaled Sum Merge Dual-Branch S6 Mechanism 
+
+Fig. 1: Overview of the proposed Dual-Branch S6 mechanism and the compara-tive memory interaction scheme within the VSS block. 
+
+3.2 Dual-Branch State Space Formulation 
+
+The proposed SCDM architecture extends standard SSMs by introducing two parallel branches with complementary objectives: a Negative Branch, denoted as 
+
+hneg , for modeling normal anatomical context, and a Positive Branch, denoted as hpos , for detecting pathological deviations. Both branches follow the continuous-time state space formulation: 
+
+h′(t) = Ah (t) + Bx (t), y(t) = Ch (t). (3) Following discretization [5], the recurrent updates for the dual-branch system are defined as: 
+
+hneg  
+
+> t
+
+= ¯Aneg hneg  
+
+> t−1
+
++ ¯Bneg ut, (4) 
+
+hpos  
+
+> t
+
+= ¯Apos hpos  
+
+> t−1
+
++ ¯Bpos (ut ⊙ gt), (5) where ut ∈ RD represents the input token at step t, and ¯Aneg , ¯Bneg , ¯Apos , ¯Bpos 
+
+are learnable transition and input matrices specific to each branch. 4 M. B. Çelik et al. 
+
+A key distinction of SCDM is that the Positive Branch receives a dynamically modulated input through a Repulsion Gate gt, produced by the proposed repul-sion mechanism. This design enables selective suppression of features already explained by the Negative Branch. The final output of the SSM block is given by: 
+
+yt = ( Cneg hneg  
+
+> t
+
++ Dneg ut) + ( Cpos hpos  
+
+> t
+
++ Dpos ut). (6) This formulation enables disentangled yet complementary representation learn-ing between anatomical context and pathological features. 
+
+3.3 Repulsion Gating Mechanism 
+
+To promote complementary feature learning, we introduce a similarity-driven 
+
+Repulsion Gate that dynamically suppresses the Positive Branch based on the historical hidden state of the Negative Branch. Unlike conventional gating mech-anisms that rely solely on the current input, the proposed gate explicitly incor-porates negative branch memory. First, the current input is projected into a query vector: 
+
+qt = Wq ut, (7) and the previous hidden state of the Negative Branch is aggregated across the feature dimension and projected into a key vector: 
+
+kt = Wk
+
+1
+
+D
+
+> D
+
+X
+
+> d=1
+
+H(−)(t−1,d )
+
+!
+
+, (8) where Wq ∈ RD×D and Wk ∈ RD×N are learnable projection matrices, with N
+
+denoting the state dimension and D the feature dimension. Here, the aggregation operation computes a global state context by averaging the hidden states across all feature channels. The similarity between the current input and the negative branch memory is computed using cosine similarity st = ( q⊤ 
+
+> t
+
+kt)/(∥qt∥2∥kt∥2).This similarity score is transformed into a gating coefficient via a temperature-scaled sigmoid: 
+
+gt = ϵ + (1 − ϵ)
+
+
+
+1 − σ(ατ s t)
+
+
+
+, (9) where σ(·) denotes the sigmoid function, τ is a learnable temperature parameter controlling repulsion strength, α is a scaling constant (set to 10 in practice), and ϵ is a stability constant (e.g., 0.05 ) preventing complete signal suppression. Finally, the Positive Branch input is modulated as: 
+
+upos  
+
+> t
+
+= ut ⊙ gt. (10) This mechanism selectively suppresses hard negative mimics (e.g., bony struc-tures) encoded by the Negative Branch, enabling the Positive Branch to isolate pathology-relevant features. To ensure optimization stability, we employ a cur-riculum learning strategy: the repulsion gate is disabled ( gt = 1 ) during an SCDM: Disentanglement Mamba for Image Classification 5
+
+initial warm-up phase. This delay allows hem branches to establish foundational representations before introducing similarity-driven competition. Consequently, the Negative Branch first learns robust contextual anchors, which subsequently guide the Positive Branch toward specialized, complementary feature extraction. 
+
+3.4 Integration into Vision Selective Scan (VSSc) Blocks 
+
+The proposed dual-branch formulation is integrated into VSSc blocks. In in-termediate layers, the outputs of both branches are merged to maintain archi-tectural compatibility. However, in the final VSSc block, the branches are kept separate to preserve disentangled representations. The final outputs are processed through independent feed-forward networks: 
+
+zneg = FFN neg 
+
+ Norm( yneg ), (11) 
+
+zpos = FFN pos 
+
+ Norm( ypos ). (12) These disentangled representations are pooled and fed into the classification head, where prediction is based on their competitive difference: 
+
+ypred = σ
+
+
+
+Linear( zpos ) − Linear( zneg )
+
+
+
+. (13) This competitive formulation encourages representation specialization and re-duces feature overlap between contextual and pathology-sensitive branches. 
+
+Classification Loss ( Lcls ). The primary objective is binary cross-entropy (BCE) with label smoothing. During training, the prediction logits from both branches are added (logit pos + logit neg ) to encourage cooperative signal accumulation: 
+
+Lcls = BCE 
+
+
+
+σ(logit pos + logit neg ), y 
+
+
+
+. (14) However, during inference, we apply a differential rule (logit pos − logit neg ) to enforce a competitive decision margin. 
+
+Competitive Separation Loss ( Lcomp ). To enforce strict branch specialization, this objective computationally maximizes the decision margin boundary between the Positive and Negative branches: 
+
+Lcomp = − log 
+
+
+
+σ β ˜y (logit pos − logit neg )
+
+, (15) where ˜y = 2 y − 1. This loss actively pushes their representations apart for both diseased and healthy samples. 6 M. B. Çelik et al. 
+
+Safety Mechanisms ( Lortho and Lact ). To reduce feature redundancy, we promote representational orthogonality ( Lortho ) between the Positive and Negative mem-ory vectors exclusively for diseased samples, where separation between pathology and context is most critical: Lortho = 1
+
+> Npos
+
+P 
+
+> yi=1
+
+(zpos · zneg )/(∥zpos ∥∥ zneg ∥) .Additionally, because strong repulsion gating may suppress the Positive branch excessively, we introduce an activity preservation loss ( Lact ) that enforces a minimum activation norm: Lact = 1
+
+> Npos
+
+P 
+
+> yi=1
+
+Softplus(margin − ∥ zpos ∥). This prevents trivial zero-activation collapse and ensures stable gradient propagation. Collectively, model training is guided by the hybrid objective: 
+
+Ltotal = λcls Lcls + λcomp Lcomp + λortho Lortho + λact Lact . (16) 
+
+## 4 Experiments 
+
+We evaluated SCDM in the RSNA pneumonia data set [14], which consists of 20,672 normal and 6,011 pneumonia images. We use an 80/20 patient-wise split and resize all images to 128×128 using bilinear interpolation. The SCDM backbone uses a stage depth configuration of (1,1,1,1), whereas the VMamba-B baseline uses the standard (2,2,9,2) configuration. Our framework includes CLAHE preprocessing [16] and various augmentations [15] (flipped/affine trans-forms, brightness/contrast adjustments, Gaussian noise, and coarse dropout) with a WeightedRandomSampler to address class imbalance. 
+
+4.1 Comparison with Accuracy Metrics 
+
+As shown in Table 1, we evaluated SCDM against representative convolutional, transformer-based, and state space architectures under identical training con-ditions to assess both discriminative performance and computational efficiency. The results indicate that the proposed dual-memory mechanism achieves com-petitive accuracy while providing a more efficient representation. Table 1: Quantitative comparison of performance and efficiency across CNN-based, transformer-based, and state space models.                               
+
+> Model Recall (%) Specificity (%) AUC Params (M) FLOPs (G) Vmamba-B 82.9 70.0 0.838 87.9 5.03 Swin-B 82.7 68.8 0.835 87.0 5.03 ViT-Base Patch16 76.39 65.24 0.768 85.8 5.75 ResNet-101 86.2 72.50 0.869 42.5 2.55 SCDM (Proposed) 78.7 77.0 0.858 29.4 1.44
+
+SCDM achieves competitive AUC with substantially lower recall than ResNet-101, and outperforms Swin-B, ViT-Base, and Vmamba-B, requiring only 29.4M parameters and 1.44 GFLOPs. SCDM: Disentanglement Mamba for Image Classification 7
+
+(a) FLOPs comparison (b) Model specifications 
+
+Fig. 2: Comparison of computational cost and model specifications. As shown in Table 1 and Fig. 2, SCDM maintains strong specificity while requiring substantially fewer parameters and FLOPs, indicating that the dual-memory mechanism enhances true negative discrimination without increasing model capacity. While overall metrics remain competitive, SCDM exhibits supe-rior spatial selectivity, as analyzed in the next section. 
+
+4.2 Representation-Level Analysis and Localization Behavior 
+
+To further investigate the spatial behavior of the proposed dual-memory mech-anism, we visualize activation maps using Grad-CAM [13]. Fig. 3 compares the localization patterns of SCDM and representative baseline architectures. SCDM   
+
+> Original Image Vmamba-B Negative
+> Hidden State
+> Positive
+> Hidden State
+
+Fig. 3: Grad-CAM visualization comparison between Vmamba and SCDM archi-tectures. 8 M. B. Çelik et al. 
+
+SCDM produces highly precise activation patterns compared to the diffuse maps of VMamba. This confirms the Negative Branch acts as an active anatomi-cal suppressor, refining the Positive Branch’s focus through differential inference. SCDM achieves this superior selectivity and interpretability with a lower com-putational footprint, validating the efficiency of our disentangled architecture. 
+
+4.3 Component and Training Analysis 
+
+To evaluate our asymmetric optimization, Table 2 compares different training objectives while keeping the differential readout ( P − N , where P and N de-note logit pos and logit neg respectively) fixed during inference. Purely competitive training (BCE( P −N )) limits the network’s ability to establish robust contextual anchors, degrading overall Recall. Conversely, our cooperative training objective (BCE( P + N )) allows the Negative Branch to first act as a scaffold to capture anatomical distractors. When paired with the differential readout, this strategy significantly boosts Recall, enabling the Positive Branch to specialize purely on pathology. Figure 4 visually corroborates this: our asymmetric approach yields highly selective localization compared to standard fused representations. Table 2: Comparing training objectives reveals that cooperative addition ( P +N )provides essential scaffolding for the subsequent differential inference. 
+
+Train obj Inference Logic Recall (%) Specificity (%) AUC BCE( P − N ) P − N 77.8 77.1 0.852 
+
+BCE( P + N) (Proposed) P − N 78.7 77.0 0.858 
+
+Separate analysis of the Dual-Branch architecture and Repulsion Mechanism reveals that while the dual structure provides capacity for feature separation, the Repulsion Gate drives sensitivity. By penalizing anatomical overlaps, it shifts the operating point towards high Recall ( 5% gain), prioritizing the minimization of false negatives in clinical screening despite a marginal trade-off in precision. Consequently, our fully integrated SCDM configuration offers the most robust balance for complex medical image classification. Logit Sum Original 
+
+> Negative
+> Hidden State
+> Positive
+> Hidden State
+> Positive
+> Hidden State
+> Negative
+> Hidden State
+> Logit Diff
+
+Fig. 4: Grad-CAM visualization comparison between Training Dynamics. SCDM: Disentanglement Mamba for Image Classification 9
+
+## 5 Conclusion 
+
+We propose SCDM, leveraging dual-branch differential inference to disentan-gle focal pathology from anatomical distractors. While significantly improving sensitivity and localization by suppressing hard negatives,while requiring sub-stantially fewer parameters and lower computational cost, demonstrating supe-rior efficiency and scalability. Future work targets multi-class, high-resolution scaling. 
+
+## References 
+
+1. Liu, L., Sun, H., Li, F.: A lie group kernel learning method for medical image classification. Pat. Rec. 142 , 109735 (2023) 2. Neelima, M.L., et al.: Deep Learning in Medical Image Analysis: A Survey. In: INNOVA (2024) 3. Zhou, S.K., et al.: A review of deep learning in medical imaging. Proc. IEEE 
+
+109 (5), 820–838 (2021) 4. Chen, X., et al.: Recent advances and clinical applications of deep learning. Med. Image Anal. 79 , 102444 (2022) 5. Gu, A., Goel, K., Re, C.: Efficiently modeling long sequences with structured state spaces. arXiv:2111.00396 (2021) 6. Gu, A., et al.: Combining recurrent, convolutional, and continuous-time models. In: NeurIPS, pp. 572–585 (2021) 7. Gu, A., Dao, T.: Mamba: Linear-time sequence modeling. arXiv:2312.00752 (2023) 8. Liu, Y., et al.: Vmamba: Visual state space model. arXiv:2401.10166 (2024) 9. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning. In: CVPR, pp. 770–778 (2016) 10. Raghu, M., et al.: Transfusion: Understanding transfer learning. In: NeurIPS (2019) 11. Liu, Z., et al.: Swin transformer. In: ICCV, pp. 10012–10022 (2021) 12. Dosovitskiy, A., et al.: An image is worth 16x16 words. In: ICLR (2021) 13. Selvaraju, R.R., et al.: Grad-CAM: Visual explanations from deep networks via gradient-based localization. In: ICCV, pp. 618–626 (2017) 14. Stein, A., et al.: RSNA Pneumonia Detection Challenge. Kaggle (2018) 15. Chlap, P., et al.: A review of medical image data augmentation. J. Med. Imaging Radiat. Oncol. 65 , 545–563 (2021) 16. Reza, A.M.: Realization of the CLAHE. J. VLSI Sig. Proc. 38 , 35–44 (2004)
