@@ -1,0 +1,1510 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-09-14T08:07:06.763349+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 7,
+    "deep_divecandidates": 27,
+    "deep_cap": 12,
+    "deep_selected": 15,
+    "quick_candidates": 44,
+    "quick_skim_target": 17,
+    "quick_selected": 17
+  },
+  "deep_dive": [
+    {
+      "id": "2608.18035v1",
+      "source": "arxiv",
+      "title": "Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving",
+      "abstract": "Traffic elements such as traffic lights and road signs play a fundamental role in human driving decisions and should naturally influence end-to-end driving performance. However, existing end-to-end driving research predominantly focuses on dynamic road participants (e.g., vehicles and pedestrians), while the role of traffic elements remains largely unexplored. The community still lacks a systematic study quantifying their impact, largely because public datasets rarely provide structured traffic-element annotations and modern driving systems vary widely in architecture and training paradigm. In this work, we present the first systematic investigation of traffic element awareness for end-to-end autonomous driving. We construct a unified research infrastructure by augmenting multiple public driving datasets with comprehensive traffic-element annotations. To support diverse model families, we adopt a minimal and universal integration design that incorporates traffic-element signals into existing pipelines in a plug-and-play manner with negligible architectural modification. We evaluate this design across modern paradigms, including perception-prediction-planning pipelines, vision-language-action models (VLA), regression-based planners, diffusion-based policies, and trajectory-scoring frameworks, on nuScenes, NAVSIM-v1, NAVSIM-v2, and Bench2Drive. Across all paradigms and datasets, this simple integration consistently improves driving performance, demonstrating that traffic element awareness provides a robust and generalizable signal for end-to-end driving systems. Notably, on the challenging NAVSIM-v2 benchmark, our approach significantly improves state-of-the-art architectures and data pipelines, establishing a new state of the art.",
+      "authors": [
+        "Zongzheng Zhang",
+        "Jijun Wang",
+        "Saining Zhang",
+        "Shuo Wang",
+        "Yiru Wang",
+        "Hai Yang",
+        "Yang Chen",
+        "Yuwen Heng",
+        "Hao Sun",
+        "Anqing Jiang",
+        "Hao Zhao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-18T17:29:51+00:00",
+      "link": "https://arxiv.org/pdf/2608.18035v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "plug-and-play traffic element awareness for end-to-end autonomous driving",
+      "llm_evidence_cn": "面向端到端自动驾驶的即插即用交通要素感知",
+      "llm_evidence": "面向端到端自动驾驶的即插即用交通要素感知",
+      "canonical_evidence": "面向端到端自动驾驶的即插即用交通要素感知",
+      "llm_tldr_en": "This work presents the first systematic study of traffic element awareness for end-to-end autonomous driving, building a unified infrastructure and a plug-and-play module to improve driving performance.",
+      "llm_tldr_cn": "现有端到端驾驶研究主要关注车辆行人等动态道路参与者，而交通灯、路牌等交通要素的作用缺乏系统量化研究，因数据集缺少结构化标注。本文构建统一研究基础设施，系统研究交通要素感知对端到端自动驾驶的影响，并提出即插即用的交通要素感知模块。研究首次量化其作用并验证可提升端到端驾驶性能，填补相关空白。",
+      "llm_tldr": "现有端到端驾驶研究主要关注车辆行人等动态道路参与者，而交通灯、路牌等交通要素的作用缺乏系统量化研究，因数据集缺少结构化标注。本文构建统一研究基础设施，系统研究交通要素感知对端到端自动驾驶的影响，并提出即插即用的交通要素感知模块。研究首次量化其作用并验证可提升端到端驾驶性能，填补相关空白。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "end-to-end autonomous driving model",
+      "matched_requirement_id": "req-15",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.20974v2",
+      "source": "arxiv",
+      "title": "WA-JEPA: Rethinking the Video JEPA Paradigm for World-Action Modeling in Autonomous Driving",
+      "abstract": "Video Joint Embedding Predictive Architecture (V-JEPA) learns powerful spatiotemporal representations from video through self-supervised latent feature prediction. However, V-JEPA is built around random-mask completion and deterministic regression, making it fundamentally ill-suited for autonomous driving planning that demands future-directed prediction tightly coupled with action. To address this, we rethink the V-JEPA paradigm and present WA-JEPA, a V-JEPA-native world-action model designed for autonomous driving planning. Instead of random spatiotemporal masking, WA-JEPA employs hybrid future-masked pre-training, where the model infers future latents from observed context. Departing from deterministic regression, we recast future prediction as conditional flow matching over latent futures, which substantially improves the model's ability to generate plausible future latents for downstream planning. Finally, a joint future-action predictor is proposed to denoise future scene tokens and ego trajectories together in a unified spatiotemporal latent space, allowing action supervision to directly shape planning-relevant world representations. Pre-trained on nuPlan videos and fine-tuned on NAVSIM, WA-JEPA reaches 91.7 EPDMS on NAVSIM-v2, surpassing the strongest end-to-end and world-action baselines by 1.6 and 1.3 EPDMS, and, without HUGSIM-specific fine-tuning, attains the best HD-Score of 0.4462 on the closed-loop HUGSIM benchmark under the same evaluation protocol. These results validate V-JEPA-native world-action modeling as a powerful and scalable paradigm for autonomous driving planning. Code is available at https://github.com/AFARI-Research/WA-JEPA.",
+      "authors": [
+        "Xinlin Wang",
+        "Yujiao Xiang",
+        "Yuheng Zhou",
+        "Jingqi Wang",
+        "Minqing Huang",
+        "Jiajie Huang",
+        "Dongxu Wei",
+        "Tingguang Zhou",
+        "Xiyang Wang",
+        "Gong Chen",
+        "Zhi Xu",
+        "Feiyang Tan",
+        "Hangning Zhou",
+        "Mu Yang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-08-21T10:54:35+00:00",
+      "link": "https://arxiv.org/pdf/2608.20974v2",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "V-JEPA-native world-action model for autonomous driving planning",
+      "llm_evidence_cn": "面向自动驾驶规划的V-JEPA世界-动作模型",
+      "llm_evidence": "面向自动驾驶规划的V-JEPA世界-动作模型",
+      "canonical_evidence": "面向自动驾驶规划的V-JEPA世界-动作模型",
+      "llm_tldr_en": "WA-JEPA rethinks the video JEPA paradigm into a world-action model for autonomous driving, replacing random masking with hybrid future-masked pretraining and future-directed latent prediction coupled with action.",
+      "llm_tldr_cn": "针对视频JEPA依赖随机掩码补全与确定性回归、难以适配自动驾驶中未来预测与动作紧耦合的问题，本文提出WA-JEPA世界-动作模型。该方法采用混合未来掩码预训练，让模型从观测上下文推断未来隐表示，并将未来预测重构为与动作耦合的生成式建模。实验表明其在自动驾驶规划任务上优于传统V-JEPA范式，能更有效地支持面向未来的决策。该工作推动了世界模型与自动驾驶规划的深度融合。",
+      "llm_tldr": "针对视频JEPA依赖随机掩码补全与确定性回归、难以适配自动驾驶中未来预测与动作紧耦合的问题，本文提出WA-JEPA世界-动作模型。该方法采用混合未来掩码预训练，让模型从观测上下文推断未来隐表示，并将未来预测重构为与动作耦合的生成式建模。实验表明其在自动驾驶规划任务上优于传统V-JEPA范式，能更有效地支持面向未来的决策。该工作推动了世界模型与自动驾驶规划的深度融合。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "world model in autonomous driving",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.21440v1",
+      "source": "arxiv",
+      "title": "Geo-VLA: Geometry-Aware Vision-Language-Action Planning via Internalization of Map Semantics",
+      "abstract": "Vision-language-action (VLA) models have advanced end-to-end autonomous driving by leveraging foundation models for semantic reasoning and long-tail generalization. However, their planning performance remains limited in complex driving environments because image-only representations inadequately capture planning-relevant road geometry and topology. In this paper, we propose Geo-VLA, a plug-and-play framework that enhances VLA models by learning geometry-aware visual representations. During training, Geo-VLA internalizes geometric map semantics to strengthen road-structure representations, while requiring no HD maps or additional lane information during inference. To support this approach, we introduce Geo-QA, a geometry-focused question-answering dataset that injects road geometry into vision-language representations through contrastive learning and instruction tuning. Experiments on NAVSIM v1 demonstrate that Geo-VLA consistently improves VLA planners with distinct action-generation architectures, achieving 92.1 PDMS and establishing a new state-of-the-art among single-camera VLA planners.",
+      "authors": [
+        "Ran Chen",
+        "Jiaxing Ren",
+        "Zhikun Zhang",
+        "Yunhao Hou",
+        "Junbao Zhuo",
+        "Bochao Zou"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.AI"
+      ],
+      "published": "2026-08-18T08:25:58+00:00",
+      "link": "https://arxiv.org/pdf/2608.21440v1",
+      "tags": [
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Geometry-aware vision-language-action planning for end-to-end autonomous driving",
+      "llm_evidence_cn": "面向端到端自动驾驶的几何感知视觉-语言-动作规划",
+      "llm_evidence": "面向端到端自动驾驶的几何感知视觉-语言-动作规划",
+      "canonical_evidence": "面向端到端自动驾驶的几何感知视觉-语言-动作规划",
+      "llm_tldr_en": "VLA models advance end-to-end driving but image-only representations miss planning-relevant road geometry. Geo-VLA is a plug-and-play framework that internalizes geometric map semantics during training, requiring no HD maps at inference.",
+      "llm_tldr_cn": "视觉-语言-动作模型借助基础模型的语义推理与长尾泛化能力推动了端到端自动驾驶，但仅依赖图像的表征难以充分刻画与规划相关的道路几何与拓扑，使其在复杂驾驶环境中规划性能受限。本文提出Geo-VLA即插即用框架，在训练阶段内化几何地图语义以增强道路结构表征，而推理时无需高精地图或额外车道信息。作者同时构建几何问答数据集Geo-QA以支撑该训练方式。",
+      "llm_tldr": "视觉-语言-动作模型借助基础模型的语义推理与长尾泛化能力推动了端到端自动驾驶，但仅依赖图像的表征难以充分刻画与规划相关的道路几何与拓扑，使其在复杂驾驶环境中规划性能受限。本文提出Geo-VLA即插即用框架，在训练阶段内化几何地图语义以增强道路结构表征，而推理时无需高精地图或额外车道信息。作者同时构建几何问答数据集Geo-QA以支撑该训练方式。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "End to end autonomous driving with Vision Language Action models",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.22421v1",
+      "source": "arxiv",
+      "title": "Where World Models Break: Natural-Input Failure Discovery",
+      "abstract": "World models predict action-conditioned futures and serve as critical internal simulators for downstream planning and control. However, catastrophic prediction failures of world models could dangerously propagate through the control pipeline, as subsequent agent or model training and decision-making depend heavily on the continuous environment evolution forecasted by these world models. Existing evaluations overlook this systemic risk: by aggregating average errors over benign generations from general queries, they fail to stress-test the model against catastrophic collapses under rare or unobserved condition-action combinations. To bridge this gap, we formalize the natural-input failure discovery problem: under a finite query budget, finding environment-valid conditions and action prefixes that induce severe prediction risk, verifying whether these failures reproduce on fresh seeds, and testing their persistence under nearby valid edits. Discovering such critical failures is computationally challenging, as valid condition-action combinations explode exponentially, rendering exhaustive search or standard sampling infeasible given the high cost of noisy rollouts. To tackle this, we propose BasinLens, which exploits the underlying structure of valid inputs, where each coordinate possesses environment-defined semantic types and admissible domains, by pairing uncertainty-guided global search with typed local replacements. Across diverse benchmarks and world-model families, BasinLens exposes reproducible and locally persistent failure modes that conventional evaluations fail to reveal, showing that average-case benchmarks can mask important vulnerabilities in world-model-driven control.",
+      "authors": [
+        "Zhanpeng Shi",
+        "Zi Liang",
+        "Rong Feng",
+        "Shiqin Tang",
+        "Xuyang Chen",
+        "Hongzong Li"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-08-23T13:53:15+00:00",
+      "link": "https://arxiv.org/pdf/2608.22421v1",
+      "tags": [
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "failure discovery for world models under natural inputs",
+      "llm_evidence_cn": "世界模型在自然输入下的失效发现",
+      "llm_evidence": "世界模型在自然输入下的失效发现",
+      "canonical_evidence": "世界模型在自然输入下的失效发现",
+      "llm_tldr_en": "World model prediction failures can propagate dangerously through control pipelines, yet existing evaluations only average errors on benign queries; this paper formalizes natural-input failure discovery to find catastrophic collapses under finite query budgets.",
+      "llm_tldr_cn": "世界模型预测动作条件下的未来，是下游规划与控制的关键内部模拟器，但其灾难性预测失效可能沿控制管线传播。现有评估仅在良性查询上聚合平均误差，无法在罕见或未见条件下压力测试模型。本文形式化自然输入失效发现问题，在有限查询预算下寻找环境有效的条件-动作组合，暴露灾难性崩溃。该工作揭示了世界模型评估中被忽视的系统性风险，为可靠性评测提供了新范式。",
+      "llm_tldr": "世界模型预测动作条件下的未来，是下游规划与控制的关键内部模拟器，但其灾难性预测失效可能沿控制管线传播。现有评估仅在良性查询上聚合平均误差，无法在罕见或未见条件下压力测试模型。本文形式化自然输入失效发现问题，在有限查询预算下寻找环境有效的条件-动作组合，暴露灾难性崩溃。该工作揭示了世界模型评估中被忽视的系统性风险，为可靠性评测提供了新范式。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent advances in world models",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.23405v1",
+      "source": "arxiv",
+      "title": "MomADv2: Reliable Temporal Memory for End-to-End Autonomous Driving",
+      "abstract": "Long-horizon planning is critical for safe autonomous driving in complex scenarios. Existing methods improve planning continuity with temporal memory, but such memory may become invalid and mislead decisions when the driving command changes. Thus, selectively leveraging useful history while suppressing command-inconsistent memory remains a key challenge. To address this issue, we propose MomADv2, a reliable state-space memory framework for long-horizon end-to-end autonomous driving. At its core, MomADv2 introduces a Selective State-Space Planning Memory Query Module, which filters historical planning queries based on temporal continuity and command consistency, selects planning modes relevant to the current command, and models the evolution of planning intentions through a selective state-space mechanism. To further alleviate local trajectory deviations and error accumulation in long-horizon planning, we design a Flow-Matching Trajectory Residual Refiner. It learns a continuous residual correction field from the refined planning output to the expert trajectory, enabling fine-grained trajectory refinement while preserving the stability of anchor-based planning. Extensive experiments on closed-loop NAVSIM and Bench2Drive, as well as open-loop nuScenes, demonstrate that MomADv2 improves long-horizon planning consistency and reduces the average collision rate by 15.6% over MomAD under 6-second planning.",
+      "authors": [
+        "Ziying Song",
+        "Shengkai Zhang",
+        "Lin Liu",
+        "Peiliang Wu",
+        "Lei Yang",
+        "Dongyang Xu",
+        "Bin Sun",
+        "Li Wang",
+        "Shaoqing Xu",
+        "Caiyan Jia",
+        "Yadan Luo"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-08-24T15:51:07+00:00",
+      "link": "https://arxiv.org/pdf/2608.23405v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "reliable state-space temporal memory for long-horizon end-to-end autonomous driving",
+      "llm_evidence_cn": "面向长时程端到端自动驾驶的可靠状态空间时序记忆",
+      "llm_evidence": "面向长时程端到端自动驾驶的可靠状态空间时序记忆",
+      "canonical_evidence": "面向长时程端到端自动驾驶的可靠状态空间时序记忆",
+      "llm_tldr_en": "MomADv2 proposes a reliable state-space memory framework with a selective planning-memory query module that filters historical planning queries by temporal continuity and command consistency, improving long-horizon end-to-end autonomous driving.",
+      "llm_tldr_cn": "长时程规划对复杂场景下的自动驾驶安全至关重要，但现有基于时序记忆的方法在驾驶指令变化时，旧记忆可能失效并误导决策。为此作者提出MomADv2，一个可靠的状态空间记忆框架，其选择性状态空间规划记忆查询模块依据时间连续性与指令一致性过滤历史规划查询，并筛选与当前指令相关的规划模式。实验表明该框架能在长时程端到端驾驶中稳定利用有用历史、抑制不一致记忆，提升规划可靠性，为安全自动驾驶提供了新思路。",
+      "llm_tldr": "长时程规划对复杂场景下的自动驾驶安全至关重要，但现有基于时序记忆的方法在驾驶指令变化时，旧记忆可能失效并误导决策。为此作者提出MomADv2，一个可靠的状态空间记忆框架，其选择性状态空间规划记忆查询模块依据时间连续性与指令一致性过滤历史规划查询，并筛选与当前指令相关的规划模式。实验表明该框架能在长时程端到端驾驶中稳定利用有用历史、抑制不一致记忆，提升规划可靠性，为安全自动驾驶提供了新思路。",
+      "llm_tags": [
+        "query:self-driving:composite"
+      ],
+      "matched_query_tag": "query:self-driving:composite",
+      "matched_query_text": "Papers central to 检索自动驾驶VLA、世界模型最近SOTA有价值的论文, especially work that connects or combines: autonomous driving recent advances; end-to-end autonomous driving with action prediction; multimodal fusion in autonomous driving; world model in autonomous driving; end-to-end autonomous driving model; recent advancements in autonomous driving perception; state of the art end to end autonomous driving; End to end autonomous driving with Vision Language Action models; Find recent state of the art vision language action models for autonomous driving.",
+      "matched_requirement_id": "req-composite-self-driving",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.23486v1",
+      "source": "arxiv",
+      "title": "GeoWAM: Visual Geometry World Action Models for Autonomous Driving",
+      "abstract": "World action models (WAMs) have recently gained increasing attention as a framework for jointly modeling scene evolution and ego actions in autonomous driving. Most existing WAMs learn scene dynamics in pixel space by combining a video-generation backbone for future-observation prediction with an action head for ego-trajectory prediction. Pixels, however, provide only an indirect representation of these dynamics: they entangle geometry and motion with appearance, texture, and illumination, forcing the model to infer three-dimensional transformations from two-dimensional observations. We argue that geometry, represented by point clouds, offers a more natural state space for driving because it explicitly captures spatial structure and the rigid and non-rigid transformations that govern scene evolution while directly aligning with the space in which driving actions are executed. Building on this insight, we introduce \\textbf{GeoWAM}, a visual geometry world action model for autonomous driving. Rather than predicting future images, GeoWAM is pretrained to forecast future scene geometry, yielding representations that jointly encode spatial structure and temporal evolution. A geometry-conditioned action head then leverages these learned geometric dynamics to predict future ego trajectories. Extensive open-loop and closed-loop evaluations show that visual geometry world modeling yields substantially stronger driving policies than image-based alternatives, establishing future-geometry prediction as an effective pretraining objective for autonomous driving.",
+      "authors": [
+        "Yiren Lu",
+        "Xin Ye",
+        "Jiaming Liu",
+        "Jin Yao",
+        "Yi-chung Chen",
+        "Liam Merino",
+        "Dhruva Dixith Kurra",
+        "Min Cai",
+        "Tom Lampo",
+        "Yu Yin",
+        "Danhua Guo",
+        "Burhan Yaman"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-08-24T16:49:53+00:00",
+      "link": "https://arxiv.org/pdf/2608.23486v1",
+      "tags": [
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "geometry-based world action model for autonomous driving",
+      "llm_evidence_cn": "面向自动驾驶的几何世界动作模型",
+      "llm_evidence": "面向自动驾驶的几何世界动作模型",
+      "canonical_evidence": "面向自动驾驶的几何世界动作模型",
+      "llm_tldr_en": "Existing driving world action models predict in pixel space, entangling geometry with appearance. GeoWAM instead uses point-cloud geometry as the state space to jointly model scene evolution and ego actions, giving a more direct representation of 3D dynamics.",
+      "llm_tldr_cn": "自动驾驶世界动作模型通常以像素空间预测未来观测并输出自车轨迹，但像素将几何与运动同外观、纹理、光照纠缠，迫使模型从二维推断三维变换。本文提出GeoWAM，采用点云几何作为更自然的状态空间，联合建模场景演化与自车动作，显式刻画空间结构与刚性和非刚性运动。该工作为自动驾驶世界模型提供了几何中心的建模范式。",
+      "llm_tldr": "自动驾驶世界动作模型通常以像素空间预测未来观测并输出自车轨迹，但像素将几何与运动同外观、纹理、光照纠缠，迫使模型从二维推断三维变换。本文提出GeoWAM，采用点云几何作为更自然的状态空间，联合建模场景演化与自车动作，显式刻画空间结构与刚性和非刚性运动。该工作为自动驾驶世界模型提供了几何中心的建模范式。",
+      "llm_tags": [
+        "query:self-driving:composite"
+      ],
+      "matched_query_tag": "query:self-driving:composite",
+      "matched_query_text": "Papers central to 检索自动驾驶VLA、世界模型最近SOTA有价值的论文, especially work that connects or combines: autonomous driving recent advances; end-to-end autonomous driving with action prediction; multimodal fusion in autonomous driving; world model in autonomous driving; end-to-end autonomous driving model; recent advancements in autonomous driving perception; state of the art end to end autonomous driving; End to end autonomous driving with Vision Language Action models; Find recent state of the art vision language action models for autonomous driving.",
+      "matched_requirement_id": "req-composite-self-driving",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.23486v2",
+      "source": "arxiv",
+      "title": "GeoWAM: Visual Geometry World Action Models for Autonomous Driving",
+      "abstract": "World action models (WAMs) have recently gained increasing attention as a framework for jointly modeling scene evolution and ego actions in autonomous driving. Most existing WAMs learn scene dynamics in pixel space by combining a video-generation backbone for future-observation prediction with an action head for ego-trajectory prediction. Pixels, however, provide only an indirect representation of these dynamics: they entangle geometry and motion with appearance, texture, and illumination, forcing the model to infer three-dimensional transformations from two-dimensional observations. We argue that geometry, represented by point clouds, offers a more natural state space for driving because it explicitly captures spatial structure and the rigid and non-rigid transformations that govern scene evolution while directly aligning with the space in which driving actions are executed. Building on this insight, we introduce \\textbf{GeoWAM}, a visual geometry world action model for autonomous driving. Rather than predicting future images, GeoWAM is pretrained to forecast future scene geometry, yielding representations that jointly encode spatial structure and temporal evolution. A geometry-conditioned action head then leverages these learned geometric dynamics to predict future ego trajectories. Extensive open-loop and closed-loop evaluations show that visual geometry world modeling yields substantially stronger driving policies than image-based alternatives, establishing future-geometry prediction as an effective pretraining objective for autonomous driving.",
+      "authors": [
+        "Yiren Lu",
+        "Xin Ye",
+        "Jiaming Liu",
+        "Philip Jacobson",
+        "Jin Yao",
+        "Yi-chung Chen",
+        "Liam Merino",
+        "Dhruva Dixith Kurra",
+        "Min Cai",
+        "Tom Lampo",
+        "Yu Yin",
+        "Danhua Guo",
+        "Burhan Yaman"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-08-24T16:49:53+00:00",
+      "link": "https://arxiv.org/pdf/2608.23486v2",
+      "tags": [
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "geometry-based world action model jointly modeling scene evolution and ego actions for driving",
+      "llm_evidence_cn": "基于几何的世界动作模型联合建模场景演化与自车动作",
+      "llm_evidence": "基于几何的世界动作模型联合建模场景演化与自车动作",
+      "canonical_evidence": "基于几何的世界动作模型联合建模场景演化与自车动作",
+      "llm_tldr_en": "World action models for driving usually learn pixel-space dynamics, entangling geometry with appearance. GeoWAM uses point-cloud geometry as state space to jointly model scene evolution and ego actions.",
+      "llm_tldr_cn": "世界动作模型近年来成为自动驾驶中联合建模场景演化与自车动作的框架，但现有方法多在像素空间学习动力学，将几何与运动同外观、纹理、光照纠缠，迫使模型从二维观测推断三维变换。本文提出GeoWAM，以点云表示的几何作为更自然的状态空间，显式刻画空间结构及刚体与非刚体运动，并联合预测未来观测与自车轨迹。结果表明几何中心表示更利于驾驶场景建模。该工作为自动驾驶世界动作模型提供了新的状态表示范式。",
+      "llm_tldr": "世界动作模型近年来成为自动驾驶中联合建模场景演化与自车动作的框架，但现有方法多在像素空间学习动力学，将几何与运动同外观、纹理、光照纠缠，迫使模型从二维观测推断三维变换。本文提出GeoWAM，以点云表示的几何作为更自然的状态空间，显式刻画空间结构及刚体与非刚体运动，并联合预测未来观测与自车轨迹。结果表明几何中心表示更利于驾驶场景建模。该工作为自动驾驶世界动作模型提供了新的状态表示范式。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "world model in autonomous driving",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.24366v1",
+      "source": "arxiv",
+      "title": "Variance-Guided Spatial Attention Fusion for Robust End-to-End Driving under Asymmetric Sensor Degradation",
+      "abstract": "End-to-end multimodal driving has progressed rapidly by fusing camera and LiDAR streams. Existing pipelines remain fragile under asymmetric sensor degradation, where either an entire modality or only a localized region is corrupted while other regions remain useful. The key difficulty is not simply to add an uncertainty head, but to obtain dense reliability supervision, calibrate this reliability against physical fault severity, and use it before unreliable features bias the planner. We propose Variance-Guided Spatial Attention Fusion (VG-SAF), in which dense heteroscedastic reliability estimates act as interpretable spatial gates. The framework couples three components. First, a physically grounded augmentor simulates representative camera and LiDAR failures and emits a continuous spatial mask, providing dense supervision without additional annotation. Second, modality-specific experts predict per-pixel reliability scales through cross-branch dense distillation in log space, enforcing a monotone severity-to-scale response. Third, calibrated reliability maps drive a hybrid attention mechanism that suppresses unreliable cells with a local spatial gate and arbitrates between modalities through a cross-modal trust softmax. A Laplace uncertainty head emits a systemic waypoint uncertainty scale that signals severe or combined sensor degradation, including severities outside the training ranges. On the CARLA Longest6 benchmark, VG-SAF consistently improves closed-loop robustness over the baselines across camera-only, LiDAR-only, and joint degradation regimes, as measured by driving score, route completion, and infraction score.",
+      "authors": [
+        "Weizhi Tao",
+        "Zengwang Jin",
+        "Xiao Wang",
+        "Hailong Huang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-08-25T10:27:02+00:00",
+      "link": "https://arxiv.org/pdf/2608.24366v1",
+      "tags": [
+        "keyword:cf-image-gen",
+        "keyword:self-driving",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Variance-guided camera-LiDAR fusion for end-to-end driving",
+      "llm_evidence_cn": "面向端到端驾驶的方差引导相机-激光雷达融合",
+      "llm_evidence": "面向端到端驾驶的方差引导相机-激光雷达融合",
+      "canonical_evidence": "面向端到端驾驶的方差引导相机-激光雷达融合",
+      "llm_tldr_en": "End-to-end multimodal driving breaks under asymmetric sensor degradation. VG-SAF uses dense heteroscedastic reliability estimates as interpretable spatial gates for camera-LiDAR fusion, with physical augmentation and planner protection, improving robustness.",
+      "llm_tldr_cn": "端到端多模态驾驶通过融合相机与激光雷达取得快速进展，但现有流程在非对称传感器退化下仍十分脆弱，当整个模态或局部区域损坏时容易失效。本文提出方差引导的空间注意力融合VG-SAF，用稠密异方差可靠性估计作为可解释的空间门控，并配套物理合理的增广器、可靠性校准与规划器保护。实验表明该方法在传感器退化场景下显著提升了鲁棒性，为可靠的多模态融合提供了新思路。",
+      "llm_tldr": "端到端多模态驾驶通过融合相机与激光雷达取得快速进展，但现有流程在非对称传感器退化下仍十分脆弱，当整个模态或局部区域损坏时容易失效。本文提出方差引导的空间注意力融合VG-SAF，用稠密异方差可靠性估计作为可解释的空间门控，并配套物理合理的增广器、可靠性校准与规划器保护。实验表明该方法在传感器退化场景下显著提升了鲁棒性，为可靠的多模态融合提供了新思路。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "multimodal fusion in autonomous driving",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.24855v1",
+      "source": "arxiv",
+      "title": "LeFlow: Generative Latent Flow Planning for World Models",
+      "abstract": "Latent world models are inherently strong encoders that transform image pixel to latent embedding, yet existing world models still rely on online trajectory optimization for action planning: for every state-goal pair, an iterative optimizer is run from scratch to search for optimal action sequences, treating the world model as a black-box simulator. This approach pays the full iterative optimization cost anew at every replanning step and reuses no planning experience across queries. In this work, we ask whether planning itself can be amortized once a latent world model has been learned. We present LeFlow, which learns a reusable latent trajectory prior operating directly in the latent dynamics space from the world model. LeFlow recasts planning as conditional latent trajectory generation: a rectified-flow model imagines a future latent path between the current and goal embeddings, an inverse dynamics decoder turns latent transitions into action chunks, and the frozen world model verifies each candidate by autoregressive rollout. Across four major goal-conditioned pixel-control benchmarks, LeFlow replaces iterative action-space optimization with amortized latent planning and fixed-budget rollout selection, achieving consistent success-rate gains with an order-of-magnitude reduction in planning time. Our results argue that latent world models should support not only prediction but reusable planning priors. Our code is available at https://github.com/hsiangwei0903/LeFlow.",
+      "authors": [
+        "Hsiang-Wei Huang",
+        "Jianxu Shangguan",
+        "Junbin Lu",
+        "Jenq-Neng Hwang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-25T17:42:30+00:00",
+      "link": "https://arxiv.org/pdf/2608.24855v1",
+      "tags": [
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "generative latent flow planning for world models",
+      "llm_evidence_cn": "面向世界模型的生成式潜在流规划",
+      "llm_evidence": "面向世界模型的生成式潜在流规划",
+      "canonical_evidence": "面向世界模型的生成式潜在流规划",
+      "llm_tldr_en": "Existing latent world models rely on expensive per-query online trajectory optimization for planning; LeFlow learns a reusable latent trajectory prior in latent dynamics space, amortizing planning and enabling efficient conditional generation of action sequences.",
+      "llm_tldr_cn": "潜在世界模型虽能编码图像为潜表示，但现有规划仍依赖在线轨迹优化，每个状态-目标对都从头迭代求解，重复计算且无法复用经验。本文提出LeFlow，在世界模型的潜在动力学空间中学习可复用的潜在轨迹先验，将规划重新表述为条件潜在生成问题。实验表明该方法能摊销规划成本并快速给出动作序列。该工作把生成式流方法与世界模型规划结合，显著提升了基于世界模型的决策效率。",
+      "llm_tldr": "潜在世界模型虽能编码图像为潜表示，但现有规划仍依赖在线轨迹优化，每个状态-目标对都从头迭代求解，重复计算且无法复用经验。本文提出LeFlow，在世界模型的潜在动力学空间中学习可复用的潜在轨迹先验，将规划重新表述为条件潜在生成问题。实验表明该方法能摊销规划成本并快速给出动作序列。该工作把生成式流方法与世界模型规划结合，显著提升了基于世界模型的决策效率。",
+      "llm_tags": [
+        "query:world-models:composite"
+      ],
+      "matched_query_tag": "query:world-models:composite",
+      "matched_query_text": "Papers central to 生成模型最近比较有价值的论文, especially work that connects or combines: f; d; c; g; recent world model paper; world model architecture; recent advances in world models; world model breakthroughs; recent high impact papers on generative models; latest advances in generative model architectures.",
+      "matched_requirement_id": "req-composite-world-models",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.27367v1",
+      "source": "arxiv",
+      "title": "Successive Capacity Growth: Task-Complexity-Driven Width and Depth Expansion for Vision Transformer Encoders in JEPA World Models",
+      "abstract": "Joint-Embedding Predictive Architectures (JEPAs) for world modeling typically employ fixed-size Vision Transformer encoders that are over-provisioned for simple tasks and under-provisioned for complex ones, with significant redundancy across attention heads. We propose Successive Capacity Growth (SCG), a method that starts from a minimal encoder (1 head, 2 layers, 283K parameters) and grows incrementally in width (adding attention heads for low-level semantic capacity) or depth (adding transformer blocks for higher-order semantic abstraction), driven by a task-agnostic test-and-verify mechanism that exploits function-preserving expansion to safely trial architectural changes and roll back if they do not improve prediction loss. The Sketched Isotropic Gaussian Regularizer (SIGReg) ensures that all learned semantic dimensions remain statistically independent and aligned with the predictive objective, preventing collapse even as the architecture grows. On a 60-dimensional multi-object dynamics task, SCG naturally triggers depth expansion, improving prediction loss by 20.3% over the fixed small baseline with 56 times greater parameter efficiency than scaling to the fixed large model; on a 2D navigation task, a single width expansion yields even an 23% improvement over the fixed large model. Across all three tested environments of increasing complexity, the adaptive encoder matches or exceeds the fixed small baseline, with zero false-positive expansions and bit-exact function preservation (ratio = 1.0, absolute difference = 0.0). The take-away is that JEPA world model encoders need not be pre-allocated at maximum capacity - they can grow successively as the task demands, achieving significant compute and data efficiency while maintaining representation quality.",
+      "authors": [
+        "Frederik Berenz"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-08-27T17:04:57+00:00",
+      "link": "https://arxiv.org/pdf/2608.27367v1",
+      "tags": [
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "world model architecture with adaptive ViT encoder in JEPA",
+      "llm_evidence_cn": "JEPA世界模型中自适应ViT编码器架构",
+      "llm_evidence": "JEPA世界模型中自适应ViT编码器架构",
+      "canonical_evidence": "JEPA世界模型中自适应ViT编码器架构",
+      "llm_tldr_en": "JEPA world models use fixed-size ViT encoders that are over-provisioned for easy tasks; Successive Capacity Growth starts from a tiny encoder and grows width or depth via a task-agnostic test-and-verify mechanism with function-preserving expansion and rollback.",
+      "llm_tldr_cn": "JEPA世界模型通常采用固定规模的视觉Transformer编码器，对简单任务冗余、对复杂任务不足，且注意力头存在大量冗余。本文提出渐进容量增长（SCG），从最小编码器（1头2层28.3万参数）出发，由任务无关的测试验证机制驱动，通过函数保持扩展安全地增加宽度或深度并支持回滚。该方法实现了编码器容量与任务复杂度的自适应匹配。这为世界模型架构的高效扩展提供了新思路。",
+      "llm_tldr": "JEPA世界模型通常采用固定规模的视觉Transformer编码器，对简单任务冗余、对复杂任务不足，且注意力头存在大量冗余。本文提出渐进容量增长（SCG），从最小编码器（1头2层28.3万参数）出发，由任务无关的测试验证机制驱动，通过函数保持扩展安全地增加宽度或深度并支持回滚。该方法实现了编码器容量与任务复杂度的自适应匹配。这为世界模型架构的高效扩展提供了新思路。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.28991v1",
+      "source": "arxiv",
+      "title": "Jigsaw-CRL: Recovering Global Latent Causal Order from Fragmented Multi-Client Interventions",
+      "abstract": "Causal representation learning (CRL) aims to recover latent causal variables and their structural relations from high-dimensional observations. Existing CRL methods typically assume that all environments are defined over the same latent variables, or at least share a common latent representation space. We study a fragmented multi-client setting, where multiple clients interact with the same global latent causal system but each client only accesses and intervenes on a subset of the latent variables. In this regime, marginalizing unused latent variables induces bidirected edges, so a single client no longer admits a node-wise latent causal graph, and the global latent causal order must be recovered by assembling client-specific structural fragments. We propose \\textbf{Jigsaw-CRL}, a framework for recovering global latent causal order from such fragmented interventions. Under soft interventions, differences between precision matrices across environments exhibit a low-rank structure governed by latent ancestor relations. This enables recovery, for each client, of a block partition, the corresponding block-level ancestral order, and latent subspaces, and then assembly of these fragments into the global node-level latent causal order. We establish identifiability guarantees, develop practical algorithms, and validate the framework on synthetic data. Our codes are available on https://anonymous.4open.science/r/code-for-Jigsaw-CRL-7B26",
+      "authors": [
+        "Haijie Xu",
+        "Chen Zhang"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.LG"
+      ],
+      "published": "2026-08-29T01:55:37+00:00",
+      "link": "https://arxiv.org/pdf/2608.28991v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "causal representation learning from fragmented interventions",
+      "llm_evidence_cn": "从碎片化干预中学习因果表征",
+      "llm_evidence": "从碎片化干预中学习因果表征",
+      "canonical_evidence": "从碎片化干预中学习因果表征",
+      "llm_tldr_en": "Existing causal representation learning assumes shared latent variables across environments. Jigsaw-CRL handles fragmented multi-client interventions, recovering the global latent causal order by assembling client-specific structures.",
+      "llm_tldr_cn": "现有因果表征学习方法通常假设所有环境共享同一潜变量或潜表征空间，难以处理各客户端仅接触部分潜变量的碎片化场景。本文研究碎片化多客户端设定，指出边缘化未使用潜变量会引入双向前向边，使单客户端不再具备节点级潜因果图。作者提出Jigsaw-CRL，通过拼接各客户端结构恢复全局潜因果序，拓展了因果表征学习的适用条件。",
+      "llm_tldr": "现有因果表征学习方法通常假设所有环境共享同一潜变量或潜表征空间，难以处理各客户端仅接触部分潜变量的碎片化场景。本文研究碎片化多客户端设定，指出边缘化未使用潜变量会引入双向前向边，使单客户端不再具备节点级潜因果图。作者提出Jigsaw-CRL，通过拼接各客户端结构恢复全局潜因果序，拓展了因果表征学习的适用条件。",
+      "llm_tags": [
+        "query:causal-rep"
+      ],
+      "matched_query_tag": "query:causal-rep",
+      "matched_query_text": "causal representation learning methods and theory",
+      "matched_requirement_id": "req-30",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.29029v1",
+      "source": "arxiv",
+      "title": "Flow-JEPA: Flow Matching for Robust Latent Dynamics in JEPA World Models",
+      "abstract": "Joint-Embedding Predictive Architectures (JEPAs) have shown strong potential for learning compact predictive representations, and LeWorldModel (LeWM) extends this paradigm to reconstruction-free latent world modeling from pixels. However, its deterministic autoregressive predictor generates future states through repeated one-step transitions, which can accumulate errors and remain sensitive to task-irrelevant visual perturbations. In this work, we propose Flow-JEPA (F-JEPA), a conditional flow matching dynamics model that jointly generates a sequence of future latent states conditioned on the current observation and actions. A Gaussian distribution serves as the flow source, exposing the vector field to perturbed latent trajectories as it learns to transport them toward clean future representations. This formulation retains the reconstruction-free JEPA framework while replacing point-wise transition regression with stochastic trajectory-level prediction. F-JEPA raises mean success from $86\\%$ to $92\\%$ under clean observations and from $67\\%$ to $86\\%$ under noisy conditions, suggesting that conditional flow matching provides a promising alternative to deterministic autoregressive dynamics in JEPA world models.",
+      "authors": [
+        "Yanchen Huo",
+        "Ziying Song",
+        "Yadan Luo"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-08-29T03:40:06+00:00",
+      "link": "https://arxiv.org/pdf/2608.29029v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:pendulum",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "flow matching latent world model architecture",
+      "llm_evidence_cn": "流匹配潜世界模型架构",
+      "llm_evidence": "流匹配潜世界模型架构",
+      "canonical_evidence": "流匹配潜世界模型架构",
+      "llm_tldr_en": "JEPA world models use deterministic autoregressive predictors that accumulate errors and are sensitive to visual perturbations. Flow-JEPA applies conditional flow matching to jointly generate future latent state sequences conditioned on observations and actions, improving robustness.",
+      "llm_tldr_cn": "JEPA式潜世界模型通过确定性自回归预测器反复进行单步转移来生成未来状态，容易累积误差且对任务无关的视觉扰动敏感。作者提出Flow-JEPA，用条件流匹配动力学模型在当前观测与动作条件下联合生成一段未来潜状态序列，并以高斯分布作为流源，使向量场在训练中接触受扰动的潜轨迹。该设计提升了潜动力学预测的鲁棒性并缓解误差累积，为世界模型架构引入了流匹配范式。",
+      "llm_tldr": "JEPA式潜世界模型通过确定性自回归预测器反复进行单步转移来生成未来状态，容易累积误差且对任务无关的视觉扰动敏感。作者提出Flow-JEPA，用条件流匹配动力学模型在当前观测与动作条件下联合生成一段未来潜状态序列，并以高斯分布作为流源，使向量场在训练中接触受扰动的潜轨迹。该设计提升了潜动力学预测的鲁棒性并缓解误差累积，为世界模型架构引入了流匹配范式。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "world model architecture",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.30144v1",
+      "source": "arxiv",
+      "title": "Rethinking Language's Role in Efficient VLA for Autonomous Vehicles: Toward Smarter, Trustworthy Driving",
+      "abstract": "Vision-Language-Action (VLA) models are reshaping autonomous driving (AD) by unifying perception, reasoning, and control through language, enabling semantic grounding, interpretable decisions, and better long-tail generalization. But language is expensive onboard: latency and memory budgets are tight, and autoregressive decoding is inherently sequential. This work reframes the central question as when and where language should act at inference, since inference cost recurs at every deployed frame while training cost is paid once. We introduce the Language Residue taxonomy to organize methods by their inference-time use of language: train-time-only supervision (L1), latent non-textual reasoning (L2), conditional invocation (L3), and full per-frame generation (L4). We review representative methods and tag each across five deployment axes (latency, parameters, memory, FLOPs, tokens), analyzing them on major open- and closed-loop driving benchmarks (e.g., nuScenes, NAVSIM, Bench2Drive). We further trace how efficient methods from NLP/LLM are adapted in AD, identifying the constraints and motivations driving these adaptations. A continuously updated repository will be available at Github.",
+      "authors": [
+        "Tongfei Guo",
+        "Lili Su"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-08-31T01:51:51+00:00",
+      "link": "https://arxiv.org/pdf/2608.30144v1",
+      "tags": [
+        "keyword:self-driving",
+        "query:gen-models",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Vision-Language-Action models for efficient autonomous driving",
+      "llm_evidence_cn": "面向高效自动驾驶的视觉-语言-动作模型",
+      "llm_evidence": "面向高效自动驾驶的视觉-语言-动作模型",
+      "canonical_evidence": "面向高效自动驾驶的视觉-语言-动作模型",
+      "llm_tldr_en": "VLA models unify perception, reasoning and control for driving but language is costly onboard. This paper reframes when and where language should act at inference and proposes a Language Residue taxonomy to organize efficient, trustworthy VLA methods.",
+      "llm_tldr_cn": "视觉-语言-动作模型通过语言统一感知、推理与控制，正在重塑自动驾驶，但语言在车端代价高昂，延迟与内存预算紧张，自回归解码又是串行的。本文将核心问题重新表述为语言应在推理的何时何地起作用，并提出语言残差分类体系，按推理阶段对语言的使用方式组织方法。该工作为在自动驾驶中高效、可信地使用语言提供了分析框架与设计指南。",
+      "llm_tldr": "视觉-语言-动作模型通过语言统一感知、推理与控制，正在重塑自动驾驶，但语言在车端代价高昂，延迟与内存预算紧张，自回归解码又是串行的。本文将核心问题重新表述为语言应在推理的何时何地起作用，并提出语言残差分类体系，按推理阶段对语言的使用方式组织方法。该工作为在自动驾驶中高效、可信地使用语言提供了分析框架与设计指南。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "End to end autonomous driving with Vision Language Action models",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2608.31029v1",
+      "source": "arxiv",
+      "title": "Driving on Memory",
+      "abstract": "End-to-end autonomous driving models plan future trajectories from raw sensor input. While earlier driving benchmarks often measured deviation from the human trajectory, current benchmarks such as NAVSIM and Bench2Drive evaluate models with richer simulation-based metrics intended to capture safe and compliant driving. A high benchmark score should reflect that a model can understand the scene in front of it and act accordingly. But how much of that score specifically comes from reacting to the dynamic part of that scene?   To probe this, we remove a model's camera input and replace it with memories from prior drives at the same location. The retrieved memories can provide persistent scene information, including road layout and location-conditioned regularities, but not the current traffic state. Surprisingly, memory is nearly sufficient on NAVSIM, reaching or even exceeding the performance of leading end-to-end methods without actually observing the evaluated scene. Our results suggest that a high NAVSIM score does not require a planner to react to the current traffic scene and should be treated with caution. This effect is benchmark-dependent: driving from memory causes substantially larger performance drops on Bench2Drive and RealEngine. We provide our code at https://github.com/boschresearch/MemoryDrivoR .",
+      "authors": [
+        "Christian Löwens",
+        "Thorben Funke",
+        "Alexandru Paul Condurache"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.LG",
+        "cs.RO"
+      ],
+      "published": "2026-08-31T16:10:04+00:00",
+      "link": "https://arxiv.org/pdf/2608.31029v1",
+      "tags": [
+        "keyword:self-driving",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "end-to-end autonomous driving trajectory planning from sensors",
+      "llm_evidence_cn": "端到端自动驾驶基于传感器规划轨迹",
+      "llm_evidence": "端到端自动驾驶基于传感器规划轨迹",
+      "canonical_evidence": "端到端自动驾驶基于传感器规划轨迹",
+      "llm_tldr_en": "To test whether end-to-end driving scores reflect scene understanding or memory, this work replaces camera input with memories from prior drives at the same location; surprisingly strong performance persists without current traffic state, exposing benchmark reliance on persistent context.",
+      "llm_tldr_cn": "端到端自动驾驶模型从原始传感器输入规划轨迹，NAVSIM、Bench2Drive等基准用仿真指标评估安全合规驾驶，但高分究竟来自理解当前场景还是记忆位置规律尚不清楚。本文在推理时移除相机输入，代之以同一地点以往行驶的记忆，这些记忆仅提供道路布局等持久信息而不含当前交通状态。实验发现模型仍能取得出乎意料的高分，说明现有基准大量依赖位置相关的持久上下文。该发现对端到端驾驶评估的有效性提出重要质疑。",
+      "llm_tldr": "端到端自动驾驶模型从原始传感器输入规划轨迹，NAVSIM、Bench2Drive等基准用仿真指标评估安全合规驾驶，但高分究竟来自理解当前场景还是记忆位置规律尚不清楚。本文在推理时移除相机输入，代之以同一地点以往行驶的记忆，这些记忆仅提供道路布局等持久信息而不含当前交通状态。实验发现模型仍能取得出乎意料的高分，说明现有基准大量依赖位置相关的持久上下文。该发现对端到端驾驶评估的有效性提出重要质疑。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "end-to-end autonomous driving with action prediction",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.00111v1",
+      "source": "arxiv",
+      "title": "Qwen-Drive-1.0: An Initial Step towards a Vision-Language Foundation Model for Autonomous Driving",
+      "abstract": "We present Qwen-Drive-1.0, an initial step towards a vision-language foundation model for autonomous driving. Qwen-Drive-1.0 retains the architecture of the pretrained vision-language model (VLM) and integrates 3D perception, visual question answering, and motion planning within a unified framework. An external bird's-eye-view (BEV) perception head jointly performs 3D object detection, semantic occupancy prediction, and BEV map segmentation. It serves as a probe of the 3D information accessible from the shared representations and provides an explicit, inspectable interface to 3D scene structure. A Planning Expert conditions on shared VLM representations to generate future ego trajectories. A staged training recipe combines driving supervision with general-purpose vision-language data to acquire driving-specific competence while helping preserve broad visual understanding and instruction-following capabilities. Experiments demonstrate strong 3D perception and driving scene understanding while largely preserving general vision-language capability. Comprehensive evaluations across open-loop, pseudo-closed-loop, and closed-loop settings further show highly competitive motion-planning performance.",
+      "authors": [
+        "Xin Zhou",
+        "Zongchuang Zhao",
+        "Zhibo Yang",
+        "Mingsheng Li",
+        "Humen Zhong",
+        "Shuai Bai",
+        "Du Chu",
+        "Ruizhe Chen",
+        "Zhaohai Li",
+        "Jun Tang",
+        "Qiuyue Wang",
+        "Mingkun Yang",
+        "Jiazhao Zhang",
+        "Dayiheng Liu",
+        "Dingkang Liang",
+        "Xiang Bai"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-31T17:59:54+00:00",
+      "link": "https://arxiv.org/pdf/2609.00111v1",
+      "tags": [
+        "keyword:self-driving",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "vision-language foundation model for autonomous driving with planning",
+      "llm_evidence_cn": "面向自动驾驶的视觉语言基础模型与规划",
+      "llm_evidence": "面向自动驾驶的视觉语言基础模型与规划",
+      "canonical_evidence": "面向自动驾驶的视觉语言基础模型与规划",
+      "llm_tldr_en": "Qwen-Drive-1.0 builds on a pretrained VLM to unify 3D perception, visual question answering and motion planning, adding a BEV perception head and a planning expert that outputs ego trajectories, taking a step toward vision-language foundation models for driving.",
+      "llm_tldr_cn": "现有自动驾驶模型多将感知、问答与规划分离，缺乏统一的视觉语言基础模型。本文提出Qwen-Drive-1.0，在预训练视觉语言模型架构上整合三维感知、视觉问答与运动规划：外部BEV感知头联合执行三维检测、语义占据预测与地图分割，规划专家基于共享表示生成未来自车轨迹，并采用分阶段训练。该工作迈出自动驾驶视觉语言基础模型的第一步，为端到端VLA驾驶提供统一框架。",
+      "llm_tldr": "现有自动驾驶模型多将感知、问答与规划分离，缺乏统一的视觉语言基础模型。本文提出Qwen-Drive-1.0，在预训练视觉语言模型架构上整合三维感知、视觉问答与运动规划：外部BEV感知头联合执行三维检测、语义占据预测与地图分割，规划专家基于共享表示生成未来自车轨迹，并采用分阶段训练。该工作迈出自动驾驶视觉语言基础模型的第一步，为端到端VLA驾驶提供统一框架。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "Find recent state of the art vision language action models for autonomous driving",
+      "matched_requirement_id": "req-19",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2608.19032v2",
+      "source": "arxiv",
+      "title": "Counterfactual Contrastive Analysis",
+      "abstract": "Visual Counterfactual Explanations (VCEs) aim to explain image classifiers by generating minimally edited and realistic versions of an input image that change the classifier's prediction. Existing VCE methods are inherently classifier-dependent and therefore susceptible to classifier biases and failure modes, such as sensitivity to shortcut features and calibration errors. In this paper, we propose a classifier-free approach for visual counterfactual generation based on Contrastive Analysis (CA). Given two datasets corresponding to different classes (e.g., healthy and patients), we disentangle the generative factors that are common across the two datasets from those that are salient to each dataset, and generate counterfactual images by swapping only the salient factors. By operating directly on data distributions rather than decision boundaries, our method provides model-agnostic VCEs that are less sensitive to classifier biases. Our approach leverages the high-quality synthesis and well-structured latent space of StyleGAN2. We use the feature space F, instead than the usual W-space, to improve detail preservation. Unlike conventional CA approaches, which typically assume salient factors in only one dataset, we introduce an adapted framework and loss functions for VCE that allow multiple salient factors in each dataset. We evaluate our method on three medical imaging datasets and demonstrate superior counterfactual generation quality compared to existing approaches.",
+      "authors": [
+        "Yunlong He",
+        "Pietro Gori"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-08-19T15:25:21+00:00",
+      "link": "https://arxiv.org/pdf/2608.19032v2",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "classifier-free counterfactual image generation",
+      "llm_evidence_cn": "无分类器的反事实图像生成",
+      "llm_evidence": "无分类器的反事实图像生成",
+      "canonical_evidence": "无分类器的反事实图像生成",
+      "llm_tldr_en": "A classifier-free visual counterfactual generation method based on contrastive analysis that disentangles common and salient generative factors across two class datasets.",
+      "llm_tldr_cn": "视觉反事实解释旨在生成能改变分类器预测的最小编辑且真实的图像，但现有方法依赖分类器，易受其偏差与失效模式影响，如对捷径特征的敏感与校准误差。本文提出基于对比分析的无分类器反事实生成方法：给定属于不同类别的两个数据集，解耦跨数据集共有的生成因子与各自显著的生成因子，仅交换显著因子即可生成反事实图像。该无分类器范式降低了对分类器的依赖，为可解释性与反事实生成提供了更稳健的途径。",
+      "llm_tldr": "视觉反事实解释旨在生成能改变分类器预测的最小编辑且真实的图像，但现有方法依赖分类器，易受其偏差与失效模式影响，如对捷径特征的敏感与校准误差。本文提出基于对比分析的无分类器反事实生成方法：给定属于不同类别的两个数据集，解耦跨数据集共有的生成因子与各自显著的生成因子，仅交换显著因子即可生成反事实图像。该无分类器范式降低了对分类器的依赖，为可解释性与反事实生成提供了更稳健的途径。",
+      "llm_tags": [
+        "query:cf-image-gen"
+      ],
+      "matched_query_tag": "query:cf-image-gen",
+      "matched_query_text": "methods for counterfactual image generation",
+      "matched_requirement_id": "req-44",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.16859v1",
+      "source": "arxiv",
+      "title": "HarnessEval-W: Agentifying the Evaluation of Visual Worlds",
+      "abstract": "A benchmark should deliver more than a scalar score: what makes an evaluation trustworthy is the reasoning that justifies the score. This is especially critical for world models, where judging a rollout requires understanding whether physics, causality, and world state evolve correctly. Humans spot such violations naturally, yet no existing benchmark automates this capability: metrics are computed brute-force, leaving no reasoning chain that can be examined or verified. We introduce HarnessEval-W, an agentified evaluation pipeline that brings the harness paradigm from the LLM ecosystem to world model benchmarking. Rather than applying a fixed rubric, HarnessEval-W interprets the context of each evaluation case, decomposes the evaluation question into measurable subproblems, and spawns specialized sub-agents, each equipped with tailored context and diagnostic tools to reason over its own subproblem. The parent agent then validates the gathered evidence and summarizes it into the final verdict. This hierarchical workflow turns every evaluation into a transparent evidence tree whose complete reasoning chain justifies the result. We apply HarnessEval-W to 18 representative world models over 330 evaluation cases. Its judgments closely align with human preferences while providing verifiable, fine-grained diagnoses of every generated rollout. We open-source the full pipeline as a live benchmark and invite the broad community to contribute to grow new skills and evaluation cases as world models evolve.",
+      "authors": [
+        "Weiliang Chen",
+        "Haowen Sun",
+        "Jun Gao",
+        "Jiawei Chi",
+        "Hanyang Wang",
+        "Qiyu Dai",
+        "Yihao Li",
+        "Hao Li",
+        "Jingnan Gao",
+        "Yi-Hsin Hung",
+        "Xingzhuo Guo",
+        "Shangchen Miao",
+        "Zhiyuan Shi",
+        "Xiang Li",
+        "Fengrui Tian",
+        "Weihua Du",
+        "Ziqi Huang",
+        "Shenyuan Gao",
+        "Siqiao Huang",
+        "Mingyu Liu",
+        "Yifei Li",
+        "Shizun Wang",
+        "Xi Wang",
+        "Tianqi Zhang",
+        "Xue Luo",
+        "Xiyin Ren",
+        "Jinshan Ren",
+        "Xiaoyang Shen",
+        "Xiaobo Hu",
+        "Zhiyang Dou",
+        "Mingyu Ding",
+        "Yichao Yan",
+        "Xinchao Wang",
+        "Yizhou Wang",
+        "Shilong Liu",
+        "Wenzhao Zheng",
+        "Yueqi Duan",
+        "Yuan Gong",
+        "Ziwei Liu",
+        "Ming-Yu Liu",
+        "Jialong Wu",
+        "Jiangran Lyu",
+        "Fangfu Liu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-17T17:43:24+00:00",
+      "link": "https://arxiv.org/pdf/2608.16859v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "benchmarking and evaluating world models",
+      "llm_evidence_cn": "世界模型的基准评测",
+      "llm_evidence": "世界模型的基准评测",
+      "canonical_evidence": "世界模型的基准评测",
+      "llm_tldr_en": "HarnessEval-W brings the harness paradigm to world model benchmarking, decomposing evaluation into verifiable reasoning instead of brute-force scalar metrics.",
+      "llm_tldr_cn": "评估世界模型需要判断物理、因果与世界状态演化是否正确，但现有基准多直接暴力计算标量指标，缺乏可检查、可验证的推理链。本文提出 HarnessEval-W，将大模型生态中的 harness 范式引入世界模型评测，构建智能体化评估流水线，不再套用固定评分表，而是解析每个评测案例的上下文并将评估问题分解为可度量子问题。该工作为世界模型评估提供了可解释、可验证的新范式。",
+      "llm_tldr": "评估世界模型需要判断物理、因果与世界状态演化是否正确，但现有基准多直接暴力计算标量指标，缺乏可检查、可验证的推理链。本文提出 HarnessEval-W，将大模型生态中的 harness 范式引入世界模型评测，构建智能体化评估流水线，不再套用固定评分表，而是解析每个评测案例的上下文并将评估问题分解为可度量子问题。该工作为世界模型评估提供了可解释、可验证的新范式。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent world model paper",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2608.17256v1",
+      "source": "arxiv",
+      "title": "Balancing a Flying Inverted Pendulum with an Unknown Length Using Model Predictive Control and a Genetic Algorithm Estimator",
+      "abstract": "This paper proposes an online Genetic Algorithm (GA) estimator and a Model Predictive Control (MPC) approach to solve the flying inverted pendulum problem in a practical experiment where the pendulum length is unknown. The performance of the MPC approach was demonstrated on a practical system through disturbance and trajectory tracking tests to assess controller robustness and tracking accuracy. The convergence speed and accuracy of the online GA estimator were validated on a practical system using different initial conditions.",
+      "authors": [
+        "Esther Paul",
+        "Mitchell Torok",
+        "Mohammad Deghat"
+      ],
+      "primary_category": "eess.SY",
+      "categories": [
+        "eess.SY"
+      ],
+      "published": "2026-08-18T01:26:39+00:00",
+      "link": "https://arxiv.org/pdf/2608.17256v1",
+      "tags": [
+        "keyword:pendulum",
+        "query:pendulum"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "flying inverted pendulum control experiment with MPC and GA estimator",
+      "llm_evidence_cn": "飞行倒立摆控制实验，结合MPC与遗传算法估计器",
+      "llm_evidence": "飞行倒立摆控制实验，结合MPC与遗传算法估计器",
+      "canonical_evidence": "飞行倒立摆控制实验，结合MPC与遗传算法估计器",
+      "llm_tldr_en": "The paper tackles the flying inverted pendulum with unknown length, proposing an online genetic-algorithm estimator plus model predictive control, and validates controller robustness, tracking accuracy and estimator convergence on a real system.",
+      "llm_tldr_cn": "飞行倒立摆的实际控制实验中摆长通常未知，这给控制器设计带来挑战。本文提出将在线遗传算法估计器与模型预测控制相结合的方法，在未知摆长条件下实现倒立摆平衡。作者在真实系统上开展扰动与轨迹跟踪实验，评估控制器的鲁棒性与跟踪精度，并在不同初始条件下验证在线遗传算法估计器的收敛速度与精度。结果表明该组合方案能有效应对未知参数，为倒立摆类控制任务提供了可行路径。",
+      "llm_tldr": "飞行倒立摆的实际控制实验中摆长通常未知，这给控制器设计带来挑战。本文提出将在线遗传算法估计器与模型预测控制相结合的方法，在未知摆长条件下实现倒立摆平衡。作者在真实系统上开展扰动与轨迹跟踪实验，评估控制器的鲁棒性与跟踪精度，并在不同初始条件下验证在线遗传算法估计器的收敛速度与精度。结果表明该组合方案能有效应对未知参数，为倒立摆类控制任务提供了可行路径。",
+      "llm_tags": [
+        "query:pendulum"
+      ],
+      "matched_query_tag": "query:pendulum",
+      "matched_query_text": "pendulum dataset for control tasks",
+      "matched_requirement_id": "req-38",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2608.20841v1",
+      "source": "arxiv",
+      "title": "Foundation Models for Partial Causal Identification",
+      "abstract": "This paper investigates the development of causal foundation models for bounding the effect of interventions and counterfactuals from observational data. We show that a canonical prior can be defined with full support over the space of structural causal models with discrete observables. With this canonical prior, we translate the problem of bounding counterfactuals into that of learning distributions over functions that map data (and possibly structural assumptions) to a causal query of interest. This extends the promising causal foundational modelling paradigm to the estimation of partially-identifiable causal effects, i.e., under unobserved confounding, where multiple values are equally compatible with the observed data and prior structural assumptions.",
+      "authors": [
+        "Alexis Bellot",
+        "Anish Dhir"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-08-21T08:04:53+00:00",
+      "link": "https://arxiv.org/pdf/2608.20841v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:world-models",
+        "query:causal-rep"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "causal foundation models bounding interventions and counterfactuals from observational data",
+      "llm_evidence_cn": "从观测数据界定干预与反事实的因果基座模型",
+      "llm_evidence": "从观测数据界定干预与反事实的因果基座模型",
+      "canonical_evidence": "从观测数据界定干预与反事实的因果基座模型",
+      "llm_tldr_en": "This work develops causal foundation models that bound interventions and counterfactuals from observational data by defining a canonical prior over structural causal models, extending to partially identifiable effects.",
+      "llm_tldr_cn": "在存在未观测混杂时，干预与反事实效应往往只能部分识别，传统方法难以给出稳健的界。本文提出因果基座模型，在离散观测的结构因果模型空间上定义具有完全支撑的规范先验，将反事实界估计转化为从数据与结构假设到因果查询的函数分布学习。该范式可扩展到部分可识别因果效应的估计，为因果基座建模提供了新方向。",
+      "llm_tldr": "在存在未观测混杂时，干预与反事实效应往往只能部分识别，传统方法难以给出稳健的界。本文提出因果基座模型，在离散观测的结构因果模型空间上定义具有完全支撑的规范先验，将反事实界估计转化为从数据与结构假设到因果查询的函数分布学习。该范式可扩展到部分可识别因果效应的估计，为因果基座建模提供了新方向。",
+      "llm_tags": [
+        "query:causal-rep"
+      ],
+      "matched_query_tag": "query:causal-rep",
+      "matched_query_text": "causal inference for learning representations",
+      "matched_requirement_id": "req-32",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.16859v2",
+      "source": "arxiv",
+      "title": "HarnessEval-W: Agentifying the Evaluation of Visual Worlds",
+      "abstract": "A benchmark should deliver more than a scalar score: what makes an evaluation trustworthy is the reasoning that justifies the score. This is especially critical for world models, where judging a rollout requires understanding whether physics, causality, and world state evolve correctly. Humans spot such violations naturally, yet no existing benchmark automates this capability: metrics are computed brute-force, leaving no reasoning chain that can be examined or verified. We introduce HarnessEval-W, an agentified evaluation pipeline that brings the harness paradigm from the LLM ecosystem to world model benchmarking. Rather than applying a fixed rubric, HarnessEval-W interprets the context of each evaluation case, decomposes the evaluation question into measurable subproblems, and spawns specialized sub-agents, each equipped with tailored context and diagnostic tools to reason over its own subproblem. The parent agent then validates the gathered evidence and summarizes it into the final verdict. This hierarchical workflow turns every evaluation into a transparent evidence tree whose complete reasoning chain justifies the result. We apply HarnessEval-W to 18 representative world models over 330 evaluation cases. Its judgments closely align with human preferences while providing verifiable, fine-grained diagnoses of every generated rollout. We open-source the full pipeline as a live benchmark and invite the broad community to contribute to grow new skills and evaluation cases as world models evolve.",
+      "authors": [
+        "Weiliang Chen",
+        "Haowen Sun",
+        "Jun Gao",
+        "Jiawei Chi",
+        "Hanyang Wang",
+        "Qiyu Dai",
+        "Yihao Li",
+        "Hao Li",
+        "Jingnan Gao",
+        "Yi-Hsin Hung",
+        "Xingzhuo Guo",
+        "Shangchen Miao",
+        "Zhiyuan Shi",
+        "Xiang Li",
+        "Fengrui Tian",
+        "Weihua Du",
+        "Ziqi Huang",
+        "Shenyuan Gao",
+        "Siqiao Huang",
+        "Mingyu Liu",
+        "Yifei Li",
+        "Shizun Wang",
+        "Xi Wang",
+        "Tianqi Zhang",
+        "Xue Luo",
+        "Xiyin Ren",
+        "Jinshan Ren",
+        "Xiaoyang Shen",
+        "Xiaobo Hu",
+        "Zhiyang Dou",
+        "Mingyu Ding",
+        "Yichao Yan",
+        "Xinchao Wang",
+        "Yizhou Wang",
+        "Shilong Liu",
+        "Wenzhao Zheng",
+        "Yueqi Duan",
+        "Yuan Gong",
+        "Ziwei Liu",
+        "Ming-Yu Liu",
+        "Jialong Wu",
+        "Jiangran Lyu",
+        "Fangfu Liu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-17T17:43:24+00:00",
+      "link": "https://arxiv.org/pdf/2608.16859v2",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "agentified benchmark for evaluating world models rollouts",
+      "llm_evidence_cn": "面向世界模型rollout的智能体化评测基准",
+      "llm_evidence": "面向世界模型rollout的智能体化评测基准",
+      "canonical_evidence": "面向世界模型rollout的智能体化评测基准",
+      "llm_tldr_en": "Existing world-model benchmarks output only scalar scores with no verifiable reasoning chain. HarnessEval-W agentifies evaluation by interpreting each case, decomposing questions into measurable evidence, and producing auditable judgments of physics and causality.",
+      "llm_tldr_cn": "世界模型评测需要判断rollout中物理、因果与世界状态是否正确演化，但现有基准仅计算暴力指标，缺乏可检验的推理链。本文提出HarnessEval-W，将LLM生态中的harness范式引入世界模型评测，根据每个案例上下文分解评测问题并生成可度量的推理证据。该流程实现了对世界模型行为的自动化、可审计评估，提升了基准的可信度。",
+      "llm_tldr": "世界模型评测需要判断rollout中物理、因果与世界状态是否正确演化，但现有基准仅计算暴力指标，缺乏可检验的推理链。本文提出HarnessEval-W，将LLM生态中的harness范式引入世界模型评测，根据每个案例上下文分解评测问题并生成可度量的推理证据。该流程实现了对世界模型行为的自动化、可审计评估，提升了基准的可信度。",
+      "llm_tags": [
+        "query:world-models:composite"
+      ],
+      "matched_query_tag": "query:world-models:composite",
+      "matched_query_text": "Papers central to 生成模型最近比较有价值的论文, especially work that connects or combines: f; d; c; g; recent world model paper; world model architecture; recent advances in world models; world model breakthroughs; recent high impact papers on generative models; latest advances in generative model architectures.",
+      "matched_requirement_id": "req-composite-world-models",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2608.19719v1",
+      "source": "arxiv",
+      "title": "Scale-Separated Conditioning for Style-Encoder-Free Diffusion Stylization",
+      "abstract": "Reference-based diffusion stylization requires separating target geometry from transferable appearance. Existing tuning-based methods often rely on aligned content-style-target triplets or auxiliary visual encoders, which increases data cost and can transfer unintended scene structure from the style reference. We propose SEFS (Style-Encoder-Free Stylization), a style-encoder-free conditioning framework for diffusion transformers. SEFS forms style tokens from stochastic low-resolution crops of single training images. This crop bottleneck preserves local appearance statistics such as palette, stroke, texture, and material, while reducing access to global layout cues. Target content is encoded by edge and segmentation cues and fused with the noisy latent through parameter-efficient trainable projections. We add style-to-denoising re-normalization for token-statistic alignment and cross-block skip fusion for spatial detail. SEFS trains on unpaired single images; the frozen diffusion VAE is used only to place image conditions in the latent space. On artistic stylization benchmarks, SEFS improves content consistency and leakage diagnostics while retaining reference-style affinity, and ablations support the crop-resolution, re-normalization, and skip-fusion choices. The code of SEFS will be made publicly available.",
+      "authors": [
+        "Jingtao Zhang",
+        "Haorui Gao",
+        "Youqing Liang",
+        "Zeming Liu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-08-20T07:17:22+00:00",
+      "link": "https://arxiv.org/pdf/2608.19719v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "diffusion-based image stylization generative method",
+      "llm_evidence_cn": "基于扩散的图像风格化生成方法",
+      "llm_evidence": "基于扩散的图像风格化生成方法",
+      "canonical_evidence": "基于扩散的图像风格化生成方法",
+      "llm_tldr_en": "SEFS proposes a style-encoder-free conditioning framework for diffusion transformers, forming style tokens from low-resolution crops to preserve local appearance while avoiding global layout leakage.",
+      "llm_tldr_cn": "参考图像驱动的扩散风格化需要将目标几何结构与可迁移外观分离，现有方法依赖对齐的三元组或辅助视觉编码器，数据成本高且易迁移无关场景结构。本文提出 SEFS，一种无需风格编码器的扩散 Transformer 条件化框架，通过单张训练图像的随机低分辨率裁剪构建风格 token，以裁剪瓶颈保留调色、笔触、纹理等局部外观统计。目标内容由边缘与分割线索编码并与噪声潜变量融合。该设计在降低数据依赖的同时抑制全局布局泄漏，为参考式风格化提供了更简洁有效的方案。",
+      "llm_tldr": "参考图像驱动的扩散风格化需要将目标几何结构与可迁移外观分离，现有方法依赖对齐的三元组或辅助视觉编码器，数据成本高且易迁移无关场景结构。本文提出 SEFS，一种无需风格编码器的扩散 Transformer 条件化框架，通过单张训练图像的随机低分辨率裁剪构建风格 token，以裁剪瓶颈保留调色、笔触、纹理等局部外观统计。目标内容由边缘与分割线索编码并与噪声潜变量融合。该设计在降低数据依赖的同时抑制全局布局泄漏，为参考式风格化提供了更简洁有效的方案。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "state of the art generative model papers for image synthesis",
+      "matched_requirement_id": "req-27",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2608.21032v1",
+      "source": "arxiv",
+      "title": "Roadside-Cooperative Autonomous Driving: From Data Platform to Vision-Language End-to-End Reasoning",
+      "abstract": "Vehicle-to-Everything (V2X) cooperation enables beyond-line-of-sight perception, mitigating occlusions in single-vehicle sensing. However, existing V2X benchmarks provide limited support for closed-loop evaluation and language-grounded supervision, hindering the development of vision-language models (VLMs) for end-to-end cooperative driving. To address these limitations, we introduce V2XBench, a simulation platform featuring synchronized ego--roadside sensing and closed-loop evaluation, together with Chat-V2XBench, a progressively structured VQA dataset for cooperative reasoning. Building upon this benchmark infrastructure, we propose AURORA, an end-to-end cooperative driving framework. Equipped with a dual-view perception architecture, AURORA mitigates spatial and semantic discrepancies across ego and roadside viewpoints through a query-level Cross-View Query Alignment and Fusion (CQAF) module. Leveraging the resulting unified tokens, a LoRA-adapted VLM bridges semantic reasoning and generative trajectory planning. Extensive closed-loop evaluations on V2XBench demonstrate that AURORA achieves state-of-the-art performance in heavily occluded scenarios, with a Route Completion rate of 98.21% and a Driving Score of 76.02, while requiring low roadside communication bandwidth. Ultimately, this work pioneers an extensible V2X--VLM paradigm, paving the way for next-generation cooperative autonomous driving.",
+      "authors": [
+        "Yitao Xu",
+        "Tong Wu",
+        "Yiyan Wu",
+        "Guoji Xu",
+        "Yanbo Jiang",
+        "Jiahao Wang",
+        "Zehong Ke",
+        "Junkai Jiang",
+        "Fang Zhang",
+        "Jianqiang Wang"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-08-21T12:29:27+00:00",
+      "link": "https://arxiv.org/pdf/2608.21032v1",
+      "tags": [
+        "keyword:self-driving",
+        "query:self-driving"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "V2X platform and vision-language end-to-end cooperative driving framework",
+      "llm_evidence_cn": "V2X平台与视觉语言端到端协同驾驶框架",
+      "llm_evidence": "V2X平台与视觉语言端到端协同驾驶框架",
+      "canonical_evidence": "V2X平台与视觉语言端到端协同驾驶框架",
+      "llm_tldr_en": "Existing V2X benchmarks lack closed-loop evaluation and language supervision. The authors introduce V2XBench and Chat-V2XBench, plus AURORA, an end-to-end cooperative driving framework with dual-view perception, advancing vision-language cooperative driving.",
+      "llm_tldr_cn": "V2X协同可实现超视距感知、缓解单车遮挡，但现有基准缺乏闭环评测与语言接地监督，阻碍了视觉语言模型在端到端协同驾驶中的应用。本文提出V2XBench仿真平台与Chat-V2XBench渐进式VQA数据集，并基于此构建AURORA端到端协同驾驶框架，采用双视角感知。该工作为语言接地的协同自动驾驶提供了评测基础设施与基线方法。",
+      "llm_tldr": "V2X协同可实现超视距感知、缓解单车遮挡，但现有基准缺乏闭环评测与语言接地监督，阻碍了视觉语言模型在端到端协同驾驶中的应用。本文提出V2XBench仿真平台与Chat-V2XBench渐进式VQA数据集，并基于此构建AURORA端到端协同驾驶框架，采用双视角感知。该工作为语言接地的协同自动驾驶提供了评测基础设施与基线方法。",
+      "llm_tags": [
+        "query:self-driving:composite"
+      ],
+      "matched_query_tag": "query:self-driving:composite",
+      "matched_query_text": "Papers central to 检索自动驾驶VLA、世界模型最近SOTA有价值的论文, especially work that connects or combines: autonomous driving recent advances; end-to-end autonomous driving with action prediction; multimodal fusion in autonomous driving; world model in autonomous driving; end-to-end autonomous driving model; recent advancements in autonomous driving perception; state of the art end to end autonomous driving; End to end autonomous driving with Vision Language Action models; Find recent state of the art vision language action models for autonomous driving.",
+      "matched_requirement_id": "req-composite-self-driving",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.17178v1",
+      "source": "arxiv",
+      "title": "Mask What Matters: Saliency-Guided Video Self-Supervised Learning for Autonomous Driving",
+      "abstract": "Video self-supervised learning through masked spatiotemporal prediction has emerged as a promising paradigm for learning feature representations from unlabeled data. However, existing methods typically rely on random masking, which indiscriminately removes regions irrespective of their semantic or temporal relevance. In ego-centric driving videos, this can weaken the pretext signal since safety-critical cues such as pedestrians, vehicles, lane boundaries, and dynamic interactions often occupy only a small portion of the frame, yet are central to downstream perception. We introduce V-JEPA4A, a domain-specialized variant of V-JEPA for autonomous driving that is pre-trained on publicly available driving videos with a novel saliency-driven masking policy. It accounts for semantically and temporally relevant context. The proposed policy preserves and predicts context according to semantic importance and temporal relevance, yielding more informative representation learning while retaining the efficiency of masked prediction. We evaluate the resulting encoders on four driving benchmarks spanning tracking, semantic segmentation, and depth estimation. The results demonstrate that V-JEPA4A reduces identity switches on BDD100k MOT by 25% over V-JEPA with random masking, achieves 73.2 mIoU on Cityscapes, and 3.75 RMSE on KITTI-2015 depth, while incurring only ~14% additional pre-training iteration overhead.",
+      "authors": [
+        "Christopher Lang",
+        "Alexander Braun",
+        "Abhinav Valada"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-17T22:39:49+00:00",
+      "link": "https://arxiv.org/pdf/2608.17178v1",
+      "tags": [
+        "keyword:self-driving",
+        "query:causal-rep",
+        "query:self-driving"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "video self-supervised representation learning for driving perception",
+      "llm_evidence_cn": "面向驾驶感知的视频自监督表示学习",
+      "llm_evidence": "面向驾驶感知的视频自监督表示学习",
+      "canonical_evidence": "面向驾驶感知的视频自监督表示学习",
+      "llm_tldr_en": "This paper proposes V-JEPA4A, a driving-specialized V-JEPA variant using saliency-guided masking instead of random masking, to better learn safety-critical cues for autonomous driving perception.",
+      "llm_tldr_cn": "基于掩码时空预测的视频自监督学习是学习无标注数据表示的有效范式，但现有方法多采用随机掩码，忽略区域的语义与时序相关性。在自我中心驾驶视频中，行人、车辆、车道线等安全关键线索只占画面小部分。本文提出V-JEPA4A，一种面向自动驾驶的领域特化V-JEPA变体，采用显著性引导的掩码策略在公开驾驶视频上预训练。实验表明该方法能学到更利于下游感知任务的表示。",
+      "llm_tldr": "基于掩码时空预测的视频自监督学习是学习无标注数据表示的有效范式，但现有方法多采用随机掩码，忽略区域的语义与时序相关性。在自我中心驾驶视频中，行人、车辆、车道线等安全关键线索只占画面小部分。本文提出V-JEPA4A，一种面向自动驾驶的领域特化V-JEPA变体，采用显著性引导的掩码策略在公开驾驶视频上预训练。实验表明该方法能学到更利于下游感知任务的表示。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "recent advancements in autonomous driving perception",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2608.25386v1",
+      "source": "arxiv",
+      "title": "Efficient Training with Foresight: Multi-Token Auxiliary Supervision for Autoregressive Image Generation",
+      "abstract": "Autoregressive (AR) image generation has shown strong potential for scalable high-fidelity synthesis by modeling images as discrete token sequences. However, traditional next token prediction (NTP) continues to suffer from sparse and myopic supervision, insufficiently discriminative representations, and high training cost caused by dense computation over the full token sequence. To address these issues, we propose multi-token autoregressive (MTAR), a unified training framework that improves autoregressive image generation from three aspects: prediction objectives, representation regularization, and training efficiency. Specifically, MTAR introduces multi-token prediction (MTP) to alleviate the sparsity and myopia of traditional NTP by imposing joint supervision on multiple future tokens; employs token-level contrastive regularization (TCR) to explicitly enhance the separability of sampled token representations and thereby improve representation discriminability; and incorporates semantic dropping (SD) as a semantics-aware training acceleration strategy to reduce redundant computation on low-information tokens while preserving informative learning signals. All three components are applied only during training and introduce no additional overhead during autoregressive inference. On ImageNet, MTAR achieves a better balance between generation quality and training efficiency. Compared with LlamaGen, MTAR achieves up to 0.95 lower FID and 39\\% faster training. Moreover, even with only 1/3 of the training iterations, it still attains performance comparable to or better than the baseline, substantially reducing training time.",
+      "authors": [
+        "Guo Niu",
+        "Xiongfei Yao",
+        "Teng Wang",
+        "Nannan Zhu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-26T05:25:40+00:00",
+      "link": "https://arxiv.org/pdf/2608.25386v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multi-token auxiliary supervision for autoregressive image generation",
+      "llm_evidence_cn": "面向自回归图像生成的多词元辅助监督",
+      "llm_evidence": "面向自回归图像生成的多词元辅助监督",
+      "canonical_evidence": "面向自回归图像生成的多词元辅助监督",
+      "llm_tldr_en": "Autoregressive image generation suffers from sparse next-token supervision and high cost. MTAR introduces multi-token prediction with representation regularization to improve prediction objectives, representations and training efficiency.",
+      "llm_tldr_cn": "自回归图像生成虽有高保真潜力，但传统下一词预测存在监督稀疏、表示判别性不足与训练开销大等问题。本文提出多词元自回归训练框架MTAR，从预测目标、表示正则与训练效率三方面改进，引入多词元预测缓解监督稀疏与短视。方法在提升表示质量的同时降低了训练成本，为可扩展的高保真图像生成提供了更高效的训练范式。",
+      "llm_tldr": "自回归图像生成虽有高保真潜力，但传统下一词预测存在监督稀疏、表示判别性不足与训练开销大等问题。本文提出多词元自回归训练框架MTAR，从预测目标、表示正则与训练效率三方面改进，引入多词元预测缓解监督稀疏与短视。方法在提升表示质量的同时降低了训练成本，为可扩展的高保真图像生成提供了更高效的训练范式。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "state of the art generative model papers for image synthesis",
+      "matched_requirement_id": "req-27",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2608.23551v1",
+      "source": "arxiv",
+      "title": "ConvergeFlow: Language Flow with Provable Convergence to Token Embeddings",
+      "abstract": "Recent advances in continuous diffusion and flow-based language models (LMs) have achieved performance competitive with discrete LMs. However, existing continuous frameworks still rely on decoders supervised with cross entropy (CE) because the flow trajectories are not guaranteed to terminate at valid token embeddings. Motivated by this limitation, we introduce \\textbf{ConvergeFlow}, an embedding-space flow-based LM, which constrains the data predictor to the convex hull of token embeddings and trains it solely with the mean squared error objective induced by flow matching. Under suitable regularity conditions, we prove that the resulting flow converges to valid token embeddings despite errors in the data predictor, enabling direct token prediction without a CE-supervised decoder. We further develop three sampling mechanisms for controlling the trade-off between the generative perplexity and entropy. Experiments on OpenWebText demonstrate that ConvergeFlow achieves performance competitive with existing continuous and discrete diffusion LMs. These findings demonstrate the potential of the flow-based paradigm for language modeling. Our code is available at https://github.com/Na-Li66/ConvergeFlow.",
+      "authors": [
+        "Na Li",
+        "Yuchen Jiao",
+        "Changxiao Cai",
+        "Gen Li"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG",
+        "stat.ML"
+      ],
+      "published": "2026-08-24T17:54:14+00:00",
+      "link": "https://arxiv.org/pdf/2608.23551v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "flow matching objective for continuous generative language modeling",
+      "llm_evidence_cn": "面向连续生成式语言建模的流匹配目标",
+      "llm_evidence": "面向连续生成式语言建模的流匹配目标",
+      "canonical_evidence": "面向连续生成式语言建模的流匹配目标",
+      "llm_tldr_en": "ConvergeFlow is an embedding-space flow-based language model that constrains the data predictor to the convex hull of token embeddings and trains it with flow matching MSE, provably converging to valid tokens.",
+      "llm_tldr_cn": "该工作针对连续扩散与流式语言模型仍需交叉熵解码器监督、流轨迹无法保证终止于合法词元嵌入的问题，提出ConvergeFlow。方法将数据预测器约束在词元嵌入的凸包内，仅用流匹配诱导的均方误差目标训练。在适当正则条件下，作者证明即使数据预测器存在误差，所得流仍收敛到合法词元嵌入，从而支持直接词元预测，为连续生成式语言建模提供了理论保障。",
+      "llm_tldr": "该工作针对连续扩散与流式语言模型仍需交叉熵解码器监督、流轨迹无法保证终止于合法词元嵌入的问题，提出ConvergeFlow。方法将数据预测器约束在词元嵌入的凸包内，仅用流匹配诱导的均方误差目标训练。在适当正则条件下，作者证明即使数据预测器存在误差，所得流仍收敛到合法词元嵌入，从而支持直接词元预测，为连续生成式语言建模提供了理论保障。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.17832v1",
+      "source": "arxiv",
+      "title": "GenRec: Knowing Where to Reconstruct and Where to Generate",
+      "abstract": "Generative novel view synthesis from sparse input images is rarely all reconstruction or all generation: pixels visible in some source view have a unique correct value modulated only by view-dependent shading, while pixels in disocclusions or beyond the captured volume admit a distribution of plausible completions. Existing generative novel-view-synthesis methods conflate these regimes under a single uniform loss, blurring the line between geometric fidelity and creative hallucinations even when scene geometry is injected through warped point clouds or projected depth. We introduce GenRec, a multi-view flow matching model that builds the reconstruction--generation split directly into its architecture, supervision, and gradient flow. Guided by an observation mask derived from the source cameras and a monocular depth estimator, a flow matching backbone jointly denoises RGB and scene-coordinate maps across all target views, while a pixel-space refinement stage restores high-frequency detail on observed pixels; the same mask gates supervision so regression signals do not contaminate the generative prior. Across RealEstate10K, DL3DV-10K, and Mip-NeRF~360, in both single-view extrapolation and two-view interpolation, GenRec attains the best reconstruction fidelity in observed regions while also surpassing purely generative baselines on perceptual quality in unobserved ones, showing the effectiveness of our approach.",
+      "authors": [
+        "Ata Çelen",
+        "Jaewoo Jung",
+        "Federico Tombari",
+        "Marc Pollefeys",
+        "Sunghwan Hong",
+        "Michael Niemeyer",
+        "Daniel Barath"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-18T14:31:19+00:00",
+      "link": "https://arxiv.org/pdf/2608.17832v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "multi-view flow matching generative model",
+      "llm_evidence_cn": "多视角流匹配生成模型",
+      "llm_evidence": "多视角流匹配生成模型",
+      "canonical_evidence": "多视角流匹配生成模型",
+      "llm_tldr_en": "This paper proposes GenRec, a multi-view flow matching model that separates reconstruction from generation in architecture, supervision and gradient flow, improving generative novel view synthesis from sparse images.",
+      "llm_tldr_cn": "稀疏输入图像的生成式新视角合成往往同时包含重建与生成两种情形，可见像素有唯一正确值，而遮挡或视野外区域则存在多种合理补全，现有方法用统一损失混淆了二者。本文提出GenRec，一种多视角流匹配模型，将重建与生成的分工直接嵌入架构、监督与梯度流中，并借助观测掩码引导。该方法在几何保真度与生成质量之间取得更好平衡。为流匹配在新视角合成中的应用提供了新思路。",
+      "llm_tldr": "稀疏输入图像的生成式新视角合成往往同时包含重建与生成两种情形，可见像素有唯一正确值，而遮挡或视野外区域则存在多种合理补全，现有方法用统一损失混淆了二者。本文提出GenRec，一种多视角流匹配模型，将重建与生成的分工直接嵌入架构、监督与梯度流中，并借助观测掩码引导。该方法在几何保真度与生成质量之间取得更好平衡。为流匹配在新视角合成中的应用提供了新思路。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2608.26956v1",
+      "source": "arxiv",
+      "title": "RubricRM: Generative Reward Modeling via Dynamic Rubrics for Image Generation and Editing",
+      "abstract": "Reward models play an essential role in aligning visual generative models, yet most existing visual reward models use a single scalar score or rely on fixed criteria that cannot adapt to different instructions. This limits both interpretability and task sensitivity, especially for text-to-image generation and instruction-based image editing, where different inputs require different evaluation dimensions. We propose RubricRM, a pairwise generative reward modeling framework that first produces an input-specific rubric with evaluation dimensions, weights, and scoring criteria, and then applies the rubric to score candidate images. We train dedicated RubricRM models for text-to-image generation and image editing using a two-stage training pipeline: supervised fine-tuning teaches the model the rubric-based scoring paradigm, while GRPO further improves scoring through fine-grained dimension-level rewards. Experiments on multiple generation and editing benchmarks show that RubricRM outperforms existing specialized reward models and remains competitive with strong proprietary MLLM judges despite using smaller backbones. Our models, data, and code are available at https://github.com/zijiankan/RubricRM.",
+      "authors": [
+        "Zijian Kan",
+        "Wei Wang",
+        "Long Luo",
+        "Bing Zhao",
+        "Xuan Ren",
+        "Weixu Qiao",
+        "Wenbo Li",
+        "Hu Wei",
+        "Lin Qu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-27T10:56:47+00:00",
+      "link": "https://arxiv.org/pdf/2608.26956v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "generative reward modeling for text-to-image generation and image editing",
+      "llm_evidence_cn": "面向文生图与图像编辑的生成式奖励建模",
+      "llm_evidence": "面向文生图与图像编辑的生成式奖励建模",
+      "canonical_evidence": "面向文生图与图像编辑的生成式奖励建模",
+      "llm_tldr_en": "RubricRM is a pairwise generative reward modeling framework that first produces input-specific rubrics with dimensions and weights, then scores candidate images, improving alignment for text-to-image generation and image editing.",
+      "llm_tldr_cn": "现有视觉奖励模型多依赖单一标量或固定准则，难以适应不同指令，限制了可解释性与任务敏感性。本文提出RubricRM成对生成式奖励建模框架，先为每个输入生成含评价维度、权重与评分标准的专属评分卡，再据此对候选图像打分。作者为文生图与指令式图像编辑分别训练模型并采用两阶段训练，提升了视觉生成对齐的评价适应性与可解释性。",
+      "llm_tldr": "现有视觉奖励模型多依赖单一标量或固定准则，难以适应不同指令，限制了可解释性与任务敏感性。本文提出RubricRM成对生成式奖励建模框架，先为每个输入生成含评价维度、权重与评分标准的专属评分卡，再据此对候选图像打分。作者为文生图与指令式图像编辑分别训练模型并采用两阶段训练，提升了视觉生成对齐的评价适应性与可解释性。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "state of the art generative model papers for image synthesis",
+      "matched_requirement_id": "req-27",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2608.23696v1",
+      "source": "arxiv",
+      "title": "Renormalization Group Flow Matching for Scalable Local Generative Modeling",
+      "abstract": "Despite their remarkable success in modeling complex data, generative models face a fundamental tradeoff. Global approaches can capture full structural coherence but suffer from high computational costs, while local models are efficient but often fail to reproduce long-range correlations and global coherence. The renormalization group (RG) bridges this gap by seamlessly connecting spatial structures across different length scales, retaining quasi-local descriptions at each step while preserving long-range correlations. We introduce renormalization group flow matching (RGFM), a generative framework that systematically structures data generation across different spatial scales. By using an exact RG flow as the probability path, RGFM progressively generates data from long- to short-wavelength structures. To reconcile scalability with global structure, we exploit two key properties of the RG: quasi-locality and scale separation. We rigorously show that the RGFM probability flow can be accurately approximated by local velocity fields acting over a spatial range $O(Λ^{-1}[\\ln L+\\ln(1/\\varepsilon)])$ for RG wavenumber scale $Λ$, linear system size $L$, and prescribed error tolerance $\\varepsilon$. This property enables local generative modeling with patches of size $O(\\ln L)$ and a computational cost that scales nearly linearly with the system volume. We numerically demonstrate that local RGFM reproduces long-range correlations far beyond its receptive field in representative one-dimensional distributions, while conventional local flow matching exhibits substantial errors at long distances. On FFHQ images, RGFM yields far more coherent and higher-quality samples than local flow matching at 64x64 and 256x256. Our results establish RG-guided probability flows as a promising route toward scalable generative modeling that captures long-range structure using only local computation.",
+      "authors": [
+        "Kanta Masuki",
+        "Yuto Ashida"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cond-mat.stat-mech"
+      ],
+      "published": "2026-08-24T18:00:04+00:00",
+      "link": "https://arxiv.org/pdf/2608.23696v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Renormalization group flow matching for scalable generative modeling",
+      "llm_evidence_cn": "重整化群流匹配实现可扩展生成建模",
+      "llm_evidence": "重整化群流匹配实现可扩展生成建模",
+      "canonical_evidence": "重整化群流匹配实现可扩展生成建模",
+      "llm_tldr_en": "RGFM structures data generation across spatial scales by using an exact renormalization group flow as the probability path, balancing global coherence and local efficiency in generative modeling.",
+      "llm_tldr_cn": "针对生成模型中全局方法计算昂贵、局部方法难以保持长程相关性的根本矛盾，本文提出重整化群流匹配（RGFM）框架。该方法以精确重整化群流作为概率路径，在多个空间尺度上系统组织数据生成过程，逐步保留准局部描述同时维持长程关联。实验表明RGFM在保持全局结构一致性的同时显著提升生成效率，兼顾了可扩展性与建模质量。该工作将物理重整化群思想与流匹配结合，为多尺度生成建模提供了新范式。",
+      "llm_tldr": "针对生成模型中全局方法计算昂贵、局部方法难以保持长程相关性的根本矛盾，本文提出重整化群流匹配（RGFM）框架。该方法以精确重整化群流作为概率路径，在多个空间尺度上系统组织数据生成过程，逐步保留准局部描述同时维持长程关联。实验表明RGFM在保持全局结构一致性的同时显著提升生成效率，兼顾了可扩展性与建模质量。该工作将物理重整化群思想与流匹配结合，为多尺度生成建模提供了新范式。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "recent advances in flow matching for generative modeling",
+      "matched_requirement_id": "req-29",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.17832v2",
+      "source": "arxiv",
+      "title": "GenRec: Knowing Where to Reconstruct and Where to Generate",
+      "abstract": "Generative novel view synthesis from sparse input images is rarely all reconstruction or all generation: pixels visible in some source view have a unique correct value modulated only by view-dependent shading, while pixels in disocclusions or beyond the captured volume admit a distribution of plausible completions. Existing generative novel-view-synthesis methods conflate these regimes under a single uniform loss, blurring the line between geometric fidelity and creative hallucinations even when scene geometry is injected through warped point clouds or projected depth. We introduce GenRec, a multi-view flow matching model that builds the reconstruction--generation split directly into its architecture, supervision, and gradient flow. Guided by an observation mask derived from the source cameras and a monocular depth estimator, a flow matching backbone jointly denoises RGB and scene-coordinate maps across all target views, while a pixel-space refinement stage restores high-frequency detail on observed pixels; the same mask gates supervision so regression signals do not contaminate the generative prior. Across RealEstate10K, DL3DV-10K, and Mip-NeRF~360, in both single-view extrapolation and two-view interpolation, GenRec attains the best reconstruction fidelity in observed regions while also surpassing purely generative baselines on perceptual quality in unobserved ones, showing the effectiveness of our approach.",
+      "authors": [
+        "Ata Çelen",
+        "Jaewoo Jung",
+        "Federico Tombari",
+        "Marc Pollefeys",
+        "Sunghwan Hong",
+        "Michael Niemeyer",
+        "Daniel Barath"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-18T14:31:19+00:00",
+      "link": "https://arxiv.org/pdf/2608.17832v2",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "multi-view flow matching model for generative novel view synthesis",
+      "llm_evidence_cn": "面向生成式新视角合成的多视角流匹配模型",
+      "llm_evidence": "面向生成式新视角合成的多视角流匹配模型",
+      "canonical_evidence": "面向生成式新视角合成的多视角流匹配模型",
+      "llm_tldr_en": "GenRec is a multi-view flow matching model that explicitly splits reconstruction from generation in its architecture, supervision, and gradient flow to balance geometric fidelity and plausible hallucination.",
+      "llm_tldr_cn": "该工作针对稀疏视图生成式新视角合成中重建与生成被统一损失混淆、几何保真与创造性幻觉边界模糊的问题，提出GenRec。方法在多视角流匹配模型中把重建与生成的分工直接嵌入架构、监督和梯度流，并以观测掩码引导。实验表明该设计能更清晰地区分可见像素的精确重建与不可见区域的多模态补全，为生成式新视角合成提供了新思路。",
+      "llm_tldr": "该工作针对稀疏视图生成式新视角合成中重建与生成被统一损失混淆、几何保真与创造性幻觉边界模糊的问题，提出GenRec。方法在多视角流匹配模型中把重建与生成的分工直接嵌入架构、监督和梯度流，并以观测掩码引导。实验表明该设计能更清晰地区分可见像素的精确重建与不可见区域的多模态补全，为生成式新视角合成提供了新思路。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "recent advances in flow matching for generative modeling",
+      "matched_requirement_id": "req-29",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2608.26956v2",
+      "source": "arxiv",
+      "title": "RubricRM: Generative Reward Modeling via Dynamic Rubrics for Image Generation and Editing",
+      "abstract": "Reward models play an essential role in aligning visual generative models, yet most existing visual reward models use a single scalar score or rely on fixed criteria that cannot adapt to different instructions. This limits both interpretability and task sensitivity, especially for text-to-image generation and instruction-based image editing, where different inputs require different evaluation dimensions. We propose RubricRM, a pairwise generative reward modeling framework that first produces an input-specific rubric with evaluation dimensions, weights, and scoring criteria, and then applies the rubric to score candidate images. We train dedicated RubricRM models for text-to-image generation and image editing using a two-stage training pipeline: supervised fine-tuning teaches the model the rubric-based scoring paradigm, while GRPO further improves scoring through fine-grained dimension-level rewards. Experiments on multiple generation and editing benchmarks show that RubricRM outperforms existing specialized reward models and remains competitive with strong proprietary MLLM judges despite using smaller backbones. Our models, data, and code are available at https://github.com/zijiankan/RubricRM.",
+      "authors": [
+        "Zijian Kan",
+        "Wei Wang",
+        "Long Luo",
+        "Bing Zhao",
+        "Xuan Ren",
+        "Weixu Qiao",
+        "Wenbo Li",
+        "Hu Wei",
+        "Lin Qu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-27T10:56:47+00:00",
+      "link": "https://arxiv.org/pdf/2608.26956v2",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Generative reward modeling for aligning text-to-image generation and image editing",
+      "llm_evidence_cn": "面向文生图与图像编辑对齐的生成式奖励建模",
+      "llm_evidence": "面向文生图与图像编辑对齐的生成式奖励建模",
+      "canonical_evidence": "面向文生图与图像编辑对齐的生成式奖励建模",
+      "llm_tldr_en": "Visual reward models usually output a single scalar or fixed criteria, limiting task sensitivity. RubricRM generates an input-specific rubric with dimensions and weights, then scores candidate images for text-to-image generation and editing.",
+      "llm_tldr_cn": "现有视觉奖励模型多输出单一标量分数或依赖固定准则，难以适应不同指令，限制了可解释性与任务敏感性，尤其影响文生图与指令式图像编辑。本文提出RubricRM成对生成式奖励建模框架，先为每个输入生成包含评估维度、权重与评分标准的专属评分表，再用该评分表对候选图像打分。作者为文生图与图像编辑分别训练专用模型并采用两阶段训练流程，为视觉生成模型对齐提供更可解释且任务自适应的奖励信号。",
+      "llm_tldr": "现有视觉奖励模型多输出单一标量分数或依赖固定准则，难以适应不同指令，限制了可解释性与任务敏感性，尤其影响文生图与指令式图像编辑。本文提出RubricRM成对生成式奖励建模框架，先为每个输入生成包含评估维度、权重与评分标准的专属评分表，再用该评分表对候选图像打分。作者为文生图与图像编辑分别训练专用模型并采用两阶段训练流程，为视觉生成模型对齐提供更可解释且任务自适应的奖励信号。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "state of the art generative model papers for image synthesis",
+      "matched_requirement_id": "req-27",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2608.24068v1",
+      "source": "arxiv",
+      "title": "Representation Learning in Diffusion and Flow-based Model: An Application Aspect",
+      "abstract": "Diffusion models and flow-based models have recently become the dominant paradigms in generative modeling, largely due to their ability to learn rich, multi-level visual representations through large-scale training. This creates a bidirectional relationship between generative models and representation learning: improving representation learning enhances generation quality, while the learned representations can be leveraged for broader understanding tasks. This survey systematically explores this interplay with a focus on applications. We propose a three-tier progressive framework that organizes existing works from three perspectives: using representation learning to improve generative capabilities, exploiting generative models to extract representations for perception tasks, and ultimately moving toward general-purpose unified applications. We systematically categorize representative methods across a wide range of downstream tasks, including image classification, dense visual prediction, instance-level perception, and annotation-scarce scenarios. By providing a unified taxonomy and identifying key challenges, this survey aims to clarify the underlying logic of current research and suggest promising directions for future exploration. We hope this work can serve as a valuable reference for researchers interested in harnessing the representation power of generative models for applications beyond generation.",
+      "authors": [
+        "Yanchen Xu",
+        "Sida Huang",
+        "Zhenyu Gu",
+        "Ruishu Zhu",
+        "Yilan Gao",
+        "Hongyuan Zhang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-08-25T04:55:15+00:00",
+      "link": "https://arxiv.org/pdf/2608.24068v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "survey of representation learning in diffusion and flow-based generative models",
+      "llm_evidence_cn": "扩散与流生成模型中表示学习的综述",
+      "llm_evidence": "扩散与流生成模型中表示学习的综述",
+      "canonical_evidence": "扩散与流生成模型中表示学习的综述",
+      "llm_tldr_en": "This survey organizes the bidirectional interplay between diffusion/flow-based generative models and representation learning into a three-tier framework covering generation improvement, representation extraction, and broader understanding tasks.",
+      "llm_tldr_cn": "扩散模型与流模型凭借大规模训练学习丰富多层次的视觉表示，已成为生成建模的主流范式，并与表示学习形成双向促进关系，但相关研究尚缺系统梳理。本文以应用为焦点，提出一个三层递进框架，从利用表示学习提升生成能力、借助生成模型提取表示以及面向更广泛理解任务三个视角组织现有工作。综述揭示了生成与表示学习相互促进的机制与典型应用，为交叉研究提供了结构化指引。",
+      "llm_tldr": "扩散模型与流模型凭借大规模训练学习丰富多层次的视觉表示，已成为生成建模的主流范式，并与表示学习形成双向促进关系，但相关研究尚缺系统梳理。本文以应用为焦点，提出一个三层递进框架，从利用表示学习提升生成能力、借助生成模型提取表示以及面向更广泛理解任务三个视角组织现有工作。综述揭示了生成与表示学习相互促进的机制与典型应用，为交叉研究提供了结构化指引。",
+      "llm_tags": [
+        "query:gen-models:composite"
+      ],
+      "matched_query_tag": "query:gen-models:composite",
+      "matched_query_text": "Papers central to 生成模型与流匹配相关论文检索, especially work that connects or combines: generative models survey; diffusion models and flow matching; variational autoencoders latent variable models; large language models text generation; flow matching method for generative modeling; score based generative models recent; recent breakthroughs in generative model research; state of the art generative model papers for image synthesis; generative model applications in natural language processing; recent advances in flow matching for generative modeling.",
+      "matched_requirement_id": "req-composite-gen-models",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2608.19014v1",
+      "source": "arxiv",
+      "title": "One-Stage Object Detectors in Autonomous Driving",
+      "abstract": "Autonomous vehicles depend on fast and reliable perception systems to detect surrounding vehicles, pedestrians, cyclists, traffic signs, and other road objects in real time. This paper presents a comprehensive survey and analysis of one-stage object detectors for autonomous driving rather than an implementation of a new detection system. The survey reviews the evolution of major one-stage detectors, including YOLOv1, SSD, RetinaNet, EfficientDet, anchor-free detectors such as FCOS and CenterNet, and recent real-time models such as YOLOv10. It compares these architectures through their design choices, feature-fusion strategies, loss functions, deployment trade-offs, and reported benchmark performance. The paper also summarizes commonly used autonomous-driving datasets, evaluation metrics, open challenges, and future research directions. Overall, this survey highlights how one-stage detectors balance speed, accuracy, efficiency, and robustness, while also emphasizing the remaining gap between benchmark results and dependable real-world autonomous-driving performance.",
+      "authors": [
+        "Jonel Roman",
+        "Ryan Sirjue",
+        "Peter Nguyen",
+        "Daniel Krutky",
+        "Juan Jesus",
+        "Sudip Dhakal"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-08-19T15:13:33+00:00",
+      "link": "https://arxiv.org/pdf/2608.19014v1",
+      "tags": [
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:self-driving"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "survey of one-stage object detectors for autonomous driving perception",
+      "llm_evidence_cn": "面向自动驾驶感知的单阶段目标检测器综述",
+      "llm_evidence": "面向自动驾驶感知的单阶段目标检测器综述",
+      "canonical_evidence": "面向自动驾驶感知的单阶段目标检测器综述",
+      "llm_tldr_en": "Autonomous driving relies on fast real-time perception. This survey reviews one-stage object detectors including YOLO, SSD, RetinaNet, EfficientDet and anchor-free models, comparing architectures, feature fusion, losses and deployment trade-offs.",
+      "llm_tldr_cn": "自动驾驶依赖快速可靠的实时感知系统来检测车辆、行人、自行车与交通标志等目标。本文综述并分析面向自动驾驶的单阶段目标检测器，涵盖YOLOv1、SSD、RetinaNet、EfficientDet及FCOS、CenterNet等无锚框方法与YOLOv10等实时模型。文章比较其架构设计、特征融合策略、损失函数与部署权衡，并总结常用数据集，为感知系统选型提供参考。",
+      "llm_tldr": "自动驾驶依赖快速可靠的实时感知系统来检测车辆、行人、自行车与交通标志等目标。本文综述并分析面向自动驾驶的单阶段目标检测器，涵盖YOLOv1、SSD、RetinaNet、EfficientDet及FCOS、CenterNet等无锚框方法与YOLOv10等实时模型。文章比较其架构设计、特征融合策略、损失函数与部署权衡，并总结常用数据集，为感知系统选型提供参考。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "recent advancements in autonomous driving perception",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}
