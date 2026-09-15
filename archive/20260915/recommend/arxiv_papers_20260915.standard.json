@@ -1,0 +1,756 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-09-15T22:13:29.499295+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 7,
+    "deep_divecandidates": 5,
+    "deep_cap": 12,
+    "deep_selected": 5,
+    "quick_candidates": 12,
+    "quick_skim_target": 17,
+    "quick_selected": 12
+  },
+  "deep_dive": [
+    {
+      "id": "2609.15169v1",
+      "source": "arxiv",
+      "title": "GRAVA: Grounded Reasoning-to-Action Representation and Learning for Autonomous Driving",
+      "abstract": "Driving vision-language-action (VLA) models increasingly reason before acting, but their intermediate reasoning is often weakly grounded in physical scene evidence and loosely connected to executable behavior. We present GRAVA, a framework built around Grounded Reasoning-to-Action (GRA), which unifies grounding, reasoning, and action generation in a single autoregressive stream. GRA links action-relevant language references to 2D visual regions and ego-centric physical states, organizes object interactions and decisions in a trajectory-anchored typed graph, and serializes this structure into grounded reasoning. A single VLM generates this reasoning followed by a compact Executable Planner action that is deterministically decoded into a continuous trajectory. We further introduce an agentic GRA data construction pipeline that combines forward scene grounding with backward trajectory anchoring, and use it to build GR-NavSim with 2.2M grounded question-answer pairs and 70K GRA reasoning traces. A progressive training strategy develops grounded cognition through pre-training, establishes the reasoning-to-action interface through imitation, and improves driving behavior through reinforcement learning and exploration. Using about 60% of the available human driving demonstrations for action supervision, GRAVA-8B achieves state-of-the-art performance among purely autoregressive driving models on the full NAVSIM benchmark. On an internal long-tail benchmark, full GRA improves key-object compliance and Closed-loop Driving Score by 19.3% and 20.5% over action-only prediction, respectively. These results show the benefit of preserving action-relevant physical evidence from grounded reasoning through executable action generation.",
+      "authors": [
+        "Xiao Liu",
+        "Haoyu Li",
+        "Jianghao Leng",
+        "Lin Wang",
+        "Chao Sun"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-09-14T07:55:04+00:00",
+      "link": "https://arxiv.org/pdf/2609.15169v1",
+      "tags": [
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "query:self-driving"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "grounded reasoning-to-action VLA framework for autonomous driving",
+      "llm_evidence_cn": "面向自动驾驶的接地推理到动作VLA框架",
+      "llm_evidence": "面向自动驾驶的接地推理到动作VLA框架",
+      "canonical_evidence": "面向自动驾驶的接地推理到动作VLA框架",
+      "llm_tldr_en": "Driving vision-language-action models reason before acting, but their intermediate reasoning is often weakly grounded and loosely tied to executable behavior. The paper presents GRAVA, unifying grounding, reasoning and action in one autoregressive stream that links language references to visual regions and physical states via a typed graph, decoded into an executable plan. It improves the coupling between reasoning and driving actions.",
+      "llm_tldr_cn": "该文针对自动驾驶视觉-语言-动作模型中中间推理与物理场景证据脱节、与可执行行为联系松散的问题。作者提出GRAVA框架，将接地、推理与动作生成统一到单一自回归流中，把动作相关语言指涉链接到二维视觉区域与自车物理状态，并以轨迹锚定的类型图组织交互与决策。模型由单一VLM生成接地推理与紧凑可执行规划动作，从而增强推理与驾驶行为的一致性。",
+      "llm_tldr": "该文针对自动驾驶视觉-语言-动作模型中中间推理与物理场景证据脱节、与可执行行为联系松散的问题。作者提出GRAVA框架，将接地、推理与动作生成统一到单一自回归流中，把动作相关语言指涉链接到二维视觉区域与自车物理状态，并以轨迹锚定的类型图组织交互与决策。模型由单一VLM生成接地推理与紧凑可执行规划动作，从而增强推理与驾驶行为的一致性。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "End to end autonomous driving with Vision Language Action models",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.15322v1",
+      "source": "arxiv",
+      "title": "Planning in the Backbone: DiffAdapterVLA for Native Continuous Trajectory Generation with Driving VLMs",
+      "abstract": "Pretrained driving vision-language models (VLMs) integrate visual, route, language, and driving context into rich driving priors, yet their representation objectives remain separated from continuous driving planning. Existing methods typically begin trajectory generation only after the VLM has formed a final condition, leaving depth-wise condition computation outside the stepwise formation of trajectory state. We introduce DiffAdapterVLA, which realizes Planning in the Backbone: it injects explicit trajectory tokens into selected VLM late layers, bringing trajectory state into backbone forward computation, where it co-evolves with driving conditions at different depths. Lightweight layer-wise DiffAdapters organize this computation into recursive trajectory refinement, while asymmetric joint attention preserves directed guidance from the condition stream to trajectory planning. By placing planning within existing backbone computation rather than relying on an independent trajectory planner, DiffAdapterVLA adapts only lightweight trajectory modules to turn existing driving priors into efficient continuous planning capability. NAVSIM results show that it achieves high-quality closed-loop planning with low end-to-end latency using few trainable parameters, and demonstrate that jointly evolving trajectory state and depth-wise driving conditions in VLM late-layer computation effectively realizes continuous trajectory planning.",
+      "authors": [
+        "Changxin Lu",
+        "Xiaoliang Meng",
+        "Yu Wu",
+        "Rui Huang",
+        "Honglin Li",
+        "Tao Chen",
+        "Kaixuan Zhou",
+        "Yadong Shao"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.AI"
+      ],
+      "published": "2026-09-14T10:14:38+00:00",
+      "link": "https://arxiv.org/pdf/2609.15322v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "driving VLM end-to-end trajectory generation",
+      "llm_evidence_cn": "驾驶VLM端到端轨迹生成",
+      "llm_evidence": "驾驶VLM端到端轨迹生成",
+      "canonical_evidence": "驾驶VLM端到端轨迹生成",
+      "llm_tldr_en": "Driving VLMs separate representation learning from continuous trajectory planning. DiffAdapterVLA injects trajectory tokens into late VLM layers so trajectory state co-evolves with driving conditions, enabling native continuous trajectory generation for end-to-end autonomous driving.",
+      "llm_tldr_cn": "现有驾驶视觉语言模型将表征目标与连续轨迹规划分离，轨迹生成往往在VLM形成最终条件之后才开始，条件计算未参与轨迹状态的逐步形成。本文提出DiffAdapterVLA，把显式轨迹token注入VLM后层，使轨迹状态在主干前向计算中与不同深度的驾驶条件共同演化，并由轻量级逐层DiffAdapter组织。实验表明该原生连续轨迹生成方式提升了规划性能，为端到端自动驾驶VLA提供了新范式。",
+      "llm_tldr": "现有驾驶视觉语言模型将表征目标与连续轨迹规划分离，轨迹生成往往在VLM形成最终条件之后才开始，条件计算未参与轨迹状态的逐步形成。本文提出DiffAdapterVLA，把显式轨迹token注入VLM后层，使轨迹状态在主干前向计算中与不同深度的驾驶条件共同演化，并由轻量级逐层DiffAdapter组织。实验表明该原生连续轨迹生成方式提升了规划性能，为端到端自动驾驶VLA提供了新范式。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "End to end autonomous driving with Vision Language Action models",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.15647v1",
+      "source": "arxiv",
+      "title": "MedDiME: Efficient Latent Diffusion with Adaptive Masking for Medical Counterfactual Generation",
+      "abstract": "Medical counterfactual generation modifies images to change model predictions for interpretability. However, existing diffusion-based approaches are often prohibitively slow and memory-intensive, making them difficult to apply in high-resolution settings. Moreover, existing masking strategies are tightly coupled with pixel-space representations, making them incompatible with latent-space diffusion editing. To address these challenges, we propose MedDiME, a latent-space classifier-guided diffusion framework that reduces computational and memory overhead while introducing a latent-compatible, gradient-driven adaptive masking mechanism for spatially precise medical counterfactual generation. Extensive experiments demonstrate that MedDiME achieves high-quality counterfactual generation with significant efficiency gains compared to prior classifier-guided diffusion baselines, achieving up to 40 times faster inference and 13 times lower peak GPU memory usage.",
+      "authors": [
+        "Yan Zeng",
+        "Changlu Guo",
+        "Anders Nymark Christensen",
+        "Morten Rieger Hannemose",
+        "Anders Bjorholm Dahl"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-09-14T14:32:17+00:00",
+      "link": "https://arxiv.org/pdf/2609.15647v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "latent diffusion for counterfactual image generation",
+      "llm_evidence_cn": "面向反事实图像生成的隐空间扩散",
+      "llm_evidence": "面向反事实图像生成的隐空间扩散",
+      "canonical_evidence": "面向反事实图像生成的隐空间扩散",
+      "llm_tldr_en": "Diffusion counterfactual generation is slow and pixel-coupled; this paper proposes MedDiME, latent classifier-guided diffusion with adaptive masking for precise counterfactual images.",
+      "llm_tldr_cn": "医学反事实生成通过修改图像来改变模型预测以提升可解释性，但现有扩散方法速度慢、显存开销大，难以用于高分辨率场景，且掩码策略与像素空间紧耦合。本文提出MedDiME，一种隐空间分类器引导的扩散框架，降低计算与显存开销，并引入梯度驱动的自适应掩码实现空间精确的反事实编辑。实验表明该方法在保持生成质量的同时显著提升效率，推动了反事实图像生成技术的实用化。",
+      "llm_tldr": "医学反事实生成通过修改图像来改变模型预测以提升可解释性，但现有扩散方法速度慢、显存开销大，难以用于高分辨率场景，且掩码策略与像素空间紧耦合。本文提出MedDiME，一种隐空间分类器引导的扩散框架，降低计算与显存开销，并引入梯度驱动的自适应掩码实现空间精确的反事实编辑。实验表明该方法在保持生成质量的同时显著提升效率，推动了反事实图像生成技术的实用化。",
+      "llm_tags": [
+        "query:cf-image-gen"
+      ],
+      "matched_query_tag": "query:cf-image-gen",
+      "matched_query_text": "methods for counterfactual image generation",
+      "matched_requirement_id": "req-44",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.10863v2",
+      "source": "arxiv",
+      "title": "Flow Duality and Source Geometry for Categorical Generation",
+      "abstract": "Continuous and discrete flow matching are usually treated as separate constructions. This paper identifies a duality between them: projecting continuous convex-interpolant flows with one-hot targets through a position-wise argmax yields discrete convex-interpolant flows. The result requires source laws with appropriate coordinate symmetry and regularity, and it makes the continuous source distribution an explicit design choice for categorical generation. We derive the induced discrete interpolation behavior for Gaussian, bounded-uniform, and centered negative-exponential sources, showing that different source geometries lead to qualitatively different transition timing and vocabulary-size dependence. Small visual diagnostics and a short language-modeling pilot suggest that these source-design effects can also appear in learned transports and early generative quality.",
+      "authors": [
+        "Etrit Haxholli"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "stat.ML"
+      ],
+      "published": "2026-09-09T22:05:47+00:00",
+      "link": "https://arxiv.org/pdf/2609.10863v2",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "duality between continuous and discrete flow matching for generation",
+      "llm_evidence_cn": "面向生成的连续与离散流匹配对偶性",
+      "llm_evidence": "面向生成的连续与离散流匹配对偶性",
+      "canonical_evidence": "面向生成的连续与离散流匹配对偶性",
+      "llm_tldr_en": "Continuous and discrete flow matching are usually treated as separate constructions. This paper proves a duality via position-wise argmax projection and shows source geometry controls categorical generation timing and vocabulary-size dependence.",
+      "llm_tldr_cn": "连续与离散流匹配长期被当作彼此独立的构造。本文揭示两者之间的对偶性：将带独热目标的连续凸插值流经逐位置argmax投影，可得到离散凸插值流，但要求源分布具备坐标对称性与正则性，从而使连续源分布成为类别生成的显式设计选择。作者推导了高斯、有界均匀与中心负指数源下的离散插值行为，发现不同源几何导致显著不同的转移时序与词表规模依赖，并用小型视觉诊断与语言建模试点验证。该结果为离散生成建模提供了统一视角。",
+      "llm_tldr": "连续与离散流匹配长期被当作彼此独立的构造。本文揭示两者之间的对偶性：将带独热目标的连续凸插值流经逐位置argmax投影，可得到离散凸插值流，但要求源分布具备坐标对称性与正则性，从而使连续源分布成为类别生成的显式设计选择。作者推导了高斯、有界均匀与中心负指数源下的离散插值行为，发现不同源几何导致显著不同的转移时序与词表规模依赖，并用小型视觉诊断与语言建模试点验证。该结果为离散生成建模提供了统一视角。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2609.14833v1",
+      "source": "arxiv",
+      "title": "One Model, Two Physical Stories: Auditing Misalignment in Multi-Modal World Modeling",
+      "abstract": "World models, systems that generate what happens next given current environmental conditions, are increasingly being implemented with multi-modal generation in mind. However, generating multiple modalities simultaneously, such as visual simulations alongside physical state predictions in the form of text, introduces the risk of cross-modal inconsistency. Tested separately, both outputs may look convincing while still disagreeing: a model can calculate that a ball should rebound in one modality, then generate no rebound in another modality, to say nothing of diverging from real-world dynamics entirely. In this work we focus on two failures explicitly: \\emph{Internal misalignment}, the disagreement between the world model's generated video and the same world model's prediction in a different modalities, and \\emph{external misalignment} the disagreement between the world model's generation and an analytic physical environment. We derive common contracts of event, magnitude, timing, and construct a physics grounded pipeline to make comparisons measurable in both external and internal settings. We then ask whether progressively supplying the model's own contract (the A ladder for the internal setting) or a corrected physical contract (the B ladder for the external setting) closes the respective gaps. Across four mechanisms and 20 settings, we find that while language answers all 22 text probes correctly with respect to the true environment, the neutral video is often in disagreement, suggesting that the current unified backbones may not be capable of correct reasoning, internal consistency, and external physical fidelity all at once.",
+      "authors": [
+        "Geigh Zollicoffer",
+        "Minh Vu",
+        "Rajiv Ranasinghe",
+        "Manish Bhattarai"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-09-13T22:56:58+00:00",
+      "link": "https://arxiv.org/pdf/2609.14833v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:world-models"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "auditing multi-modal world model misalignment",
+      "llm_evidence_cn": "多模态世界模型错位审计",
+      "llm_evidence": "多模态世界模型错位审计",
+      "canonical_evidence": "多模态世界模型错位审计",
+      "llm_tldr_en": "This paper audits multi-modal world models, exposing internal cross-modal misalignment and divergence from real dynamics when video and text predictions disagree.",
+      "llm_tldr_cn": "多模态世界模型同时生成视频与文本物理预测，各模态单独看都可信，却可能互相矛盾。本文针对这种跨模态不一致提出审计方法，明确区分模型内部错位与偏离真实动态两类失败。实验表明模型可在一模态预测球会反弹而在另一模态生成不反弹，揭示出普遍存在的跨模态分歧，为世界模型的可靠性评估提供了诊断框架。",
+      "llm_tldr": "多模态世界模型同时生成视频与文本物理预测，各模态单独看都可信，却可能互相矛盾。本文针对这种跨模态不一致提出审计方法，明确区分模型内部错位与偏离真实动态两类失败。实验表明模型可在一模态预测球会反弹而在另一模态生成不反弹，揭示出普遍存在的跨模态分歧，为世界模型的可靠性评估提供了诊断框架。",
+      "llm_tags": [
+        "query:world-models"
+      ],
+      "matched_query_tag": "query:world-models",
+      "matched_query_text": "recent world model paper",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2609.13941v1",
+      "source": "arxiv",
+      "title": "BLInD: Learning Driver Intent as a Distribution over Future Ego Trajectories",
+      "abstract": "We present BLInD (Blind Learned Intent Distribution), a compact network that maps recent vehicle-state history (e.g. speed, curvature, indicator, and vehicle type) to a top-k distribution of future ego trajectories, with no camera, LiDAR, map, or object-track inputs. We find that vehiclestate history alone is sufficient to learn a useful multimodal distribution over near-term ego trajectories, and its low-latency nature makes it well-suited for safety-critical deployment. We investigate two distribution architectures, autoregressive (AR) and flow-matching, and train on both mixed-platform opensource and Wayve datasets. Both generalize without datasetspecific adaptation; the flow-matching model achieves best topk ADE/FDE of 0.15/0.37 m on Wayve, 0.15/0.36 m on Waymo, and 0.28/0.59 m on nuScenes, with the AR model reaching comparable coverage. Integrating the distributions into an AEB trigger task, a strict all-candidates policy reduces false positives from 1.51% to 0.11% with AR (13.7x reduction, 94.9% TP) and to 0.06% with flow-matching (25.1x reduction, 98.7% TP) compared to a 1-CTRV policy with 100% true positive score. BLInD runs in 0.87 ms with the AR head and 2.9 ms with the flow-matching head on an NVIDIA DRIVE Orin ECU making it compatible with real-time deployment on automotive ECUs. While existing learned distribution models rely on scene context and blind vehicle-state models typically collapse to a single path, BLInD is learned, blind, and cross-domain simultaneously, a combination not demonstrated by prior work. These results show that such a distribution provides a controllable and plausible intent sampling interface for downstream systems, with AEB as one instantiation.",
+      "authors": [
+        "Flavian Pegado",
+        "Ronit Hire",
+        "Shreyas Rajesh",
+        "Soham Phade"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-09-12T13:35:28+00:00",
+      "link": "https://arxiv.org/pdf/2609.13941v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:self-driving"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "flow-matching and autoregressive driver intent prediction for ego trajectories",
+      "llm_evidence_cn": "用流匹配与自回归预测自车轨迹的驾驶意图分布",
+      "llm_evidence": "用流匹配与自回归预测自车轨迹的驾驶意图分布",
+      "canonical_evidence": "用流匹配与自回归预测自车轨迹的驾驶意图分布",
+      "llm_tldr_en": "BLInD maps vehicle-state history alone to a top-k distribution over future ego trajectories, comparing autoregressive and flow-matching heads and generalizing across driving datasets without camera or LiDAR input.",
+      "llm_tldr_cn": "自动驾驶轨迹预测常依赖相机、LiDAR与地图等高成本输入。BLInD仅用车辆状态历史（速度、曲率、转向灯、车型）预测未来自车轨迹的top-k分布，并比较自回归与流匹配两种分布架构。在Wayve等数据集上无需场景适配即可泛化，流匹配模型取得0.15/0.37米的ADE/FDE，低延迟特性适合安全关键部署，为轻量轨迹预测提供了新方案。",
+      "llm_tldr": "自动驾驶轨迹预测常依赖相机、LiDAR与地图等高成本输入。BLInD仅用车辆状态历史（速度、曲率、转向灯、车型）预测未来自车轨迹的top-k分布，并比较自回归与流匹配两种分布架构。在Wayve等数据集上无需场景适配即可泛化，流匹配模型取得0.15/0.37米的ADE/FDE，低延迟特性适合安全关键部署，为轻量轨迹预测提供了新方案。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "autonomous driving recent advances",
+      "matched_requirement_id": "req-11",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.10798v1",
+      "source": "arxiv",
+      "title": "RiVaT-Fuse: Reliability-Calibrated Variational Tensor Fusion for Multimodal Prediction under Modality Uncertainty",
+      "abstract": "Image-metadata prediction requires fusing heterogeneous evidence whose reliability can vary across samples and latent factors. Existing representation-level fusion methods typically choose an aggregation architecture, such as concatenation, gating, conditional modulation, or attention, without explicitly defining what the fused representation should mean under modality uncertainty. We propose RiVaT-Fuse, a reliability-calibrated variational tensor fusion framework that defines fusion as sample-wise latent-state estimation. Rather than producing a fused vector by direct aggregation, RiVaT-Fuse estimates a consensus latent state through a variational objective that balances image evidence, metadata evidence, structured cross-modal interaction, and stability. The resulting framework replaces scalar modality confidence with matrix-valued trust geometry, decomposes interaction into additive, multiplicative, and relational components, and couples the latent state with conditional robustness and structured multi-task prediction. We provide well-posedness and stability interpretations of the latent solve and instantiate the framework with efficient low-rank-plus-diagonal trust operators. On an image-level image-metadata prediction benchmark, RiVaT-Fuse achieves the strongest overall predictive rank among direct representation-level baselines while improving probability and label stability under perturbation.",
+      "authors": [
+        "Yingfan Xu",
+        "Tieming Liu",
+        "Ye Liang",
+        "Taiping Liu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CV"
+      ],
+      "published": "2026-09-09T19:59:49+00:00",
+      "link": "https://arxiv.org/pdf/2609.10798v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "variational multimodal fusion under modality uncertainty",
+      "llm_evidence_cn": "模态不确定性下的变分多模态融合",
+      "llm_evidence": "模态不确定性下的变分多模态融合",
+      "canonical_evidence": "模态不确定性下的变分多模态融合",
+      "llm_tldr_en": "RiVaT-Fuse reframes multimodal fusion as sample-wise latent-state estimation via a reliability-calibrated variational tensor objective, improving robustness under modality uncertainty.",
+      "llm_tldr_cn": "多模态融合通常直接拼接或门控聚合，却未说明模态可靠性变化时融合表示应代表什么。本文提出RiVaT-Fuse，把融合建模为逐样本隐状态估计，通过变分目标在图像与元数据证据间取得共识。在图像-元数据预测任务上，该方法显式校准模态可靠性并提升稳健性，为不确定性下的融合提供了可解释的新范式。",
+      "llm_tldr": "多模态融合通常直接拼接或门控聚合，却未说明模态可靠性变化时融合表示应代表什么。本文提出RiVaT-Fuse，把融合建模为逐样本隐状态估计，通过变分目标在图像与元数据证据间取得共识。在图像-元数据预测任务上，该方法显式校准模态可靠性并提升稳健性，为不确定性下的融合提供了可解释的新范式。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "multimodal fusion in autonomous driving",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.14124v1",
+      "source": "arxiv",
+      "title": "To do($x$) or not to do($x$): Medical Image Counterfactuals for Dataset Augmentation",
+      "abstract": "Medical image analysis is often hindered by biased datasets, which can lead to biased models and limited clinical applicability. A promising strategy for mitigating such biases is to augment training data with synthetic images. Counterfactual (CF) generation is one such strategy, though the term is used in two different senses: in some works, CFs are produced through causality-based interventions derived from structural causal models, whereas in others, they are produced by non-causal image edits or conventional conditional generative models, such as altering anatomy or adding pathologies. In this work, we study this distinction and evaluate its practical consequences for medical image augmentation. We compare three conditioning strategies: $\\textit{Deterministic}$, which changes selected variables while holding the remaining variables fixed; $\\textit{Undirected}$, which updates variables according to learned statistical associations without assigning causal directions; and $\\textit{Causal}$, which propagates interventions along a directed causal graph. We analyse how these choices affect the resulting images, and explore when causally grounded methods improve dataset augmentation or bring limited benefit. In particular, we assess downstream performance and fairness, where fairness refers to reduced sensitivity to dataset biases across sensitive subgroups. Our experiments demonstrate that using a causal approach to synthetic training data generation can lead to tangible benefits, with these insights offering valuable guidance to machine learning practitioners for the effective design of data generation protocols.",
+      "authors": [
+        "Yasin Ibrahim",
+        "Robin J. Evans",
+        "Konstantinos Kamnitsas"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-09-12T20:06:15+00:00",
+      "link": "https://arxiv.org/pdf/2609.14124v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "counterfactual image generation for augmentation",
+      "llm_evidence_cn": "反事实图像生成用于数据增强",
+      "llm_evidence": "反事实图像生成用于数据增强",
+      "canonical_evidence": "反事实图像生成用于数据增强",
+      "llm_tldr_en": "Distinguishes causality-based counterfactual generation from non-causal image edits and compares three conditioning strategies for medical image dataset augmentation.",
+      "llm_tldr_cn": "医学图像数据集常因存在偏差而导致模型偏置，用合成图像增强训练数据是缓解手段之一，但反事实生成存在基于结构因果模型干预与非因果图像编辑两种理解。本文系统区分这两种反事实含义，比较三种条件生成策略在医学图像增强中的实际效果，并评估其对下游分析的影响。研究为反事实数据增强的术语使用与实验设计提供了实证依据。",
+      "llm_tldr": "医学图像数据集常因存在偏差而导致模型偏置，用合成图像增强训练数据是缓解手段之一，但反事实生成存在基于结构因果模型干预与非因果图像编辑两种理解。本文系统区分这两种反事实含义，比较三种条件生成策略在医学图像增强中的实际效果，并评估其对下游分析的影响。研究为反事实数据增强的术语使用与实验设计提供了实证依据。",
+      "llm_tags": [
+        "query:cf-image-gen"
+      ],
+      "matched_query_tag": "query:cf-image-gen",
+      "matched_query_text": "counterfactual image generation techniques",
+      "matched_requirement_id": "req-43",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.11516v1",
+      "source": "arxiv",
+      "title": "LoopVAE: Recurrent Depth Across Scales for Visual Tokenization",
+      "abstract": "Hierarchical visual tokenizers typically allocate different processing blocks to different spatial scales. We ask how much of this computation can use the same parameters. LoopVAE reuses a scale- and loop-conditioned core within and across scales, while keeping resolution-changing transitions independent. A four-block core executes 28 block applications per encoder or decoder. On ImageNet-256, the 29M-parameter convolutional model reaches 0.28 rFID and 32.54 dB PSNR under an approximately 30-epoch two-stage training budget, using approximately 65% fewer parameters than the 84M reference VAEs. A non-adversarial Transformer ablation with the same execution graph finds competitive PSNR and SSIM under global sharing, although unshared blocks improve LPIPS. Targeted loop interventions show that completing the trained recurrence improves reconstruction and that even small feature updates can have substantial downstream effects. Truncation also exposes output-range errors, distinguishing useful recurrent computation from reliable early exit. Runtime profiling reveals the execution tradeoff: fewer stored weights require more arithmetic and longer runtime in the tested configurations. With convolutional and Transformer operators and single- or multi-resolution latent interfaces, LoopVAE establishes recurrent depth across scales as a parameter-sharing design axis for visual tokenization.",
+      "authors": [
+        "Zhiying Lu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-09-10T13:20:03+00:00",
+      "link": "https://arxiv.org/pdf/2609.11516v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "VAE latent variable visual tokenization",
+      "llm_evidence_cn": "VAE潜变量视觉分词",
+      "llm_evidence": "VAE潜变量视觉分词",
+      "canonical_evidence": "VAE潜变量视觉分词",
+      "llm_tldr_en": "Hierarchical visual tokenizers allocate separate blocks per scale. LoopVAE reuses a scale- and loop-conditioned core within and across scales, reaching 0.28 rFID and 32.54 dB PSNR on ImageNet-256 with about 65% fewer parameters than an 84M reference VAE.",
+      "llm_tldr_cn": "层次化视觉分词器通常为不同空间尺度分配不同处理模块，参数量较大。本文提出LoopVAE，在尺度内与跨尺度复用同一尺度与循环条件化的核心，同时保持分辨率变换的过渡模块独立，四次核心模块执行28次块应用。在ImageNet-256上，29M参数模型达到0.28 rFID与32.54 dB PSNR，参数比84M参考VAE少约65%，为高效视觉分词与VAE设计提供了新思路。",
+      "llm_tldr": "层次化视觉分词器通常为不同空间尺度分配不同处理模块，参数量较大。本文提出LoopVAE，在尺度内与跨尺度复用同一尺度与循环条件化的核心，同时保持分辨率变换的过渡模块独立，四次核心模块执行28次块应用。在ImageNet-256上，29M参数模型达到0.28 rFID与32.54 dB PSNR，参数比84M参考VAE少约65%，为高效视觉分词与VAE设计提供了新思路。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "variational autoencoders latent variable models",
+      "matched_requirement_id": "req-22",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.15193v1",
+      "source": "arxiv",
+      "title": "Convergence rates for generative drifting flows: fixed-scale obstructions and multihead acceleration",
+      "abstract": "Drifting models offer a promising route to faster generative AI: they perform gradual transport during training, while generating new samples in a single step. This paper asks whether the underlying drifting process can converge rapidly to a target distribution under ideal conditions, before finite-data or optimization effects are introduced. We show that its convergence rate depends critically on how it handles spatial scale. With a single fixed resolution, fine-scale features of the target can become nearly invisible, leading to extremely slow convergence. We introduce a multihead approach that combines scale-normalized information across a continuum of resolutions. We prove that this multihead approach restores exponential convergence near standard reference distributions. These results identify fixed resolution as a key bottleneck and provide a simple route to faster one-step generative models.",
+      "authors": [
+        "Arthur Stéphanovitch",
+        "Eddie Aamari"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-09-14T08:12:35+00:00",
+      "link": "https://arxiv.org/pdf/2609.15193v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "convergence theory for drifting generative flows and multihead flow acceleration",
+      "llm_evidence_cn": "漂移生成流的收敛理论与多头加速",
+      "llm_evidence": "漂移生成流的收敛理论与多头加速",
+      "canonical_evidence": "漂移生成流的收敛理论与多头加速",
+      "llm_tldr_en": "Drifting models promise fast single-step generation, but their convergence behavior was unclear. This paper shows the rate hinges on spatial scale, proves fixed-resolution drift suffers near-invisible fine-scale features, and introduces a multihead scale-normalized approach that restores exponential convergence.",
+      "llm_tldr_cn": "漂移模型有望实现单步快速生成，但其理想条件下的收敛速率此前并不清楚。本文分析发现收敛速度关键取决于对空间尺度的处理：单一固定分辨率会使细尺度特征近乎不可见，导致收敛极慢。为此提出跨连续多分辨率的尺度归一化多头方法，并证明其可恢复指数级收敛，为快速生成模型提供了收敛理论支撑。",
+      "llm_tldr": "漂移模型有望实现单步快速生成，但其理想条件下的收敛速率此前并不清楚。本文分析发现收敛速度关键取决于对空间尺度的处理：单一固定分辨率会使细尺度特征近乎不可见，导致收敛极慢。为此提出跨连续多分辨率的尺度归一化多头方法，并证明其可恢复指数级收敛，为快速生成模型提供了收敛理论支撑。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "recent advances in flow matching for generative modeling",
+      "matched_requirement_id": "req-29",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.13328v1",
+      "source": "arxiv",
+      "title": "Pedestrian Crossing Intent Classification From Event-Based Vision Using Convolutional Spiking Neural Networks With Temporal Augmentation",
+      "abstract": "Anticipating whether a pedestrian will cross the road is safety-critical for autonomous vehicles, requiring real-time inference under challenging conditions including motion blur, high dynamic range, and class imbalance. Conventional frame-based deep networks process redundant RGB data at fixed frame rates, limiting their temporal resolution and energy efficiency. In this work we present an end-to-end pipeline that (i) converts real-world driving footage from the Joint Attention in Autonomous Driving (JAAD) dataset into synthetic dynamic vision sensor (DVS) event streams using the v2e simulator, (ii) augments training with the CARLA-simulated DVS sequences of the DVS-PedX dataset under both normal and adverse weather conditions, and (iii) trains a novel convolutional spiking neural network (Conv-SNN) with clip-consistent DVS augmentation to classify pedestrian crossing intent as binary: crossing or non-crossing. We detail all architectural decisions, the exact leaky-integrate-and-fire neuron dynamics with surrogate-gradient learning, the class-balanced loss formulation, JAAD oversampling at 6x, and a 70/15/15 stratified splitting protocol. The trained model achieves 95.83% accuracy and F1 = 0.9695 on the JAAD DVS test set, 97.79% accuracy and F1 = 0.9478 on normal CARLA DVS, and 94.78% accuracy and F1 = 0.8369 on adverse-weather CARLA DVS, all from a 1.07M-parameter architecture trained on CPU. Compared to prior frame-based approaches on JAAD, our method closes or surpasses the reported accuracy while operating natively on sparse temporal representations. We include a thorough analysis of the convergence behaviour across all 15 training epochs, domain transfer characteristics, and a quantitative comparison with representative related work.",
+      "authors": [
+        "Henok Teklu",
+        "Mustafa Sakhai",
+        "Maciej Wielgosz",
+        "Matej Mertik"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-09-11T02:34:24+00:00",
+      "link": "https://arxiv.org/pdf/2609.13328v1",
+      "tags": [
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:self-driving"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "event-based vision for pedestrian crossing perception",
+      "llm_evidence_cn": "基于事件视觉的行人过街感知",
+      "llm_evidence": "基于事件视觉的行人过街感知",
+      "canonical_evidence": "基于事件视觉的行人过街感知",
+      "llm_tldr_en": "Anticipating pedestrian crossing is safety-critical but conventional frame-based networks waste redundant RGB data. The paper converts JAAD footage into event streams and trains convolutional spiking networks with temporal augmentation.",
+      "llm_tldr_cn": "预判行人是否过街对自动驾驶安全至关重要，但传统基于帧的深度网络以固定帧率处理冗余RGB数据，限制了时间分辨率与能效。本文构建端到端流水线，用v2e模拟器将JAAD驾驶视频转为合成动态视觉传感器事件流，并引入CARLA仿真的DVS-PedX序列进行时序增强。基于卷积脉冲神经网络在运动模糊、高动态范围与类别不平衡下实现实时行人过街意图分类。该工作为事件视觉在驾驶感知中的应用提供了高效方案。",
+      "llm_tldr": "预判行人是否过街对自动驾驶安全至关重要，但传统基于帧的深度网络以固定帧率处理冗余RGB数据，限制了时间分辨率与能效。本文构建端到端流水线，用v2e模拟器将JAAD驾驶视频转为合成动态视觉传感器事件流，并引入CARLA仿真的DVS-PedX序列进行时序增强。基于卷积脉冲神经网络在运动模糊、高动态范围与类别不平衡下实现实时行人过街意图分类。该工作为事件视觉在驾驶感知中的应用提供了高效方案。",
+      "llm_tags": [
+        "query:self-driving"
+      ],
+      "matched_query_tag": "query:self-driving",
+      "matched_query_text": "recent advancements in autonomous driving perception",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.15536v1",
+      "source": "arxiv",
+      "title": "Physics-Guided Conditional Flow Matching with Energy Regularization for Robust PDE Inverse Problems",
+      "abstract": "We consider partial differential equation (PDE) inverse problems from sparse, noisy, and corrupted observations, with the aim of recovering unknown coefficient fields and associated state variables in a mesh-free setting. Under such sparse and corrupted observations, standard physics-informed and generative approaches typically treat all samples indiscriminately and therefore lack a principled mechanism for reconciling physical laws with contaminated data. We address this difficulty with a two-stage flow-matching framework. In the first stage, we develop physics-guided conditional flow matching (PG-CFM), which incorporates strong-form PDE information through residual regularization along the generative trajectories together with intermittent global collocation constraints. In the second stage, we introduce energy-regularized flow matching (ERFM), which fine-tunes the Stage-1 model by assigning each observation a physics--data energy score from a frozen teacher and reweighting the flow-matching objective to reduce the influence of high-energy, PDE-inconsistent samples. We show that the resulting Stage-2 objective is equivalent to flow matching under a teacher-induced reweighted data distribution, which gives a population-level interpretation of the robustness mechanism. Numerical experiments on several inverse benchmarks, including Poisson and Navier--Stokes problems, show that the proposed framework yields more accurate coefficient recovery than robust PINN variants and competing generative baselines.",
+      "authors": [
+        "Yongsheng Chen",
+        "Shuo Lu",
+        "Wei Guo",
+        "Xinghui Zhong"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-09-14T13:22:16+00:00",
+      "link": "https://arxiv.org/pdf/2609.15536v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:gen-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "conditional flow matching for inverse problems",
+      "llm_evidence_cn": "用于反问题的条件流匹配",
+      "llm_evidence": "用于反问题的条件流匹配",
+      "canonical_evidence": "用于反问题的条件流匹配",
+      "llm_tldr_en": "PDE inverse problems from noisy sparse data lack physics-data reconciliation; this paper proposes physics-guided conditional flow matching with residual and energy regularization.",
+      "llm_tldr_cn": "在稀疏、含噪且被污染的观测下求解偏微分方程反问题极具挑战，标准物理信息方法与生成方法对所有样本不加区分，缺乏协调物理规律与污染数据的机制。本文提出两阶段流匹配框架，第一阶段构建物理引导条件流匹配，沿生成轨迹引入强形式PDE残差正则，并结合能量正则提升鲁棒性。实验表明该方法能在无网格设置下更稳健地恢复未知系数场与状态变量，拓展了流匹配在科学反问题中的应用。",
+      "llm_tldr": "在稀疏、含噪且被污染的观测下求解偏微分方程反问题极具挑战，标准物理信息方法与生成方法对所有样本不加区分，缺乏协调物理规律与污染数据的机制。本文提出两阶段流匹配框架，第一阶段构建物理引导条件流匹配，沿生成轨迹引入强形式PDE残差正则，并结合能量正则提升鲁棒性。实验表明该方法能在无网格设置下更稳健地恢复未知系数场与状态变量，拓展了流匹配在科学反问题中的应用。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "recent advances in flow matching for generative modeling",
+      "matched_requirement_id": "req-29",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.14261v1",
+      "source": "arxiv",
+      "title": "VGFM: Expressive Robot Policies via Dense Value Guidance in Flow Matching",
+      "abstract": "Recent robot learning paradigms increasingly rely on large offline datasets of robotic interactions to train control policies. Expressive generative models enable rich and multimodal action representations, expanding the capability of this paradigm for complex robotic control. However, policy improvement with multi-step generative actors remains challenging. In offline reinforcement learning (RL), incorporating value-based objectives along generative trajectories often introduces substantial training complexity, including backpropagation through time (BPTT), auxiliary architectures, or distillation losses. We propose Value-Guided Flow Matching (VGFM), a scalable offline RL framework that enables dense value-guided shaping within a flow-based policy while avoiding BPTT and additional algorithmic overhead. VGFM parameterizes the policy as a conditional flow-matching model in action (x-prediction) space, ensuring that each intermediate flow step produces a valid robot action that can be directly evaluated by a standard offline RL critic. This design allows value guidance to be applied at randomly sampled flow times without differentiating through the entire generative trajectory, while preserving inference-time flexibility by varying the discretization of the underlying flow ODE without retraining. Evaluated on robotic locomotion and manipulation tasks in OGBench, VGFM achieves strong performance across a wide range of tasks under rigorous evaluation protocols. With minimal hyperparameter tuning, these results demonstrate that VGFM provides a simple, scalable, and effective approach for expressive policy learning in long-horizon, goal-oriented robotic control.",
+      "authors": [
+        "Prajwal Koirala",
+        "Mark Campbell"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.LG"
+      ],
+      "published": "2026-09-13T03:50:52+00:00",
+      "link": "https://arxiv.org/pdf/2609.14261v1",
+      "tags": [
+        "keyword:gen-models",
+        "keyword:pendulum",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:pendulum",
+        "query:self-driving",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "flow matching generative policy with dense value guidance for robot control",
+      "llm_evidence_cn": "用于机器人控制的密集价值引导流匹配生成策略",
+      "llm_evidence": "用于机器人控制的密集价值引导流匹配生成策略",
+      "canonical_evidence": "用于机器人控制的密集价值引导流匹配生成策略",
+      "llm_tldr_en": "Policy improvement with multi-step generative actors in offline RL is hard, often needing backprop-through-time or distillation. This paper proposes Value-Guided Flow Matching (VGFM), embedding dense value-guided shaping inside a flow-based policy for scalable, expressive robotic control.",
+      "llm_tldr_cn": "离线强化学习中使用多步生成式策略时，价值目标往往带来反向传播、辅助架构或蒸馏等训练复杂度，难以进行策略改进。本文提出价值引导流匹配（VGFM），在流式策略内部直接嵌入密集的价值塑形，避免上述额外开销。该框架实现了可扩展的离线强化学习与多模态动作表示，提升了复杂机器人控制任务的表达力与训练效率。",
+      "llm_tldr": "离线强化学习中使用多步生成式策略时，价值目标往往带来反向传播、辅助架构或蒸馏等训练复杂度，难以进行策略改进。本文提出价值引导流匹配（VGFM），在流式策略内部直接嵌入密集的价值塑形，避免上述额外开销。该框架实现了可扩展的离线强化学习与多模态动作表示，提升了复杂机器人控制任务的表达力与训练效率。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.15643v1",
+      "source": "arxiv",
+      "title": "Principal-timestep Restricted Init via Sparse Matrix-decomposition in Flow-matching",
+      "abstract": "Flow-matching diffusion models have recently emerged as a strong paradigm for high-fidelity visual generation. However, their prohibitively high fine-tuning cost limits scalability to downstream tasks. While Low-Rank Adaptation (LoRA) combined with spectral initialization has demonstrated accelerated convergence and improved performance in autoregressive language models by better aligning gradient directions, we find that it fails to deliver similar gains in diffusion fine-tuning, often yielding marginal or even negative improvements over vanilla LoRA.We attribute this discrepancy to a fundamental mismatch between LoRA's low-rank parameterization and the intrinsically high-rank gradients induced by the flow-matching objective. In particular, stochastic timestep sampling introduces directionally heterogeneous gradient signals across training steps, leading to misaligned updates under low-rank constraints.To address this issue, we propose Prism-LoRA,a Principal-timestep Restricted Init via Sparse Matrix-decomposition framework that improves gradient alignment during fine-tuning. Our method consists of two key components: (i) principal timestep selection, which restricts initialization gradients to a subset of dominant timesteps to suppress effective gradient rank, and (ii) principal channel filtering, which removes task-irrelevant channels, enabling the one-step spectral initialization gradient to better align with the long-horizon optimization trajectory. Extensive experiments demonstrate that our method consistently improves both convergence speed and final performance across multiple diffusion fine-tuning benchmarks, including subject-driven generation, controllable generation, and deblurring, achieving not only performance improvement but also earlier stages of convergence over baseline LoRA and other spectral-init methods.",
+      "authors": [
+        "Jiayang Gu",
+        "Zheng Fang",
+        "Lichaun Xiang",
+        "Fanghui Liu",
+        "Xu Cai",
+        "Hongkai Wen"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-09-14T14:30:54+00:00",
+      "link": "https://arxiv.org/pdf/2609.15643v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:celebA-cf",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "sparse matrix-decomposition initialization for flow-matching fine-tuning",
+      "llm_evidence_cn": "面向流匹配微调的稀疏矩阵分解初始化",
+      "llm_evidence": "面向流匹配微调的稀疏矩阵分解初始化",
+      "canonical_evidence": "面向流匹配微调的稀疏矩阵分解初始化",
+      "llm_tldr_en": "The paper addresses the prohibitively high fine-tuning cost of flow-matching diffusion models and the failure of LoRA with spectral initialization to help. It attributes this to a mismatch between LoRA low-rank parameterization and high-rank gradients from the flow-matching objective, proposing principal-timestep restricted initialization via sparse matrix decomposition. This improves flow-matching fine-tuning convergence.",
+      "llm_tldr_cn": "该文针对流匹配扩散模型微调成本过高、限制下游扩展的问题展开研究。作者发现LoRA结合谱初始化在自回归语言模型中有效，但在扩散微调中收益甚微甚至为负，并将其归因于LoRA低秩参数化与流匹配目标所诱导的高秩梯度之间的根本错配。为此提出基于稀疏矩阵分解的主时间步受限初始化方法，以更好对齐梯度方向。该工作为流匹配生成模型的低成本适配提供了新思路。",
+      "llm_tldr": "该文针对流匹配扩散模型微调成本过高、限制下游扩展的问题展开研究。作者发现LoRA结合谱初始化在自回归语言模型中有效，但在扩散微调中收益甚微甚至为负，并将其归因于LoRA低秩参数化与流匹配目标所诱导的高秩梯度之间的根本错配。为此提出基于稀疏矩阵分解的主时间步受限初始化方法，以更好对齐梯度方向。该工作为流匹配生成模型的低成本适配提供了新思路。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.15072v1",
+      "source": "arxiv",
+      "title": "Branched Optimal Transport Amortization",
+      "abstract": "Methods of Branched Optimal Transport (BOT) mimic the economy and efficiency of natural tree-like structures, such as those found in rivers and biological systems. These methods are widely applicable for designing efficient networks in society, from river basins and blood vessels to mail and gas distribution systems. However, they remain understudied in the context of designing deep generative models, particularly at a large scale. Standard continuous-time generative models, such as the flow matching approach, fail to capture the inherent hierarchical and branching patterns present in real-world data. Current models provide no mechanism for flows to merge or share pathways to minimize total transport cost. Inspired by the \"economy of scale\" principle in BOT, we introduce a novel, scalable branched flow-matching algorithm designed to solve the branched optimal transport problem in high dimensions. Our method adapts the Benamou-Brenier continuous-time optimal transport formulation to learn branched generative flows. These flows allow probability mass to aggregate along common pathways before branching out to diverse targets. Parametrized by neural networks, our method effectively learns complex branched generative processes. We demonstrate its effectiveness on challenging high-dimensional tasks in biology and image generation.",
+      "authors": [
+        "Semyon Semenov",
+        "Viktor Kovalchuk",
+        "Meir Roketlishvili",
+        "Albert Baichorov",
+        "Fakhri Karray",
+        "Martin Takac",
+        "Arip Asadulaev"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-09-14T05:42:31+00:00",
+      "link": "https://arxiv.org/pdf/2609.15072v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "flow matching models fail to capture branching patterns",
+      "llm_evidence_cn": "流匹配模型难以刻画分支结构",
+      "llm_evidence": "流匹配模型难以刻画分支结构",
+      "canonical_evidence": "流匹配模型难以刻画分支结构",
+      "llm_tldr_en": "Flow matching and similar continuous-time generative models fail to capture hierarchical branching structure; inspired by branched optimal transport, the paper proposes an amortized BOT-based generative model allowing flows to merge and share paths.",
+      "llm_tldr_cn": "标准连续时间生成模型如流匹配难以捕捉真实数据中的层级与分支结构，其流之间无法合并或共享路径以最小化总传输成本。论文受分支最优传输的规模经济原则启发，提出一种可摊销的分支最优传输生成模型，使流能够合并与共享路径。该模型在大规模生成建模中刻画了数据的层级分支模式。该工作将分支最优传输引入深度生成模型，拓展了连续时间生成方法。",
+      "llm_tldr": "标准连续时间生成模型如流匹配难以捕捉真实数据中的层级与分支结构，其流之间无法合并或共享路径以最小化总传输成本。论文受分支最优传输的规模经济原则启发，提出一种可摊销的分支最优传输生成模型，使流能够合并与共享路径。该模型在大规模生成建模中刻画了数据的层级分支模式。该工作将分支最优传输引入深度生成模型，拓展了连续时间生成方法。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "flow matching method for generative modeling",
+      "matched_requirement_id": "req-24",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2609.15702v1",
+      "source": "arxiv",
+      "title": "Backward SDEs-based Diffusion for Physics-Constrained Generation",
+      "abstract": "Pretrained score-based diffusion models provide strong unconditional priors, yet enforcing measurement or physics consistency in inverse problems is often handled by heuristic guidance, intermittent projections, or task-specific conditional training, with limited guarantees of feasibility at the end of inference. We propose terminal-conditioned inversion for score-based SDE priors. Given a frozen Score-SDE prior and a task-defined terminal feasibility specification, we construct an associated backward stochastic differential equation whose adapted solution defines a principled inverse map from the terminal requirement to a prior state at a chosen noise level. Under standard regularity conditions, we establish existence and uniqueness of the adapted solution and obtain terminal consistency by construction. We further develop a practical neural BSDE solver that composes arbitrary pretrained diffusion priors with domain constraints without modifying the score-defined coefficients, producing an anchored prior state that enables neighborhood sampling for uncertainty characterization. Experiments on toy datasets validate stable terminal-conditioned inversion and distributionally consistent neighborhood sampling. As a real-world case study, we apply the framework to sparse-view CT reconstruction and achieve improved reconstruction quality over representative training-free baselines while satisfying strict measurement feasibility under the prescribed terminal specification. Project is available in: \\href{https://laplacelab.github.io/BSDEDiffusion/}{https://laplace.center/icmlbsdeI/}",
+      "authors": [
+        "Zihao Wang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-09-14T15:05:13+00:00",
+      "link": "https://arxiv.org/pdf/2609.15702v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:gen-models"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "score-based diffusion SDE for constrained generation",
+      "llm_evidence_cn": "基于分数SDE的约束生成扩散模型",
+      "llm_evidence": "基于分数SDE的约束生成扩散模型",
+      "canonical_evidence": "基于分数SDE的约束生成扩散模型",
+      "llm_tldr_en": "Enforcing physics or measurement consistency in score-based diffusion inverse problems usually relies on heuristic guidance; this work proposes terminal-conditioned inversion building a backward SDE whose solution gives a principled inverse map with existence and uniqueness guarantees.",
+      "llm_tldr_cn": "预训练分数扩散模型虽提供强先验，但在逆问题中施加测量或物理一致性常依赖启发式引导与间歇投影，末端可行性缺乏保证。本文提出终端条件反转方法，给定冻结的Score-SDE先验与任务定义的终端可行性规范，构造后向随机微分方程，其适应解给出从终端要求到选定噪声水平先验状态的原则性逆映射。作者在标准正则条件下证明了解的存在唯一性，为物理约束生成提供理论保障。",
+      "llm_tldr": "预训练分数扩散模型虽提供强先验，但在逆问题中施加测量或物理一致性常依赖启发式引导与间歇投影，末端可行性缺乏保证。本文提出终端条件反转方法，给定冻结的Score-SDE先验与任务定义的终端可行性规范，构造后向随机微分方程，其适应解给出从终端要求到选定噪声水平先验状态的原则性逆映射。作者在标准正则条件下证明了解的存在唯一性，为物理约束生成提供理论保障。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "score based generative models recent",
+      "matched_requirement_id": "req-25",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2609.15357v1",
+      "source": "arxiv",
+      "title": "Diffusion Trajectory Modeling for Semantic Correspondence",
+      "abstract": "Diffusion models generate images through an iterative diffusion process, and recent studies have demonstrated that the intermediate feature maps produced during this process contain rich visual representations, leading to their adoption across a variety of downstream tasks. However, most existing approaches are limited to either using a single feature map at a specific timestep or aggregating feature maps across multiple timesteps. We observe that intermediate representations in the diffusion process form meaningful trajectories along the time axis. In particular, the representation of each spatial patch evolves progressively throughout the generative process, encoding semantics that are difficult to capture from static snapshots alone. This observation motivates the need to treat diffusion representations as temporally structured trajectories rather than static snapshots. To this end, we propose Diffusion Trajectory Modeling (DTM), a framework that interprets the temporal evolution of each spatial patch as a trajectory and leverages it for semantic correspondence. By effectively modeling patch-wise trajectories generated across multiple timesteps, DTM captures correspondence cues that prior methods are not designed to capture. We further demonstrate empirically that spatially corresponding patches form similar trajectory patterns throughout the diffusion process, suggesting that the temporal axis of diffusion carries semantic information. Experiments on SPair-71k, SPair-U and AP-10K show that DTM achieves strong performance, presenting a new perspective for exploiting diffusion representations from a trajectory-centric viewpoint.",
+      "authors": [
+        "Yusung Choi"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-09-14T10:39:44+00:00",
+      "link": "https://arxiv.org/pdf/2609.15357v1",
+      "tags": [
+        "keyword:causal-rep",
+        "keyword:celebA-cf",
+        "keyword:cf-image-gen",
+        "keyword:gen-models",
+        "keyword:self-driving",
+        "keyword:world-models",
+        "query:causal-rep",
+        "query:cf-image-gen",
+        "query:gen-models",
+        "query:world-models"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "diffusion model intermediate feature trajectories for semantic correspondence",
+      "llm_evidence_cn": "利用扩散模型中间特征轨迹进行语义对应",
+      "llm_evidence": "利用扩散模型中间特征轨迹进行语义对应",
+      "canonical_evidence": "利用扩散模型中间特征轨迹进行语义对应",
+      "llm_tldr_en": "Diffusion models produce rich intermediate features. This work observes that these features form meaningful trajectories over timesteps and leverages them for semantic correspondence, going beyond single-timestep snapshots.",
+      "llm_tldr_cn": "扩散模型在迭代生成过程中产生的中间特征图蕴含丰富视觉表征，但现有方法多只用单一时间步或简单聚合多步特征。作者观察到每个空间块的表征沿时间轴演化形成有意义的轨迹，编码了静态快照难以捕捉的语义。基于此提出扩散轨迹建模方法用于语义对应，在相关基准上验证了其有效性，为生成模型特征的下游复用提供了新视角。",
+      "llm_tldr": "扩散模型在迭代生成过程中产生的中间特征图蕴含丰富视觉表征，但现有方法多只用单一时间步或简单聚合多步特征。作者观察到每个空间块的表征沿时间轴演化形成有意义的轨迹，编码了静态快照难以捕捉的语义。基于此提出扩散轨迹建模方法用于语义对应，在相关基准上验证了其有效性，为生成模型特征的下游复用提供了新视角。",
+      "llm_tags": [
+        "query:gen-models"
+      ],
+      "matched_query_tag": "query:gen-models",
+      "matched_query_text": "diffusion models and flow matching",
+      "matched_requirement_id": "req-21",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}
