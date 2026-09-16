@@ -1,0 +1,328 @@
+Title: Converting Sequenced Fuzzy Cognitive Maps to Causal Virtual Worlds with Large Video Generators
+
+URL Source: https://arxiv.org/pdf/2609.14985v1
+
+Published Time: Tue, 15 Sep 2026 02:17:23 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# Converting Sequenced Fuzzy Cognitive Maps to Causal Virtual Worlds with Large Video Generators 
+
+Akash Kumar Panda 1 and Olaoluwa Adigun 2 and Bart Kosko 3
+
+Abstract— We show how users can create and manipu-late causal virtual worlds with large-language-model (LLM) and large-video-model agents. The approach uses feedback fuzzy cognitive maps (FCMs) both to model the granular causal structure of the virtual world and to guide its causal evolution. The local causal rules are partial or fuzzy while the FCM’s feedback structure produces global equilibria that define causal scenarios. A sequence of dynamical meta-rules of the form “If A then B” define the causal scenes of the virtual-world video. The if-part causal pattern A perturbs the FCM’s virtual world at the user’s or agent’s discretion. The FCM’s transient feedback dynamics define the meta-rule’s causal arrow of implication. The then-part B is the resulting equilibrium attractor such as a FCM limit cycle or fixed point. Our algorithm extracts these meta-rules from the FCM and guides the LLM agent to write a script based on the FCM meta-rule sequence. The large video generator converts the meta-rule into a video scene in accord with the flow of the dynamics. We applied the agent-based technique to a simple FCM that describes an undersea world of dolphins and sharks. Google’s Gemini 3.1 generated the script and Google’s Veo 3.1 generated the dolphin-shark video. The approach is general and can scale by mixing larger FCMs and AI agents to produce more immersive virtual worlds. 
+
+I. Agentic AI Generation of Virtual Worlds from Sequenced Fuzzy Cognitive Maps We show how to generate realistic causal virtual-world videos by combining feedback Fuzzy Cognitive Maps (FCMs) with large-video-generator agents. This new virtual-world technique is general and scales for arbitrary mixed causal-graph FCMs combined with controlled AI agents. As OpenAI has stated: “scaling video generation models is a promising path towards building general purpose simulators of the physical world.” [1] Sequenced FCM dynamics offers a practical way to approximate such models. Figure 1 shows the system flow of stimulated FCM causal patterns that produce an AI-generated 1-minute video from a simple 5-node FCM. The FCM defines a coarse-grained undersea world of dolphins and sharks. We use this simple dolphin FCM because over the decades it has become a type of small-scale test and teaching model of an FCM [2]. The FCM itself is a        
+
+> 1Akash Kumar Panda is with the Deparment of Electrical and Computer Engineering, University of Southern California, Los Angeles, CA, USA
+
+akashpan@usc.edu  
+
+> 2Olaoluwa Adigun is with the School of Computing and Informa-tion Sciences, Florida International University Miami, FL 33199, USA
+
+olaadigu@fiu.edu  
+
+> 3Bart Kosko is with the Deparment of Electrical and Computer Engineering, University of Southern California, Los Angeles, CA, USA
+
+kosko@usc.edu 
+
+nonlinear feedback dynamical system whose causal graph is signed and weighted or partial to reflect partial or fuzzy causality [3], [4], [4]–[10]. The local causal rule structure of the FCM helps make the nonlinear system interpretable or explainable [11], [12]. The FCM-generated video shows how a pod of playful dolphins responds to the threat of a large tiger shark. The video uses a sequence of 8 scenes as we explain in detail in the next two sections. Figure 2 shows further snapshots from the video. Figure 3 shows the 5-node dolphin-shark FCM and its corresponding 5-by-5 causal edge matrix E. This paper uses just this small FCM to illustrate the process of generating virtual worlds although we stress again that the process is completely general for any size or mixture of FCMs. Figure 4 shows the sequence of 8 scenes as 8 input-output pairs of stimulated FCM states that map to equilibrium limit cycles or fixed-point attractors. This gives a type of dynamical system “storyboard” of the FCM-based video or virtual world. Users can pick the stimulus patterns directly or ask the AI agent to pick the nearest-matching patterns for them. Users can also allow an agent to pick the stimulus patterns itself. Figures 5-8 show frames from the first 4 scenes of the final video. Figure 9 shows all sequenced limit cycles used. The key insight is that a FCM dynamical system defines a set of causal meta-rules of the form Aj → B j .We “sequence” or impose a time order on these FCM meta-rules. We then use the sequenced meta-rules to drive the time-ordered scenes of the generated video or virtual world. The nonlinear FCM dynamical system F itself is a time-varying mapping F : Rn → Rn from a causal pattern space such as Rn back into itself. A pulsed or sustained (“clamped”) input vector x ∈ Rn produces a sequence of transient causal states that ends in an equilibrium attractor that can range from a fixed point to a limit cycle to aperiodic chaos. The simple binary-state dolphin FCM in Figure 3 always ends in a limit cycle or a fixed-point attractor that lives inside the binary 5-cube 
+
+{0, 1}5. The fuzzy causal edge values eij of the directed causal edge from concept node Ci to node Cj takes values in the bipolar interval [−1, 1] in general where positive values eij > 0 denote causal increase and negative values 
+
+eij < 0 denote causal decrease and eij = 0 denotes no causal effect. arXiv:2609.14985v1 [cs.AI] 14 Sep 2026 The global meta-rule Aj → B j asks and answers its own “what-if” question: What dynamical equilibrium 
+
+Bj results if we perturb the FCM causal system with new input x or otherwise knock it into a new state of disequilibrium Aj ?So the implication arrow “ →” in the meta-rule Aj →Bj is not a classical logical or material-implication operator. The arrow is instead a causal implicant that depends on system transients and hence depends on time in general. These are unconstrained rules. The user can add constraint rules that guide or extend the equilibria and so modify the FCM video. The resulting set of such dynamical meta-rules Aj →Bj endows the FCM system a with a global level of explainability or XAI. This still holds in the general case when we take convex combinations w1F1 + · · · + wK FK
+
+of K-many FCMs F1, . . . , FK for nonnegative mixing weights wj that sum to unity and that can depend on x.Mixing FCM causal edge matrices E1, . . . , E K always produces a new causal edge matrix and thus always produces an FCM F. Appropriate zero-padding of rows and columns ensures that the mixed causal edge matrices are conformable for matrix addition. This mixing-closure property greatly extends the ap-plication reach and knowlege-representation power of FCMs. Users can combine and uncombine and adapt the underlying mixed FCM at will. Users can also pick the mixed meta rules and especially the disequilibrium stimuli Aj at will to create and change the virtual world. Agentic AI systems can further assist in this immersive world-creating process. The next section reviews FCMs and show how to sequence and fire their meta-rules. It shows how the dolphin FCM’s 8 causal meta-rules A1 → B 1, . . . , A8 →B8 become the 8 scene prompts to the AI video generator. The last section explains how to convert these FCM scenes to prompts that control Google’s Veo 3.1 large-video generator by way of Algorithm 1 below. We here focus on user-driven choices of meta-rules Aj → B j and resulting scenes but recent work shows that we can easily use large language models (LLMs) to generate FCM knowledge graphs from text or vice versa [13] in more complex agentic AI systems. II. Sequenced Fuzzy Cognitive Maps A. Fuzzy Cognitive Maps (FCM) FCMs model causal dynamical systems as directed weighted graphs [3], [4], [4]–[10]. The concept nodes describe the causal variables in the dynamical system and the directed edges describe the causal relationships between those nodes. FCMs allow feedback and there-fore converge to non-trivial equilibria like limit cycles. FCMs model dynamical systems by approximating their underlying maps from inputs to equilibria. B. Causal Edge Matrix The directed edges of the FCM describe the causal relationships between concept nodes. An edge eij from the ith concept node Ci to the jth concept node Cj
+
+means “ Ci causes Cj ”. The fuzzy edge weights describe partial causality and we use the same symbol for this value—it can also vary with time. The causal edge weight 
+
+eij ∈ [−1, 1] on the ij th edge states the degree to which 
+
+Ci causes Cj :
+
+eij = Degree (Ci → Cj ). (1) A positive eij means that Cj increases when Ci increases and a negative eij means that Cj decreases if Ci
+
+increases. The weight eij is zero when there is no causal edge between Ci and Cj . The magnitude of eij is high if there is a strong causal relationship between Ci and Cj . A low magnitude of eij describes a weak causal relationship between Ci and Cj .An n × n matrix E describes all the directed weighted edges of a n-node FCM. The causal edge weight eij 
+
+corresponds to the matrix element on the ith row and the jth column. The matrix element is zero if there is no edge between the corresponding node-pair. Figure 3 shows the dolphin FCM with 5 nodes: “Herd Clustering”, “Fatigue”, “Rest”, “Survival Threat”, and “Run Away”. The figure also shows its corresponding causal edge matrix. The matrix element e45 on the 4th 
+
+row and the 5th column is 1 because there is a positive edge with weight 1 from the 4th concept node “Survival Threat” to the 5th concept node “Run Away”. This says that the dolphins “run away” when a “survival threat” like a shark is present. C. FCM Evolution A n-dimensional row vector C(t) ∈ [0 , 1] n describes the state of the FCM’s concept nodes at time t. The ith node is “active” or “on” at time t if the ith component Ci(t)
+
+of the state vector C(t) is equal to or close to one. The 
+
+ith node is “inactive” or “off” at time t if Ci(t) is equal to or close to zero. A node is partially active otherwise. The causal variables corresponding to the active nodes are present in the system and those corresponding to the inactive nodes are absent. The causal factors are partially present in the system if their corresponding nodes are partially active. Consider the dolphin FCM in figure 3. If C(t) =(0 0 0 1 0) then the 4th node “Survival Threat” is “on” and all other nodes are “off” at time t. This means there is a “threat” like a shark lurking around. FCMs evolve in discrete time through vector-matrix multiplication and nonlinear compression–at least in the simple FCM we use for this video creation. The state 
+
+Cj (t + 1) of the jth concept node Cj at discrete time step t + 1 is: 
+
+Cj (t + 1) = Φ 
+
+( n∑
+
+> i=1
+
+Ci(t) eij 
+
+)
+
+(2) Scene 4 
+
+> Clamp ON
+> Survival Threat
+> Clamp OFF
+> Herd Clustering
+
+Scene 6 
+
+> Clamp ON
+> Survival Threat
+> Clamp OFF
+> Fatigue
+
+Scene 5 
+
+> Clamp ON
+> Survival Threat
+> Clamp ON
+> Rest
+
+Scene 7 
+
+> Clamp OFF
+> Fatigue
+
+Scene 1 
+
+> Clamp ON
+> Herd Clustering
+
+Scene 2 
+
+> Pulse ON
+> Survival Threat
+
+Scene 3 
+
+> Clamp ON
+> Survival Threat
+
+Scene 8 
+
+> Unclamp
+> All Nodes
+
+Edges :
+
+C1 : Herd Clustering  C2: Fatigue  C3: Rest  C4: Survival Threat  C5: Run Away 
+
+Nodes :
+
+> Herd Clustering
+> Clamped ON
+
+Scene 1 
+
+C2
+
+C3
+
+C1
+
+C5
+
+C4
+
+Dolphin FCM 
+
+during 
+
+> No clamped node
+
+C1
+
+C2C5
+
+C4 C3
+
+Scene 8 
+
+Dolphin FCM 
+
+during Fig. 1: Frames from a video of the virtual world generated from a 5-node Fuzzy Cognitive Map (FCM) that models dolphin behavior in presence of a “Survival Threat”. The video shows a pod of dolphins running away from a shark over 8 scenes. The input stimulus for each scene is above the frame corresponding to the scene. The figures on the left and right of the video frames show the respective state of the FCM at the beginning and the end of the video. The figure highlights clamped node “Herd Clustering” in green. 
+
+if Φ is a nonlinear function bounded between zero and one. The sum ∑ni=1 Ci(t) eij is the matrix product between the state row-vector C(t) and the edge matrix E.The nonlinear function Φ then compresses this product between zero and one. We stress that Φ is an arbitrary but bounded nonlinear function in general even though here we use the simplest case of a threshold nonlinearity. This process repeats itself to give the discrete-time evolution of the FCM. The FCM starts with the initial state C(0) at time t = 0 and then goes through the states C(1) , C(2) , C(3) , and so on in order. The active nodes in this state-vector sequence qualitatively describe the trajectory of the dynamical system that the FCM models. Consider the dolphin FCM with an initial state C(0) = (0 0 0 1 0). Equation 2 and figure 3(b) give C(1) = (1 0 0 0 1). “Survival Threat” was active at t = 0 
+
+and “Herd Clustering” and “Run Away” were active at 
+
+t = 1 . This shows the dolphins’ behavior in the presence of a shark. They group themselves together in herd clusters and run away from the shark. D. FCM Equilibria The equilibria characterize a dynamical system. The equilibrium behavior of the FCM depends on the lim-iting behavior of the state-vector sequence. The FCM converges to a “fixed point” if the state-vector sequence converges to a constant vector. The FCM converges to a K-step “limit cycle” for an integer K > 1 if 
+
+C(t+K) = C(t) somewhere in the state-vector sequence. Then the FCM converges to an equilibrium where K
+
+state vectors repeat themselves over and over in the same order. The FCM may also converge to a chaotic attractor where there are no repeating patterns in the state-vector sequence. Consider the dolphin FCM with same initial state 
+
+C(0) = (0 0 0 1 0). Equation 2 and fig-ure 3(b) give C(1) = (1 0 0 0 1), C(2) =(0 1 0 0 0), C(3) = (0 0 1 0 0), and C(4) = (0 0 0 1 0) = C(0) . The state vectors C(0) , C(1) ,
+
+C(2) , and C(3) repeat themselves over and over in the same order. The dolphin FCM converges to a 4-state limit cycle. The active nodes in these states respectively are “Survival Threat”, “Herd Clustering” and “Run Away”, “Fatigue”, and “Rest”. So dolphins run away from threats like sharks in herd clusters. They then get tired and need to rest. The shark then catches up to the dolphins while they rest. This starts the cycle all over again. The set of all initial conditions C(0) that lead to a given equilibrium describes the “basin of attraction” for that equilibrium. The FCM describes a map from these basins to their corresponding equilibrium attractors. The basins of the FCM’s equilibria partition the FCM’s input space. The FCM models a dynamical system by approximating its corresponding basin-to-equilibrium map. E. Causal State Activation: Clamping vs. Pulsing “Clamping” the kth node Ck to a value ck ∈ [0 , 1] forces 
+
+Ck(t) to equal ck irrespective of the values of other nodes (a) Scene 1 (b) Scene 2 
+
+(c) Scene 3 (d) Scene 4 
+
+(e) Scene 5 (f) Scene 6 
+
+(g) Scene 7 (h) Scene 8 
+
+Fig. 2: Limit cycle 1: Interaction of a dolphin pod and a tiger shark in a water. (a). Scene 1: The dolphin pod rests and plays. (b). Scene 2: The dolphin pod runs away from a threat, gets tired, and rests. (c). Scene 3: The dolphins swim in a herd cluster to avoid a large tiger shark. (d). Scene 4: The tiger shark breaks the dolphins’ herd-cluster apart as the dolphins tire. (e). Scene 5: The tired dolphins stop running away and regroup in a tighter herd-cluster. (f). Scene 6: The dolphins push through their fatigue and swim away from the large tiger shark. (g). Scene 7: The dolphin pod gets away from the large tiger shark. (h). Scene 8: The dolphin goes back to playing and resting until their next shark encounter. C3: Rest  
+
+> 1
+> 1
+> 1
+> 1
+> 11
+> -1
+> -1
+> -1 -1
+> -1
+> -1
+> `
+> `
+> C5: Run
+> Away
+> C1: Herd Clustering
+> C4: Survival Threat
+> C2: Fatigue (a)
+
+E =C1 C2 C3 C4 C5
+
+C1
+
+C2
+
+C3
+
+C4
+
+C5
+
+
+
+0 1 0 −1 00 0 1 0 −10 −1 0 1 −11 0 −1 0 1
+
+−1 1 0 −1 0
+
+                      
+
+> (b) Fig. 3: The 5-node Dolphin FCM with trivalent causal edges. (a) The directed weighted graph for the dolphin FCM. The directed edge eij is trivalent because eij ∈ {− 1,0,1}but in general can be properly fuzzy and take on any directed causal degree in the bipolar interval [−1,1] . The positive edges are in blue and the negative edges are in red. (b) The causal edge matrix Ethat corresponds to the dolphin FCM. The 5 concept nodes C1-C5index both the rows and the columns. The matrix elements give the edge weights
+> eij . The positive edge values eij >0are in blue and the negative edge values eij <0are in red.
+
+at time t−1. The kth node is clamped “on” if ck ≈ 1 and it is clamped “off” if ck ≈ 0. Clamping acts as a forcing function and pushes the FCM into new equilibria. FCMs can clamp one or more nodes at a time. Clamping is often a way to implement policies and answer What-if questions regarding their effects. Clamping on the “Survival Threat” node changes the dolphin FCM’s limit cycle from (0 0 0 1 0)
+
+→ (1 0 0 0 1) → (0 1 0 0 0) →(0 0 1 0 0) → (0 0 0 1 0) to a new 3-state limit cycle (0 1 0 1 0) → (1 0 0 1 0)
+
+→ (1 1 0 1 0) → (0 1 0 1 0). The active nodes in this new limit cycles respectively are “Fatigue” and “Survival Threat”; “Herd Clustering” and “Survival Threat”; and “Herd Clustering”, “Fatigue”, and “Survival Threat”. The shark is always present in this case. The dolphins cluster and get tired over and over. The nodes “Rest” and “Run Away” always off because the dolphins do not get a chance to rest and they never escape the shark. FCMs can also ‘pulse’ a node instead of clamping it. ‘Pulsing’ the kth node Ck to a value ck at time t0 forces 
+
+Ck(t0) to equal ck irrespective of the values of other nodes at time t0 −1. This only affects the FCM at time t0
+
+and the FCM reverts back to its unperturbed dynamics after t0. The node Ck pulses ‘on’ at time t0 if Ck(t0) ≈ 1
+
+and it pulses ‘off’ at time t0 if Ck(t0) ≈ 0. FCMs can also pulse more than one node at a time. The unperturbed dolphin FCM may converge to its fixed point (0 0 0 0 0). “Survival Threat” ‘on’-pulse can drive the FCM into a 4-step limit cycle instead. F. FCM Sequencing FCM sequencing stimulates the FCM with a sequence of clamping patterns Ak to push it through a correspond-ing sequence of equilibria Bk. This map from stimulus patterns Ak to their corresponding FCM equilibria Bk
+
+define a set of causal ‘if-then’ meta-rules Ak → B k.The causal if-part Ak stimulates the FCM at the user’s discretion through clamps and pulses. The arrow →
+
+describes the transient dynamics that connect Ak to its corresponding equilibrium Bk. The stimulus pattern destroys the FCM’s prior equilibrium and before pushing it into a new one. Figure 4 shows this process for a sequence of 8 if-parts 
+
+A1-A8 to the dolphin FCM. The figure also shows the corresponding then-parts B1-B8. The transition from the if-part stimulus to the then-part equilibrium defines each of the 8 scenes in the virtual world video. Scene 1 clamps on “Herd Clustering” and shows the FCM converging to a 4-stage limit cycle. The dolphins play together as a group, get tired, rest, and then go back to playing. Scene 2 disrupts this equilibrium B1 by unclamping “Herd Clustering and ‘on’-pulsing “Survival Threat”. This moves the system from B1 to another 4-stage limit cycle B2 where the dolphins come across a shark, run away, get tired, rest, and encounter the shark again. Scene 3 then interrupts this equilibrium through stimulus A3. This process then repeats 5 more times with stimuli A4-A8. The FCM in turn converges to 2 more limit cycles B4 and B8 and 3 more fixed points B5-B7.The 8 scenes together tell the story of a pod of dolphins that gets chased by a persistent shark and has to push through fatigue to escape. Figures 5-8 show the equilibria B1-B4 in detail. They show one frame from each state of the limit cycles. They also show the active nodes in those states. The limit cycle for B8 is the same as B2. The FCM equilibria B5-B7 are fixed points and thus have only one state. Figure 2(e)-(g) show the video frames that best represent those fixed-point states. III. Agentic Control of Large Video Generator Scene Prompts We present the agentic control for generating the causal virtual world for an FCM. This explains how to generate a video from a sequence of equilibria for an FCM with a large video generator. The sequence of equilibria comes from the concatenation of equilibria that result from the combination of input pulse signals and node Fig. 4: Sequenced dolphin FCM Equilibria: A sequence of 8 input patterns and clamping conditions Ak stimulate the dolphin FCM into their respective equilibria Bk . The scene k stimulates the FCM with Ak . This breaks the FCM’s prior equilibrium Bk−1 and pushes it into its new equilibrium Bk .
+
+Algorithm 1: Causal Virtual World Generation Input: G=( V, E): FCM with E∈Rn×n;
+
+c(0) ∈{ 0, 1}n: initial state and clamping conditions; T : time steps; φ(·): threshold function; Pscript : LLM scripting prompt; 
+
+Pvideo : LVM generation prompt; LLM (·),LVM (·): language and video models Output: D: causal virtual world documentary // Step 1: FCM Simulation  
+
+> 1
+
+Initialize C←{ } , c←c(0) ; 
+
+> 2
+
+for t = 0 to T − 1 do  
+
+> 3
+
+Store C[·, t ] ← c, then update c ← φ(E · c); 
+
+> 4
+
+end  
+
+> 5
+
+Detect equilibrium: set eq ← FixedPoint or 
+
+LimitCycle ;// Step 2: LLM Script Generation  
+
+> 6
+
+Analyze C for START , STOP , PERSIST transitions across all t; 
+
+> 7
+
+SC ← LLM (Pscript , V, C, eq ) ; // yields title +
+
+T scene descriptors {pt, lt t}
+
+// Step 3: LVM Clip Generation and Assembly  
+
+> 8
+
+D ← LVM (Pvideo , {pt}, {lt t}, SC .title ) ;// generate and concatenate clips  
+
+> 9
+
+return D;clamping operation. We tested our method with Google’s Veo 3.1 video generator. Our method involves two main steps: screenwriting and movie production The screenwriting step converts an input sequence of equilibria into a movie script. The script comprises multiple scenes. Each script can capture the causal information of a single state, a sequence of states, or a single equilibrium state. The choice depends on multiple factors: the number of FCM nodes, the degree of information granularity in the visual world, the maximum video length of the video generator agent, and so on.    
+
+> Fig. 5: Scene 1 from the virtual world video. A1stimulates the dolphin FCM by clamping on the “Herd Clustering” node. The dolphin FCM the converges to a 4-stage limit cycle B1. The figure shows one frame from each stage of the limit cycle and also mentions their corresponding active nodes next to the frame.
+
+An LLM agent with screenwriting prompt Pscript turns a list of active nodes in an FCM state vector into a sentence that describes the state based on the node names. The agent turns the equilibrium state sequence into a paragraph that describes the FCM equilibrium. The agent condenses that 1-paragraph description into a sentence that describes a scene. These scene descriptions form the script for the video generator. The movie production feeds the movie script into the video generator agent and prompts it with Pvideo 
+
+to create the video. This video generation can be a single continuous shot or a sequence of shots. The single continuous shot generates all the scripts once. The max-imum supported duration of the video generator agent constrains this approach. It may truncate important information. The sequential approach decomposes the main script into multiple sub-scripts. The system first Fig. 6: Scene 2 from the virtual world video. A2 stimulates the dolphin FCM by pulsing on the “Survival Threat” node. The dolphin FCM the converges to a 4-stage limit cycle B2. The figure shows one frame from each stage of the limit cycle and also mentions their corresponding active nodes next to the frame.    
+
+> Fig. 7: Scene 3 from the virtual world video. A3stimulates the dolphin FCM by clamping on the “Survival Threat” node. The dolphin FCM the converges to a 3-stage limit cycle B3. The figure shows one frame from each stage of the limit cycle and also mentions their corresponding active nodes next to the frame.
+
+generates a video segment for the initial sub-script. Then it produces the second video segment conditioned on the first segment. Each subsequent generation conditions on the cumulative output of prior video segments. This recursive cycle continues until the sub-script sequence concludes. The sequential method enables longer video durations than one-shot approaches. Algorithm 1 shows the complete method for script and video generation. We present two agentic control methods based on autonomy levels. These include semi-autonomous and autonomous generations. Both methods utilize the two-step process of screenwriting and movie production. But each method varies in autonomy level during the    
+
+> Fig. 8: Scene 4 from the virtual world video. A4stimulates the dolphin FCM by clamping on the “Survival Threat” node as well as clamping off the “Herd Clustering Node. The dolphin FCM then converges to a 4-stage limit cycle B4. The figure shows one frame from each stage of the limit cycle and also mentions their corresponding active nodes next to the frame.
+
+screenwriting step. A. Semi-autonomous agentic control An LLM agent executes the screenwriting phase of this agentic control method. This operator converts a sequence of equilibria into a script. Script scenes align with state transitions within the equilibria sequence. Each scene details granular information derived from active state variables or nodes. The agent reads the vector sequence directly or employs an intermediate visualization. The agent inputs the script into the video generator agent. This agent transforms the script into a video or storyboard. Let us consider the 5-node dolphin FCM in Figure 3. Figure 4 shows the links between a sequence of the dolphin FCM equilibria with pulsing and clamping. The sequence comprises of 8 equilibrium cases from the FCM. Figure 9 visualizes the 8 equilibria and their transitions. Each scene corresponds to an equlibrium state. An LLM agent annotated the sequenced equilibria into a movie script. The movie script is divided into three parts: task description, summary, and the scene description for each equilibrium state. The task descrip-tion captures the high-level description of the movie. The summary provides more specific information. The scene descriptions translates the state variables into visual elements, dialogue and character interactions that advance the central narrative as laid out in the summary. Each scene in Figure 9 captures the causal transition from the causal if-part Ak to its corresponding equi-librium Bk. Consider the first pair ( A1, B1). The first column C(0) = [C1(0) , C 2(0) , C 3(0) , C 4(0) , C 5(0) ]. The if-part corresponds to clamping on the “Herd Clustering” node while other nodes start in the OFF state. The 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29    
+
+> Time step
+> C5: Run Away
+> C4: Survival Threat
+> C3: Rest
+> C2: Fatigue
+> C1: Herd Clustering Scene 1 Scene 2 Scene 3 Scene 4 Scene 5 Scene 6 Scene 7 Scene 8
+> Clamped OFF OFF ON Clamped ON Fig. 9: Sequence of all FCM equilibria in the video: Clamped-on states are in red and clamped-off states are in blue.
+
+description of Scene 1 follow from the causal interaction from C(0) to C(3) .Here is a snippet of our prompt to the LLM for script generation. 
+
+A snippet from the script-generation prompt 
+
+Pscript 
+
+Task Guidelines: 1. Analyze the Data: (a) Step t = 0 (The Opening): Establish the scene based on which nodes are active (1) in the first column. (b) Transitions ( t = 1 to t = T ): Compare column t with column t − 1.(i) Identify what Started (0 to 1). (ii) Identify what Stopped (1 to 0). (iii) Identify what Persisted (1 to 1). (c) Interpret the causal logic: If Node A is active at 
+
+t = 1 and Node B activates at t = 2 , imply that A might be causing B. 2. Documentary Structure: (a) Title: Generate a thematic title based on the Node List concepts. (b) Lower Thirds: Provide short text overlays summarizing the state logic (e.g., ”Rainfall triggers River Surge”). (c) Narrative (Voiceover): A 1-2 sentence script connecting the current state to the previous one. (d) Conclusion: Explicitly address the ”Equilibrium Behavior” in the final scene. 
+
+Google’s Veo 3.1 generative agent converted the LLM-generated script into a movie. The maximum allowed duration for a Veo 3.1 generated video is 8 seconds. We used the multiple-shot approach to generate the video as a sequence of shots. Here is a snippet of the instruction we use for generating the video: 
+
+An snippet of the Veo 3.1 instruction Pvideo 
+
+Style: Cinematic 4K, underwater photography, realistic Pacific Bottlenose dolphins, deep ocean blue color grade, naturalistic lighting, fluid camera movements, high-fidelity water physics. Prompt: Generate A pod of dolphins is seen from aside-angle tracking shot, swimming at maximum speed through the deep blue ocean. Intense cavitation bubbles trail from their fins. The camera moves rapidly alongside them. The scene ends with the dolphins beginning to slow down. Transition Note: End shot with decelerating tail beats. 
+
+We sequentially prompted the video generator with the scene descriptions from the LLM annotated movie script. The agent rendered the Scene 1 description as an 8-second clip. The model extended the output to 16 seconds using the Scene 2 description. This recursive extension continued through all 8 scene descriptions. The procedure yielded a 57-second video encapsulating all scenes. Figure 2 shows frames from the generated video. Figure 2a shows a frame from Scene 1 and corresponds to its equilibrium state in Figure 9. This scene runs from 
+
+t = 0 to t = 3 with “Herd Clustering” node clamped ON and the “Survival Threat” node inactive: dolphins play and rest without a survival threat. Here is the annotation for this scene: A pod of dolphin is resting and playing. Figure 2a depicts this. Figure 2b - 2h similarly capture the corresponding causal virtual world of Scene 2-8 in Figure 9. Again we can use LLM agents to extract FCMs from text or vice versa [13], [14] and exploit the Bayesian de-chunking structure [15]. This allows AI agents to partially or fully automate the selection of scenes or meta-rules Aj → B j .IV. Conclusions Sequenced FCMs can combine with agentic control of large video generators to produce causal virtual worlds or videos. Users can define or modify the FCMs or oversee LLMs that generate them from text or from transcribed speech. Users can also modify the virtual world midstream if they impose new causal patterns or if they adapt the FCM’s local causal structure. These techniques scale and favor hardware implementation both because FCM causal propagation involves only simple vector-matrix multiplication of often sparse causal edge matrices and because mixing FCMs always produces a new FCM. Large-scale versions offer in principle a way to design realistic immersive virtual worlds that allow multiple users to interact. References 
+
+[1] Tim Brooks, Bill Peebles, Connor Holmes, Will DePue, Yufei Guo, Li Jing, David Schnurr, Joe Taylor, Troy Luhman, Eric Luhman, Clarence Ng, Ricky Wang, and Aditya Ramesh. Video generation models as world simulators. 2024. [2] Julie A Dickerson and Bart Kosko. Virtual worlds as fuzzy cognitive maps. Presence: Teleoperators & Virtual Environ-ments, 3(2):173–189, 1994. [3] Bart Kosko. Fuzzy cognitive maps. International journal of man-machine studies, 24(1):65–75, 1986. [4] Bart Kosko. Hidden patterns in combined and adaptive knowledge networks. International Journal of Approximate Reasoning, 2(4):377–393, 1988. [5] Osonde A Osoba and Bart Kosko. Fuzzy cognitive maps of public support for insurgency and terrorism. The Journal of Defense Modeling and Simulation, 14(1):17–32, 2017. [6] Guy Ziv, Elizabeth Watson, Dylan Young, David C Howard, Shaun T Larcom, and Andrew J Tanentzap. The potential impact of Brexit on the energy, water and food nexus in the uk: A fuzzy cognitive mapping approach. Applied Energy, 210:487–498, 2018. [7] Michael Glykas. Fuzzy cognitive maps: Advances in theory, methodologies, tools and applications, volume 247. Springer, 2010. [8] Elpiniki I Papageorgiou. Fuzzy cognitive maps for applied sciences and engineering: from fundamentals to extensions and learning algorithms, volume 54. Springer Science & Business Media, 2013. [9] Wojciech Stach, Lukasz Kurgan, and Witold Pedrycz. A divide and conquer method for learning large fuzzy cognitive maps. Fuzzy Sets and Systems, 161(19):2515–2532, 2010. [10] Rod Taber, Ronald R Yager, and Cathy M Helgason. Quanti-zation Effects on the Equilibrium Behavior of Combined Fuzzy Cognitive Maps. International Journal of Intelligent Systems, 22(2):181–202, 2007. [11] A. Adadi and M. Berrada. Peeking Inside the Black-Box: A Survey on Explainable Artificial Intelligence (XAI). IEEE Access, 6:52138–52160, 2018. [12] Wojciech Samek. Explainable AI: Interpreting, explaining and visualizing deep learning, volume 11700. Springer Nature, 2019. [13] Akash Kumar Panda, Olaoluwa Adigun, and Bart Kosko. Causal autoencoder-like generation of feedback fuzzy cognitive maps with an LLM agent. In 2025 International Conference on Machine Learning and Applications (ICMLA-2025), pages 1234–1241. IEEE, 2025. [14] Akash Kumar Panda, Olaoluwa Adigun, and Bart Kosko. The Agentic Leash: Extracting Causal Feedback Fuzzy Cognitive Maps with Mixed Large Language Models. In International Conference on Large Language Models (CSCI-2025). Springer, 2025. [15] Akash Kumar Panda, Olaoluwa Adigun, and Bart Kosko. Agentic Chunking and Bayesian De-chunking of AI Generated Fuzzy Cognitive Maps: A Model of the Thucydides Trap. In IFIP International Conference on Artificial Intelligence Applications and Innovations, pages 17–32. Springer, 2026.

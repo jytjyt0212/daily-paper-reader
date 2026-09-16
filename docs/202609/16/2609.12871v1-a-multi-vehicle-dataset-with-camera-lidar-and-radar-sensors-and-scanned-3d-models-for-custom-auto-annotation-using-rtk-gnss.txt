@@ -1,0 +1,217 @@
+Title: A Multi-Vehicle Dataset with Camera, LiDAR, and Radar Sensors and Scanned 3D Models for Custom Auto-Annotation using RTK-GNSS
+
+URL Source: https://arxiv.org/pdf/2609.12871v1
+
+Published Time: Mon, 14 Sep 2026 01:06:28 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# A Multi-Vehicle Dataset with Camera, LiDAR, and Radar Sensors and Scanned 3D Models for Custom Auto-Annotation using RTK-GNSS 
+
+Philipp Berthold *, Bianca Forkel *, and Mirko Maehlisch 
+
+Abstract — Datasets are a crucial element in the development of perception algorithms. They relate sensor measurement data to annotated reference information and allow for the deduction of sensor and object characteristics. In autonomous driving, the reference data commonly consist of semantic image segmenta-tion, point-wise associations, or bounding box annotations. The dataset proposed in this work, however, aims to dig deeper into the evaluation of measurement principles and provides scanned 3D models of all vehicles together with a pose and continuous kinematics reference obtained by RTK-GNSS. Combined, the state of the complete dynamic surrounding of the sensor vehicle is known for any point in time. Subsequent reference formats can be easily computed in user-defined granularity. This dataset involves single-object and multi-object recordings with seven target vehicles. In particular, measurement effects such as occlusion, as well as reflections, can be evaluated, as the normals of the shape of the target vehicles are known. We describe the dataset, discuss the technical background of its development, and briefly present exemplary evaluations. 
+
+I. I NTRODUCTION 
+
+The development of perception algorithms for autonomous driving strongly benefits from datasets, since they support the modeling and learning of measurement principles and object appearances in sensor data. Furthermore, they allow for the evaluation of different algorithms and parameter choices. Reference data (“ground truth” information) about other objects in the environment is often provided in form of 2D or 3D bounding boxes (e.g., [1]), which lack information about the object’s boundaries. More detailed reference data is supplied by pixel-wise semantically (sem.) annotated images for camera sensors (e.g., [2]–[5]) or by point-wise object annotation for LiDAR (e.g., [6], [7]) or radar point clouds (e.g., [8]). Ideally, the annotations contain (unique) instance (inst.) IDs to be able to distinguish between different object instances or even track one object over time. However, the association of a point to a certain instance ID is sometimes ambiguous as the point might be caused by a reflection, i. e., results from the mutual interaction between multiple objects. Only in [9], CAD models of the specific vehicle types are fitted to the sensor data to give additional information about the objects’ shape and structure. This fitting is challenging as there is no positional reference available for the third-party vehicles; therefore, only the sensor data can be used to determine the poses of other objects. Furthermore, the used publicly available, generic CAD models do not necessarily             
+
+> The authors are with the Institute for Autonomous Driving of the University of the Bundeswehr Munich, Neubiberg, Germany. Contact author email: {philipp.berthold, tas }@unibw.de. Dataset and supplementary data available: https://github.com/UniBwTAS/7V-Scanario .
+> *Philipp Berthold and Bianca Forkel contributed equally to this work.
+
+Fig. 1: The scanned 3D models of three vehicles and the mea-surement data (blue spheres: LiDAR point cloud, yellow/red/green spheres: radar detections with Doppler measurements denoted by lines) rendered live in rviz (ROS middleware). 
+
+conform to the true shape of the observed objects. Thus, the fitted CAD models cannot achieve particularly high accuracy. The CAD models are also only available in the depth images used as ground truth information in a stereo benchmark. Overall, as Table I shows, existing datasets are missing detailed 3D models of the exact observed vehicles. Besides, annotated reference data is usually only provided every few seconds. In addition, from sensor data annotations, no precise information about the object’s kinematics (like velocity and rotational speed) can be derived. Thus, [10] gains reference data from GNSS-based inertial navigation systems that are installed on the objects. This way, the dataset can serve as ground truth for radar-based object tracking algorithms. However, as shown in Table I, there is no kinematic reference data of the target vehicles in datasets with camera images or LiDAR point clouds. 
+
+Contributions: This work aims to contribute a dataset containing camera, LiDAR, and radar measurements and providing continuous kinematic reference data together with precise 3D structure and texture information for every object. Every vehicle in this dataset is equipped with an RTK-GNSS/INS unit computing precise positional and kinematic information. Additionally, a 3D scan has been performed for every object involved. This scan resolves the structure of the object and also contains the object’s texture (color informa-tion). Every detail of the vehicle, including the installation of the GNSS/INS unit, is thus known. Combined, full 3D information of the vehicles around the sensor vehicle can be obtained for any given point in time and put into relation with the measurement data (Figure 1). arXiv:2609.12871v1 [cs.RO] 11 Sep 2026 TABLE I: Comparison of our dataset to popular or related autonomous driving datasets with respect to dynamic objects.                                            
+
+> Sensors Annotations Kinematics 3D Models (Semantic) KITTI [2] camera, LiDAR 2D/3D boxes, sem./inst. image segm., sem./inst. LiDAR segm. [6] sensor vehicle simple CAD models in depth images [9] (Panoptic) nuScenes/nuImages [3] camera, LiDAR, (radar) 2D/3D boxes, sem./inst. image segm., sem. LiDAR segm. [7] sensor vehicle no Cityscapes (3D) [5] camera 3D boxes [11], sem./inst. image segm sensor vehicle no Waymo [4] camera, LiDAR 2D/3D boxes, sem./inst. image seg., sem. LiDAR seg. no no Argoverse 2 [1] camera, LiDAR 3D boxes no no Oxford (Radar) RobotCar [12] (camera, LiDAR, radar [13]) INS sensor vehicle [14] no GOOSE [15] camera, LiDAR, (radar) sem./inst. image segm., sem./inst. LiDAR segm. sensor vehicle no RadarScenes [8] (camera), radar sem./inst. radar point labels for moving objects sensor vehicle no [10] radar IMU+RTK-GNSS solution target vehicles no
+> 7V-Scanario (Ours) camera, LiDAR, radar user-defined auto-annotation all vehicles 3D scans
+
+Fig. 2: The projection of the scanned 3D models into a camera image showing the original vehicles. The projection error is barely recognizable. By modifying the texture of the model, image data augmentation can be easily performed. 
+
+By respective processing, reference data like range images or pixel/point annotations can be generated. Since the dataset contains very detailed 3D scans, the reference data can be generated in any granularity. For example, a pixel or point can be annotated not only as a car, but also more specifically as a wheel or window. This is of great importance for taking physical measurement principles into account. For example, in radar sensors, wheels generate micro-Doppler measurements. Rather than manually labeling all sensor data, it is sufficient to decompose the scanned 3D object into the desired granularity once, thereby enabling automatic annotations for all sensor data. Moreover, advanced data augmentation techniques like changing the texture of the objects (Figure 2) or altering or adding sources of light (Figure 3) can be employed to extensively enhance the train-ing data concerning camera images. The proposed dataset concept can also serve to “split” the Sim-to-Real Gap by capturing a clinical environment with real measurement data and comprehensive ground truth information and providing the real 3D models for simulation. Our dataset comprises seven heterogeneous vehicles and 
+
+Fig. 3: The illumination of the scanned 3D models with artificial sources of light can also be used to extend image data augmentation. 
+
+two sets of scenarios. The first set of scenarios focuses on fundamental measurement principles: each vehicle is mea-sured separately from various distances and viewing angles on a large, open, flat paved surface. Both the sensor and target vehicle are moving to obtain Doppler measurements for the radar sensors. The second set consists of multi-object scenarios that vary from dynamic and narrow trajectories, causing frequent occlusions, to realistic crossing and high-way scenarios on an empty test track. 
+
+Structure: This paper is structured as follows: Section II denotes the principal features and contents of this dataset. Section III gives insight into the technical background of the setup. Section IV outlines some exemplary evaluations based on this dataset, and Section V finally summarizes this paper. II. D ATASET FEATURES 
+
+A. Sensors 
+
+The dataset was recorded using the research vehicle 
+
+MuCAR-3 (cf. [15]), which is a modified Volkswagen Touareg . Figure 4 depicts its front and some of the mounted sensors. In this dataset, we provide continuous and complete raw data (without any filtering or postprocessing) of the following sensors:  
+
+> •
+
+1x LiDAR sensor Velodyne VLS-128 : mounted at the center of the vehicle, providing 360 ◦ point clouds at 
+
+10 Hz . 
+
+> •
+
+4x RGB cameras Basler acA2440-20gc : mounted in vicinity of the LiDAR sensor, spaced in 90 ◦ intervals 
+
+Fig. 4: The front of the sensor vehicle MuCAR-3 (VW Touareg ). The yellow circle denotes the LiDAR sensor, the green circles the cameras, the orange circles the medium range radar sensors, and the blue circle denotes the far range radar sensor. Fig. 5: All vehicles of this dataset (targets and sensor vehicle). From left to right: Audi A6 station wagon, StreetScooter Work delivery vehicle, Volkswagen e-Crafter transporter, VW Tiguan SUV with various sensors on the roof, VW Touareg (utilized as sensor vehicle),      
+
+> Audi Q8 SUV with various sensors on the roof, Hyundai i10 compact car, BMW 1 series compact car.
+
+and providing images at 10 Hz . 
+
+> •
+
+5x Radar sensor Smartmicro UMRR-96 Type 153 :
+
+79 GHz medium range radar, mounted on the four cor-ners and at the radiator grill and providing 4D detections at roughly 18 Hz . 
+
+> •
+
+1x Radar sensor Smartmicro UMRR-32 Type 132 :
+
+77 GHz far range radar, mounted at the radiator grill and providing 4D detections at roughly 18 Hz . 
+
+> •
+
+1x RTK-GNSS/INS unit OxTS RT3000v3 : using cor-rection data from a local reference station (less than 
+
+1 km distance in all scenarios) and providing inertial measurement data and absolute positional information (with an accuracy of about 1 cm , see Section III-D) at 100 Hz . Similar RTK-GNSS/INS units (either OxTS RT3000v3 or OxTS RT3003 ) are utilized on the target vehicles to obtain their ground truth poses.  
+
+> •
+
+Series vehicle data of the VW Touareg : providing wheel speeds, steering angle, and gyro data at 50 Hz . This data is used to deduct a jump-free odometry (by estimating the thermal drift using a Kalman filter). The documentation of the GOOSE [15] (German Outdoor and Offroad Dataset) dataset, which uses the same sensor setup, gives more detailed information on the sensor vehicle and the sensors. The sensors have been calibrated extrin-sically by the probabilistic joint multi-sensor optimization algorithm described in [16] to yield preferably accurate mounting poses (detailed per-sensor evaluations in [16]). In addition, hardware timestamping, hardware triggering, and software-based bus latency compensation relate all sensor data to a common clock. As the RTK-GNSS/INS units provide reference data at a high frequency, ground truth data for any arbitrary sensor measurement time can be computed by interpolation. The data of all units is shared using long-range WiFi and dumped to local integrated storages. 
+
+B. Vehicles 
+
+The dataset comprises seven heterogeneous target vehicles (see Figure 5), starting with compact cars up to large delivery vans. Each vehicle has been equipped with an RTK-GNSS/INS unit so that its exact position is known at all times. In addition, a detailed 3D scan is available for all vehicles. Furthermore, for each vehicle, a dedicated single-object recording was performed. 
+
+1) Hyundai i10: This car represents the subcompact car category. It has been equipped with a roof structure that car-ries two GNSS multi-band multi-frequency antennas and the INS itself. Care has been taken for preferably low impact on the sensor measurements, although it cannot be completely avoided. However, as is valid for all vehicles, the scan covers this structure so that the measurements match the 3D model. The coordinate system of the 3D model corresponds to the local coordinate system of the INS (identical reference point and rotation). 
+
+2) BMW 1 Series: This car represents compact cars. It has been equipped with an identically constructed roof structure. 
+
+3) Audi A6 station wagon: This car represents station wagons. It has been equipped with a roof construction identical to that of the two previous models. 
+
+4) VW Tiguan: This vehicle is an SUV-based prototype vehicle ( MuCAR-4 ). It carries different sensors, and thus possesses a rather complex roof structure. The INS is per-manently mounted inside the vehicle. 
+
+5) Audi Q8: This vehicle is also an SUV-based prototype vehicle ( MuCAR-5 ), and has a roof structure with various sensors. The INS is installed inside the vehicle. 
+
+6) StreetScooter Work: This is a prototype vehicle for automated logistics and is based on a delivery vehicle. It carries some sensors along its roof and at its corners and an INS unit inside. A peculiarity is its plastic transport box that is moderately permeable to radar waves. As additionally multiple reflections may occur inside this box, clutter detec-tions can be measured at positions far beyond the transport box (in radial view of the sensor). 
+
+7) VW e-Crafter: This vehicle is a transporter with a long wheelbase. It was also converted into a prototype vehicle and comes with some sensors on the roof, the front and on the corners, and an INS installed in the vehicle. 
+
+C. Scenarios 1) Single-object: The purpose of this scenario set is the observation of the single target vehicles from various dis-0 20 40 60 80 100 
+
+> x in m
+> -20 -10 010 20
+> y in m
+> Sensor Vehicle Target Vehicle
+
+Fig. 6: Schematic trajectories of sensor and target vehicle of a single-object recording: the sensor vehicle moves along circular paths around the target vehicle, which is slowly moving forward. 
+
+tances and angles. To this end, in every recording, the sensor vehicle circles around one target vehicle, changing the radius over time. During this process, the target vehicle is slowly moving forward to provoke Doppler measurements and to obtain diverse ground and background appearances. Fig-ure 6 illustrates both trajectories. Figure 7 shows the driven path of the sensor vehicle exemplarily for one recording. The duration of the seven single-object recordings averages between 10 min to 15 min .
+
+2) Multi-object: The multi-object scenarios address the simultaneous interaction of all seven target vehicles. Figure 8 illustrates the test track where they took place. The scenarios can be grouped by the following categories (next to a few independent recordings): 
+
+a) High-dynamic Maneuvers with Frequent Occlusion: 
+
+These rather artificial driving maneuvers challenge percep-tion systems with high turn rates and frequent temporary occlusions. In example, the vehicles drive in figure eights in front of the sensor vehicle, or drive in two circles of different radii around the sensor vehicle. This poses a particular challenge for (multi-) object tracking algorithms, for example. Six different scenarios with a total duration of 
+
+17 min were recorded. 
+
+Fig. 7: Driven path of the sensor vehicle on an asphalted free space during a single-object recording (here: VW e-Crafter ). This free space has an area of 110 m by 70 m . The driven circles have radii from 7 m up to 35 m .
+
+b) Intersection Traffic: This category of scenarios cov-ers typical intersection traffic. In this setting, the sensor vehicle stands in front of a crossing and observes the target vehicles crossing in front of it. The maneuvers are timed such that two-way traffic occurs and causes occlusion. Two different crossings were selected: one with a good view to the sides of the crossing, and one where the view to the side is occluded by static obstacles. In the latter case, the target vehicles appear suddenly (and demand quicker track initialization). This category involves four recordings with a total duration of 5 min .
+
+c) Highway and Country Road Traffic: These scenarios treat typical road and highway traffic. They differ in com-binations of the occurrence of approaching traffic, passing 
+
+Fig. 8: Aerial view of the path of the sensor vehicle (red) and exemplarily the VW Tiguan (green) covering all multi-object scenarios. The test track contains crossings, circular courses, country roads, a long multi-lane passage (at the bottom, formerly used as an airport taxiway), and open spaces. maneuvers of the target vehicles and/or the ego vehicle and lane changes. This category contains 13 different scenarios with a total duration of over 28 min .
+
+D. Provided Data 
+
+All available sensor data is recorded in ROS bags . The LiDAR, radar, odometry, and (own and all received target) GNSS/INS sensor measurements are stored as raw data, i. e., UDP and CAN packets to reduce the file size and offer the opportunity to process the data with individual data parsers or decoders. The online documentation gives more information in detail, and offers a ROS launch file with suitable sensor data parsers and visualization. The camera images are stored in a standard ROS format. Besides, the GNSS/INS data is additionally stored in a processed standard format for simplified data inspection. The sensor calibration data is supplied by TF messages and CameraInfo messages ,which are also stored in the ROS bags. In addition to these ROS bags, the raw data dumps of all GNSS/INS units for the complete multi-object measurement campaign are provided. Finally, the 3D models are also supplied as separate files. The definition of their coordinate systems in relation to the respective GNSS/INS unit is given for each model. III. T ECHNICAL DETAILS AND SETUP 
+
+A. Installation of GNSS/INS units 
+
+While the prototype vehicles were already equipped with GNSS/INS units, the standard passenger vehicles had lacked a positional reference system. Thus, we constructed aluminium-based roof racks that host the INS unit, two GNSS antennas, a radio modem to receive differential cor-rection signals from a local RTK-GNSS reference base station, a WiFi device for data communication (sometimes also replacing the radio modem), and power electronics (see Figure 8). The design focuses on reducing the impact of the construction on the sensor measurements, which, of course, cannot be fully avoided. It should be noted that the 3D scans were recorded with mounted roof racks, so that the models match the observed measurements. 
+
+B. Data Communication 
+
+The sensor vehicle needs to receive the GNSS/INS data of all target vehicles to store and monitor it. For this purpose, all vehicles were equipped with narrow-band long-range WiFi     
+
+> Fig. 8: The roof rack carrying the GNSS/INS unit. These roof racks are utilized on the Hyundai i10 , the BMW 1 series , and the Audi A6 .
+
+devices. The sensor vehicle serves as an access point to all targets. In most cases, the WiFi range exceeds the relevant sensor range. However, as this cannot be guaranteed, all GNSS/INS units additionally dump their raw data and solu-tion to an internal storage. These dumps are also available in this dataset. In addition, the WiFi connection was also used to relay the DGPS reference data, received by the sensor vehicle, to the targets (in parallel to the DGPS radio). 
+
+C. Scanning and Processing of the 3D Models 
+
+All vehicles were scanned with the 3D scanner Artec Leo 
+
+[17]. To improve the scan quality, a texture spray had to be applied on large homogeneous surfaces beforehand. As this impairs the texture of the model to some extent, its usage was reduced to a feasible minimum. After postprocessing, a globally registered 3D model is available. An impression of the quality of the 3D information can be gained in Fig. 9. However, at this point, the alignment of its coordinate system is random. To align the coordinate system with the one of the local GNSS/INS unit, some relevant features of the GNSS/INS unit (like markers and screws as shown in Figure 10 whose positions are denoted in its datasheet) or of the prototype vehicle (like axles or emblems) are selected and their positions are extracted from the measured 3D model. The transformation INS Hscan , consisting of a translation given by [x, y, z ] and a rotation given by [Φ , θ, Ψ] , converts any point of the measured 3D model p to its equivalent p′ in the aligned coordinate system (using rotation matrices R(·)): 
+
+p′ = Rz(Ψ) · Ry(θ) · Rx(Φ) · (p − (x, y, z )⊺) . (1) The converted positions of the selected features can now be evaluated according to known axes coordinates or even po-sitions, symmetry assumptions, or other known alignments. These evaluations are done by cost functions computing a set of N residuals rn. For example, the reference point marker outlines a 3D information (i. e., x = 0 mm , y =
+
+0 mm , z = 50 mm ) in the INS coordinate system. This point results in three residuals (3D difference between estimated      
+
+> Fig. 9: Top view of the scanned 3D model of the VW e-Crafter
+> (without texture to be able to distinguish between 3D information and texture). Fig. 10: Selection of features in the 3D scan to align the model coordinate system to the GNSS/INS coordinate system. This screen-shot shows the selection of screws of an OxTS RT3000v3 on a roof rack. In this example, the parallelism of the alignment of sets of screws to the axes of the coordinate system has been exploited.
+
+and defined coordinate). A line of n screws arranged in parallel to the INS’ x-axis provides (n − 1) · 2 residuals, i. e., the differences between the y-coordinates and the differences between the z-coordinates should be zero. The optimization problem defined by 
+
+arg min 
+
+> (x,y,z, Φ,θ, Ψ)
+> N
+
+X
+
+> n=1
+
+r2 
+
+> n
+
+(2) finally yields the desired transformation. 
+
+D. Accuracy Estimates of the Transformation Chain 
+
+The overall projection error, that occurs when projecting the 3D model into a sensor’s coordinate system, depends on multiple factors. To break this down, we regard the transformation chain sensor Hscan , that transforms a point p
+
+in the 3D scan to a point p′′ in the sensor coordinate system: 
+
+p′′ (t) = sensor Hscan (t) · p
+
+= sensor Hego −INS · ego −INS Htarget −INS (t)·
+
+> target −INS
+
+Hscan · p. 
+
+(3) The sensor-to-INS calibration sensor Hego −INS consists of a precise data-driven sensor calibration and the determination of the GNSS/INS position using CAD documents. The accuracy of the relative vehicle pose ego −INS Htarget −INS 
+
+provided by the GNSS/INS units is indicated as a covari-ance matrix in the data stream. The manufacturer states a positional accuracy of 1 cm and an angular accuracy of 0.03 ◦ for each unit under perfect conditions (to obtain the accuracy for a relative pose between two units, these parameters need to be applied twice). The recordings were settled under open sky conditions with a nearby RTK-GNSS reference station, resembling very good conditions. In addition, long RTK-warm-up maneuvers were performed before the measurement campaign. A dedicated check fi-nally confirmed the given accuracies. The accuracy of the model alignment target −INS Hscan is strongly coupled with the accuracy of the scan itself, i. e., the trueness of the selected point p of the scan. The accuracy of the scan is – according to the manufacturer – 0.1 mm plus 0.3 mm per meter of scan distance. As this accuracy can actually be obtained for “simple” objects (which ironically correspond to objects with varying structure and texture for simplified scan registration), the correct registration can be tough for homogeneous surfaces. As long as the registration has been performed correctly, the obtained accuracy is indeed at least in the range of few centimeters according to a comparison with other measurement approaches [18]. 
+
+E. Auto-Annotation 
+
+We do not provide ready-to-use annotations as they strongly depend on the desired annotation format and the individual application. To automatically create annotations with custom format and granularity, ray casting libraries like [19] may be used. IV. M EASUREMENT EVALUATION EXAMPLES 
+
+This section briefly presents some exemplary data evalu-ation results. To evaluate the spatial occurrence of measurements, an accumulation of point detections can be performed in the coordinate system of a target. Figure 11 shows such an accumulation using the radar detections. In our case, it manifests a large uncertainty in the elevation measurements of our radar sensors, for example. A more quantitative evaluation is the computation of heatmaps. The approach shown in the following registers the occurrences of radar detections in a 2D (i. e., top-down) heatmap. Every time a sensor performs a measurement,     
+
+> Fig. 11: Accumulation of radar detections in the coordinate system of the target. This rendering shows such an accumulation of the
+> VW e-Crafter together with the aligned alpha-blended 3D model. (a) Heatmap rendered over all observations.
+> (b) Heatmap rendered for all measurements observed when the sensor has been located in the rear left of the target vehicle. It can be easily spotted that most detections originate from the rear left corner, the roof structure ( Velodyne VLS-128 ), and both left wheels. In addition, the angular measurement noise is apparent.
+
+Fig. 12: Renderings of normalized radar detection heatmaps with overlays of the scanned 3D model for inspection purposes. These heatmaps are rendered on base of the VW Tiguan recording. Dark blue cells indicate a low occurrence of detections, yellow cells indicate a high occurrence. 
+
+the list of detections is converted to a target-fixed grid. Besides, the respective observation parameters (distance and angle) are attached to the grid as meta information. The accumulation of these grids results in a heatmap. However, these heatmaps would be subject to an observation bias: if a specific relative pose has been recorded more often than another one, it would also have a higher influence on the heatmap. This effect is undesired as it would wrongly imply a higher static reflectivity of the observed part of the object. Therefore, we utilize a normalization algorithm [20] that weights these grids in inverse relation to the frequency of the occurrence of their observation parameters. The overlay of the 3D model allows for the association of specific hotspots to their real counterparts. Figure 12a shows such an illustration. It reveals hotspots along the contour of the vehicle and on the sensor setup on the roof. It is also possible to select specific observation parameters (e. g. all measurements from the front of the target) to analyze view-dependent heatmaps as shown in Figure 12b. Similar evaluations can also be performed for the LiDAR sensor. An interesting outcome is shown in Figure 13. With the help of the 3D model, the permeability of car windows for LiDAR points can be examined. Finally, Figure 14 shows the effect of occlusion on the measurements. By knowing the exact 3D model and thus the missing sensor data, the behavior of algorithms in occlusion can be precisely investigated and enhanced. 
+
+Fig. 13: LiDAR points measured at the opposite b-pillar from the sensor. The laser ray permeated the window, obviously. The LiDAR point cloud is illustrated by the small spheres; their color-coding depends on the range. The yellow/red spheres again denote radar detections. 
+
+Fig. 14: The Hyundai i10 partly occludes the VW e-Crafter in the background. The lines of the red/yellow spheres denote the radial speed / Doppler measurement and are radial to the respective radar sensor. 
+
+V. C ONCLUSION , U SE CASES , AND FUTURE WORK 
+
+This paper presents a multi-vehicle dataset with accurate 3D models of all vehicles involved to improve the modeling or learning of physical and technical measurement principles and the appearance of vehicles in measurement data. To this end, we have scanned all vehicles using a 3D scanner, equipped all vehicles with GNSS/INS units, and aligned these models. The contributed concept allows for the auto-annotation of all sensor measurements with custom granu-larity, as the state, the shape, and the structure of all objects are known for any point in time. This helps to develop, improve, train, or evaluate perception algorithms based on camera images, LiDAR point clouds or radar detections with individual needs for detail. As we utilize seven known objects, even advanced effects like occlusion and multi-path reflections are covered by the ground truth information. Ultimately, the 3D models can also be used on their own to simulate any scenario with realistic vehicle models. In addition, the dataset provides dense and accurate kine-matic ground truth information for all vehicles involved. Thus, it can also be used to evaluate (multi) object tracking algorithms. In longer scenarios, even odometry or SLAM algorithms could be evaluated. To obtain positional and kinematic reference data, this approach utilizes the installation of GNSS/INS units on roof racks. Although the scanned 3D models incorporate these structures and therefore match the measurements, it might be beneficial for subsequent datasets to use hidden GNSS antennas and internal IMUs (or other localization techniques). In addition, integrating joints in the models to allow for moving wheels might be reasonable future work. ACKNOWLEDGEMENT 
+
+This work is funded by the Federal Office of Bundeswehr Equipment, Information Technology and In-Service Support (BAAINBw). The authors would like to thank Moritz Mey for performing the 3D scans and their post-processing, and Anton Backhaus, Alexander Bienemann, Thorsten Luettel, Martin Maier, Arian Rottmann, Thomas Rottmann, Thomas Steinecker, and Georg Thalhammer for participating in the recording of the multi-vehicle scenarios. The authors thank Thorsten Luettel additionally for conducting the scenarios. Finally, the authors thank their private cars for taking some scratches for the sake of science. REFERENCES [1] B. Wilson, W. Qi, T. Agarwal, J. Lambert, J. Singh, S. Khandelwal, B. Pan, R. Kumar, A. Hartnett, J. K. Pontes, D. Ramanan, P. Carr, and J. Hays, “Argoverse 2: Next Generation Datasets for Self-driving Per-ception and Forecasting,” in Proc. of Neural Information Processing Systems Track on Datasets and Benchmarks (NeurIPS Datasets and Benchmarks) , 2021. [2] A. Geiger, P. Lenz, and R. Urtasun, “Are we ready for Autonomous Driving? The KITTI Vision Benchmark Suite,” in Proc. IEEE Conf. Comput. Vision and Pattern Recognition (CVPR) , 2012. [3] H. Caesar, V. Bankiti, A. H. Lang, S. Vora, V. E. Liong, Q. Xu, A. Krishnan, Y. Pan, G. Baldan, and O. Beijbom, “nuscenes: A multimodal dataset for autonomous driving,” in Proc. IEEE Conf. Comput. Vision and Pattern Recognition (CVPR) , 2020. [4] P. Sun, H. Kretzschmar, X. Dotiwalla, A. Chouard, V. Patnaik, P. Tsui, J. Guo, Y. Zhou, Y. Chai, B. Caine, V. Vasudevan, W. Han, J. Ngiam, H. Zhao, A. Timofeev, S. Ettinger, M. Krivokon, A. Gao, A. Joshi, Y. Zhang, J. Shlens, Z. Chen, and D. Anguelov, “Scalability in Perception for Autonomous Driving: Waymo Open Dataset,” in Proc. IEEE Conf. Comput. Vision and Pattern Recognition (CVPR) , 2020. [5] M. Cordts, M. Omran, S. Ramos, T. Rehfeld, M. Enzweiler, R. Benen-son, U. Franke, S. Roth, and B. Schiele, “The Cityscapes Dataset for Semantic Urban Scene Understanding,” in Proc. IEEE Conf. Comput. Vision and Pattern Recognition (CVPR) , 2016. [6] J. Behley, M. Garbade, A. Milioto, J. Quenzel, S. Behnke, C. Stach-niss, and J. Gall, “SemanticKITTI: A Dataset for Semantic Scene Un-derstanding of LiDAR Sequences,” in Proc. IEEE Int. Conf. Comput. Vision (ICCV) , 2019. [7] W. K. Fong, R. Mohan, J. V. Hurtado, L. Zhou, H. Caesar, O. Beijbom, and A. Valada, “Panoptic nuScenes: A Large-Scale Benchmark for LiDAR Panoptic Segmentation and Tracking,” 2021. [8] O. Schumann, M. Hahn, N. Scheiner, F. Weishaupt, J. F. Tilly, J. Dickmann, and C. W¨ ohler, “RadarScenes: A Real-World Radar Point Cloud Data Set for Automotive Applications,” in Proc. IEEE Int. Conf. Information Fusion (FUSION) , 2021. [9] M. Menze and A. Geiger, “Object Scene Flow for Autonomous Ve-hicles,” in Proc. IEEE Conf. Comput. Vision and Pattern Recognition (CVPR) , 2015, pp. 3061–3070. [10] J. Schlichenmaier, M. Steiner, T. Grebner, and C. Waldschmidt, “Radar Measurements of Two Vehicles with Three Cooperative Imaging Sensors,” 2022. [Online]. Available: https://dx.doi.org/10. 21227/wwt7-w739 [11] N. G¨ ahlert, N. Jourdan, M. Cordts, U. Franke, and J. Denzler, “Cityscapes 3D: Dataset and Benchmark for 9 DoF Vehicle Detection,” 2020. [Online]. Available: https://arxiv.org/abs/2006.07864 [12] W. Maddern, G. Pascoe, C. Linegar, and P. Newman, “1 Year, 1000km: The Oxford RobotCar Dataset,” Int. J. Robotics Research , vol. 36, no. 1, pp. 3–15, 2017. [13] D. Barnes, M. Gadd, P. Murcutt, P. Newman, and I. Posner, “The Oxford Radar RobotCar Dataset: A Radar Extension to the Oxford RobotCar Dataset,” in Proc. IEEE Int. Conf. Robotics and Automation (ICRA) , 2020. [14] W. Maddern, G. Pascoe, M. Gadd, D. Barnes, B. Yeomans, and P. Newman, “Real-time Kinematic Ground Truth for the Oxford RobotCar Dataset,” 2020. [Online]. Available: https://arxiv.org/pdf/ 2002.10152 [15] P. Mortimer, R. Hagmanns, M. Granero, T. Luettel, J. Petereit, and H.-J. Wuensche, “The GOOSE Dataset for Perception in Unstructured Environments,” in Proc. IEEE Int. Conf. Robotics and Automation (ICRA) , 2024. [16] B. Forkel, P. Berthold, and M. Maehlisch, “An Extrinsic Sensor Calibration Framework for Precise Probabilistic Joint Calibration of Camera, LiDAR, and Radar,” in Proc. IEEE Intell. Transp. Syst. Conf. (ITSC) , 2025. [17] M. Mey, “Auswertung von Radarmessungen von Fahrzeugen anhand von 3D-Modellen,” Unpublished student work, University of the Bundeswehr Munich, 2025, Supervisors: Philipp Berthold, Bianca Forkel. [18] R. Deuter, “Evaluierung von Messmethoden zur genauen Lagebes-timmung von Sensoren an Fahrzeugen,” Unpublished student work, University of the Bundeswehr Munich, 2022, Supervisors: Philipp Berthold, Martin Michaelis. [19] Dawson-Haggerty et al., “trimesh,” 2019. [Online]. Available: https://trimesh.org/ [20] P. Berthold, M. Michaelis, T. Luettel, D. Meissner, and H.-J. Wuen-sche, “Radar Reflection Characteristics of Vehicles for Contour and Feature Estimation,” in IEEE Symp. Sensor Data Fusion (SDF) , 2017.
