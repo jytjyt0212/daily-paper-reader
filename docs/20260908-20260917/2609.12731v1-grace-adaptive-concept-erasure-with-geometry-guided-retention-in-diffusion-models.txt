@@ -1,0 +1,2344 @@
+1
+GRACE: Adaptive Concept Erasure with Geometry-Guided Retention
+in Diffusion Models
+Qinghui Gong
+, Yihuai Liang
+, Member, IEEE, Yuanlun Xie, Deepak Kumar Jain, Vitomir ˇStruc
+,
+and Zhengchun Zhou
+, Senior Member, IEEE
+Abstract—Text-to-image (T2I) diffusion models inevitably in-
+ternalize sensitive or non-compliant concepts from large-scale
+pretraining data, necessitating post-hoc concept erasure. How-
+ever, existing erasure methods often lack explicit constraints on
+parameter updates, leading to over-intervention and unintended
+semantic drift. In addition, many methods rely on manually
+crafted counterfactual supervision, such as surrogate prompts,
+which incurs substantial data construction costs that limit scala-
+bility to new concepts. To address these limitations, we propose
+GRACE, a structured concept erasure framework designed to en-
+able localized and selective intervention. Specifically, we introduce
+a semantically weighted sensitive subspace estimation to precisely
+lock intervention directions, and employ lightweight subspace-
+constrained adapters to prevent global semantic disturbance.
+To eliminate the dependency on manual prompt engineering,
+we design an automatically decoupled safe-anchor mechanism.
+To mitigate semantic drift induced by excessive intervention,
+we introduce an energy-driven dynamic gating mechanism that
+adaptively controls the timing and strength of intervention at
+inference. Extensive experiments demonstrate that our method
+achieves a superior balance between erasure effectiveness and
+generation fidelity. Compared with the average performance of
+five state-of-the-art (SOTA) concept erasure methods, our method
+improves the fine-grained NSFW reduction rate by 17.86%,
+while reducing the macro-averaged target CLIP Score and
+preservation-oriented Fr´echet Inception Distance (FID) by 4.75%
+and 50.58%, respectively, indicating stronger concept suppression
+with substantially improved preservation of the original model’s
+generative utility.
+Index Terms—Concept erasure, diffusion models, controllable
+generation, text-to-image generation.
+I. INTRODUCTION
+I
+N recent years, text-to-image (T2I) diffusion models have
+been widely deployed, driven by large-scale pretraining on
+web-scale data [1]. The open-ended prompting paradigm of
+T2I systems allows users to steer generation through arbitrarily
+composed textual instructions. However, this flexibility also
+lowers the barrier to producing content that may be legally or
+ethically non-compliant [2], [3]. Due to weak data curation and
+Qinghui Gong and Yihuai Liang are with the School of Information Science
+and Technology, Southwest Jiaotong University, Chengdu 611756, China (e-
+mail: gongqinghui@my.swjtu.edu.cn; liangyh@swjtu.edu.cn).
+Yuanlun Xie is with the School of Electronic Information and Electrical
+Engineering, Chengdu University, Chengdu, China.
+Deepak Kumar Jain is with the Key Laboratory of Intelligent Control
+and Optimization for Industrial Equipment of Ministry of Education, Dalian
+University of Technology, Dalian, China.
+Vitomir ˇStruc is with the Faculty of Electrical Engineering, University of
+Ljubljana, Ljubljana, Slovenia (e-mail: vitomir.struc@fe.uni-lj.si).
+Zhengchun Zhou is with the School of Information Science and Tech-
+nology, Southwest Jiaotong University, Chengdu 611756, China (e-mail:
+zzc@swjtu.edu.cn).
+Corresponding author: Yihuai Liang.
+（b) Generation Trajectory under Erasure
+Uncontrolled
+semantic drift
+t = T
+t = 0
+t = t’
+GRACE
+Existing 
+methods
+Original trajectory
+Sensitive target-
+concept region
+Prompt-consistent
+region
+Original
+output:
+Same prompt input: 
+"A nude woman at the beach."
+Target suppression 
+Severe semantic drift
+Target suppression 
+Severe semantic drift
+Target suppression 
+Severe semantic drift
+(a) Comparison of images before and after erasure
+Unrelated region
+ESD
+Speed
+GRACE (Ours)
+After Erase
+Fig. 1. Motivation for controlled concept erasure. (a) Under the same prompt,
+existing methods may suffer from incomplete erasure or severe semantic
+drift, while GRACE suppresses the target and better preserves the original
+scene and layout. (b) Conceptual generation trajectories illustrating how
+excessive intervention can drift toward unrelated semantics, whereas GRACE
+selectively steers generation away from the target concept while retaining
+prompt-consistent content.
+broad corpus coverage [4], these models inevitably internalize
+sensitive concepts, ranging from copyrighted characters and
+artistic styles [5] to Not-Safe-For-Work (NSFW) content [6],
+leading to persistent compliance risks in real-world deploy-
+ments.
+To mitigate these risks, numerous post-hoc concept erasure
+methods
+[7]–[11] have been proposed to suppress sensitive
+concepts in pretrained diffusion models. However, existing
+approaches still struggle to achieve a satisfactory balance
+between effective target suppression and the preservation of
+non-target semantics. As illustrated in Fig. 1, ESD [8] can
+effectively suppress the target concept, but at the cost of
+substantial semantic drift, leading to pronounced changes in
+the original scene content and layout. In contrast, SPEED [12]
+may fail to completely remove the target semantics while still
+introducing noticeable semantic drift, indicating that weaker
+suppression does not necessarily lead to better preservation.
+These distinct failure modes reveal a fundamental challenge in
+concept erasure: reliably suppressing sensitive target concepts
+while simultaneously controlling unintended semantic drift.
+Addressing this erasure-preservation trade-off is therefore crit-
+ical for precise and reliable concept erasure.
+Addressing the above problem mainly involves two chal-
+lenges. 1) Existing training-based methods [12]–[14] usually
+suppress sensitive concepts by optimizing erasure objective
+functions. However, the resulting parameter modifications can
+affect a broad range of feature directions, making it difficult
+to restrict the changes to target-related semantics. As shown
+in Fig. 1, although ESD [8] can effectively suppress the target
+concept, it also causes substantial changes in the original
+scene structure and layout, leading to severe semantic drift.
+To mitigate such degradation ,existing methods often introduce
+arXiv:2609.12731v1  [cs.CV]  11 Sep 2026
+
+
+2
+additional preservation supervision, such as sensitive-surrogate
+prompt pairs or external benign datasets [9]–[11], which
+incurs additional data construction and curation costs, while
+the associated benign-semantic constraints further increase
+optimization overhead. 2) Diffusion generation is an itera-
+tive denoising process in which the prompt gradually guides
+the generation trajectory toward the corresponding semantics.
+Therefore, the required intervention may vary across different
+timesteps. However, many existing methods apply fixed or
+persistent corrections throughout denoising [15], [16]. Such
+repeated intervention can progressively push the generation
+trajectory away from the original path and cause unnecessary
+semantic drift. As illustrated in Fig. 1, the modified trajectory
+may eventually deviate toward an unrelated semantic region.
+Therefore, effective concept erasure requires not only sup-
+pressing the target concept, but also carefully controlling the
+scope and timing of intervention.
+To address these limitations, we propose GRACE, a concept
+erasure framework that improves target suppression while
+reducing unnecessary semantic drift. 1) To restrict the scope
+of model modification, we estimate a semantically weighted
+sensitive subspace that captures target-related feature direc-
+tions. Lightweight adapters are then optimized with a subspace
+constraint, allowing the model to suppress the target concept
+while reducing changes to unrelated semantics. 2) To avoid
+the reliance on manually constructed surrogate prompts or
+large external benign datasets, we derive a prompt-specific
+safe anchor directly from the current prompt in the CLIP
+space [17]. By removing the target-aligned component from
+the prompt representation, the remaining semantics are used as
+the preservation target during training. 3) To avoid persistent
+intervention throughout the denoising process, we introduce
+an energy-driven dynamic gating mechanism at inference. It
+measures the target-related response in the sensitive subspace
+and dynamically adjusts adapter activation across timesteps,
+thereby reducing unnecessary trajectory deviation and seman-
+tic drift.
+Extensive experiments, together with the qualitative com-
+parison in Fig. 1, demonstrate that GRACE achieves erasure-
+fidelity balance. Compared with SOTA concept erasure meth-
+ods under identical evaluation settings, GRACE improves the
+fine-grained NSFW reduction rate by 17.86%, while reducing
+the target CLIP Score by 4.75% and preservation-oriented
+FID by 50.58% on average. These results indicate stronger
+target erasure and better preservation of the original model’s
+generative utility. Moreover, our cross-model experiments val-
+idate the applicability of GRACE across different diffusion
+architectures. In summary, our main contributions are as
+follows:
+• We propose a novel concept erasure framework that ef-
+fectively balances target concept erasure with the preser-
+vation of the model’s original generative capability.
+• We introduce semantically weighted sensitive subspace
+estimation and subspace-constrained adapters to restrict
+model modifications to target-related feature directions.
+We further design an energy-driven dynamic gating
+mechanism to adaptively control intervention timing and
+strength during denoising, reducing unnecessary devia-
+tion from the original generation trajectory.
+• We design an automatically decoupled safe anchor that
+derives prompt-specific preservation semantics through
+orthogonal decomposition in CLIP space, reducing re-
+liance on manually constructed surrogate prompts and
+large external benign datasets while preserving non-target
+semantics.
+II. RELATED WORK
+Concept Erasure. Due to the nature of large-scale web
+data, T2I diffusion models inevitably generate unauthorized
+or offensive content [18]. To mitigate this issue, existing
+concept erasure methods primarily suppress target semantics
+by modifying model parameters. Training-based approaches
+explicitly optimize erasure objectives through full retraining
+[9], incremental fine-tuning [8], [19], Low-Rank Adaptation
+(LoRA) [13], [20], or structured pruning [14], [21]. In contrast,
+editing-based methods directly adjust model weights using
+analytical or closed-form solutions, enabling efficient concept
+removal [11], [22]. Additionally, inference-time intervention
+methods suppress sensitive semantics through input/output
+filtering and prompt rewriting [23], [24], or by removing
+sensitive subspaces and noise components during diffusion
+iterations [15], [16]. Despite their effectiveness to some extent,
+these methods often suffer from high computational costs,
+incomplete suppression, or more critically, unconstrained over-
+intervention that leads to unintended disruption of benign
+semantics and manifold deviation. In contrast, our GRACE
+framework addresses this issue by confining interventions to
+semantically relevant subspaces and dynamically activating
+them only when necessary, thereby minimizing collateral
+semantic drift.
+Subspace-Constrained Techniques. Subspace-constrained
+principles have recently been widely adopted in continual
+learning and model editing. The core idea is to restrict gradient
+or parameter updates to specific semantic subspaces, thereby
+reducing interference with previously learned knowledge [13],
+[15], [25]. In model editing, AlphaEdit [26] projects weight
+updates onto the orthogonal subspace associated with pre-
+served knowledge, effectively mitigating the conflict between
+editing and retention. Similar subspace-based constraints have
+also been explored for concept erasure tasks [27], [28]. How-
+ever, these prior works typically apply static constraints that
+overlook the highly sensitive temporal dynamics of diffusion
+models. Unlike these approaches, our method dynamically
+adapts interventions over denoising timesteps using an energy-
+driven gating mechanism, ensuring precise concept removal
+without disrupting benign content.
+III. METHOD
+Overview. As illustrated in Fig. 2, GRACE consists of
+two main stages: offline sensitive subspace localization and
+adapter training. In the offline stage, (1.1) Sensitive Prompts
+are first encoded by the frozen Text Encoder to obtain the text
+embeddings of each prompt and their corresponding semantic
+weight ωi, which measures the semantic relevance of each
+prompt to the target concept. (1.2) The text embeddings are
+
+
+3
+Target Semantic 
+Target Semantic 
+Target Semantic 
+ Offline: Sensitive Subspace Localization
+Sensitive
+Prompts
+Text
+Encoder
+Semantic
+Weight �� 
+text embeddings 
+of each prompt
+Features of
+each layer �
+Sensitive subspace base
+Noisy 
+Text
+Encoder
+“A nude 
+woman at 
+the beach”
+Input prompt
+text
+embedding
+Down Sample···
+Up Sample
+UNet (Stable Diffusion)
+VAE
+Decoder
+latent
+features
+intermediate image
+ℒ���=
+ �ℎ�
+⊥ �
+ �ℎ� �+ �
+�ℎ�
+⊥
+�ℎ�
+∥
+��
+(�)
+�ℎ�
+Orthogonal Subspace 
+CLIP  Loss, 
+�����
+������= �����+ ����
+Main Pipeline: Train Adapters 
+1
+2
+Safe part of the text embedding, 
+being safe anchors, i.e., �����
+Trainable Adapters {��}
+Trainable model
+Frozen model
+UNet
+···
+Compute SA-PCA
+Sensitive subspace base
+text 
+embedding Compute orthogonal-
+decoupling
+Sensitive part of the text 
+embedding, i.e., ����������
+image embedding
+Image
+Encoder
+�ℎ� from 
+Eq.(10)
+Compute orthogonal-decoupling
+Fig. 2.
+Overall pipeline of GRACE, including offline sensitive-subspace localization, adapter training. In the offline stage, Semantic-Aware PCA (SA-PCA)
+extracts layer-wise sensitive subspaces V (l)
+K
+from semantically weighted UNet features. During training, the prompt representation is orthogonally decoupled
+to construct a safe anchor for CLIP-based semantic supervision, while Lsub constrains adapter-induced modifications outside the sensitive subspace. Only the
+lightweight adapters {Al} are optimized, while the pretrained model remains frozen.
+then fed into the frozen UNet to extract the features of each
+selected layer l. (1.3) Semantic-Aware Principal Component
+Analysis (SA-PCA) takes the semantic weight ωi and the
+corresponding layer-wise features as input and outputs the
+sensitive subspace base V (l)
+K . The semantic weighting allows
+SA-PCA to emphasize feature directions that are more strongly
+associated with the target concept. The resulting sensitive
+subspace base is retained for subsequent adapter training. In
+the training stage, (2.1) the Input prompt is encoded by the
+frozen Text Encoder to obtain its text embedding. (2.2) The
+text embedding and noisy latent are fed into the frozen UNet
+equipped with trainable adapters {Al}, producing latent fea-
+tures while only the adapters are updated during training. (2.3)
+The text embedding is processed by orthogonal decoupling
+with respect to the target-concept direction, producing the
+sensitive part of the text embedding esensitive and the safe part
+esafe. The latter serves as the safe anchor that represents the
+non-target semantics to be preserved. (2.4) The latent features
+are decoded by the frozen VAE Decoder into an intermediate
+image, which is further encoded by the frozen Image Encoder
+to obtain its image embedding. The image embedding is
+aligned with esafe through the CLIP Loss Lclip, providing
+semantic supervision for adapter training. (2.5) The adapter-
+induced feature change ∆hl from Eq. (10) is projected onto the
+orthogonal complement of the Sensitive subspace base V (l)
+K to
+obtain ∆h⊥
+l . The subspace loss Lsub penalizes this component,
+thereby restricting modifications outside the target-related di-
+rections. The CLIP Loss and subspace loss jointly optimize
+the Trainable Adapters, while the pretrained model remains
+frozen. In the inference stage, the trained adapters {Al}
+and sensitive subspace bases V (l)
+K
+are reused by the energy-
+driven dynamic gating mechanism. For each selected layer, the
+current feature hin
+l is projected onto V (l)
+K to estimate its target-
+related response and obtain the adapter activation γl. Together
+with the timestep scaling η(t), γl dynamically regulates the
+adapter contribution, enabling controllable concept erasure
+while reducing unnecessary intervention.
+A. Semantic-Aware Sensitive Subspace Localization
+The offline stage aims to localize the target concept within
+the high-dimensional intermediate representations of the diffu-
+sion model. Let s denote the target concept to be erased. Our
+key observation is that target-related variations can be captured
+by a compact set of feature directions, forming a layer-wise
+low-dimensional sensitive subspace. This compact structure is
+further supported by the empirical layer-wise rank analysis in
+Supplementary Sec. D. Once identified, the sensitive subspace
+provides a shared geometric reference for constraining model
+modifications during training and measuring target-related
+responses during inference.
+To estimate this subspace, we introduce SA-PCA, which
+incorporates the semantic relevance of each prompt into co-
+variance estimation, thereby emphasizing feature variations
+more strongly associated with s. Specifically, we construct a
+target-related prompt set {pi}N
+i=1, where each pi expresses the
+target concept s in a different textual context. Each prompt
+is passed through the frozen diffusion model M to collect
+intermediate UNet features. At a selected layer l, the feature
+map has Cl channels and spatial size Hl × Wl. We flatten its
+spatial dimensions and represent it as
+H(l)
+i
+=
+n
+h(l)
+i,j ∈RCl
+oMl
+j=1 ,
+Ml = HlWl,
+(1)
+where h(l)
+i,j is the Cl-dimensional feature vector at the j-th
+flattened location.
+Because different prompts may express the target concept
+with different semantic strengths, we assign each prompt
+
+
+4
+a semantic relevance weight. Let es, ci ∈RD be the ℓ2-
+normalized CLIP text embeddings of the target concept s and
+prompt pi, respectively. We define ωi = max
+ 0, c⊤
+i es
+
+, where
+c⊤
+i es is their cosine similarity. A larger ωi indicates that pi is
+more strongly aligned with s and therefore contributes more
+to the estimation of the sensitive subspace.
+Using these prompt-level semantic weights, we aggregate
+the intermediate features across prompts and spatial positions.
+The weighted mean at layer l is
+µ(l) = 1
+Zl
+N
+X
+i=1
+ωi
+Ml
+X
+j=1
+h(l)
+i,j,
+Zl = Ml
+N
+X
+i=1
+ωi,
+(2)
+and the corresponding semantically weighted covariance ma-
+trix is
+Σ(l) = 1
+Zl
+N
+X
+i=1
+ωi
+Ml
+X
+j=1
+
+h(l)
+i,j −µ(l) 
+h(l)
+i,j −µ(l)⊤
+.
+(3)
+This weighting gives greater influence to feature variations
+produced by prompts that are more strongly associated with
+the target concept.
+We then retain the top K eigenvectors of Σ(l):
+V (l)
+K =
+h
+v(l)
+1 , v(l)
+2 , . . . , v(l)
+K
+i
+∈RCl×K,
+(4)
+where K denotes the retained subspace rank. The columns
+of V (l)
+K
+form an orthonormal basis of the estimated sensitive
+subspace, capturing the dominant feature variations that are
+semantically associated with s.
+The resulting subspace bank {V (l)
+K }l∈L is reused throughout
+GRACE. The following training stage uses this geometric lo-
+calization to constrain adapter optimization while determining
+which non-target semantics should be preserved.
+B. Subspace-Constrained Adapter Optimization
+Having localized the target-related feature directions, we
+next learn a lightweight correction within the estimated sen-
+sitive subspace. We freeze the pretrained text encoder, UNet
+backbone, and Variational Autoencoder (VAE) decoder, and
+insert a trainable residual adapter Al into each selected layer
+l ∈L.
+This stage addresses two complementary objectives. First,
+the optimization requires a semantic target that specifies what
+should be removed and what prompt semantics should be
+preserved after erasure. Second, the adapter-induced feature
+changes should be constrained to the target-related subspace
+to avoid unnecessary modification of unrelated directions.
+1) Automatically Decoupled Safe Anchor for Joint Erasure
+and Retention: Existing methods often rely on auxiliary retain
+data or manually constructed surrogate prompts to specify
+preservation semantics. Instead, we introduce an automatically
+decoupled safe anchor that derives preservation supervision
+directly from the current training prompt.
+Let Etext denote the CLIP text encoder. For the current
+training prompt c and the target concept s, we obtain their
+normalized CLIP text embeddings as
+ec = Norm(Etext(c)) ,
+es = Norm(Etext(s)) ,
+(5)
+where ec, es ∈RD.
+We then remove the component of ec aligned with the target
+direction:
+esafe = ec −
+ e⊤
+c es
+
+es,
+esafe =
+esafe
+∥esafe∥2
+.
+(6)
+where
+ e⊤
+c es
+
+es is the projection of the prompt representation
+onto the target-concept direction. Since ∥es∥2 = 1, the residual
+satisfies e⊤
+s esafe = 0, so esafe represents the residual prompt
+semantics after removing the target-aligned component. For
+numerical stability, the implementation adds a small ϵ to the
+normalization denominator.
+During training, the predicted clean latent is decoded by the
+frozen VAE decoder and mapped into the CLIP image space:
+bx0 = DVAE(bz0) ,
+vpred = Norm(Eimg(bx0)) ,
+(7)
+where DVAE denotes the frozen VAE decoder and Eimg is the
+CLIP image encoder. We then define
+LCLIP = 1 −v⊤
+predesafe.
+(8)
+minimizing LCLIP aligns generated images with the resid-
+ual prompt semantics encapsulated by the safe anchor. This
+suppresses target-concept responses while preserving intact
+scene semantics, eliminating the need for manually designed
+surrogate prompts or external retention datasets.
+2) Subspace-Constrained Residual Regularization:
+The
+safe anchor specifies which semantics should be preserved,
+but does not constrain how the adapter modifies intermediate
+representations. We therefore reuse the sensitive subspace from
+Sec. III-A to restrict adapter-induced feature deviations in this
+stage. Let
+∆hl = hedit
+l
+−horig
+l
+(9)
+denote the adapter-induced feature change at layer l, where
+hedit
+l
+and horig
+l
+are produced by the adapter-augmented model
+and the frozen original model, respectively, under the same
+noisy latent, prompt condition, and timestep.
+Using the sensitive basis V (l)
+K
+obtained in the first stage,
+we decompose ∆hl into its in-subspace and off-subspace
+components:
+∆hproj
+l
+= V (l)
+K V (l)⊤
+K
+∆hl,
+∆h⊥
+l = ∆hl −∆hproj
+l
+. (10)
+where ∆hproj
+l
+represents the modification along target-related
+directions, while ∆h⊥
+l
+represents the component outside the
+sensitive subspace.
+Rather than penalizing the entire adapter-induced change,
+which would also limit the capacity required for erasure, we
+selectively penalize only the off-subspace component:
+Lsub = 1
+|L|
+X
+l∈L
+∆h⊥
+l
+
+F
+∥∆hl∥F + ϵ.
+(11)
+The normalization by ∥∆hl∥F makes the regularizer depend
+on the relative proportion of off-subspace modification rather
+than the absolute magnitude of the adapter response.
+
+
+5
+3) Timestep-Aware Optimization:
+The safe-anchor loss
+specifies the semantics to preserve, while the subspace loss re-
+stricts where the adapter can modify the representation. During
+training, we further sample timesteps from an intermediate-
+noise range:
+t ∼U {Tmin, . . . , Tmax} .
+(12)
+where t is the training timestep. Under the original 1,000-
+step diffusion schedule, we set Tmin = 400 and Tmax = 800.
+This range avoids extremely noisy states with weak semantic
+information and very late states with limited room for semantic
+modification.
+The complete adapter-training objective is
+Ltotal = LCLIP + λLsub.
+(13)
+where LCLIP provides the safe-anchor supervision, Lsub pe-
+nalizes off-subspace modification, and λ controls their trade-
+off. We use concept-specific λ values and report them in the
+experimental settings.
+C. Energy-Driven Dynamic Gating
+After training, the adapter does not need to remain equally
+active throughout generation. At inference time, we therefore
+reuse the sensitive subspace to determine whether the target
+concept is currently active and how strongly the adapter should
+intervene.
+1) Projection-Energy Layer-wise Gating: For each selected
+layer l, we average its current feature map over the spatial
+dimensions and obtain a Cl-dimensional feature vector ¯hl. We
+measure its response within the sensitive subspace as
+El =
+V (l)⊤
+K
+¯hl
+
+2
+¯hl
+
+2 + ϵ .
+(14)
+where V (l)
+K
+∈RCl×K is the sensitive basis estimated in
+Sec. III-A, Cl is the channel dimension, K is the sensitive-
+subspace rank, and ϵ is a small constant for numerical stability.
+A larger El indicates that the current feature contains a
+stronger response along the target-sensitive directions.
+We convert El into a soft activation gate:
+γl = σ (α(El −τl)) .
+(15)
+where γl ∈(0, 1) controls the activation of adapter Al, σ(·)
+is the sigmoid function, τl is the activation threshold, and
+α controls the transition sharpness. We set α = 40 in all
+experiments. When El < τl, the adapter is weakly activated;
+when El > τl, its contribution increases.
+The threshold is defined as
+τl =
+r
+K
+Cl
++ δ.
+(16)
+where
+p
+K/Cl is the expected projection magnitude of a
+concept-agnostic feature onto a random K-dimensional sub-
+space, and δ is an additional margin. We set δ = 0.03 for all
+layers and concepts. This threshold therefore provides a data-
+free reference for distinguishing target-related responses from
+incidental projection.
+2) Temporal Intervention Scaling.: The layer-wise gate
+determines whether the target-related response is strong, but
+the required intervention strength also depends on the current
+denoising stage. We therefore introduce a temporal scaling
+factor:
+η(t) =
+1
+1 + exp (β(t −tstart)).
+(17)
+where t is the current inference timestep, tstart is the concept-
+specific transition point, and β controls the transition sharp-
+ness. We set β = 1.0, while tstart is selected separately for
+each target concept and reported in the experimental section.
+Finally, the layer-wise gate and temporal scaling jointly
+control the trained adapter:
+hout
+l
+= hin
+l + η(t)γlAl
+ hin
+l
+
+.
+(18)
+where hin
+l
+and hout
+l
+are the input and output features of
+layer l, respectively, and Al(·) is the trained concept-erasing
+adapter. The factor γl determines whether the adapter should
+be activated, while η(t) determines how strongly it should
+intervene at the current timestep.
+IV. EXPERIMENTS
+A. Experimental Setup
+Models and Baselines. Our primary evaluations are con-
+ducted on the widely adopted Stable Diffusion (SD) v1.5. To
+demonstrate the architectural generalizability of our frame-
+work, we also extend our experiments to SD v1.5/v2.1 [9],
+SDXL v1.0 [29], and the recent transformer-based FLUX.1-
+schnell [30], [31]. We benchmark our approach against SOTA
+concept erasure methods, including ESD [8], MACE [13],
+Speed [12], SPM [32], and Co-Erasing [11].
+Target Concepts and Datasets. To comprehensively assess
+the robustness and precision of our method, we categorize
+the target concepts into four distinct groups: (1) Sensitive
+Content: Nudity concepts evaluated using the I2P dataset
+(931 prompts) [3]; (2) Artistic Styles: Van Gogh, Picasso,
+and Monet; (3) IP Characters: Snoopy, Winnie bear, Hello
+Kitty, and Pikachu; and (4) Specific Identities: Ariana, Taylor,
+Amanda, and Katty. Furthermore, to evaluate the preservation
+of general generation quality (i.e., ensuring non-target con-
+cepts remain unaffected), we sample prompts from the MS-
+COCO 30k dataset [33].
+Evaluation Metrics. We report CLIP Score (CS) to eval-
+uate semantic alignment, where lower Target CS and higher
+General CS indicate stronger erasure and better preservation,
+respectively. We further measure the distributional deviation
+from the original model using Fr´echet Inception Distance
+(FID, ↓) at three levels: Benign FID for general generation
+quality, Near-Neighbor FID for semantically related concepts,
+and Superclass FID for broader category preservation. For
+sensitive-content erasure, we use NudeNet [34] to compute the
+relative reduction in unsafe generations: Reduction Rate =
+(rSD −rerased)/rSD × 100%, where rSD and rerased denote
+the unsafe exposure rates before and after erasure, respectively;
+higher values indicate stronger suppression. For identity era-
+sure, we use a pre-trained celebrity classifier from Hugging
+Face [35], where lower target-identity detection and higher
+non-target accuracy indicate better erasure and preservation.
+
+
+6
+Fig. 3. Relative reduction rate of unsafe generations on the I2P dataset based on NudeNet fine-grained detection labels. For each exposed body-part category,
+we compute the reduction rate with respect to the original SD model. Higher values indicate stronger suppression of the corresponding unsafe content.
+MACE
+Speed
+SPM
+Co-Erasing
+Original
+Ours
+Van gogh
+Monet
+Caravaggio
+Ariana 
+Grand
+Katty Perry
+Amanda 
+Seyfried
+Fig. 4. Qualitative comparison of multi-concept erasure. Labels in red denote
+target concepts to be erased, while labels in green denote non-target concepts
+to be preserved. Our method shows smoother and more balanced behavior,
+achieving clean removal on target concepts while maintaining natural and
+stable generation on preserved concepts.
+B. Main Results
+In this section, we compare GRACE with SOTA baselines
+in terms of erasure efficacy and semantic preservation.
+Sensitive Content Erasure. Fig. 3 reports the relative re-
+duction rates across fine-grained NSFW categories on I2P.
+GRACE consistently achieves strong reductions across the
+evaluated fine-grained unsafe-content categories.
+Multi-Concept Erasure and Graceful Degradation. Ta-
+ble I presents quantitative results for multi-concept erasure
+of IP characters on SD v1.5. GRACE achieves low Target
+CLIP Scores while preserving strong MS-COCO semantic
+fidelity. Fig. 5 visualizes three-concept erasure and graceful
+semantic degradation. GRACE converts erased IP characters
+into natural generic alternatives while preserving neighbor-
+ing concepts and avoiding target residues or visual artifacts.
+TABLE I
+QUANTITATIVE EVALUATION OF MULTI-CONCEPT ERASURE ON IP
+CHARACTERS USING SD V1.5. FOR ERASED TARGET CONCEPTS, LOWER
+CS INDICATES BETTER ERASURE. FOR PRESERVED GENERAL CONCEPTS
+ON MS-COCO, HIGHER CS INDICATES BETTER SEMANTIC
+PRESERVATION.
+Concept
+Snoopy
+Winnie
+Kitty
+Pikachu
+COCO
+COCO
+Base
+28.32 (CS)
+28.21 (CS)
+27.93 (CS)
+28.13 (CS)
+26.73 (CS)
+– (FID)
+Erase Snoopy
+Method
+CS ↓
+FID ↓
+FID ↓
+FID ↓
+CS ↑
+FID ↓
+ESD
+25.44
+37.08
+33.14
+26.52
+25.93
+25.53
+Speed
+20.90
+25.97
+25.71
+21.43
+26.31
+20.45
+SPM
+19.38
+26.63
+21.99
+32.37
+26.19
+19.53
+Co-Erasing
+23.19
+34.87
+49.06
+77.84
+25.42
+24.64
+MACE
+23.50
+58.41
+86.81
+91.78
+25.13
+27.71
+GRACE(ours)
+20.07
+25.23
+21.07
+19.74
+26.65
+19.32
+Erase Snoopy & Winnie bear
+Method
+CS ↓
+CS ↓
+FID ↓
+FID ↓
+CS ↑
+FID ↓
+ESD
+22.22
+23.58
+35.57
+39.44
+24.64
+27.32
+Speed
+19.53
+21.42
+39.72
+23.88
+25.11
+22.42
+SPM
+18.57
+20.14
+24.05
+40.77
+24.47
+20.58
+Co-Erasing
+21.60
+20.32
+93.52
+103.32
+24.64
+26.53
+MACE
+20.56
+21.47
+96.51
+110.23
+24.86
+28.79
+GRACE(ours)
+19.23
+20.74
+24.86
+21.53
+26.15
+20.48
+Erase Snoopy, Winnie & Kitty
+Method
+CS ↓
+CS ↓
+CS ↓
+FID ↓
+CS ↑
+FID ↓
+ESD
+20.92
+22.46
+21.83
+45.42
+24.09
+28.50
+Speed
+19.34
+19.35
+18.64
+29.67
+24.53
+22.97
+SPM
+18.25
+18.87
+19.21
+44.32
+24.07
+21.86
+Co-Erasing
+18.29
+17.63
+18.31
+124.75
+23.49
+29.35
+MACE
+19.67
+18.18
+17.32
+120.84
+23.44
+30.54
+GRACE(ours)
+19.02
+18.23
+18.35
+23.68
+26.06
+20.96
+Fig. 4 evaluates non-target preservation under artistic-style
+and celebrity-identity erasure. GRACE removes the specified
+targets while maintaining stable generation of preserved styles
+and identities, demonstrating consistent performance across
+concept categories. Additional qualitative results are provided
+in supplementary material, Sec. H.
+C. Robustness, Scalability, and Generalization
+We further evaluate GRACE in terms of adversarial ro-
+bustness, large-scale scalability, cross-model generalization,
+superclass preservation, and computational efficiency.
+
+
+7
+Prompt:
+“Snoopy dog wearing pilot goggles”
+Prompt:
+“Hello Kitty sitting on cushion”
+Prompt:
+“A cartoon Mickey mouse”
+Original:
+Original:
+Original:
+Target
+ Concept
+Snoopy 
+Speed
+SPM
+Co-
+Erasing
+Ours
+Speed
+SPM
+Co-
+Erasing
+Ours
+Speed
+SPM
+Co-
+Erasing
+Ours
+Snoopy 
++
+Hello Kitty
+Snoopy 
++
+Hello Kitty
++
+Winnie bear
+Fig. 5. Qualitative visualization of three-concept erasure. Red labels indicate sequentially erased target concepts, and green labels indicate related neighboring
+concepts to be preserved. GRACE achieves clean target removal with graceful semantic degradation, while maintaining natural generation quality and avoiding
+unnecessary suppression of neighboring concepts.
+MACE
+Speed
+SPM
+Co-Erasing
+Original
+Ours
+ESD
+...censored should chuffed ( naked roman manper...
+....eticbare tless guiding nsfw fights offs spontaneous babes shocker.....
+Fig. 6. Qualitative comparison of nudity erasure under aggressive adversarial
+prompts. Baseline methods often fail to fully suppress unsafe content or
+exhibit severe semantic drift, whereas GRACE maintains both robust erasure
+and natural generation quality.
+TABLE II
+ROBUSTNESS EVALUATION AGAINST RING-A-BELL ADVERSARIAL
+ATTACKS.
+Method
+Nude (NSFW)
+Ariana (ID)
+Snoopy (IP)
+Van Gogh (Style)
+NSFW Rate (%) ↓
+Face-Acc (%) ↓
+CS ↓
+CS ↓
+Original SD
+89.5
+94.5
+28.66
+27.84
+ESD
+12.0
+12.5
+22.44
+21.20
+MACE
+9.0
+6.5
+23.50
+22.42
+Co-Erasing
+3.0
+4.5
+23.19
+24.85
+Speed
+16.0
+18.5
+23.67
+23.50
+SPM
+14.5
+15.0
+23.85
+22.15
+GRACE(ours)
+0.0
+2.0
+21.65
+21.55
+Robustness against Adversarial Attacks. We evaluate all
+methods against Ring-A-Bell attacks [36] across NSFW, iden-
+tity, IP, and artistic-style concepts. As shown in Table II,
+GRACE achieves the strongest or competitive target sup-
+pression across all categories, whereas adversarial prompts
+noticeably revive erased concepts for several baselines. Fig. 6
+further shows that GRACE suppresses nudity under aggressive
+prompts while preserving coherent structure and natural image
+quality, demonstrating improved robustness without substantial
+semantic drift.
+Scalability to Large-Scale Erasure. We evaluate simul-
+taneous erasure of 10, 20, and 50 celebrity identities us-
+ing the GIPHY Celebrity Detector (GCD) [37]. We report
+FLUX 
+Official SD v2.1
+SDXL 
+Nudity
+Neighbor
+Fig. 7.
+Qualitative results of our concept eraser deployed across different
+diffusion model architectures.
+top-1 GCD accuracy on erased targets, Acce, and retained
+identities, Accr, together with their harmonic mean: Ho =
+2
+(100−Acce)−1+(Accr)−1 . As shown in Table V, baseline per-
+formance degrades as the erasure scale increases, particularly
+in non-target retention. GRACE maintains competitive target
+erasure (Acce ↓) and strong identity preservation (Accr ↑),
+achieving the best overall trade-off (Ho ↑) across different
+scales. Qualitative results are provided in supplementary ma-
+terial, Sec. H.
+Cross-Model Generalization. Fig. 7 presents GRACE across
+multiple diffusion architectures, ranging from SD v2.1 to
+SDXL and FLUX.1. GRACE consistently removes target
+concepts while preserving generation fidelity, indicating that
+its subspace-constrained intervention is not tied to a specific
+backbone and can be transferred across heterogeneous gen-
+erative models. Additional qualitative results are provided in
+supplementary material, Sec. H.
+Superclass Preservation. Table III evaluates target IP erasure
+and preservation of their parent categories. GRACE achieves
+effective target removal with substantially lower Parent FID
+than the baselines. For example, after erasing Snoopy, GRACE
+retains the broader “Dog” category and continues to generate
+natural dog images. Similar results for other IP concepts show
+that GRACE localizes its intervention without suppressing the
+surrounding semantic superclass.
+Computational Efficiency. Table IV compares the computa-
+
+
+8
+（a）Target Erasure (CS) ↓
+(b) Neighbor Preservation (NN-FID) ↓
+(c) General Quality ↓
+Fig. 8. Impact of intervention timestep (t) on erasure and quality. We observe a clear trade-off: earlier interventions (larger (t)) yield better target erasure
+(lower CS) but disrupt neighboring concepts and overall quality (higher NN-FID and FID). Star markers (⋆) indicate the optimal (t) for each concept to
+achieve a Pareto-optimal balance.
+TABLE III
+TARGET ERASURE AND SUPERCLASS PRESERVATION. LOWER TARGET CS
+INDICATES STRONGER ERASURE, WHILE LOWER PARENT FID INDICATES
+BETTER SUPERCLASS PRESERVATION.
+Method
+Snoopy / Dog
+Winnie / Bear
+H. Kitty / Cat
+Target CS / Parent FID ↓
+Target CS / Parent FID ↓
+Target CS / Parent FID ↓
+ESD
+20.92 / 35.20
+22.46 / 32.10
+21.83 / 34.50
+Speed
+19.34 / 28.50
+19.35 / 27.40
+18.64 / 26.90
+SPM
+18.25 / 26.40
+18.87 / 25.80
+19.21 / 24.50
+Co-Erasing
+18.29 / 58.60
+17.63 / 62.30
+18.31 / 55.40
+MACE
+19.67 / 75.40
+18.18 / 81.20
+17.32 / 78.50
+GRACE (ours)
+19.02 / 24.50
+18.23 / 22.10
+18.35 / 23.90
+TABLE IV
+TIME CONSUMPTION OF THE ERASING PIPELINE FOR c TARGETED
+CONCEPTS ON n DMS, WITH EACH GENERATING IMAGES BASED ON p
+PROMPTS. THE TOTAL TIME IS CALCULATED UNDER THE SPECIFIC
+SETTING OF c = 20, n = 5, AND p = 60.
+Prep.(h) Model FT (h)
+Gen.(S)
+Total(h)
+ESD
+0.02c
+0.7cn
+1.85cpn
+73.48
+SPEED
+0
+0
+2.50cpn
+4.17
+SPM
+0.10c
+0.3cn
+1.95cpn
+35.25
+Co-Erasing
+0.25c
+0.25cn
+1.92cpn
+33.20
+MACE
+0.12c
+0.14cn
+1.95cpn
+19.65
+GRACE(ours)
+0.08c
+0.11cn
+1.95cpn
+15.85
+tional cost of different erasure methods. GRACE requires sub-
+stantially less optimization time than conventional fine-tuning-
+based baselines while maintaining strong erasure and preserva-
+tion performance. Although training-free methods avoid tuning
+costs, they generally provide weaker erasure reliability or
+semantic preservation. GRACE therefore offers a practical
+balance between effectiveness and computational efficiency.
+D. Ablation Studies
+We conduct ablation studies on nudity erasure to evaluate
+the proposed components and temporal intervention strategy.
+Table VI reports the Nudity Rate and non-target preservation
+performance.
+Effectiveness of Core Components. Table VI evaluates SA-
+PCA, Lsub, and Energy Gating. All variants achieve a 0.0%
+Nudity Rate, so the main differences lie in preservation perfor-
+mance. Replacing SA-PCA with standard PCA degrades both
+CS and FID, confirming that semantic weighting better isolates
+target-relevant directions. Removing Lsub causes the largest
+CS drop, showing its role in limiting off-subspace distur-
+bance. Disabling Energy Gating further worsens preservation,
+indicating that static adapter activation introduces unnecessary
+intervention. Overall, the full GRACE model achieves the best
+preservation while maintaining complete target removal.
+Impact of Intervention Timestep (t). Recalling our ear-
+lier observation that concept formation is highly timestep-
+dependent,
+we
+further
+investigate
+how
+the
+intervention
+timestep affects the erasure-preservation trade-off. As illus-
+trated in Fig. 8, intervening at earlier stages (larger t) yields
+stronger target erasure but causes greater disruption to neigh-
+boring concepts and overall image structure. Conversely, in-
+tervening too late (smaller t) may fail to sufficiently suppress
+the target concept. Based on this trade-off, we identify a
+concept-specific transition point tstart, indicated by the star
+marker ⋆, which provides a favorable balance between erasure
+and preservation. This transition point is then used in the
+temporal scaling function in Eq. (18) to dynamically adjust
+the intervention strength during denoising.
+Ablation Study of Regularization Weight λ. We analyze the
+effect of the subspace regularization weight λ across different
+erasure tasks. The optimal values are 0.2 for Van Gogh, 0.5
+for Snoopy, 0.6 for Nudity, and 0.7 for Ariana, indicating
+concept-dependent sensitivity to the trade-off between erasure
+and preservation. Detailed analyses of target removal, near-
+neighbor preservation, and general-content fidelity are pro-
+vided in supplementary material, Sec. E.
+Ablation on Adapter Placement. Table VII compares adapter
+placements across U-Net blocks. Among single-block settings,
+the Up blocks achieve the lowest nude rate (16.8%), whereas
+the Down blocks perform worst (41.8%). The Mid + Up
+configuration further reduces the nude rate to 0.0% and outper-
+forms the All Layers setting. By excluding the Down blocks,
+it saves 15.6 MB of parameters while improving COCO
+preservation, with a higher CLIP Score (25.38 vs. 24.87) and
+lower FID (19.27 vs. 20.46). These results identify Mid + Up
+as the best balance between complete erasure, preservation
+quality, and parameter efficiency.
+
+
+9
+TABLE V
+QUANTITATIVE COMPARISON OF MULTI-CONCEPT ERASURE WHEN SCALING TO 10, 20, AND 50 CELEBRITIES. THE BEST RESULTS AMONG ERASURE
+METHODS ARE HIGHLIGHTED IN BOLD.
+Erase 10 Celebrities
+Erase 20 Celebrities
+Erase 50 Celebrities
+Acce↓
+Accr↑
+Ho↑
+CS↑
+FID↓
+Acce↓
+Accr↑
+Ho↑
+CS↑
+FID↓
+Acce↓
+Accr↑
+Ho↑
+CS↑
+FID↓
+SD v1.5
+89.84
+90.12
+18.26
+26.73
+-
+90.37
+90.12
+17.40
+26.73
+-
+90.91
+90.12
+16.51
+26.73
+-
+Co-Erasing
+1.67
+86.92
+92.27
+22.38
+35.74
+2.08
+84.31
+90.61
+20.26
+41.88
+3.24
+79.42
+87.24
+18.08
+59.61
+MACE
+1.58
+86.35
+91.99
+21.16
+37.62
+1.97
+83.76
+90.33
+19.94
+43.95
+3.11
+78.57
+86.77
+17.67
+62.34
+Speed
+1.83
+87.84
+92.72
+22.92
+29.81
+2.51
+85.63
+91.18
+20.61
+35.27
+4.26
+81.16
+87.85
+19.34
+43.42
+GRACE(ours)
+1.46
+88.71
+93.37
+25.78
+22.47
+2.16
+86.94
+92.07
+24.11
+25.43
+3.29
+83.02
+89.34
+22.86
+32.14
+TABLE VI
+ABLATION STUDIES ON THE PROPOSED CORE COMPONENTS FOR NUDITY
+ERASURE. “STD. PCA” DENOTES STANDARD VARIANCE-BASED PCA,
+WHILE “SA-PCA” IS OUR SEMANTIC-AWARE PCA. LSUB IS THE
+ORTHOGONAL CONSTRAINT, AND ENERGY GATING REPRESENTS THE
+ENERGY-DRIVEN DYNAMIC GATING MECHANISM.
+Settings
+Components
+Target Concept
+Preserved Concepts
+Subspace
+Lsub
+Energy Gating
+Nudity Rate (%) ↓
+CS ↑
+FID ↓
+w/ Std. PCA
+Std. PCA
+✓
+✓
+0.0
+22.84
+25.69
+w/o Lsub
+SA-PCA
+×
+✓
+0.0
+21.30
+25.44
+w/o Energy Gating
+SA-PCA
+✓
+×
+0.0
+22.15
+27.50
+GRACE(ours)
+SA-PCA
+✓
+✓
+0.0
+25.38
+19.27
+TABLE VII
+ABLATION STUDY ON ADAPTER PLACEMENT ACROSS U-NET BLOCKS. WE
+EVALUATE THE ERASURE EFFICACY USING NUDE RATE ON THE TARGET
+CONCEPT, AND THE PRESERVATION ABILITY USING CLIP SCORE (CS)
+AND FID ON THE COCO DATASET.
+Model
+Adapter Placement
+Params
+Target Concept
+Preservation (COCO)
+Down
+Mid
+Up
+Nude Rate (↓)
+CS (↑)
+FID (↓)
+Original Model
+×
+×
+×
+0 MB
+62.71%
+26.73
+-
+Down Only
+✓
+×
+×
+15.6MB
+41.8%
+26.12
+18.74
+Mid Only
+×
+✓
+×
+6.25MB
+24.7%
+26.46
+19.34
+Up Only
+×
+×
+✓
+23.45MB
+16.8%
+26.22
+19.39
+Mid + Up
+×
+✓
+✓
+29.7MB
+0.0%
+25.38
+19.27
+All Layers
+✓
+✓
+✓
+45.35MB
+0.0%
+24.87
+20.46
+V. CONCLUSION
+In this paper, we proposed GRACE, a precise framework for
+concept erasure in text-to-image diffusion models that allevi-
+ates the persistent trade-off between target erasure and non-
+target preservation. By synergistically combining Semantic-
+Aware PCA (SA-PCA) for sensitive-subspace localization, off-
+subspace regularization Lsub to limit semantic disturbance,
+and an Energy Gating mechanism for adaptive intervention,
+GRACE concentrates concept modifications within relevant
+semantic directions and regulates their activation across de-
+noising timesteps. Extensive experiments demonstrate that
+GRACE effectively suppresses undesirable concepts, including
+nudity, while achieving a superior balance between erasure
+effectiveness, image quality, and semantic preservation. Ulti-
+mately, GRACE provides a robust and theoretically motivated
+step toward safer and more controllable generative AI.
+VI. ACKNOWLEDGMENTS
+This work was supported in part by the Natural Sci-
+ence Foundation of Sichuan Province under Grant 2025ZNS-
+FSC1475.
+REFERENCES
+[1] P. Dhariwal and A. Q. Nichol, “Diffusion models beat gans on image
+synthesis,” in Advances in Neural Information Processing Systems 34:
+Annual Conference on Neural Information Processing Systems 2021,
+NeurIPS 2021, December 6-14, 2021, virtual, 2021, pp. 8780–8794.
+[2] N. Carlini, J. Hayes, M. Nasr, M. Jagielski, V. Sehwag, F. Tram`er,
+B. Balle, D. Ippolito, and E. Wallace, “Extracting training data from
+diffusion models,” in 32nd USENIX Security Symposium, USENIX
+Security 2023, Anaheim, CA, USA, August 9-11, 2023, 2023, pp. 5253–
+5270.
+[3] P. Schramowski, M. Brack, B. Deiseroth, and K. Kersting, “Safe latent
+diffusion: Mitigating inappropriate degeneration in diffusion models,”
+2023, pp. 22 522–22 531.
+[4] C. Schuhmann, R. Beaumont, R. Vencu, C. Gordon, R. Wight-
+man, M. Cherti, T. Coombes, A. Katta, C. Mullis, M. Wortsman,
+P. Schramowski, S. Kundurthy, K. Crowson, L. Schmidt, R. Kacz-
+marczyk, and J. Jitsev, “LAION-5B: an open large-scale dataset for
+training next generation image-text models,” in Advances in Neural
+Information Processing Systems 35: Annual Conference on Neural
+Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA,
+USA, November 28 - December 9, 2022, 2022.
+[5] S. Yan, O. Li, J. Cai, Y. Hao, X. Jiang, Y. Hu, and W. Xie, “A sanity
+check for ai-generated image detection,” in The Thirteenth International
+Conference on Learning Representations, ICLR 2025, Singapore, April
+24-28, 2025, 2025.
+[6] Y. Yang, R. Gao, X. Wang, T. Ho, N. Xu, and Q. Xu, “Mma-diffusion:
+Multimodal attack on diffusion models,” in IEEE/CVF Conference on
+Computer Vision and Pattern Recognition, CVPR 2024, Seattle, WA,
+USA, June 16-22, 2024, 2024, pp. 7737–7746.
+[7] N. Kumari, B. Zhang, S. Wang, E. Shechtman, R. Zhang, and J. Zhu,
+“Ablating concepts in text-to-image diffusion models,” in IEEE/CVF In-
+ternational Conference on Computer Vision, ICCV 2023, Paris, France,
+October 1-6, 2023, 2023, pp. 22 634–22 645.
+[8] R. Gandikota, J. Materzynska, J. Fiotto-Kaufman, and D. Bau, “Erasing
+concepts from diffusion models,” in IEEE/CVF International Conference
+on Computer Vision, ICCV 2023, Paris, France, October 1-6, 2023,
+2023, pp. 2426–2436.
+[9] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer, “High-
+resolution image synthesis with latent diffusion models,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition, CVPR 2022,
+New Orleans, LA, USA, June 18-24, 2022, 2022, pp. 10 674–10 685.
+[10] R. Gandikota, H. Orgad, Y. Belinkov, J. Materzynska, and D. Bau,
+“Unified concept editing in diffusion models,” in IEEE/CVF Winter
+Conference on Applications of Computer Vision, WACV 2024, Waikoloa,
+HI, USA, January 3-8, 2024, 2024, pp. 5099–5108.
+[11] F. Li, Q. Xu, S. Bao, Z. Yang, X. Cao, and Q. Huang, “One image is
+worth a thousand words: A usability preservable text-image collabora-
+tive erasing framework,” in Forty-second International Conference on
+Machine Learning, ICML 2025, Vancouver, BC, Canada, July 13-19,
+2025, 2025.
+[12] O. Li, Y. Wang, X. Hu, H. Jiang, T. Liang, Y. Hao, G. Ma, and
+F. Feng, “SPEED: Scalable, precise, and efficient concept erasure
+for diffusion models,” in The Fourteenth International Conference on
+Learning Representations, 2026.
+[13] S. Lu, Z. Wang, L. Li, Y. Liu, and A. W. Kong, “MACE: mass concept
+erasure in diffusion models,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, CVPR 2024, Seattle, WA, USA, June
+16-22, 2024, 2024.
+[14] R. Shirkavand, P. Yu, S. Gao, G. Somepalli, T. Goldstein, and H. Huang,
+“Efficient fine-tuning and concept suppression for pruned diffusion
+models,” in IEEE/CVF Conference on Computer Vision and Pattern
+
+
+10
+Recognition, CVPR 2025, Nashville, TN, USA, June 11-15, 2025, 2025,
+pp. 18 619–18 629.
+[15] Y. Wang, O. Li, T. Mu, Y. Hao, K. Liu, X. Wang, and X. He,
+“Precise, fast, and low-cost concept erasure in value space: Orthogonal
+complement matters,” in IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, CVPR 2025, Nashville, TN, USA, June 11-15, 2025,
+2025, pp. 28 759–28 768.
+[16] J. Yoon, S. Yu, V. Patil, H. Yao, and M. Bansal, “SAFREE: training-free
+and adaptive guard for safe text-to-image and video generation,” in The
+Thirteenth International Conference on Learning Representations, ICLR
+2025, Singapore, April 24-28, 2025, 2025.
+[17] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal,
+G. Sastry, A. Askell, P. Mishkin, J. Clark, G. Krueger, and I. Sutskever,
+“Learning transferable visual models from natural language supervi-
+sion,” in Proceedings of the 38th International Conference on Machine
+Learning, ICML 2021, 18-24 July 2021, Virtual Event, 2021, pp. 8748–
+8763.
+[18] C. Schuhmann, R. Vencu, R. Beaumont, R. Kaczmarczyk, C. Mullis,
+A. Katta, T. Coombes, J. Jitsev, and A. Komatsuzaki, “LAION-400M:
+open dataset of clip-filtered 400 million image-text pairs,” CoRR, vol.
+abs/2111.02114, 2021.
+[19] W. Sun, X. Dong, B. Cui, and J. Tang, “Attentive eraser: Unleashing
+diffusion model’s object removal potential via self-attention redirection
+guidance,” in Thirty-Ninth AAAI Conference on Artificial Intelligence,
+Thirty-Seventh Conference on Innovative Applications of Artificial In-
+telligence, Fifteenth Symposium on Educational Advances in Artificial
+Intelligence, AAAI 2025, Philadelphia, PA, USA, February 25 - March
+4, 2025, 2025, pp. 20 734–20 742.
+[20] S. D. Biswas, A. Roy, and K. Roy, “CURE: concept unlearning via
+orthogonal representation editing in diffusion models,” in Advances
+in Neural Information Processing Systems 38: Annual Conference on
+Neural Information Processing Systems 2025, NeurIPS 2025, San Diego,
+CA, USA, December 2-7, 2025 / Mexico City, Mexico, November 30 -
+December 5, 2025, 2025.
+[21] Y. Li, Y. Zhang, S. Liu, and X. Lin, “Pruning then reweighting: Towards
+data-efficient training of diffusion models,” in 2025 IEEE International
+Conference on Acoustics, Speech and Signal Processing, ICASSP 2025,
+Hyderabad, India, April 6-11, 2025, 2025, pp. 1–5.
+[22] C. Gong, K. Chen, Z. Wei, J. Chen, and Y. Jiang, “Reliable and efficient
+concept erasure of text-to-image diffusion models,” in Computer Vision
+- ECCV 2024 - 18th European Conference, Milan, Italy, September 29-
+October 4, 2024, Proceedings, Part LIII, 2024, pp. 73–88.
+[23] Z. Wu, H. Gao, Y. Wang, X. Zhang, and S. Wang, “Universal prompt
+optimizer for safe text-to-image generation,” in Proceedings of the
+2024 Conference of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technologies (Volume 1:
+Long Papers), NAACL 2024, Mexico City, Mexico, June 16-21, 2024,
+2024, pp. 6340–6354.
+[24] L. Yuan, X. Li, C. Xu, G. Tao, X. Jia, Y. Huang, W. Dong, Y. Liu, and
+B. Li, “Promptguard: Soft prompt-guided unsafe content moderation for
+text-to-image models,” IEEE Trans. Inf. Forensics Secur., vol. 21, pp.
+4051–4061, 2026.
+[25] C. Yang, M. Dong, X. Zhang, J. Qi, and A. Zhou, “Introducing common
+null space of gradients for gradient projection methods in continual
+learning,” in Proceedings of the 32nd ACM International Conference
+on Multimedia, MM 2024, Melbourne, VIC, Australia, 28 October 2024
+- 1 November 2024, 2024, pp. 5489–5497.
+[26] J. Fang, H. Jiang, K. Wang, Y. Ma, J. Shi, X. Wang, X. He, and
+T. Chua, “Alphaedit: Null-space constrained knowledge editing for lan-
+guage models,” in The Thirteenth International Conference on Learning
+Representations, ICLR 2025, Singapore, April 24-28, 2025, 2025.
+[27] H. Chen, T. Zhu, X. Yu, and W. Zhou, “Machine unlearning via null
+space calibration,” in Proceedings of the Thirty-Third International Joint
+Conference on Artificial Intelligence, IJCAI 2024, Jeju, South Korea,
+August 3-9, 2024, 2024, pp. 358–366.
+[28] F. Miao, S. Fang, L. Yu, Y. Qu, Y. Sun, X. Wang, and H. Xie,
+“Sderasure: Concept-specific trajectory shifting for concept erasure via
+adaptive diffusion classifier,” in The Fourteenth International Conference
+on Learning Representations, 2026.
+[29] D. Podell, Z. English, K. Lacey, A. Blattmann, T. Dockhorn, J. M¨uller,
+J. Penna, and R. Rombach, “SDXL: improving latent diffusion models
+for high-resolution image synthesis,” in The Twelfth International Con-
+ference on Learning Representations, ICLR 2024, Vienna, Austria, May
+7-11, 2024, 2024.
+[30] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le,
+“Flow matching for generative modeling,” in The Eleventh International
+Conference on Learning Representations, ICLR 2023, Kigali, Rwanda,
+May 1-5, 2023, 2023.
+[31] B. F. Labs, “Flux,” https://github.com/black-forest-labs/flux, 2024.
+[32] M. Lyu, Y. Yang, H. Hong, H. Chen, X. Jin, Y. He, H. Xue, J. Han, and
+G. Ding, “One-dimensional adapter to rule them all: Concepts, diffusion
+models and erasing applications,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, CVPR 2024, Seattle, WA, USA, June 16-
+22, 2024, 2024, pp. 7559–7568.
+[33] T. Lin, M. Maire, S. J. Belongie, J. Hays, P. Perona, D. Ramanan,
+P. Doll´ar, and C. L. Zitnick, “Microsoft COCO: common objects in
+context,” in Computer Vision - ECCV 2014 - 13th European Conference,
+Zurich, Switzerland, September 6-12, 2014, Proceedings, Part V, 2014,
+pp. 740–755.
+[34] P. Bedapudi, “Nudenet: Neural nets for nudity classification, detection
+and selective censoring,” https://github.com/notAI-tech/NudeNet, 2019.
+[35] Tonyassi, “tonyassi/celebrity-classifier,” https://huggingface.co/tonyassi/
+celebrity-classifier, 2024, accessed: 2026-05-07.
+[36] Y. Tsai, C. Hsu, C. Xie, C. Lin, J. Chen, B. Li, P. Chen, C. Yu, and
+C. Huang, “Ring-a-bell! how reliable are concept removal methods
+for diffusion models?” in The Twelfth International Conference on
+Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024.
+OpenReview.net, 2024.
+[37] GIPHY R&D Team, “GIPHY Celebrity Detector,” GitHub repository,
+2019, accessed: 2026-06-22.
+
+
+11
+APPENDIX
+A. Pseudocode of the GRACE Framework
+To provide a clearer and more systematic presentation of the
+proposed method, we summarize the complete GRACE proce-
+dure in this section through three stage-wise pseudocode algo-
+rithms. Specifically, Algorithm 1 presents the semantic-aware
+sensitive subspace localization, Algorithm 2 describes the
+subspace-constrained adapter optimization, and Algorithm 3
+details the energy-driven gated inference.
+Algorithm 1 Semantic-Aware Sensitive Subspace Localization
+Require: Frozen diffusion model M, target concept s, sen-
+sitive prompts Ps, selected layers L, and subspace rank
+K
+Ensure: Layer-wise sensitive subspaces {V (l)
+K }l∈L
+1: es ←Normalize(Etext(s))
+2: for each prompt pi ∈Ps do
+3:
+ci ←Normalize(Etext(pi))
+4:
+ωi ←max(0, c⊤
+i es)
+5:
+Run the frozen UNet and collect {H(l)
+i }l∈L
+6: end for
+7: for each layer l ∈L do
+8:
+Flatten H(l)
+i
+into {h(l)
+i,j}Ml
+j=1
+9:
+Compute the semantically weighted mean µ(l)
+10:
+Compute the semantically weighted covariance Σ(l)
+11:
+Perform eigendecomposition of Σ(l)
+12:
+Retain the top-K eigenvectors as V (l)
+K
+13: end for
+14: return {V (l)
+K }l∈L
+B. Theoretical Analysis of the Activation Threshold τl
+In this section, we provide a rigorous mathematical justi-
+fication for the analytical threshold τl =
+p
+K/Cl + δ used
+in our spatial energy gating mechanism. We aim to derive the
+expected normalized projection energy of a benign feature that
+is completely disentangled from the sensitive concept.
+Assumption A.1 (Isotropic Benign Features). Let ¯hl ∈RCl
+be an intermediate feature vector at layer l. If ¯hl is benign
+(i.e., it contains no specific semantic information regarding the
+target sensitive concept), its direction is uniformly distributed
+on the unit hypersphere SCl−1. For analytical tractability, we
+model ¯hl as a random isotropic Gaussian vector, namely ¯hl ∼
+N(0, ICl).
+Let VK ∈RCl×K be a deterministic matrix whose columns
+form an orthonormal basis for the extracted sensitive subspace,
+satisfying V ⊤
+K VK = IK. The normalized projection energy El
+is defined as:
+El = ∥V ⊤
+K ¯hl∥2
+∥¯hl∥2
+.
+Theorem A.1 (Expected Energy of Random Projections).
+Under Assumption A.1, the squared normalized projection
+energy E2
+l follows a Beta distribution Beta( K
+2 , Cl−K
+2
+), with
+its exact expectation being:
+E[E2
+l ] = K
+Cl
+.
+Algorithm 2 Subspace-Constrained Adapter Optimization
+Require: Frozen diffusion model M, target embedding es,
+sensitive subspaces {V (l)
+K }, training prompts, regulariza-
+tion weight λ
+Ensure: Trained adapters {Al}l∈L
+1: Insert trainable adapters {Al}l∈L
+2: Freeze the text encoder, UNet backbone, and VAE decoder
+3: for each training iteration do
+4:
+Sample prompt c, timestep t ∈[Tmin, Tmax], latent z0,
+and noise ϵ
+5:
+zt ←√¯αtz0 + √1 −¯αtϵ
+6:
+ec ←Normalize(Etext(c))
+7:
+esafe ←ec −(e⊤
+c es)es
+8:
+esafe ←esafe/(∥esafe∥2 + ε)
+9:
+Run the original and adapter-augmented UNets
+10:
+Decode the estimated clean latent into bx0
+11:
+vpred ←Normalize(Eimg(bx0))
+12:
+LCLIP ←1 −v⊤
+predesafe
+13:
+Lsub ←0
+14:
+for each adapter layer l ∈L do
+15:
+∆hl ←hedit
+l
+−horig
+l
+16:
+∆h⊥
+l ←
+
+I −V (l)
+K V (l)⊤
+K
+
+∆hl
+17:
+Lsub ←Lsub +
+∥∆h⊥
+l ∥F
+∥∆hl∥F + ε
+18:
+end for
+19:
+Lsub ←Lsub/|L|
+20:
+Ltotal ←LCLIP + λLsub
+21:
+Update only {Al}l∈L
+22: end for
+return {Al}l∈L
+Furthermore, in high-dimensional spaces (Cl ≫1), El tightly
+concentrates around
+p
+K/Cl.
+Proof. Let x = ¯hl ∼N(0, ICl). Since the multivariate
+standard normal distribution is rotationally invariant, we can
+apply an orthogonal transformation Q ∈RCl×Cl such that the
+first K rows of Q span the same subspace as VK.
+Let u = V ⊤
+K x ∈RK. By the properties of Gaussian vectors
+under orthogonal projection, u ∼N(0, IK). Let U = ∥u∥2
+2.
+It follows that U is a sum of K independent standard normal
+variables squared, hence U ∼χ2(K).
+Similarly, let v be the projection of x onto the orthog-
+onal complement of VK, such that v ∈RCl−K and v ∼
+N(0, ICl−K). Let V = ∥v∥2
+2, which yields V ∼χ2(Cl −K).
+By the orthogonality of the subspaces, U and V are inde-
+pendent random variables. The total squared norm of x can be
+decomposed as ∥x∥2
+2 = U + V . Thus, the squared normalized
+energy can be written as:
+E2
+l = ∥V ⊤
+K x∥2
+2
+∥x∥2
+2
+=
+U
+U + V .
+According to standard statistical theory, the ratio of a Chi-
+squared variable to the sum of two independent Chi-squared
+variables follows a Beta distribution. Therefore:
+E2
+l ∼Beta
+K
+2 , Cl −K
+2
+
+.
+
+
+12
+Algorithm 3 Energy-Driven Dynamic Gated Inference
+Require: Prompt c, trained adapters {Al}, sensitive subspaces
+{V (l)
+K }, gate parameters α, β, δ,tstart
+Ensure: Generated image with the target concept erased
+1: Encode prompt c and initialize zT ∼N(0, I)
+2: for t = T, T −1, . . . , 1 do
+3:
+for each adapter layer l ∈L do
+4:
+Obtain the current feature ¯hl
+5:
+El ←∥V (l)⊤
+K
+¯hl∥2
+∥¯hl∥2 + ε
+6:
+τl ←
+p
+K/Cl + δ
+7:
+γl ←σ(α(El −τl))
+8:
+η(t) ←
+1
+1 + exp(β(t −tstart))
+9:
+hout
+l
+←hl + η(t)γlAl(hl)
+10:
+end for
+11:
+Predict the denoising output and update zt →zt−1
+12: end for
+13: Decode z0 using the VAE decoder return Generated
+image
+The expectation of a Beta-distributed random variable Y ∼
+Beta(α, β) is given by
+α
+α+β . Applying this yields:
+E[E2
+l ] =
+K/2
+K/2 + (Cl −K)/2 = K
+Cl
+.
+By Jensen’s inequality, since the square root function is strictly
+concave, we have E[El] ≤
+p
+E[E2
+l ] =
+p
+K/Cl. In modern
+diffusion models, the channel dimension Cl is typically very
+large (e.g., Cl ∈{320, 640, 1280}). According to the con-
+centration of measure phenomenon on the high-dimensional
+hypersphere (Levy’s Lemma), the random variable El concen-
+trates extremely tightly around its mean, making the variance
+negligible. Thus, the approximation E[El] ≈
+p
+K/Cl holds
+with high probability.
+Remark 1 (Justification for the Activation Threshold). Theo-
+rem A.1 rigorously establishes that
+p
+K/Cl is the theoretical
+noise floor for the projection of any concept-agnostic feature.
+If a feature contains sensitive semantics, its projection en-
+ergy El will significantly exceed this floor due to semantic
+alignment with VK. To account for the slight non-Gaussianity
+of real-world neural network features, we introduce a small
+margin δ > 0. Consequently, the activation threshold is
+robustly defined as τl =
+p
+K/Cl + δ, providing a strictly
+data-free and mathematically grounded decision boundary for
+spatial energy gating.
+C. Evolution of Projection Energy
+To further analyze the optimization dynamics of GRACE,
+we track the projection energy across the down-sampling,
+middle, and up-sampling blocks throughout training, as shown
+in Fig. 9. The projection energy measures the normalized re-
+sponse of intermediate features within the sensitive subspace.
+It exhibits an overall decreasing trend across the three types
+of blocks, indicating that target-aligned feature responses are
+progressively weakened during optimization.
+D. Empirical Evidence of Low-Rank Semantic Subspaces
+To examine the compactness of concept-related representa-
+tions, we report the layer-wise subspace ranks for the repre-
+sentative concept “Ariana Grande”. For each selected cross-
+attention layer, SA-PCA chooses the smallest rank K that
+retains more than 99% of the semantically weighted variance.
+As shown in Table VIII, the retained rank ranges from 6
+to 12, with an average of 8.86, and occupies less than 2% of
+the channel dimension in every examined layer. This result
+indicates that the dominant semantically weighted variations
+of the examined concept can be represented by a compact
+layer-wise subspace.
+The 99% cumulative-variance criterion provides an adaptive
+rank selection rule based on the low-rank approximation prop-
+erty of PCA, without requiring a manually specified rank for
+each layer. The resulting compact subspaces support localized
+concept intervention and provide a restricted representation
+space for incremental updates.
+E. Ablation Study of Regularization Weight λ
+We further evaluate the effect of the subspace regularization
+weight λ using Target CS, Mean NN FID, and COCO FID.
+As shown in Fig. 10, increasing λ gradually weakens target
+erasure while improving near-neighbor and general-content
+preservation, with the preservation gains eventually saturating.
+Based on this trade-off, we set λ = 0.2 for artistic styles,
+λ = 0.5 for IP characters, λ = 0.6 for nudity, and λ = 0.7 for
+celebrity identities.
+F. Sensitivity Analysis of the Spatial-Gating Sharpness α
+The energy-gating margin is fixed to δ = 0.03 for all layers
+and target concepts. We further evaluate the sigmoid sharpness
+parameter under α ∈{20, 40, 60, 80}. A smaller α produces a
+smoother transition around the layer-specific threshold τl, but
+may insufficiently distinguish weak and strong target-related
+responses. In contrast, an excessively large α approximates
+a hard gate and may introduce abrupt changes in adapter
+activation. Our results show that α = 40 achieves the best
+trade-off between smooth activation and gating selectivity. We
+therefore use α = 40 in all experiments.
+G. Analysis of Temporal Scaling Sharpness
+We further analyze the temporal scaling sharpness con-
+trolled by β. For the sigmoid schedule, the output increases
+from approximately 0.05 to 0.95 when its input varies from
+−ln 19 to ln 19, corresponding to a transition width of
+∆t ≈2 ln 19
+β
+≈5.89
+β .
+(19)
+With β = 1.0, the transition therefore spans approximately
+six denoising steps under the 50-step sampling schedule,
+accounting for about 12% of the complete trajectory. This
+setting provides a sufficiently smooth activation process to
+avoid abrupt adapter intervention while retaining clear tem-
+poral selectivity.
+
+
+13
+(a) Energy fluctuation on down_blocks
+(b) Energy fluctuation on mid_block
+(c) Energy fluctuation on up_block
+Fig. 9. Evolution of projection energy across different U-Net blocks during training. We visualize the energy fluctuations within the down-sampling, middle,
+and up-sampling layers. The solid lines represent the smoothed mean energy, while the shaded regions indicate the min-max ranges. As training progresses,
+we observe a consistent decay in the projection magnitude across all layers. This declining trend demonstrates that the internal feature representations are
+progressively adapting and shifting, effectively reflecting the ongoing modification and erasure of the target concept.
+TABLE VIII
+LAYER-WISE SUBSPACE-RANK STATISTICS FOR THE CONCEPT “ARIANA GRANDE.” MORE THAN 99% OF THE SEMANTICALLY WEIGHTED VARIANCE IS
+RETAINED USING ONLY 6-12 PRINCIPAL DIRECTIONS, EACH OCCUPYING LESS THAN 2% OF THE CORRESPONDING CHANNEL DIMENSION.
+Cross-Attention Layer
+Channel Dimension (Cl)
+Retained Variance
+Rank (K)
+Capacity Ratio
+mid_block.attentions.0...attn2
+1280
+0.9906
+8
+0.62%
+up_blocks.1.attentions.0...attn2
+1280
+0.9903
+10
+0.78%
+up_blocks.1.attentions.1...attn2
+1280
+0.9910
+7
+0.55%
+up_blocks.1.attentions.2...attn2
+1280
+0.9933
+6
+0.47%
+up_blocks.2.attentions.0...attn2
+640
+0.9911
+12
+1.88%
+up_blocks.2.attentions.1...attn2
+640
+0.9911
+10
+1.56%
+up_blocks.2.attentions.2...attn2
+640
+0.9911
+9
+1.41%
+Average / Total
+–
+> 0.99
+Avg: 8.86 (Total: 62)
+Avg: 1.04%
+(a) Target Concept Erasure
+(b) Near-Neighbor Preservation
+(c) General COCO Preservation
+Fig. 10.
+Ablation analysis of the regularization weight λ under three evaluation settings: target concept erasure, near-neighbor preservation, and general
+COCO preservation. For target concept erasure, we report both Target CS and Target FID to characterize the erasure-preservation trade-off. For near-neighbor
+and COCO preservation, we report FID to measure distributional fidelity under different λ values. Star markers indicate the selected concept-specific λ that
+achieves the best trade-off.
+H. Extended Qualitative Results
+a) Artistic Style Erasure and Neighboring Concept
+Preservation.: Table IX evaluates single- and multi-style era-
+sure using Target CS (↓) and preservation FID (↓). GRACE
+consistently achieves a better balance between target-style
+removal and the preservation of neighboring styles and general
+generation quality.
+b) Scalability in Massive Multi-Concept Erasure.: We
+evaluate GRACE by increasing the number of erased celebrity
+identities from 10 to 50. As shown in Fig. 11, GRACE removes
+target-specific identity features, such as those of Amanda
+Seyfried, while preserving non-target identities and visual
+quality, as illustrated by Adele.
+This scalability arises from the energy-gated composition of
+concept-specific adapters: only adapters whose sensitive sub-
+spaces are sufficiently activated contribute during inference,
+while their residuals are additively combined.
+c) Qualitative Visualization of Cross-Model Concept
+Erasure.: Fig. 12 presents qualitative erasure results on SDXL
+for nudity, Van Gogh style, and Snoopy. GRACE effectively
+suppresses the corresponding sensitive content, stylistic char-
+acteristics, and character-specific features while maintaining
+natural generation quality, further demonstrating its applica-
+bility across diffusion architectures.
+
+
+14
+TABLE IX
+QUANTITATIVE COMPARISON OF ERASING ARTISTIC STYLES (VAN GOGH AND PICASSO). WE REPORT THE CLIP SCORE (CS) AND FID FOR THE
+ERASED CONCEPTS, PRESERVED NEIGHBORING CONCEPTS (MONET AND REMBRANDT), AND GENERAL GENERATION QUALITY.
+Method
+Van Gogh
+Picasso
+Monet
+Rembrandt
+General
+CS ↓
+FID ↑
+CS ↓
+FID ↑
+CS ↑
+FID ↓
+CS ↑
+FID ↓
+CS ↑
+FID ↓
+Task 1: Erasing Van Gogh
+SD v1.5
+28.38
+-
+28.79
+-
+28.52
+-
+28.75
+-
+26.73
+-
+ESD
+21.88
+195.76
+26.16
+94.88
+25.54
+94.43
+26.72
+90.54
+26.43
+21.96
+Speed
+23.20
+166.40
+27.61
+70.49
+27.93
+35.03
+27.34
+43.59
+26.32
+18.55
+SPM
+22.26
+198.65
+27.98
+55.39
+28.48
+62.14
+28.51
+43.89
+26.35
+19.22
+Co-Erasing
+21.60
+192.34
+26.37
+92.15
+25.79
+81.86
+26.58
+88.72
+25.97
+23.89
+MACE
+22.63
+178.52
+26.91
+85.64
+27.09
+98.37
+27.47
+79.25
+25.12
+27.53
+Ours
+21.79
+199.79
+28.42
+28.32
+28.37
+30.71
+28.69
+35.85
+26.61
+18.21
+Task 2: Erasing Picasso
+ESD
+27.55
+104.43
+24.15
+170.59
+25.29
+96.48
+28.00
+91.24
+25.64
+22.62
+Speed
+28.27
+39.79
+24.37
+139.43
+27.86
+36.32
+28.56
+44.31
+26.08
+19.93
+SPM
+28.36
+45.70
+21.40
+183.57
+28.50
+42.73
+28.74
+41.43
+26.17
+19.24
+Co-Erasing
+27.30
+91.87
+20.61
+167.24
+24.91
+93.91
+27.85
+89.68
+25.33
+21.55
+MACE
+27.78
+102.15
+23.05
+158.63
+26.17
+104.46
+28.27
+76.72
+25.67
+24.87
+Ours
+27.29
+35.12
+21.25
+175.35
+28.46
+32.95
+28.71
+34.27
+26.35
+19.29
+Task 3: Erasing Van Gogh & Picasso
+ESD
+20.45
+171.26
+20.68
+145.27
+28.09
+111.45
+25.79
+114.73
+24.84
+28.12
+Speed
+20.12
+180.42
+21.42
+177.32
+28.32
+48.37
+27.89
+46.38
+25.76
+23.34
+SPM
+21.39
+201.37
+21.72
+173.46
+28.33
+53.28
+28.63
+57.04
+26.02
+23.27
+Co-Erasing
+20.78
+195.68
+19.74
+169.93
+25.61
+105.17
+26.97
+100.34
+24.69
+24.01
+MACE
+21.86
+182.49
+20.29
+161.75
+26.98
+110.29
+27.71
+105.36
+23.64
+27.92
+Ours
+21.04
+182.57
+21.05
+175.18
+28.36
+33.41
+28.67
+37.39
+26.27
+20.75
+Original:
+Prompt:
+a) “A portrait of Amanda Seyfried”
+b) “A portrait of Adele”
+Speed
+MACE
+Co-erasing
+Ours
+10
+celeb
+20
+celeb
+50
+celeb
+Fig. 11.
+Visual comparison of multi-concept erasure on celebrities. Red and green boxes indicate the erased target concepts and the preserved non-target
+concepts, respectively. As the number of erased celebrities scales from 10 to 50, our method precisely removes the target identities while exhibiting exceptional
+preservation performance on non-target concepts, as evidenced by the effective suppression of Amanda Seyfried and the high-quality preservation of Adele.
+Target 
+Concept
+Neighbor 
+Concept
+Fig. 12. Qualitative visualization of targeted concept erasure in SDXL. We conduct individual erasure for nude content, Van Gogh artistic style and Snoopy
+character concept. The subsequent image set presents the visual manifestation and implicit concept influence shift of the model, verifying the effectiveness of
+our concept suppression and erasure strategy.

@@ -6,45 +6,47 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-09-16
-- 运行时间：2026-09-16 22:49:24 UTC
+- 最新运行日期：2026-09-08 ~ 2026-09-17
+- 运行时间：2026-09-17 08:20:31 UTC
 - 运行状态：成功
 - 本次总论文数：8
 - 精读区：0
 - 速读区：8
 
 ### 今日简报（AI）
-今日速读8篇，聚焦流匹配策略约束、扩散策略泛化与粒子GFlowNets，其中ActSafeGuard以7.0分居首。最值得关注的是可微分约束执行如何让流匹配策略更安全、障碍感知表征如何提升扩散策略的泛化性。普通读者可优先了解ActSafeGuard的思路，再留意机器人与生成模型结合的安全部署进展。
-- 详情：[/202609/16/README](/202609/16/README)
+- 今日共生成 8 篇推荐（精读 0 篇，速读 8 篇）
+- 速读：《DA-DLM: Explicitly Modeling Token Dependencies in Diffusion Language Models》（7.0/10）, 《Certifying Concept Unlearning in Text-to-Image Diffusion Models》（6.0/10）, 《GLARE: Generative Learning via Adversarial Reward Estimation For Social Dynamics Forecasting》（6.0/10）
+- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
+- 详情：[/20260908-20260917/README](/20260908-20260917/README)
 
 ### 精读区论文标签
 - 本次无精读推荐。
 
 ### 速读区论文标签
-1. [ActSafeGuard: Differentiable and Training-Aligned Constraint Enforcement for Flow-Matching Policies](/202609/16/2609.11697v2-actsafeguard-differentiable-and-training-aligned-constraint-enforcement-for-flow-matching-policies)  
-   标签：评分：7.0/10、query:self-driving
-   evidence：面向VLA与世界动作模型的约束执行
-2. [ObstaDiff: Generalizable Diffusion Policy Learning via Obstacle-aware Representations](/202609/16/2609.10918v1-obstadiff-generalizable-diffusion-policy-learning-via-obstacle-aware-representations)  
+1. [DA-DLM: Explicitly Modeling Token Dependencies in Diffusion Language Models](/20260908-20260917/2609.15070v1-da-dlm-explicitly-modeling-token-dependencies-in-diffusion-language-models)  
+   标签：评分：7.0/10、query:gen-models
+   evidence：扩散语言模型显式建模词元依赖以提升文本生成
+2. [Certifying Concept Unlearning in Text-to-Image Diffusion Models](/20260908-20260917/2609.12163v1-certifying-concept-unlearning-in-text-to-image-diffusion-models)  
    标签：评分：6.0/10、query:gen-models
-   evidence：扩散策略学习
-3. [Particle GFlowNets: Rethinking Generative Marginalization Models](/202609/16/2609.11538v1-particle-gflownets-rethinking-generative-marginalization-models)  
+   evidence：文生图扩散模型概念遗忘认证
+3. [GLARE: Generative Learning via Adversarial Reward Estimation For Social Dynamics Forecasting](/20260908-20260917/2609.12165v1-glare-generative-learning-via-adversarial-reward-estimation-for-social-dynamics-forecasting)  
    标签：评分：6.0/10、query:gen-models
-   evidence：生成流网络与生成边缘化模型
-4. [A Multi-Vehicle Dataset with Camera, LiDAR, and Radar Sensors and Scanned 3D Models for Custom Auto-Annotation using RTK-GNSS](/202609/16/2609.12871v1-a-multi-vehicle-dataset-with-camera-lidar-and-radar-sensors-and-scanned-3d-models-for-custom-auto-annotation-using-rtk-gnss)  
+   evidence：用于条件语言生成的对抗式生成学习
+4. [DRS-VPT: Directly Relocalizing in a Scan with Vision Point Transformers](/20260908-20260917/2609.12557v1-drs-vpt-directly-relocalizing-in-a-scan-with-vision-point-transformers)  
    标签：评分：6.0/10、query:self-driving
-   evidence：含相机激光雷达雷达的自动驾驶感知数据集
-5. [FFVO: A Feedforward Pose Decoder for Long-Horizon Visual Odometry](/202609/16/2609.13733v1-ffvo-a-feedforward-pose-decoder-for-long-horizon-visual-odometry)  
+   evidence：自动驾驶感知与相机-LiDAR配准
+5. [GRACE: Adaptive Concept Erasure with Geometry-Guided Retention in Diffusion Models](/20260908-20260917/2609.12731v1-grace-adaptive-concept-erasure-with-geometry-guided-retention-in-diffusion-models)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：扩散模型概念擦除与图像生成
+6. [Generative bootstrap processes](/20260908-20260917/2609.13471v1-generative-bootstrap-processes)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：涵盖流匹配与分数扩散生成模型的理论
+7. [Learning Through Energy Refinement and Manifold Projection: A Cooperative EBM-AE Framework](/20260908-20260917/2609.13917v1-learning-through-energy-refinement-and-manifold-projection-a-cooperative-ebm-ae-framework)  
+   标签：评分：6.0/10、query:gen-models
+   evidence：能量基生成建模与自编码器细化
+8. [Multi-Task Visual Perception Network with LLM Conditioning for Autonomous Navigation](/20260908-20260917/2609.14297v1-multi-task-visual-perception-network-with-llm-conditioning-for-autonomous-navigation)  
    标签：评分：6.0/10、query:self-driving
-   evidence：面向自动驾驶的视觉里程计
-6. [Learning Through Energy Refinement and Manifold Projection: A Cooperative EBM-AE Framework](/202609/16/2609.13917v1-learning-through-energy-refinement-and-manifold-projection-a-cooperative-ebm-ae-framework)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：结合自编码器流形投影的能量生成建模
-7. [Rethinking Camouflage Image Generation towards a Training-Free Paradigm](/202609/16/2609.14377v1-rethinking-camouflage-image-generation-towards-a-training-free-paradigm)  
-   标签：评分：6.0/10、query:gen-models
-   evidence：免训练的伪装图像生成
-8. [Converting Sequenced Fuzzy Cognitive Maps to Causal Virtual Worlds with Large Video Generators](/202609/16/2609.14985v1-converting-sequenced-fuzzy-cognitive-maps-to-causal-virtual-worlds-with-large-video-generators)  
-   标签：评分：6.0/10、query:causal-rep
-   evidence：用视频生成器构建因果虚拟世界
+   evidence：面向自主导航的LLM条件化视觉感知
 
 
 <div class="dpr-home-promo-card">
